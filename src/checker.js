@@ -27,7 +27,7 @@
   const UNINK = 0.22;       // a char fails when more than this share of its ink matches no stroke of the expected char
   const KCOARSE = 24;       // competitors taken from the coarse ranking
   const KNEIGH = 12;        // competitors taken from the expected template's own coarse neighbours
-  const KFINE = 8;          // closest competitors re-scored with the finer distance
+  const KFINE = 6;          // closest competitors re-scored with the finer distance
   let KAPPA = 0.45;         // decision point between two close templates (0.5 = halfway)
   const GRID = 8;           // coarse feature grid
   const AFF = 0.8;          // how far the per-template affine alignment may go (0 = off)
@@ -306,7 +306,7 @@
     return lastRev ? r : f;
   }
   // Same with a little dynamic time warping (band DTWR), so strokes with different proportions still line up.
-  const DTWR = 3;
+  const DTWR = 2;
   const dtwBuf = new Float64Array(NP * NP);
   function dtw(A, B, rev) {
     const D = dtwBuf, INF = 1e9;
@@ -507,7 +507,7 @@
   function judge(S, G, expSet) {
     // 1. plain costs for the expected chars and every plausible competitor
     const plain = new Map();
-    const pc = (ch) => { let c = plain.get(ch); if (c === undefined) { c = match(G, getT(ch), false, false); plain.set(ch, c); } return c; };
+    const pc = (ch) => { let c = plain.get(ch); if (c === undefined) { c = assign(G.st, G.ch, getT(ch), false).cost; plain.set(ch, c); } return c; };
     for (const e of expSet) pc(e);
     const comp = new Set();
     for (const [c] of coarseRank(coarseFeat(groupPolys(S, G)), KCOARSE)) comp.add(c);
@@ -587,7 +587,8 @@
       let tn = Infinity, tx = 0;
       for (const c of p.opts) { const k = getT(c).n; tn = Math.min(tn, k); tx = Math.max(tx, k); }
       // kana are often written with joined strokes; kanji much less
-      const lo = Math.max(1, kindOf(p.ch) === 0 ? Math.ceil(tn * 0.45) : Math.ceil(tn / 3)), hi = tx + 3;
+      const kanji = kindOf(p.ch) === 0;
+      const lo = Math.max(1, kanji ? Math.ceil(tn * 0.45) : Math.ceil(tn / 3)), hi = tx + (kanji && tx > 8 ? 2 : 3);
       let floor = INF;
       for (let k = 0; k <= n; k++) if (dp[i][k] < floor) floor = dp[i][k];
       for (let k = 0; k <= n; k++) {
@@ -707,7 +708,11 @@
       }
       if (why) allOk = false;
       text += ch;
-      const c = { ch, ok: !why, why };
+      // a failing position names the character that was asked for (what the student should have written)
+      // (got: what it looked more like, when known)
+      const got = why === "shape" ? j.other : why === "small" ? LARGE2SMALL.get(ch) : why === "large" ? SMALL2LARGE.get(ch) : null;
+      const c = why ? { ch: p.ch, ok: false, why } : { ch, ok: true, why: null };
+      if (got) c.got = got;
       if (dbg) Object.assign(c, { cost: +j.cost.toFixed(3), other: j.other, otherCost: +j.otherCost.toFixed(3) });
       chars.push(c);
     });
@@ -767,6 +772,7 @@
       }
       if (!seg) continue;
       const res = evaluate(S, P, seg, jcache, opts.debug);
+      if (!res.ok) res.text = info.text; // closest candidate as given; text is the matched writing only when ok
       if (opts.debug) (all = all || []).push({ cand: info.text, ok: res.ok, text: res.text, chars: res.chars, groups: res.groups, size: res.size });
       if (!best || better(res, best)) best = res;
       if (best.ok) break;

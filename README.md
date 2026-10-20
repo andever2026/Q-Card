@@ -55,8 +55,10 @@ Edit files in `src/`, then build and commit the built files with your change.
 
 ```sh
 node test/public/run.mjs          # sign-in, import, practice, own-key checks, key storage, CSP (Playwright)
-node test/checker/eval.mjs        # built-in checker accuracy
+node test/checker/eval.mjs --vocab <folder of vocab files>   # built-in checker accuracy and speed
 ```
+
+See [test/checker/README.md](test/checker/README.md) for how the checker works, its accuracy numbers and its weak spots. `test/checker/demo.html` is a standalone writing box for trying it out.
 
 The public-site tests swap Firebase for an in-memory fake (`test/public/fake-firebase.js`) and mock Anthropic's API, so they need no accounts or keys.
 
@@ -96,4 +98,5 @@ Q-Card is licensed under the [GNU Affero General Public License v3.0](LICENSE).
 - Handwriting templates in `data/templates.json` are derived from [KanjiVG](https://kanjivg.tagaini.net), © Ulrich Apel, licensed under [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). That file is shared under the same license.
 - Kanji readings come from [KANJIDIC](https://www.edrdg.org/wiki/index.php/KANJIDIC_Project), © the Electronic Dictionary Research and Development Group, licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 - The built site bundles the [Firebase JS SDK](https://github.com/firebase/firebase-js-sdk) (Apache-2.0) and the [Anthropic TypeScript SDK](https://github.com/anthropics/anthropic-sdk-typescript) (MIT).
+- The checker's accuracy tests can also use hand-drawn characters from [KanjiCanvas](https://github.com/asdfjkl/kanjicanvas) (MIT) and the Tomoe dictionary via [tegaki](https://github.com/tegaki/tegaki) (LGPL). You download them yourself to run those tests; they aren't part of the site or this repository.
 - Fonts: Klee One and Zen Kaku Gothic New from Google Fonts (SIL Open Font License).

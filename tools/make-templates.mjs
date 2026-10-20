@@ -183,7 +183,7 @@ async function main() {
   }
   const json = {
     version: 1,
-    license: "Stroke data derived from KanjiVG (https://kanjivg.tagaini.net), Copyright (C) 2009-2025 Ulrich Apel, " +
+    license: "Stroke data derived from KanjiVG (https://kanjivg.tagaini.net), Copyright (C) 2009/2010/2011 Ulrich Apel, " +
       "licensed under the Creative Commons Attribution-Share Alike 3.0 licence (https://creativecommons.org/licenses/by-sa/3.0/). " +
       "This derived file (resampled, simplified, quantized strokes) is distributed under the same licence. Built by tools/make-templates.mjs.",
     unit: UNIT,
