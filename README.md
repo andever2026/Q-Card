@@ -10,7 +10,7 @@ Q-Card is a flashcard site for Japanese vocabulary that checks your handwriting.
 - **Your own vocab.** Everyone brings their own lists: import a vocab file someone shared with you, or type sets into the vocab table. Q-Card ships no textbook lists.
 - **Private per person.** Sign in with Google; your sets, kanji lists and practice history live in your own space in the database.
 - **Two ways to check answers:**
-  - **Built-in checker** (default, free). Compares your strokes with stroke templates for kana and about 2,000 kanji, right in the browser. Your writing never leaves your device. It's less accurate than Claude, so you can always count an answer as correct yourself. 日本語 → English answers are marked by you.
+  - **Built-in checker** (default, free). Compares your strokes with stroke templates for kana and about 2,150 kanji, right in the browser. Your writing never leaves your device. It's less accurate than Claude, so you can always count an answer as correct yourself. 日本語 → English answers are marked by you.
   - **Claude, with your own API key.** Claude reads your writing the way a teacher would, furigana included. Each check is billed to your own Anthropic account.
 
 ## Your API key
