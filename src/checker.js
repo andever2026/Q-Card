@@ -23,13 +23,12 @@
   const MARGIN_V = 0.008;   // ... than a close variant (dakuten, small/large, the other kana script)
   const MARGIN_S = 0.03;    // ... than the same kana in the other script (や/ヤ): crude hiragana often looks angular
   const MARGIN_X = 0.05;    // ... than a char of another kind (a kanji when kana is expected, or the reverse)
-  let CEIL = 0.24;
-  const UNINK = 0.22;
-  const SHAPE_LEN = 0.35, SHAPEW = 0.3; // shape term for template strokes shorter than SHAPE_LEN       // a char fails when more than this share of its ink matches no stroke of the expected char        // a char costing more than this never passes
+  let CEIL = 0.21;          // a char costing more than this never passes
+  const UNINK = 0.22;       // a char fails when more than this share of its ink matches no stroke of the expected char
   const KCOARSE = 24;       // competitors taken from the coarse ranking
   const KNEIGH = 12;        // competitors taken from the expected template's own coarse neighbours
-  const KFINE = 8;
-  let KAPPA = 0.45;         // decision point between two close templates (0.5 = halfway)          // closest competitors re-scored with the finer distance
+  const KFINE = 8;          // closest competitors re-scored with the finer distance
+  let KAPPA = 0.45;         // decision point between two close templates (0.5 = halfway)
   const GRID = 8;           // coarse feature grid
   const AFF = 0.8;          // how far the per-template affine alignment may go (0 = off)
   const AFFPEN = 0.02;      // cost per unit of affine deformation
@@ -286,7 +285,7 @@
   // Mean point distance between two resampled strokes, forward or reversed (reversal costs a little).
   let lastRev = false;
   // local point cost: plain distance, or (SQ) a Huber-robust squared distance
-  let SQ = true;
+  let SQ = true;            // robust squared distances (false: plain mean distances)
   const HUB = 0.12;
   function lc(dx, dy) {
     const d2 = dx * dx + dy * dy;
@@ -524,7 +523,7 @@
     for (const e of expSet) { const c = fc(e); if (c < ce) { ce = c; bestE = e; } }
     // a lot of ink that belongs to no stroke of the expected char (an extra character merged in, scribbles)
     const det = match(G, getT(bestE), true, JUDGE_DTW);
-    if (det.unInk > UNINK) return { ok: false, ch: bestE, cost: ce, other: null, otherCost: Infinity, unInk: det.unInk };
+    if (det.unInk > UNINK || det.extraU >= 2) return { ok: false, ch: bestE, cost: ce, other: null, otherCost: Infinity, unInk: det.unInk };
     const kind = kindOf(bestE);
     let co = Infinity, other = null, bar = Infinity;
     // the expected char passes when it is (nearly) as close as every competitor; for competitors whose template is
@@ -677,6 +676,11 @@
     const chars = [], sizes = [];
     let text = "", allOk = true;
     const views = seg.groups.map((g) => (g ? groupView(S, g) : null));
+    // line em from the characters' sizes, to spot a group that is far too wide (an extra character merged in)
+    const ems = [];
+    P.forEach((p, k) => { if (views[k] && !p.optional && p.ch !== "ー") { const [sz] = expectedBox(p.opts[0]); if (sz >= 0.25) ems.push(views[k].f.s / sz); } });
+    ems.sort((a, b) => a - b);
+    const lineEmRef = ems.length >= 3 ? ems[ems.length >> 1] : 0;
     P.forEach((p, i) => {
       const G = views[i];
       if (!G) {
@@ -688,6 +692,10 @@
       if (!j) { j = judge(S, G, p.opts); jcache.set(key, j); }
       let why = j.ok ? null : "shape";
       const ch = j.ch || p.ch;
+      if (!why && lineEmRef) {
+        const t = getT(ch), f = SMALL2LARGE.has(ch) ? SMALLF : 1;
+        if (G.f.w / lineEmRef > t.w * f * 1.5 + 0.4) why = i === P.length - 1 ? "extra" : "shape";
+      }
       if (j.ok && (SMALL2LARGE.has(ch) || LARGE2SMALL.has(ch))) {
         const ev = sizeEvidence(views, P, i, ch);
         if (ev) {
