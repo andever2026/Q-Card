@@ -1,0 +1,29 @@
+{
+ "app": "jp-vocab-practice",
+ "version": 1,
+ "exportedAt": "2026-10-20T12:00:00Z",
+ "sets": [
+  {
+   "id": "sample-ch1-a", "book": "Sample", "chapter": 1, "section": "A", "label": "Food and drink",
+   "words": [
+    { "id": "s1", "en": "to eat", "kana": "たべる", "kanji": "食べる" },
+    { "id": "s2", "en": "to drink", "kana": "のむ", "kanji": "飲む" },
+    { "id": "s3", "en": "water", "kana": "みず", "kanji": "水" },
+    { "id": "s4", "en": "coffee", "kana": "コーヒー", "kanji": "" },
+    { "id": "s5", "en": "school", "kana": "がっこう", "kanji": "学校" },
+    { "id": "s6", "en": "weather", "kana": "（お）てんき", "kanji": "（お）天気" }
+   ]
+  },
+  {
+   "id": "sample-ch1-b", "book": "Sample", "chapter": 1, "section": "B", "label": "People",
+   "words": [
+    { "id": "s7", "en": "person", "kana": "ひと", "kanji": "人" },
+    { "id": "s8", "en": "teacher", "kana": "せんせい", "kanji": "先生" },
+    { "id": "s9", "en": "student", "kana": "がくせい", "kanji": "学生" }
+   ]
+  }
+ ],
+ "kanji": [ { "id": "sample-ch1", "book": "Sample", "chapter": 1, "kanji": "食飲水学校天気人先生" } ],
+ "books": { "order": ["Sample"] },
+ "courses": null
+}

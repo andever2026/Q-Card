@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checker Demo</title>
+<style>
+  :root { --bg: #fafafa; --fg: #1d1d1f; --muted: #6b6b70; --line: #c9c9ce; --ok: #1a7f37; --bad: #c62828; --pad: #ffffff; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #18181a; --fg: #ececf0; --muted: #9a9aa2; --line: #45454b; --ok: #4cc26a; --bad: #ff6b6b; --pad: #222226; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, sans-serif; }
+  main { max-width: 820px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.note { color: var(--muted); margin: 0 0 12px; }
+  canvas { display: block; width: 100%; height: clamp(120px, 20vw, 190px); background: var(--pad); border: 1px solid var(--line); border-radius: 8px; touch-action: none; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+  input[type=text] { flex: 1 1 240px; min-width: 0; padding: 8px 10px; font-size: 16px; border: 1px solid var(--line); border-radius: 6px; background: var(--pad); color: var(--fg); }
+  button { padding: 8px 14px; font-size: 15px; border: 1px solid var(--line); border-radius: 6px; background: var(--pad); color: var(--fg); cursor: pointer; }
+  #out { white-space: pre-wrap; font: 13px/1.5 ui-monospace, monospace; background: var(--pad); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow-x: auto; }
+  .ok { color: var(--ok); font-weight: 600; } .bad { color: var(--bad); font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Q-Card offline checker</h1>
+  <p class="note">Write the answer in the box, list the acceptable answers (comma separated) and press Check. Serve the repository root over HTTP (for example <code>npx http-server</code> or <code>python3 -m http.server</code>) and open /test/checker/demo.html.</p>
+  <canvas id="pad"></canvas>
+  <div class="row">
+    <input id="cands" type="text" value="たべる,食べる" aria-label="Candidates">
+    <label><input id="anyKana" type="checkbox"> any kana script</label>
+    <button id="check">Check</button><button id="undo">Undo</button><button id="clear">Clear</button>
+  </div>
+  <div id="out">Loading templates…</div>
+</main>
+<script src="../../src/checker.js"></script>
+<script>
+(function () {
+  const pad = document.getElementById("pad"), out = document.getElementById("out");
+  const ctx = pad.getContext("2d");
+  let strokes = [], cur = null, ready = false;
+  function size() {
+    const r = pad.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+    pad.width = Math.round(r.width * d); pad.height = Math.round(r.height * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0); draw();
+  }
+  function draw() {
+    const r = pad.getBoundingClientRect();
+    ctx.clearRect(0, 0, r.width, r.height);
+    ctx.strokeStyle = getComputedStyle(document.body).color; ctx.lineWidth = 4; ctx.lineCap = ctx.lineJoin = "round";
+    for (const s of strokes) { ctx.beginPath(); s.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); if (s.length === 1) ctx.lineTo(s[0][0] + 0.1, s[0][1]); ctx.stroke(); }
+  }
+  const pos = (e) => { const r = pad.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  pad.addEventListener("pointerdown", (e) => { pad.setPointerCapture(e.pointerId); cur = [pos(e)]; strokes.push(cur); draw(); });
+  pad.addEventListener("pointermove", (e) => { if (!cur) return; for (const ev of e.getCoalescedEvents ? e.getCoalescedEvents() : [e]) cur.push(pos(ev)); draw(); });
+  const up = () => { cur = null; };
+  pad.addEventListener("pointerup", up); pad.addEventListener("pointercancel", up);
+  document.getElementById("clear").onclick = () => { strokes = []; draw(); };
+  document.getElementById("undo").onclick = () => { strokes.pop(); draw(); };
+  document.getElementById("check").onclick = () => {
+    if (!ready) return;
+    const r = pad.getBoundingClientRect();
+    const candidates = document.getElementById("cands").value.split(/[,、]/).map((s) => s.trim()).filter(Boolean);
+    const res = QCardChecker.verify({ strokes, candidates, box: { w: r.width, h: r.height }, anyKana: document.getElementById("anyKana").checked });
+    const top = QCardChecker.top(strokes, { w: r.width, h: r.height }, 8);
+    const verdict = res.ok === true ? '<span class="ok">correct</span>' : res.ok === false ? '<span class="bad">not accepted</span>' : "cannot check (no template for " + res.unsupported.join(" ") + ")";
+    out.innerHTML = verdict + "  " + esc(res.text) + "  (" + res.ms + " ms)\n\n" +
+      res.chars.map((c, i) => (i + 1) + ". " + (c.ch || "(extra)") + "  " + (c.ok ? "ok" : c.why) + (c.got && c.got !== c.ch ? "  (read as " + c.got + ")" : "")).map(esc).join("\n") +
+      "\n\nwhole writing as one character, best matches:\n" + top.map((t) => esc(t.ch) + " " + t.cost).join("   ");
+  };
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  window.addEventListener("resize", size); size();
+  fetch("../../data/templates.json").then((r) => r.json()).then((j) => {
+    const info = QCardChecker.init(j); ready = true;
+    out.textContent = "Ready: " + info.chars + " character templates loaded in " + info.ms.toFixed(0) + " ms.";
+  }).catch((e) => { out.textContent = "Could not load templates: " + e; });
+})();
+</script>
+</body>
+</html>
