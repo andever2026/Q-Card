@@ -127,6 +127,52 @@ data = await fsData(page);
 const hist = Object.entries(data).filter(([p]) => /^users\/u1\/data\/t\d/.test(p));
 ok(hist.length === 1 && hist[0][1].words.length === 3, "history: one session with 3 words saved under users/u1/data/", String(hist.length));
 
+// ---------- 3b. English → 日本語 with the built-in checker (synthetic handwriting from test/checker/synth.mjs) ----------
+if (entry.length > 1) {
+  const { writeWord } = await import("../checker/synth.mjs");
+  const fixture = JSON.parse(readFileSync(join(root, "test/public/fixtures/sample-export.json"), "utf8"));
+  const byEn = new Map(fixture.sets.flatMap((s) => s.words).map((w) => [w.en, w]));
+  const write = async (str, seed) => {
+    const b = await (await page.$("#mainPad")).boundingBox();
+    const { strokes, box } = writeWord(str, seed, { boxW: b.width, boxH: b.height, level: 0.3, mouse: false, swap: 0, reverse: 0, join: 0, lateDakuten: 0 });
+    const k = Math.min(1, b.width / box.w, b.height / box.h);
+    for (const s of strokes) {
+      await page.mouse.move(b.x + s[0][0] * k, b.y + s[0][1] * k); await page.mouse.down();
+      for (const [x, y] of s.slice(1)) await page.mouse.move(b.x + x * k, b.y + y * k);
+      await page.mouse.up();
+    }
+  };
+  await page.click("#newBtn"); await page.waitForTimeout(200);
+  await page.click("#dir-ej"); await page.click("#startBtn"); await page.waitForTimeout(300);
+  const seen = [];
+  let r = 0;
+  while (await vis(page, "#quiz") && r++ < 12) {
+    const w = byEn.get(await text(page, "#qText"));
+    if (!w) { ok(false, "built-in: prompt is a fixture word", await text(page, "#qText")); break; }
+    const kana = w.kana.replace(/（[^）]*）/g, "").split("／")[0];
+    const step = seen.length;
+    // 1st word: kana; 2nd: another word's kana (must be wrong); 3rd: kanji; after that: kana
+    const other = [...byEn.values()].find((x) => x.kana !== w.kana && [...x.kana].length === [...kana].length) || { kana: "ねこ" };
+    const answer = step === 1 ? other.kana : step === 2 && w.kanji ? w.kanji : kana;
+    await write(answer, 7 + step); await page.click("#checkBtn"); await page.waitForTimeout(600);
+    const wrong = await vis(page, "#feedback"), self = await vis(page, "#selfCheck");
+    seen.push({ answer, wrong, self, reason: wrong ? await text(page, "#fbReason") : "" });
+    if (step === 0) ok(!wrong && !self, "built-in: correct kana is accepted", `${answer}${wrong ? " → " + seen[0].reason : ""}`);
+    if (step === 1) {
+      ok(wrong && !!seen[1].reason, "built-in: a different word is marked wrong, with a reason", `${answer} for ${kana}: ${seen[1].reason}`);
+      ok(/The checker misread/.test(await text(page, "#overrideBtn")), "built-in: override link names the checker");
+    }
+    if (step === 2) ok(!wrong && !self, "built-in: correct kanji is accepted", `${answer}${wrong ? " → " + seen[2].reason : ""}`);
+    if (self) await page.click("#selfGot");
+    else if (wrong) await page.click("#nextBtn");
+    await page.waitForTimeout(1300);
+  }
+  ok(await vis(page, "#results"), "built-in practice reaches the results page");
+  ok(await page.evaluate(() => window.QCardChecker.verify({ strokes: [[[0, 0], [10, 10]]], candidates: ["龘"], box: { w: 100, h: 100 } }).ok === null),
+    "built-in: a character without a template comes back unchecked (self-marked)");
+  // section 4 expects set B picked and the direction left at English → 日本語
+}
+
 // ---------- 4. own Claude key ----------
 await page.click("#newBtn"); await page.waitForTimeout(200);
 await page.click('[data-checker="claude"]');
