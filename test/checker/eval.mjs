@@ -23,6 +23,10 @@ const ONLY = opt.only ? new Set(String(opt.only).split(",")) : null;
 const tj = templates().json;
 const t0 = performance.now();
 const ii = C.init(tj);
+if (process.env.DTW) C._.setDTW(true);
+if (process.env.SQ) C._.set({ SQ: process.env.SQ === "1" });
+if (process.env.KAPPA) C._.set({ KAPPA: +process.env.KAPPA });
+if (process.env.CEIL) C._.set({ CEIL: +process.env.CEIL });
 const initMs = performance.now() - t0;
 const dataKB = fs.statSync(path.join(ROOT, "data/templates.json")).size / 1024;
 
@@ -121,7 +125,7 @@ function run(cat, mode, writes, cands, expectOk, extra = {}) {
   const seed = (R() * 1e9) | 0;
   const w = writeWord(writes, seed, { mode, realDir: opt.real, ...extra.write });
   if (mode === "real" && w.realChars < w.totalChars) return; // only words fully written from real patterns
-  const res = C.verify({ strokes: w.strokes, candidates: cands, box: w.box, ...extra.verify });
+  const res = C.verify({ strokes: w.strokes, candidates: cands, box: w.box, debug: !!opt.verbose, ...extra.verify });
   times.push({ ms: res.ms, len: [...writes].length, writes, cands, seed, n: w.strokes.length });
   row.n++;
   if (res.ok === true) row.acc++; else if (res.ok === false) row.rej++; else row.nul++;
@@ -176,6 +180,45 @@ for (const mode of modes) {
     }
   }
 }
+// ---------------------------------------------------------------- confusable pairs, one character at a time
+const PAIRS = [...CONF, ...[["か", "が"], ["は", "ば"], ["ば", "ぱ"], ["は", "ぱ"], ["た", "だ"], ["つ", "づ"], ["ふ", "ぶ"], ["へ", "べ"], ["ほ", "ぼ"], ["ほ", "ぽ"], ["シ", "ジ"], ["ハ", "バ"], ["バ", "パ"], ["ホ", "ポ"]]];
+const pairRows = [];
+if (!ONLY || ONLY.has("pairs")) {
+  const pn = +(opt.pairn || 12);
+  const R2 = realPatterns(opt.real || "/nonexistent");
+  for (const [x, y] of PAIRS) for (const [a, b] of [[x, y], [y, x]]) {
+    if (!tj.chars[a] || !tj.chars[b]) continue;
+    const row = { a, b, n: 0, acc: 0, rej: 0, rn: 0, racc: 0, rrej: 0 };
+    for (let k = 0; k < pn; k++) {
+      const w = writeWord(a, 7000 + k * 31 + a.codePointAt(0));
+      row.n++;
+      if (C.verify({ strokes: w.strokes, candidates: [a], box: w.box }).ok === true) row.acc++;
+      if (C.verify({ strokes: w.strokes, candidates: [b], box: w.box }).ok === false) row.rej++;
+    }
+    if (opt.real && R2.has(a)) for (let k = 0; k < R2.get(a).length; k++) {
+      const w = writeWord(a, 9000 + k, { mode: "real", realDir: opt.real, level: 0.5 });
+      row.rn++;
+      if (C.verify({ strokes: w.strokes, candidates: [a], box: w.box }).ok === true) row.racc++;
+      if (C.verify({ strokes: w.strokes, candidates: [b], box: w.box }).ok === false) row.rrej++;
+    }
+    pairRows.push(row);
+  }
+}
+// every hand-drawn character on its own
+const singleRows = {};
+if (opt.real && (!ONLY || ONLY.has("single"))) {
+  for (const [ch, pats] of realPatterns(opt.real)) {
+    if (!C.has(ch)) continue;
+    pats.forEach((pat, k) => {
+      const kind = pat.src + (/[\u3040-\u30ff]/.test(ch) ? " kana" : " kanji");
+      const w = writeWord(ch, 5000 + k + ch.codePointAt(0), { mode: "real", realDir: opt.real, level: 0, swap: 0, reverse: 0, join: 0, mouse: false, pick: k });
+      const res = C.verify({ strokes: w.strokes, candidates: [ch], box: w.box, debug: !!opt.verbose });
+      const r = (singleRows[kind] = singleRows[kind] || { n: 0, acc: 0, fails: [] });
+      r.n++;
+      if (res.ok) r.acc++; else if (r.fails.length < 60) r.fails.push(ch + "->" + (res.chars[0] ? (res.chars[0].other || "") + " " + res.chars[0].cost + "/" + res.chars[0].otherCost : ""));
+    });
+  }
+}
 const total = performance.now() - tStart;
 
 // ---------------------------------------------------------------- report
@@ -188,7 +231,21 @@ for (const r of rows.sort((a, b) => (a.cat < b.cat ? -1 : a.cat > b.cat ? 1 : a.
   if (!r.expectOk && r.mode === "synth") { nn += r.n; nr += r.rej; }
 }
 console.log(`\nall near-miss (synth): rejected ${pct(nr, nn)} of ${nn}`);
+if (pairRows.length) {
+  console.log(`\nconfusable pairs, single characters (write A, check against A and against B):`);
+  console.log("A  B    synth: accept-as-A  reject-as-B    real: n  accept-as-A  reject-as-B");
+  let n = 0, a = 0, rj = 0, rn = 0, ra = 0, rr = 0;
+  for (const r of pairRows) {
+    console.log(`${r.a}  ${r.b}         ${pct(r.acc, r.n).padStart(7)}      ${pct(r.rej, r.n).padStart(7)}         ${String(r.rn).padStart(2)}  ${r.rn ? pct(r.racc, r.rn).padStart(7) : "      -"}      ${r.rn ? pct(r.rrej, r.rn).padStart(7) : "      -"}`);
+    n += r.n; a += r.acc; rj += r.rej; rn += r.rn; ra += r.racc; rr += r.rrej;
+  }
+  console.log(`all pairs        ${pct(a, n).padStart(7)}      ${pct(rj, n).padStart(7)}       ${String(rn).padStart(4)}  ${pct(ra, rn).padStart(7)}      ${pct(rr, rn).padStart(7)}`);
+}
+for (const [k, r] of Object.entries(singleRows)) {
+  console.log(`single hand-drawn characters (${k}): accepted ${pct(r.acc, r.n)} of ${r.n}` + (opt.verbose ? "\n   misses: " + r.fails.join("  ") : ""));
+}
 const ms = times.map((t) => t.ms).sort((a, b) => a - b);
+if (!ms.length) ms.push(0);
 const q = (p) => ms[Math.min(ms.length - 1, Math.floor(p * ms.length))].toFixed(1);
 console.log(`verify time: median ${q(0.5)} ms, p95 ${q(0.95)} ms, max ${q(1)} ms over ${ms.length} calls (total ${(total / 1000).toFixed(1)} s)`);
 const six = times.filter((t) => t.len === 6).map((t) => t.ms).sort((a, b) => a - b);

@@ -173,7 +173,7 @@ export const SMALL_TO_LARGE = SMALL_MAP;
 
 // Character strokes in em units within a 1x1 cell, from real data if asked and available.
 // Returns { strokes, real: bool, tail: number of trailing strokes that are a dakuten/handakuten }
-export function charStrokes(ch, r, mode, realDir) {
+export function charStrokes(ch, r, mode, realDir, pick) {
   const T = tplStrokes(ch);
   if (mode === "real") {
     const R = realPatterns(realDir);
@@ -186,7 +186,7 @@ export function charStrokes(ch, r, mode, realDir) {
       return pat.map((st) => soften(st).map(([x, y]) => [tcx + (x - pcx) * s, tcy + (y - pcy) * s]));
     };
     if (R.has(ch)) {
-      const pat = r.pick(R.get(ch));
+      const pat = pick !== undefined ? R.get(ch)[pick % R.get(ch).length] : r.pick(R.get(ch));
       return { strokes: fit(pat.strokes, T), real: true, aug: false, tail: 0 };
     }
     // dakuten / handakuten on a real base: base from real data, marks from the template (in the base's frame)
@@ -222,7 +222,7 @@ export function writeWord(text, seed, opt = {}) {
   let realChars = 0, augChars = 0;
   const pendingTail = [];
   chars.forEach((ch, ci) => {
-    const cs = charStrokes(ch, r, o.mode, o.realDir);
+    const cs = charStrokes(ch, r, o.mode, o.realDir, o.pick);
     if (!cs.strokes) throw new Error("no strokes for " + ch);
     if (cs.real) realChars++;
     if (cs.aug) augChars++;
@@ -231,7 +231,8 @@ export function writeWord(text, seed, opt = {}) {
     // people write small kana clearly smaller than KanjiVG draws them: shrink towards the bottom of the cell
     if (SMALL_MAP[ch]) { const f = r.range(0.68, 0.88); src = src.map((s) => s.map(([u, v]) => [0.45 + (u - 0.45) * f, 0.9 + (v - 0.9) * f])); }
     const st = deformChar(src, r, cs.real ? o.level * 0.5 : o.level);
-    const mess = messOrder(st, r, o, cs.tail);
+    // stroke direction is what tells ン from ソ and シ from ツ, so people who know them do not reverse those strokes
+    const mess = messOrder(st, r, "ンソシツッ".includes(ch) ? { ...o, reverse: 0 } : o, cs.tail);
     const y0 = base + r.norm() * 0.05 * em + drift * x;
     const cellW = scale * r.range(0.95, 1.12);
     const pxs = mess.map((s) => s.map(([u, v]) => [x + u * scale, y0 + v * scale]));
