@@ -40,7 +40,7 @@ const base = `http://localhost:${server.address().port}/`;
 const browser = await chromium.launch();
 const apiCalls = [], allRequests = [];
 
-async function newPage(ctx, { width = 900, init, platform = platformJs } = {}) {
+async function newPage(ctx, { width = 900, init, initArg, platform = platformJs } = {}) {
   const page = await ctx.newPage();
   await page.setViewportSize({ width, height: 1000 });
   page.errors = [];
@@ -51,7 +51,7 @@ async function newPage(ctx, { width = 900, init, platform = platformJs } = {}) {
     window.__csp = [];
     document.addEventListener("securitypolicyviolation", (e) => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
   });
-  if (init) await page.addInitScript(init);
+  if (init) await page.addInitScript(init, initArg);
   await page.route("**/js/platform.js", (r) => r.fulfill({ contentType: "text/javascript", body: platform }));
   // Checking with a visitor's own API key was taken out; nothing should call Anthropic any more.
   await page.route("https://api.anthropic.com/**", (r) => { apiCalls.push(r.request().url()); return r.abort(); });
@@ -605,6 +605,24 @@ const gp = await newPage(await browser.newContext(), { init: () => {
 } });
 await gp.click("#startBtn"); await gp.waitForTimeout(300); await scribble(gp); await gp.click("#checkBtn"); await gp.waitForTimeout(200); await gp.click("#selfGot"); await gp.waitForTimeout(1500);
 ok(await vis(gp, "#results") && !(await gp.evaluate(() => document.querySelector("#shareAsk").open)) && !(await vis(gp, "#shareSet")), "share: a guest's 10th practice doesn't ask, and Settings has no sharing section");
+
+// ---------- 15. sample sets: an offer cut short is finished next time; an account with its own sets gets none ----------
+for (const [label, seed, want] of [
+  ["an offer cut short (the page closed midway) is finished next time", { "users/t2/sets/samples-food": { collection: "Sample sets", unit: "Week 2", name: "Food", words: [] } }, 6],
+  ["an account with its own sets and no record of the offer gets none", { "users/t2/sets/mine": { collection: "Mine", unit: "1", name: "A", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }] } }, 0],
+]) {
+  const c = await browser.newContext();
+  const p = await newPage(c, { init: (seed) => {
+    if (localStorage.getItem("fake:user")) return;
+    localStorage.setItem("fake:user", JSON.stringify({ uid: "t2", displayName: "Sample Test", email: "s@example.com" }));
+    localStorage.setItem("fake:fs", JSON.stringify(seed));
+  }, initArg: seed });
+  await p.waitForTimeout(800);
+  const d = await fsData(p), n = Object.keys(d).filter((k) => /^users\/t2\/sets\/samples-/.test(k)).length;
+  ok(n === want && !!d["users/t2/meta/samples"], "samples: " + label, `${n} sample sets, offered: ${!!d["users/t2/meta/samples"]}`);
+  ok(p.errors.length === 0, "samples: no page errors", p.errors.join(" | "));
+  await c.close();
+}
 
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");

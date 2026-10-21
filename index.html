@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-McU8k+HF9Emv/VdfpquYJ5VI97ClBaKHaZNnENlDUjk=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-z8kdIiFonVncxZF8SOh6EUMLUSZPhKlSuxKRjbS072Y=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -1305,10 +1305,13 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
     $("#pickBar").hidden = !S.sets.length;
     renderSampleNote();
     if (!S.sets.length) {
-      box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets into the vocab table.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open the vocab table</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
-      $("#emptyImport").onclick = () => { openSettings(); $("#importBtn").click(); };
-      $("#emptyTable").onclick = () => { renderTable(); show("table"); };
-      $("#emptySamples").onclick = (e) => { e.target.disabled = true; addSamples().catch(() => { e.target.disabled = false; banner("The sample sets couldn't be added. Try again."); }); };
+      if (samplesState) box.innerHTML = `<div class="empty"><b>${samplesState === "adding" ? "Adding the sample sets…" : "Loading your sets…"}</b></div>`;
+      else {
+        box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets into the vocab table.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open the vocab table</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
+        $("#emptyImport").onclick = () => { openSettings(); $("#importBtn").click(); };
+        $("#emptyTable").onclick = () => { renderTable(); show("table"); };
+        $("#emptySamples").onclick = (e) => { e.target.disabled = true; addSamples().catch(() => { e.target.disabled = false; banner("The sample sets couldn't be added. Try again."); }); };
+      }
     } else {
       // Sets with no ready words can't be picked.
       for (const s of S.sets) if (!readyCount(s.words)) S.selected.delete(s.id);
@@ -2603,20 +2606,30 @@ CORRECT: <YES or NO, matching your REASON>`;
   // something to practice before learning the vocab table. They're ordinary sets in their own collection. meta/samples
   // records that they were offered, so they never come back on their own once removed.
   const SAMPLE_COL = "Sample sets", isSample = (x) => colOf(x) === SAMPLE_COL;
-  async function addSamples() {
-    const res = await fetch("data/samples.json");
-    if (!res.ok) throw new Error("samples " + res.status);
-    const file = await res.json(), now = new Date().toISOString();
-    for (const d of file.sets) await db.doc("sets/" + d.id).set({ ...cleanSet(d), updatedAt: now });
-    for (const d of file.kanji) await db.doc("kanji/" + d.id).set({ ...cleanKanji(d), updatedAt: now });
+  const sampleFile = async () => { const res = await fetch("data/samples.json"); if (!res.ok) throw new Error("samples " + res.status); return res.json(); };
+  // All at once: over a slow connection, one write after another kept a new account empty for several seconds.
+  async function addSamples(file) {
+    file = await (file || sampleFile());
+    const now = new Date().toISOString();
+    await Promise.all([...file.sets.map((d) => db.doc("sets/" + d.id).set({ ...cleanSet(d), updatedAt: now })),
+      ...file.kanji.map((d) => db.doc("kanji/" + d.id).set({ ...cleanKanji(d), updatedAt: now }))]);
   }
+  // For a new account (or guest): nothing but sample sets in it, if any. meta/samples is written once they're all in, so an
+  // offer cut short (the page closed midway) is finished next time. While it's being decided, the picker says so (see
+  // renderSetup) instead of "No vocab sets yet".
+  let samplesState = ""; // "checking", "adding" or ""
   async function offerSamples() {
+    samplesState = "checking";
+    const file = sampleFile(); file.catch(() => {});
     try {
       if ((await db.doc("meta/samples").get()).exists) return;
-      const [sets, kanji] = await Promise.all([db.collection("sets").limit(1).get(), db.collection("kanji").limit(1).get()]);
+      const [sets, kanji] = await Promise.all([db.collection("sets").get(), db.collection("kanji").get()]);
+      const own = (snap) => snap.docs.some((d) => !d.id.startsWith("samples-"));
+      if (!own(sets) && !own(kanji)) { samplesState = "adding"; renderSetup(); await addSamples(file); }
       await db.doc("meta/samples").set({ offeredAt: new Date().toISOString() });
-      if (sets.empty && kanji.empty) await addSamples();
-    } catch {}
+    } catch {
+      if (samplesState === "adding") banner("The sample sets couldn't be added. Reload the page to try again.");
+    } finally { samplesState = ""; renderSetup(); }
   }
   let sampleAsk = false;
   function renderSampleNote() {

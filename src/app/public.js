@@ -3,20 +3,30 @@
   // something to practice before learning the vocab table. They're ordinary sets in their own collection. meta/samples
   // records that they were offered, so they never come back on their own once removed.
   const SAMPLE_COL = "Sample sets", isSample = (x) => colOf(x) === SAMPLE_COL;
-  async function addSamples() {
-    const res = await fetch("data/samples.json");
-    if (!res.ok) throw new Error("samples " + res.status);
-    const file = await res.json(), now = new Date().toISOString();
-    for (const d of file.sets) await db.doc("sets/" + d.id).set({ ...cleanSet(d), updatedAt: now });
-    for (const d of file.kanji) await db.doc("kanji/" + d.id).set({ ...cleanKanji(d), updatedAt: now });
+  const sampleFile = async () => { const res = await fetch("data/samples.json"); if (!res.ok) throw new Error("samples " + res.status); return res.json(); };
+  // All at once: over a slow connection, one write after another kept a new account empty for several seconds.
+  async function addSamples(file) {
+    file = await (file || sampleFile());
+    const now = new Date().toISOString();
+    await Promise.all([...file.sets.map((d) => db.doc("sets/" + d.id).set({ ...cleanSet(d), updatedAt: now })),
+      ...file.kanji.map((d) => db.doc("kanji/" + d.id).set({ ...cleanKanji(d), updatedAt: now }))]);
   }
+  // For a new account (or guest): nothing but sample sets in it, if any. meta/samples is written once they're all in, so an
+  // offer cut short (the page closed midway) is finished next time. While it's being decided, the picker says so (see
+  // renderSetup) instead of "No vocab sets yet".
+  let samplesState = ""; // "checking", "adding" or ""
   async function offerSamples() {
+    samplesState = "checking";
+    const file = sampleFile(); file.catch(() => {});
     try {
       if ((await db.doc("meta/samples").get()).exists) return;
-      const [sets, kanji] = await Promise.all([db.collection("sets").limit(1).get(), db.collection("kanji").limit(1).get()]);
+      const [sets, kanji] = await Promise.all([db.collection("sets").get(), db.collection("kanji").get()]);
+      const own = (snap) => snap.docs.some((d) => !d.id.startsWith("samples-"));
+      if (!own(sets) && !own(kanji)) { samplesState = "adding"; renderSetup(); await addSamples(file); }
       await db.doc("meta/samples").set({ offeredAt: new Date().toISOString() });
-      if (sets.empty && kanji.empty) await addSamples();
-    } catch {}
+    } catch {
+      if (samplesState === "adding") banner("The sample sets couldn't be added. Reload the page to try again.");
+    } finally { samplesState = ""; renderSetup(); }
   }
   let sampleAsk = false;
   function renderSampleNote() {
