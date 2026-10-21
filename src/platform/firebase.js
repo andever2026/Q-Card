@@ -1,11 +1,13 @@
-// The public site's platform: Google sign-in, a private Firestore folder per person, file downloads, and
-// Claude checking with the visitor's own API key (src/platform/claude.js). The page was written against claude.ai's artifact runtime
+// The public site's platform: Google sign-in, a private Firestore folder per person (or this browser's storage for
+// people who don't sign in, src/platform/local.js), file downloads, and Claude checking with the visitor's own API key
+// (src/platform/claude.js). The page was written against claude.ai's artifact runtime
 // (window.claude.use("db" | "user" | "downloads")), so this hands it objects with the same shape.
 // Bundled into js/platform.js by tools/build.mjs.
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { initializeFirestore, doc, collection, query, orderBy, limit, onSnapshot, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import config from "./config.js";
+import { makeLocalDb } from "./local.js";
 
 const app = initializeApp(config);
 const auth = getAuth(app);
@@ -80,6 +82,7 @@ window.qcardPlatform = {
   signIn: () => signInWithPopup(auth, new GoogleAuthProvider()),
   signOut: () => signOut(auth),
   db: makeDb,
+  localDb: makeLocalDb,
   user: makeUser,
   downloads,
   askClaude,

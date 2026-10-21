@@ -37,8 +37,9 @@ function csp(html) {
     "default-src 'none'",
     // apis.google.com: Firebase's Google sign-in popup loads Google's iframe helper from there.
     `script-src 'self' ${hashes.join(" ")} https://apis.google.com`,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src https://fonts.gstatic.com",
+    // Fonts are served from the site itself (fonts/, see tools/fetch-fonts.mjs), so visitors never contact Google Fonts.
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self'",
     "img-src 'self' data: blob:",
     // The only places the page sends data: its own files, Firebase (sign-in and the database) and, with a visitor's own key, Anthropic.
     "connect-src 'self' https://api.anthropic.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com",
