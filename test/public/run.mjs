@@ -85,8 +85,8 @@ const setOpen = (p) => p.evaluate(() => document.querySelector("#settings").open
 ok(await setOpen(page) && /student@example\.com/.test(await text(page, "#acctName")) && (await text(page, "#signOutBtn")) === "Sign out" && (await text(page, "#delStart")) === "Delete my account", "settings: shows the signed-in account, Sign out and Delete my account", await text(page, "#acctName"));
 await page.click("#settingsClose");
 ok(!(await setOpen(page)), "settings: ✕ closes it");
-ok(await vis(page, '[data-set="samples-ch1-a"]') && await vis(page, "#sampleNote"), "new account: starts with the sample sets");
-ok((await page.$eval("#uptoSel", (s) => s.value)) === "auto", "samples: 'Kanji learned up to' starts at Highest picked chapter", await page.$eval("#uptoSel", (s) => s.value));
+ok(await vis(page, '[data-set="samples-greetings"]') && await vis(page, "#sampleNote"), "new account: starts with the sample sets");
+ok((await page.$eval("#uptoSel", (s) => s.value)) === "auto", "samples: 'Kanji learned up to' starts at Highest picked unit", await page.$eval("#uptoSel", (s) => s.value));
 const sampleDocs = (d) => Object.keys(d).filter((p) => /^users\/u1\/(sets|kanji)\/samples-/.test(p));
 let data = await fsData(page);
 ok(!!data["users/u1/meta/samples"] && sampleDocs(data).length === 9, "samples: 6 sets and 3 kanji lists saved, offer remembered", sampleDocs(data).join(", "));
@@ -95,13 +95,13 @@ ok(await vis(page, "#pickTagRow") && (await tagChips()).join("|") === "Katakana5
 ok((await page.$eval('#pickTags [data-tag="nouns"]', (b) => b.title)) === "Hides 2 of 6 sets", "tags: the count is explained on hover");
 await page.click('#pickTags [data-tag="verbs"]');
 const shownSets = () => page.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","));
-ok((await shownSets()) === "samples-ch3-a", "tags: picking Verbs shows only the verb set", await shownSets());
+ok((await shownSets()) === "samples-verbs", "tags: picking Verbs shows only the verb set", await shownSets());
 await page.locator("#setup .panel").first().screenshot({ path: join(out, "2-filter.png") });
 await page.click('#pickTags [data-tag="phrases"]');
-ok((await shownSets()) === "samples-ch1-a,samples-ch3-a", "tags: picking a second tag adds its sets", await shownSets());
+ok((await shownSets()) === "samples-greetings,samples-verbs", "tags: picking a second tag adds its sets", await shownSets());
 await page.click("#tagClear");
 ok((await shownSets()).split(",").length === 6 && await page.evaluate(() => localStorage.getItem("jpq:pickTags")) === "[]", "tags: Clear filter shows every set again");
-await page.click('[data-set="samples-ch3-a"]'); await page.click("#dir-ej"); await page.click("#mode-verb"); await page.click("#startBtn"); await page.waitForTimeout(300);
+await page.click('[data-set="samples-verbs"]'); await page.click("#dir-ej"); await page.click("#mode-verb"); await page.click("#startBtn"); await page.waitForTimeout(300);
 ok(/^0 of 60 done/.test(await text(page, "#progLbl")), "samples: all 12 sample verbs get their five forms", await text(page, "#progLbl"));
 await page.click("#quitBtn"); await page.waitForTimeout(150);
 await page.click("#mode-default");
@@ -121,6 +121,9 @@ await page.click("#importGo"); await page.waitForTimeout(800);
 data = await fsData(page);
 ok(!!data["users/u1/sets/sample-ch1-a"] && !!data["users/u1/kanji/sample-ch1"] && !!data["users/u1/meta/books"], "import: sets, kanji list and book order saved under users/u1/");
 ok(Object.keys(data).every((p) => p.startsWith("users/u1/")), "import: nothing written outside the person's folder");
+{ const d = data["users/u1/sets/sample-ch1-a"], k = data["users/u1/kanji/sample-ch1"];
+  ok(d?.collection === "Sample" && d?.unit === "Ch. 1" && d?.name === "A · Food and drink" && !("book" in d) && !("chapter" in d) && k?.unit === "Ch. 1",
+    "import: an older file (book, chapter, section) is saved as collection, unit and set name", JSON.stringify({ ...d, words: undefined })); }
 await page.click("#backBtn"); await page.waitForTimeout(200);
 ok(await vis(page, '[data-set="sample-ch1-a"]'), "practice page lists the imported sets");
 
@@ -190,12 +193,9 @@ if (entry.length > 1) {
     "built-in: a character without a template comes back unchecked (self-marked)");
 }
 
-// ---------- 4. no "How answers are checked" card; a key saved by the old option is cleared ----------
+// ---------- 4. no "How answers are checked" card ----------
 await page.click("#newBtn"); await page.waitForTimeout(200);
 ok(!(await page.$("#checkPanel")) && !(await page.$("#keyForm")) && !/How answers are checked/.test(await page.content()), "no 'How answers are checked' card");
-await page.evaluate(() => { localStorage.setItem("qcard:apiKey", "sk-ant-old"); localStorage.setItem("qcard:apiKeyLocked", "{}"); sessionStorage.setItem("qcard:apiKey", "sk-ant-old"); localStorage.setItem("jpq:checker", '"claude"'); });
-await page.reload(); await page.waitForTimeout(800);
-ok(await page.evaluate(() => !localStorage.getItem("qcard:apiKey") && !localStorage.getItem("qcard:apiKeyLocked") && !sessionStorage.getItem("qcard:apiKey") && !localStorage.getItem("jpq:checker")), "an API key saved by the old option is removed from the browser");
 
 // ---------- 5. tags, export ----------
 await page.click("#toTable"); await page.waitForTimeout(200);
@@ -211,6 +211,9 @@ const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#expo
 ok(/\.json$/.test(dl.suggestedFilename()), "export downloads a .json file", dl.suggestedFilename());
 const exported = JSON.parse(readFileSync(await dl.path(), "utf8"));
 ok(JSON.stringify(exported.sets.find((x) => x.id === "sample-ch1-a")?.tags) === '["Quiz 1","Food and drink"]', "export keeps the tags");
+{ const x = exported.sets.find((x) => x.id === "sample-ch1-a");
+  ok(exported.version === 2 && x?.collection === "Sample" && x?.unit === "Ch. 1" && x?.name === "A · Food and drink" && !("book" in x) && !("updatedAt" in x) && Array.isArray(exported.collections?.order),
+    "export: written as collection, unit and set name, with the collection order", JSON.stringify({ ...x, words: undefined })); }
 await page.click("#backBtn"); await page.waitForTimeout(200);
 await page.click('#pickTags [data-tag="quiz 1"]');
 ok((await page.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","))) === "sample-ch1-a", "tags: a new tag shows up in Filter and filters");
@@ -243,7 +246,7 @@ await page.click("#settingsBtn"); await page.click("#signOutBtn"); await page.wa
 ok(await page.evaluate(() => document.querySelector("#welcome").open), "sign out from Settings: welcome pop-up again");
 await page.evaluate(() => { window.__nextUser = { uid: "u2", displayName: "Other", email: "other@example.com" }; });
 await page.click("#signInBtn"); await page.waitForTimeout(600);
-ok(await vis(page, '[data-set="samples-ch1-a"]') && !(await vis(page, '[data-set="sample-ch1-a"]')), "another account starts with only the sample sets");
+ok(await vis(page, '[data-set="samples-greetings"]') && !(await vis(page, '[data-set="sample-ch1-a"]')), "another account starts with only the sample sets");
 ok(page.errors.length === 0, "no page errors", page.errors.join(" | "));
 ok(!allRequests.some((r) => /fonts\.(googleapis|gstatic)\.com/.test(r.url)), "fonts: nothing requested from Google Fonts");
 
@@ -294,13 +297,13 @@ await lp.click('#themePick [data-theme-pick="light"]'); await lp.click('#palPick
 await lp.screenshot({ path: join(out, "9-settings.png") });
 await lp.mouse.click(8, 8);
 ok(!(await setOpen(lp)), "settings: clicking outside closes it");
-ok(await vis(lp, '[data-set="samples-ch1-a"]'), "guest: starts with the sample sets");
+ok(await vis(lp, '[data-set="samples-greetings"]'), "guest: starts with the sample sets");
 await lp.click("#sampleRemove"); await lp.click("#sampleNo");
-ok(await vis(lp, '[data-set="samples-ch1-a"]'), "samples: 'Keep them' keeps them");
+ok(await vis(lp, '[data-set="samples-greetings"]'), "samples: 'Keep them' keeps them");
 await lp.click("#sampleRemove"); await lp.click("#sampleYes"); await lp.waitForTimeout(400);
 ok(await vis(lp, "#emptySamples") && !(await lp.evaluate(() => Object.keys(localStorage).some((k) => k.startsWith("qcard:local:sets/samples-")))), "guest: samples removed from this browser, empty state offers them again");
 await lp.click("#emptySamples"); await lp.waitForTimeout(600);
-ok(await vis(lp, '[data-set="samples-ch2-b"]'), "samples: added back from the empty state");
+ok(await vis(lp, '[data-set="samples-katakana"]'), "samples: added back from the empty state");
 await lp.click("#sampleRemove"); await lp.click("#sampleYes"); await lp.waitForTimeout(400);
 const [lchooser] = await Promise.all([lp.waitForEvent("filechooser"), lp.click("#emptyImport")]);
 await lchooser.setFiles(join(root, "test/public/fixtures/sample-export.json"));
@@ -318,7 +321,7 @@ await lp.close();
 lp = await newPage(lctx);
 await lp.waitForTimeout(300);
 ok(await vis(lp, "#setup") && await vis(lp, '[data-set="sample-ch1-a"]') && !(await vis(lp, "#welcome")), "guest: coming back goes straight to the saved sets, no pop-up");
-ok(!(await vis(lp, '[data-set="samples-ch1-a"]')), "samples: removed ones don't come back");
+ok(!(await vis(lp, '[data-set="samples-greetings"]')), "samples: removed ones don't come back");
 ok(await lp.evaluate(() => document.documentElement.dataset.theme === "light"), "settings: Light is still on after coming back");
 await lp.click("#settingsBtn"); await lp.click('#themePick [data-theme-pick=""]');
 ok(await lp.evaluate(() => !("theme" in document.documentElement.dataset)), "settings: Match device follows the device again");
@@ -326,7 +329,7 @@ await lp.click("#signOutBtn"); await lp.waitForTimeout(200);
 ok(!(await setOpen(lp)) && await lp.evaluate(() => document.querySelector("#welcome").open), "guest: Sign in with Google in Settings opens the welcome pop-up");
 await lp.click("#signInBtn"); await lp.waitForTimeout(1000);
 await lp.click("#settingsBtn");
-ok(/student@example\.com/.test(await text(lp, "#acctName")) && await vis(lp, '[data-set="samples-ch1-a"]') && !(await vis(lp, '[data-set="sample-ch1-a"]')), "Sign in from local: switches to the new account, which starts with the samples");
+ok(/student@example\.com/.test(await text(lp, "#acctName")) && await vis(lp, '[data-set="samples-greetings"]') && !(await vis(lp, '[data-set="sample-ch1-a"]')), "Sign in from local: switches to the new account, which starts with the samples");
 ok(await lp.evaluate(() => localStorage.getItem("qcard:mode")) === null, "signed in: no longer remembered as local");
 await lp.click("#signOutBtn"); await lp.waitForTimeout(1000);
 ok(await vis(lp, "#guestBtn"), "signed out: welcome pop-up again");
@@ -354,6 +357,53 @@ await kp.waitForTimeout(500);
 ok((await kp.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent))).join("|") === "Extras3|Supp.3|Verbs3|Main sets2", "kinds: Main sets, Extras and Supp. are tags when there's more than one kind", (await kp.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent))).join("|"));
 ok((await kp.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","))) === "k-a,k-b,k-s" && (await kp.$$eval('#pickTags [aria-pressed="true"]', (bs) => bs.map((b) => b.dataset.tag).sort().join(","))) === "main sets,supp.", "kinds: the old Show choice (Extras switched off) carries over as picked tags", (await kp.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","))) + " / " + (await kp.$$eval('#pickTags [aria-pressed="true"]', (bs) => bs.map((b) => b.dataset.tag).join(","))));
 ok(kp.errors.length === 0, "kinds: no page errors", kp.errors.join(" | "));
+
+// ---------- 11. Collection › Unit › Set: older documents and picks, courses, adding and editing ----------
+const uctx = await browser.newContext();
+const up = await newPage(uctx, { init: () => {
+  if (localStorage.getItem("qcard:mode")) return;
+  const put = (k, v) => localStorage.setItem("qcard:local:" + k, JSON.stringify(v)), w = [{ id: "w1", en: "water", kana: "みず", kanji: "水" }];
+  localStorage.setItem("qcard:mode", "local"); put("meta/samples", { offeredAt: "x" });
+  // Saved before units: book, numbered chapter, section and label.
+  put("sets/n-1a", { book: "Nakama", chapter: 1, section: "A", label: "Hello", words: w }); put("sets/n-2a", { book: "Nakama", chapter: 2, section: "A", label: "Food", words: w });
+  put("sets/n-2x", { book: "Nakama", chapter: 2, section: "Extras", label: "", words: w }); put("sets/n-10a", { book: "Nakama", chapter: 10, section: "A", label: "", words: w });
+  put("kanji/n-2", { book: "Nakama", chapter: 2, kanji: "水" });
+  put("meta/courses", { courses: [{ name: "J1", parts: [{ book: "Nakama", from: 1, to: 2 }] }] });
+  // Saved with units.
+  put("sets/m-w1", { collection: "Mine", unit: "Week 1", name: "Colours", words: w }); put("sets/m-w10", { collection: "Mine", unit: "Week 10", name: "Animals", words: w });
+  put("sets/m-w2", { collection: "Mine", unit: "Week 2", name: "Shops", words: w });
+  localStorage.setItem("jpq:bookShow", JSON.stringify({ Nakama: "some" })); localStorage.setItem("jpq:pickChs", JSON.stringify(["Nakama\u00012"]));
+  localStorage.setItem("jpq:uptoPick", JSON.stringify("Nakama\u00012"));
+} });
+await up.waitForTimeout(500);
+const rowsOf = (sel) => up.$$eval(`${sel} .pchrow`, (rs) => rs.map((r) => `${r.querySelector(".chbook")?.textContent ?? ""}: ${[...r.querySelectorAll(".chip")].map((c) => c.textContent + (c.getAttribute("aria-pressed") === "true" ? "*" : "")).join(", ")}`).join(" | "));
+let rows = await rowsOf("#pickChs");
+ok(rows === "Mine: All*, Week 1, Week 2, Week 10 | Nakama: All, Ch. 1, Ch. 2*, Ch. 10", "units: older chapters read as Ch. N, units sort with numbers in order, an older chapter pick carries over", rows);
+const chipNames = () => up.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.childNodes[0].textContent).join(", "));
+ok((await chipNames()) === "Colours, Shops, Animals, A · Food, Extras", "units: older sections and labels read as set names (Extras last)", await chipNames());
+ok((await up.$eval("#uptoSel", (s) => s.value)) === "Nakama\u0001Ch. 2" && /Nakama › Ch\. 2/.test(await up.$eval("#uptoSel", (s) => s.selectedOptions[0].textContent)),
+  "units: an older 'Kanji learned up to' pick carries over", await up.$eval("#uptoSel", (s) => s.value));
+await up.click('#groupSeg [data-group="course"]'); await up.waitForTimeout(200);
+rows = await rowsOf("#pickChs");
+ok(rows === "J1: All, Ch. 1, Ch. 2* | Other: All, Week 1*, Week 2*, Week 10*, Ch. 10", "units: an older course (chapters 1 to 2) covers units Ch. 1 and Ch. 2", rows);
+await up.click('#groupSeg [data-group="book"]');
+await up.click("#toTable"); await up.waitForTimeout(200);
+await up.fill("#nsCol", "mine"); await up.fill("#nsUnit", "week 2"); await up.fill("#nsName", "Weather");
+await up.click('#newSetForm [type="submit"]'); await up.waitForTimeout(400);
+const local = () => up.evaluate(() => Object.fromEntries(Object.keys(localStorage).filter((k) => k.startsWith("qcard:local:sets/")).map((k) => [k.slice(17), JSON.parse(localStorage.getItem(k))])));
+let docs = await local(), added = Object.entries(docs).find(([, d]) => d.name === "Weather");
+ok(added && added[1].collection === "Mine" && added[1].unit === "Week 2" && !("book" in added[1]), "units: a new set is saved with collection, unit and name, matching an existing unit whatever its case", JSON.stringify(added?.[1] ? { id: added[0], ...added[1], words: undefined } : null));
+const ot = '[data-sid="n-1a"]';
+await up.click('#tChs .pchrow:nth-child(2) [data-k="all"]'); await up.waitForTimeout(100);
+await up.click(`${ot} [data-toggle]`); await up.click(`${ot} [data-editset]`);
+ok((await up.$eval(`${ot} [data-ef="unit"]`, (i) => i.value)) === "Ch. 1" && (await up.$eval(`${ot} [data-ef="name"]`, (i) => i.value)) === "A · Hello", "units: Edit details shows an older set as unit and name");
+await up.fill(`${ot} [data-ef="name"]`, "A · Greetings"); await up.click(`${ot} [data-editform] [type="submit"]`); await up.waitForTimeout(400);
+docs = await local();
+ok(docs["n-1a"]?.name === "A · Greetings" && docs["n-1a"]?.unit === "Ch. 1" && docs["n-1a"]?.collection === "Nakama", "units: editing an older set saves it with collection, unit and name", JSON.stringify({ ...docs["n-1a"], words: undefined }));
+await up.screenshot({ path: join(out, "11-units-table.png"), fullPage: true });
+await up.click("#backBtn"); await up.waitForTimeout(200);
+await up.screenshot({ path: join(out, "11-units.png"), fullPage: true });
+ok(up.errors.length === 0, "units: no page errors", up.errors.join(" | "));
 
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");

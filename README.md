@@ -6,9 +6,10 @@ Japanese Vocab Practice (this repository: Q-Card) is a flashcard site for Japane
 
 ## What it does
 
+- **Collections, units and sets.** Sets are grouped Collection › Unit › Set: a textbook and its chapters (Nakama 1 › Ch. 3 › A · Greetings), a class and its weeks (Japanese 1 › Week 3 › Food and drink), or anything else. Units sort by name with numbers in order, so Week 2 comes before Week 10. Kanji lists go by unit, and **Kanji learned up to** counts every kanji up to the unit you pick.
 - **Practice by hand.** English → 日本語, 日本語 → English, or both. Modes: Default, Force kanji (kanji you've learned must be kanji), Kana only, Katakana only, and Verb forms.
 - **Tags.** Give sets tags in their details (Verbs, Quiz 3…). The Filter row above the sets lists every tag in use with how many sets picking it would hide, the ones hiding the most first, and none picked; tapping tags narrows the sets to those tags, and Clear filter shows them all again. When a table has Extras or Supp. sets, Main sets, Extras and Supp. are tags too.
-- **Your own vocab.** Everyone brings their own lists: import a vocab file someone shared with you, or type sets into the vocab table. Q-Card ships no textbook lists. New visitors start with a few sample sets (`data/samples.json`: greetings, people, food, katakana words, everyday verbs and time, with kanji lists for three chapters) so every mode can be tried right away; **Remove the sample sets** under the set picker takes them out for good.
+- **Your own vocab.** Everyone brings their own lists: import a vocab file someone shared with you, or type sets into the vocab table. Q-Card ships no textbook lists. New visitors start with a few sample sets (`data/samples.json`: greetings, people, food, katakana words, everyday verbs and time, spread over three units, Week 1 to Week 3, each with a kanji list) so every mode can be tried right away; **Remove the sample sets** under the set picker takes them out for good.
 - **Private per person.** Sign in with Google and your sets, kanji lists and practice history live in your own space in the database, on any device. Or choose **Continue as a guest** and everything stays in your browser on that device.
 - **Settings.** The gear at the top opens Settings: colours, light or dark, which account you're using, sign in or out, how much vocab you have, and deleting your account (or, as a guest, everything saved in this browser).
 - **Choices follow you.** The sets you picked, the filter, direction, mode, Kanji learned up to, colours and light or dark are saved to your account when you're signed in, so they're the same on every device. As a guest they're kept in this browser.
@@ -79,18 +80,18 @@ Export and Import use one JSON file:
 ```json
 {
   "app": "jp-vocab-practice",
-  "version": 1,
+  "version": 2,
   "sets": [
-    { "id": "sample-ch1-a", "book": "Sample", "chapter": 1, "section": "A", "label": "Food and drink", "tags": ["Verbs"],
+    { "id": "japanese-1-week-3-food", "collection": "Japanese 1", "unit": "Week 3", "name": "Food and drink", "tags": ["Verbs"],
       "words": [ { "id": "s1", "en": "to eat", "kana": "たべる", "kanji": "食べる" } ] }
   ],
-  "kanji": [ { "id": "sample-ch1", "book": "Sample", "chapter": 1, "kanji": "食飲水" } ],
-  "books": { "order": ["Sample"] },
-  "courses": null
+  "kanji": [ { "id": "japanese-1-week-3", "collection": "Japanese 1", "unit": "Week 3", "kanji": "食飲水" } ],
+  "collections": { "order": ["Japanese 1"] },
+  "courses": { "courses": [ { "name": "Spring", "parts": [ { "collection": "Japanese 1", "from": "Week 1", "to": "Week 8" } ] } ] }
 }
 ```
 
-Import adds new sets and replaces ones with the same `id`; it never deletes. `tags` is optional (up to 12 per set, matched without case). `kana` and `kanji` may list alternatives with `／` and optional parts in `（）`, like `（お）てんき`. See `test/public/fixtures/sample-export.json`.
+Import adds new sets and replaces ones with the same `id`; it never deletes. `collections.order` is the order collections are studied in, and `courses` (optional) gather ranges of units into rows of their own. Files exported before units existed (`book`, a numbered `chapter`, `section` and `label`) still import: chapter 3 becomes unit "Ch. 3" and section A with label Greetings becomes the set name "A · Greetings". `tags` is optional (up to 12 per set, matched without case). `kana` and `kanji` may list alternatives with `／` and optional parts in `（）`, like `（お）てんき`. See `test/public/fixtures/sample-export.json`.
 
 Please don't share files copied from copyrighted textbooks publicly.
 
