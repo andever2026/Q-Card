@@ -1,5 +1,5 @@
 // Builds both versions of the page from src/app.html:
-//   index.html, js/*.js           the public site (GitHub Pages): Google sign-in, Firestore, own-key Claude, built-in checker
+//   index.html, js/*.js           the public site (GitHub Pages): Google sign-in, Firestore, built-in checker
 //   build/claude-ai.html          the claude.ai artifact (Annie's own copy, using claude.ai's database and Claude)
 // Lines in src/app.html can be limited to one version:
 //   <!--#if public-->  //#if claude  /*#if public*/   …   #else   …   #endif
@@ -43,8 +43,8 @@ function csp(html) {
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
     "img-src 'self' data: blob:",
-    // The only places the page sends data: its own files, Firebase (sign-in and the database) and, with a visitor's own key, Anthropic.
-    "connect-src 'self' https://api.anthropic.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com",
+    // The only places the page sends data: its own files and Firebase (sign-in and the database).
+    "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com",
     "frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com",
     "object-src 'none'",
     "base-uri 'none'",
@@ -57,7 +57,7 @@ const noRegex = { name: "no-re2js", setup(b) {
   b.onResolve({ filter: /^re2js$/ }, () => ({ path: "re2js", namespace: "stub" }));
   b.onLoad({ filter: /.*/, namespace: "stub" }, () => ({ contents: 'export const RE2JS = { compile() { throw new Error("regex pipelines are not included"); } };' }));
 } };
-const LICENSES = "Firebase JS SDK (Apache-2.0), Anthropic TypeScript SDK (MIT), Q-Card code (AGPL-3.0)";
+const LICENSES = "Firebase JS SDK (Apache-2.0), Q-Card code (AGPL-3.0)";
 async function bundle(imports) {
   const r = await esbuild.build({
     stdin: { contents: imports.map((f) => `import "./${f}";`).join("\n"), resolveDir: root, sourcefile: "entry.js" },
@@ -86,7 +86,6 @@ const page = variant(preprocess(src, "public"), "index.html");
 const files = {
   "index.html": page.replace("<!--CSP-->", () => `<meta http-equiv="Content-Security-Policy" content="${csp(page)}">`),
   "js/platform.js": variant(await bundle(["src/platform/firebase.js", ...(existsSync(at("src/checker.js")) ? ["src/checker.js"] : [])]), "js/platform.js"),
-  "js/claude.js": variant(await bundle(["src/platform/claude.js"]), "js/claude.js"),
 };
 
 if (check && beta) throw new Error("--check is for the committed files; the beta build is never committed");

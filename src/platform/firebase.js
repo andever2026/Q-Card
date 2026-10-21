@@ -1,6 +1,5 @@
 // The public site's platform: Google sign-in, a private Firestore folder per person (or this browser's storage for
-// people who don't sign in, src/platform/local.js), file downloads, and Claude checking with the visitor's own API key
-// (src/platform/claude.js). The page was written against claude.ai's artifact runtime
+// people who don't sign in, src/platform/local.js) and file downloads. The page was written against claude.ai's artifact runtime
 // (window.claude.use("db" | "user" | "downloads")), so this hands it objects with the same shape.
 // Bundled into js/platform.js by tools/build.mjs.
 import { initializeApp } from "firebase/app";
@@ -65,18 +64,6 @@ const downloads = {
   },
 };
 
-// The Anthropic SDK is only needed by visitors who check with their own key, so it loads on first use.
-let claudeJs = null;
-function askClaude(req) {
-  claudeJs ||= new Promise((res, rej) => {
-    const el = Object.assign(document.createElement("script"), { src: "js/claude.js" });
-    el.onload = () => (window.qcardClaude ? res(window.qcardClaude) : rej({ code: "key_network" }));
-    el.onerror = () => { claudeJs = null; rej({ code: "key_network" }); };
-    document.head.append(el);
-  });
-  return claudeJs.then((c) => c.ask(req));
-}
-
 window.qcardPlatform = {
   onAuth: (cb) => onAuthStateChanged(auth, (u) => cb(who(u))),
   signIn: () => signInWithPopup(auth, new GoogleAuthProvider()),
@@ -92,6 +79,5 @@ window.qcardPlatform = {
   localDb: makeLocalDb,
   user: makeUser,
   downloads,
-  askClaude,
   _mapPath: mapPath,
 };
