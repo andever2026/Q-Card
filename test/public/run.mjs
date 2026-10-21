@@ -20,10 +20,14 @@ const ok = (cond, msg, extra = "") => { console.log(`${cond ? "✓" : "✗"} ${m
 const fake = join(root, "test/public/fake-firebase.js");
 const entry = ['import "./src/platform/firebase.js";'];
 if (process.env.WITH_CHECKER !== "0" && existsSync(join(root, "src/checker.js"))) entry.push('import "./src/checker.js";');
-const platformJs = (await esbuild.build({
+const bundle = async (plugins = []) => (await esbuild.build({
   stdin: { contents: entry.join("\n"), resolveDir: root, sourcefile: "test-entry.js" },
-  bundle: true, format: "iife", write: false, alias: { "firebase/app": fake, "firebase/auth": fake, "firebase/firestore": fake },
+  bundle: true, format: "iife", write: false, alias: { "firebase/app": fake, "firebase/auth": fake, "firebase/firestore": fake }, plugins,
 })).outputFiles[0].text;
+const platformJs = await bundle();
+// The same with test account t1 as the site's owner (owners in src/platform/config.js).
+const ownerPlatformJs = await bundle([{ name: "owner", setup: (b) => b.onLoad({ filter: /platform[\\/]config\.js$/ }, (a) =>
+  ({ contents: readFileSync(a.path, "utf8").replace("owners = []", 'owners = ["t1"]'), loader: "js" })) }]);
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".css": "text/css", ".woff2": "font/woff2" };
 const server = createServer((req, res) => {
@@ -36,7 +40,7 @@ const base = `http://localhost:${server.address().port}/`;
 const browser = await chromium.launch();
 const apiCalls = [], allRequests = [];
 
-async function newPage(ctx, { width = 900, init } = {}) {
+async function newPage(ctx, { width = 900, init, platform = platformJs } = {}) {
   const page = await ctx.newPage();
   await page.setViewportSize({ width, height: 1000 });
   page.errors = [];
@@ -48,7 +52,7 @@ async function newPage(ctx, { width = 900, init } = {}) {
     document.addEventListener("securitypolicyviolation", (e) => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
   });
   if (init) await page.addInitScript(init);
-  await page.route("**/js/platform.js", (r) => r.fulfill({ contentType: "text/javascript", body: platformJs }));
+  await page.route("**/js/platform.js", (r) => r.fulfill({ contentType: "text/javascript", body: platform }));
   // Checking with a visitor's own API key was taken out; nothing should call Anthropic any more.
   await page.route("https://api.anthropic.com/**", (r) => { apiCalls.push(r.request().url()); return r.abort(); });
   await page.goto(base);
@@ -573,8 +577,24 @@ const rink = (await fsData(sp))["users/t1/data/prefs"]?.resume?.ink?.main?.s?.[0
 ok(Array.isArray(rink) && rink.length > 4 && rink.every((n) => typeof n === "number"), "resume: the writing saved for Resume reaches the account (flat list of numbers)", JSON.stringify(rink)?.slice(0, 80));
 await sp.click("#settingsBtn"); await sp.click("#shareToggle"); await sp.waitForTimeout(200);
 ok(await shareOpen() && !(await vis(sp, "#shareNeverRow")) && !(await text(sp, "#shareCount")), "share: Turn on… in Settings asks the same question, without the count or the checkbox");
-await sp.click("#shareNo"); await sp.click("#settingsClose");
+await sp.click("#shareNo");
+ok(!(await vis(sp, "#ownerSet")), "owner tools: hidden for everyone but the site's owner");
+await sp.click("#settingsClose");
 ok(sp.errors.length === 0, "share: no page errors", sp.errors.join(" | "));
+// the site's owner gets Owner tools in Settings to open the question themselves
+const op = await newPage(sctx, { platform: ownerPlatformJs });
+await op.waitForTimeout(600); await op.click("#settingsBtn"); await op.waitForTimeout(200);
+ok(await vis(op, "#ownerSet"), "owner tools: the site's owner sees them in Settings");
+await op.locator("#ownerSet").screenshot({ path: join(out, "14-owner-tools.png") });
+const asked = () => op.evaluate(() => JSON.parse(localStorage.getItem("jpq:share"))?.asked);
+const askedBefore = await asked();
+await op.click("#ownAsk1"); await op.waitForTimeout(200);
+ok(await op.evaluate(() => document.querySelector("#shareAsk").open) && !(await vis(op, "#shareNeverRow")) && /finished 10 practices/.test(await text(op, "#shareCount")), "owner tools: First time opens the question as first asked");
+await op.click("#shareNo"); await op.click("#ownAsk2"); await op.waitForTimeout(200);
+ok(await vis(op, "#shareNeverRow") && /finished 20 practices/.test(await text(op, "#shareCount")), "owner tools: Later times opens it with \"Don't ask me again\"");
+await op.click("#shareNo");
+ok((await asked()) === askedBefore, "owner tools: opening it doesn't count as being asked");
+ok(op.errors.length === 0, "owner tools: no page errors", op.errors.join(" | "));
 // guests are never asked: their handwriting stays in the browser
 const gp = await newPage(await browser.newContext(), { init: () => {
   if (localStorage.getItem("qcard:mode")) return;
