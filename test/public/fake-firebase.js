@@ -36,9 +36,10 @@ let data = load(LS_DB, {}); // path → fields
 const listeners = new Set();
 window.__fs = { all: () => data, log: [] };
 const segs = (p) => p.split("/").filter(Boolean);
-function allowed(path) {
+function allowed(path, write = false) {
   const s = segs(path);
   if (!current) throw { code: "permission-denied", message: "signed out" };
+  if (s[0] === "owners" && s.length === 2 && s[1] === current.uid && !write) return;
   if (s[0] !== "users" || s[1] !== current.uid) throw { code: "permission-denied", message: "rules: " + path };
 }
 function clean(v, where) {
@@ -77,10 +78,10 @@ export function onSnapshot(ref, next, error) {
 function changed() { save(LS_DB, data); for (const l of listeners) { const snap = snapOf(l.ref); setTimeout(() => l.next(snap), 0); } }
 export async function getDoc(ref) { allowed(ref.path); return docSnap(ref.path); }
 export async function getDocs(ref) { allowed(ref.path); return runQuery(ref); }
-export async function setDoc(ref, v) { allowed(ref.path); window.__fs.log.push(["set", ref.path]); data[ref.path] = clean(v, ref.path); changed(); }
+export async function setDoc(ref, v) { allowed(ref.path, true); window.__fs.log.push(["set", ref.path]); data[ref.path] = clean(v, ref.path); changed(); }
 export async function updateDoc(ref, v) {
-  allowed(ref.path);
+  allowed(ref.path, true);
   if (!(ref.path in data)) throw { code: "not-found", message: ref.path };
   window.__fs.log.push(["update", ref.path]); data[ref.path] = { ...data[ref.path], ...clean(v, ref.path) }; changed();
 }
-export async function deleteDoc(ref) { allowed(ref.path); window.__fs.log.push(["delete", ref.path]); delete data[ref.path]; changed(); }
+export async function deleteDoc(ref) { allowed(ref.path, true); window.__fs.log.push(["delete", ref.path]); delete data[ref.path]; changed(); }

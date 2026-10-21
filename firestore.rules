@@ -6,5 +6,12 @@ service cloud.firestore {
     match /users/{uid}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+    // The site's owner: owners/<their id>, a document made by hand in the Firebase console (the site can never write it).
+    // Each signed-in person can read only their own entry, which is how the page knows whether to show Owner tools.
+    // Anything only the owner may do later (say, reading what others shared) checks this document here, never in the page.
+    match /owners/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
   }
 }

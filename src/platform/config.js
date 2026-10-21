@@ -8,6 +8,3 @@ export default {
   messagingSenderId: "273476523262",
   appId: "1:273476523262:web:d74960f0608d0b3ed4c1af",
 };
-// Firebase account ids of the site's owner (Firebase console → Authentication → Users → User UID). They get Owner tools
-// in Settings. An id isn't a secret: knowing it doesn't open anyone's data.
-export const owners = [];

@@ -25,9 +25,6 @@ const bundle = async (plugins = []) => (await esbuild.build({
   bundle: true, format: "iife", write: false, alias: { "firebase/app": fake, "firebase/auth": fake, "firebase/firestore": fake }, plugins,
 })).outputFiles[0].text;
 const platformJs = await bundle();
-// The same with test account t1 as the site's owner (owners in src/platform/config.js).
-const ownerPlatformJs = await bundle([{ name: "owner", setup: (b) => b.onLoad({ filter: /platform[\\/]config\.js$/ }, (a) =>
-  ({ contents: readFileSync(a.path, "utf8").replace("owners = []", 'owners = ["t1"]'), loader: "js" })) }]);
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".css": "text/css", ".woff2": "font/woff2" };
 const server = createServer((req, res) => {
@@ -40,7 +37,7 @@ const base = `http://localhost:${server.address().port}/`;
 const browser = await chromium.launch();
 const apiCalls = [], allRequests = [];
 
-async function newPage(ctx, { width = 900, init, initArg, platform = platformJs } = {}) {
+async function newPage(ctx, { width = 900, init, initArg } = {}) {
   const page = await ctx.newPage();
   await page.setViewportSize({ width, height: 1000 });
   page.errors = [];
@@ -52,7 +49,7 @@ async function newPage(ctx, { width = 900, init, initArg, platform = platformJs 
     document.addEventListener("securitypolicyviolation", (e) => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
   });
   if (init) await page.addInitScript(init, initArg);
-  await page.route("**/js/platform.js", (r) => r.fulfill({ contentType: "text/javascript", body: platform }));
+  await page.route("**/js/platform.js", (r) => r.fulfill({ contentType: "text/javascript", body: platformJs }));
   // Checking with a visitor's own API key was taken out; nothing should call Anthropic any more.
   await page.route("https://api.anthropic.com/**", (r) => { apiCalls.push(r.request().url()); return r.abort(); });
   await page.goto(base);
@@ -581,8 +578,9 @@ await sp.click("#shareNo");
 ok(!(await vis(sp, "#ownerSet")), "owner tools: hidden for everyone but the site's owner");
 await sp.click("#settingsClose");
 ok(sp.errors.length === 0, "share: no page errors", sp.errors.join(" | "));
-// the site's owner gets Owner tools in Settings to open the question themselves
-const op = await newPage(sctx, { platform: ownerPlatformJs });
+// the site's owner (owners/<uid>, made in the Firebase console) gets Owner tools in Settings to open the question themselves
+await sp.evaluate(() => { const fs = JSON.parse(localStorage.getItem("fake:fs")); fs["owners/t1"] = { role: "owner" }; localStorage.setItem("fake:fs", JSON.stringify(fs)); });
+const op = await newPage(sctx);
 await op.waitForTimeout(600); await op.click("#settingsBtn"); await op.waitForTimeout(200);
 ok(await vis(op, "#ownerSet"), "owner tools: the site's owner sees them in Settings");
 await op.locator("#ownerSet").screenshot({ path: join(out, "14-owner-tools.png") });

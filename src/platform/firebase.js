@@ -5,7 +5,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, deleteUser, reauthenticateWithPopup } from "firebase/auth";
 import { initializeFirestore, doc, collection, query, orderBy, limit, onSnapshot, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import config, { owners } from "./config.js";
+import config from "./config.js";
 import { makeLocalDb } from "./local.js";
 
 const app = initializeApp(config);
@@ -78,7 +78,8 @@ window.qcardPlatform = {
   db: makeDb,
   localDb: makeLocalDb,
   user: makeUser,
-  isSiteOwner: (uid) => owners.includes(uid),
+  // Whether this account is the site's owner: owners/<uid> exists (see firestore.rules; only the Firebase console makes it).
+  isSiteOwner: async (uid) => { try { return (await getDoc(doc(fs, "owners/" + uid))).exists(); } catch { return false; } },
   downloads,
   _mapPath: mapPath,
 };
