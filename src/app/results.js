@@ -20,6 +20,9 @@
     Q.love = love.map((r) => r.it.w);
     show("results");
     saveResult(rows);
+    //#if public
+    afterPractice();
+    //#endif
   }
   // Which missed words stay off the overall list: the buttons show it, and the saved session carries skip: true on them.
   function syncSkip() {

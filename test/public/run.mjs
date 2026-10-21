@@ -514,6 +514,78 @@ for (const width of [900, 375]) {
   await tctx.close();
 }
 
+// ---------- 14. asking to share handwriting after every 10th practice; what's saved; Settings ----------
+const sctx = await browser.newContext();
+const sp = await newPage(sctx, { init: () => {
+  if (localStorage.getItem("fake:user")) return;
+  localStorage.setItem("fake:user", JSON.stringify({ uid: "t1", displayName: "Share Test", email: "share@example.com" }));
+  localStorage.setItem("fake:fs", JSON.stringify({
+    "users/t1/meta/samples": { offeredAt: "x" },
+    "users/t1/sets/one": { collection: "S", unit: "U", name: "One", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }] },
+    "users/t1/data/prefs": { practices: 9, dir: "je", selected: ["one"] },
+  }));
+} });
+await sp.waitForTimeout(600);
+const training = async () => Object.entries(await fsData(sp)).filter(([p]) => p.startsWith("users/t1/training/"));
+const practiceOnce = async (how = "#selfGot") => {
+  await sp.click("#startBtn"); await sp.waitForTimeout(300);
+  await scribble(sp); await scribble(sp); await sp.click("#checkBtn"); await sp.waitForTimeout(200);
+  await sp.click(how); await sp.waitForTimeout(1500);
+};
+const shareOpen = () => sp.evaluate(() => document.querySelector("#shareAsk").open);
+await practiceOnce();
+ok(await vis(sp, "#results") && await shareOpen(), "share: the 10th finished practice asks to share handwriting");
+ok(!(await vis(sp, "#shareNeverRow")) && /finished 10 practices/.test(await text(sp, "#shareCount")), "share: the first time there's no \"Don't ask me again\"", await text(sp, "#shareCount"));
+await sp.locator("#shareAsk").screenshot({ path: join(out, "14-share-ask.png") });
+await sp.click("#shareNo"); await sp.waitForTimeout(200);
+ok(!(await shareOpen()) && !(await training()).length, "share: Not now closes it and nothing is saved");
+await sp.click("#newBtn"); await sp.waitForTimeout(200);
+await practiceOnce();
+ok(!(await shareOpen()), "share: the 11th practice doesn't ask");
+await sp.click("#newBtn"); await sp.waitForTimeout(200);
+await sp.evaluate(() => localStorage.setItem("jpq:practices", "19"));
+await practiceOnce();
+ok(await shareOpen() && await vis(sp, "#shareNeverRow"), "share: the 20th practice asks again, now with \"Don't ask me again\"");
+await sp.locator("#shareAsk").screenshot({ path: join(out, "14-share-ask-again.png") });
+await sp.click("#shareYes"); await sp.waitForTimeout(1300);
+ok((await fsData(sp))["users/t1/data/prefs"]?.share?.on === true, "share: Yes is saved with the account's choices");
+await sp.click("#newBtn"); await sp.waitForTimeout(200);
+await practiceOnce();
+let tr = await training();
+const rec = tr[0]?.[1], st = rec?.main?.s?.[0];
+ok(tr.length === 1 && rec.word.kanji === "水" && rec.dir === "je" && rec.checker.verdict === "unmatched" && rec.student === "right", "share: an answer is saved to users/<uid>/training with the word, the checker's verdict and the student's own call", JSON.stringify(rec && { ...rec, main: undefined, furi: undefined }));
+ok(rec?.main?.s?.length === 2 && st.xy.every((n) => typeof n === "number") && st.xy.length === 2 * st.t.length && st.t.length === st.f.length && st.dev === "mouse" && rec.main.s[1].at > 0,
+  "share: each stroke keeps its points (a flat list), timing, pressure and pointer kind", JSON.stringify(st).slice(0, 160));
+await sp.click("#settingsBtn"); await sp.waitForTimeout(200);
+ok(await vis(sp, "#shareSet") && /^On since .*1 answer shared/.test(await text(sp, "#shareInfo")), "share: Settings shows it's on and how many answers were shared", await text(sp, "#shareInfo"));
+await sp.locator("#shareSet").screenshot({ path: join(out, "14-share-settings.png") });
+await sp.click("#shareDel"); await sp.click("#shareDelYes"); await sp.waitForTimeout(300);
+ok(!(await training()).length && /0 answers shared/.test(await text(sp, "#shareInfo")) && !(await vis(sp, "#shareDel")), "share: Delete what I've shared removes every saved answer", await text(sp, "#shareInfo"));
+await sp.click("#shareToggle"); await sp.waitForTimeout(200);
+ok(/^Off\./.test(await text(sp, "#shareInfo")) && (await text(sp, "#shareToggle")) === "Turn on…", "share: Turn off stops it");
+await sp.click("#settingsClose"); await sp.click("#newBtn"); await sp.waitForTimeout(200);
+await practiceOnce();
+ok(!(await training()).length, "share: nothing is saved once it's turned off");
+// quitting midway saves what's written for Resume; the account's copy must hold only flat lists (Firestore can't store nested ones)
+await sp.click("#newBtn"); await sp.waitForTimeout(200);
+await sp.click("#startBtn"); await sp.waitForTimeout(300); await scribble(sp); await sp.click("#quitBtn"); await sp.waitForTimeout(1300);
+const rink = (await fsData(sp))["users/t1/data/prefs"]?.resume?.ink?.main?.s?.[0]?.p;
+ok(Array.isArray(rink) && rink.length > 4 && rink.every((n) => typeof n === "number"), "resume: the writing saved for Resume reaches the account (flat list of numbers)", JSON.stringify(rink)?.slice(0, 80));
+await sp.click("#settingsBtn"); await sp.click("#shareToggle"); await sp.waitForTimeout(200);
+ok(await shareOpen() && !(await vis(sp, "#shareNeverRow")) && !(await text(sp, "#shareCount")), "share: Turn on… in Settings asks the same question, without the count or the checkbox");
+await sp.click("#shareNo"); await sp.click("#settingsClose");
+ok(sp.errors.length === 0, "share: no page errors", sp.errors.join(" | "));
+// guests are never asked: their handwriting stays in the browser
+const gp = await newPage(await browser.newContext(), { init: () => {
+  if (localStorage.getItem("qcard:mode")) return;
+  const put = (k, v) => localStorage.setItem("qcard:local:" + k, JSON.stringify(v));
+  localStorage.setItem("qcard:mode", "local"); put("meta/samples", { offeredAt: "x" });
+  put("sets/g", { collection: "G", unit: "U", name: "One", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }] });
+  localStorage.setItem("jpq:practices", "9"); localStorage.setItem("jpq:dir", '"je"'); localStorage.setItem("jpq:selected", '["g"]');
+} });
+await gp.click("#startBtn"); await gp.waitForTimeout(300); await scribble(gp); await gp.click("#checkBtn"); await gp.waitForTimeout(200); await gp.click("#selfGot"); await gp.waitForTimeout(1500);
+ok(await vis(gp, "#results") && !(await gp.evaluate(() => document.querySelector("#shareAsk").open)) && !(await vis(gp, "#shareSet")), "share: a guest's 10th practice doesn't ask, and Settings has no sharing section");
+
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");
 process.exit(failures ? 1 : 0);

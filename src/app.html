@@ -45,6 +45,14 @@
         <p class="keyerr small" id="welcomeErr" hidden></p>
       </div>
     </dialog>
+    <dialog id="shareAsk" aria-labelledby="shareTitle"><div class="shareask">
+      <h2 id="shareTitle">Help train a better handwriting checker?</h2>
+      <p><span id="shareCount"></span>The checker that reads your writing learns best from real handwriting like yours. If you say yes, each answer you write from now on is saved to your account with:</p>
+      <ul><li>the strokes you drew: their shape, timing and pen pressure</li><li>the word you were answering, and how the checker and you marked it</li><li>whether you wrote with a pen, a finger or a mouse</li></ul>
+      <p>Only the site's owner uses it, to tune and train the checker. It's never sold or shown to anyone else. You can turn it off or delete what you've shared any time in Settings. Only say yes if you're 16 or older.</p>
+      <label class="checkrow" id="shareNeverRow" hidden><input type="checkbox" id="shareNever"> Don't ask me again</label>
+      <div class="tactions shareact"><button class="btn" type="button" id="shareNo">Not now</button><button class="btn primary" type="button" id="shareYes">Yes, share my handwriting</button></div>
+    </div></dialog>
 <!--#endif-->
     <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
     <dialog id="settings" aria-label="Settings"><div class="settings">
@@ -60,6 +68,11 @@
         <p id="acctName"></p>
         <div class="tactions"><button class="btn" type="button" id="signOutBtn">Sign out</button></div>
         <p class="keyerr small" id="acctErr" hidden></p>
+      </section>
+      <section id="shareSet" hidden><h3>Help train the checker</h3>
+        <p class="muted small" id="shareInfo"></p>
+        <div class="tactions"><button class="btn" type="button" id="shareToggle">Turn on…</button><button class="link" type="button" id="shareDel" hidden>Delete what I've shared</button></div>
+        <div class="tactions" id="shareDelAsk" hidden><span class="small">Delete every answer you've shared, for good?</span><button class="btn danger" type="button" id="shareDelYes">Delete</button><button class="btn" type="button" id="shareDelNo">Cancel</button></div>
       </section>
 <!--#endif-->
       <section><h3>Your vocab</h3><p class="muted" id="setStats"></p></section>
@@ -326,6 +339,7 @@
   //#if public
   //#include app/public.js
   //#include app/tour.js
+  //#include app/share.js
   //#endif
   //#include app/boot.js
 })();

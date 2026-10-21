@@ -2,7 +2,7 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   // Choices people make on the page. They're kept in this browser and, for someone signed in, in their account
   // too (data/users/<id>/prefs, see syncPrefs), so they come along to other devices.
-  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "palette", "theme", "resume"];
+  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "palette", "theme", "resume", "share", "practices"];
   let prefsChanged = () => {};
   const store = {
     get(k, d) { try { const v = localStorage.getItem("jpq:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
@@ -80,7 +80,7 @@
     $("#setStats").textContent = [n(S.sets.length, "set"), n(words, "word"), n(S.kanjiLists.length, "kanji list"), ...(S.history?.length ? [n(S.history.length, "practice session") + " saved"] : [])].join(" · ");
     renderPort();
     //#if public
-    renderAccount();
+    renderAccount(); renderShare();
     //#endif
   }
   //#if public

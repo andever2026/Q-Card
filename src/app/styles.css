@@ -344,6 +344,14 @@ body { margin: 0; }
 .welcome p { margin: 0; text-wrap: pretty; }
 .welcome .lead { color: var(--ink); font-weight: 500; }
 .signbtns { display: grid; gap: 10px; margin: 4px 0; }
+#shareAsk { border: none; border-radius: 14px; padding: 22px 24px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--ink); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
+#shareAsk::backdrop { background: rgba(17, 20, 26, .5); }
+.shareask { display: grid; gap: 12px; }
+.shareask h2 { font-size: 1.2rem; }
+.shareask p, .shareask ul { margin: 0; text-wrap: pretty; }
+.shareask ul { padding-left: 1.2em; display: grid; gap: 4px; }
+.checkrow { display: flex; align-items: center; gap: 8px; font-size: .9rem; }
+.shareact { justify-content: flex-end; }
 .tourbtn { background: var(--ai-soft); color: var(--ai); border-color: transparent; font-weight: 700; padding: 10px 20px; }
 .tourbtn:hover { border-color: var(--ai); }
 /* The tour: a ring around one part of the page with the rest dimmed (clicks still go through), and a card beside it. */
