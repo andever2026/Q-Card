@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-0HXz0+MCy+JSnknrTYG9R27qgTb3HIPxVNqDLFxap6M=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://api.anthropic.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-g6BpuYhvue5Sqeq6FmKgYOELKO3fv9Sq0YrzD0gBsRw=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://api.anthropic.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -367,7 +367,7 @@ body.writing .foot { display: none; }
       </div>
       <div class="pbar" id="pickBar" hidden>
         <div class="pchs" id="pickChs" role="group" aria-label="Chapter"></div>
-        <div class="pkinds" id="pickTagRow" hidden><span class="muted small">Show</span>
+        <div class="pkinds" id="pickTagRow" hidden><span class="muted small">Filter</span>
           <div class="chips" id="pickTags" role="group" aria-label="Show sets tagged"></div>
         </div>
         <div class="tsum" id="pickSumRow" hidden><span class="muted small" id="pickSum"></span><button class="link" type="button" id="pickClear">Clear all picks</button></div>
@@ -638,7 +638,7 @@ body.writing .foot { display: none; }
     courses: [],                           // meta/courses: [{name, parts: [{book, from, to}]}], in course order; a line break in a name breaks its label
     oldBooks: store.get("pickBooks", null) ?? (store.get("pickBook", null) != null ? [store.get("pickBook", null)] : null),
     tableBook: store.get("tableBook", null), // book shown in the vocab table
-    pickTags: new Set(store.get("pickTags", null) ?? oldKindPicks()), // tags picked in the Show row (lowercase); none = All
+    pickTags: new Set(store.get("pickTags", null) ?? oldKindPicks()), // tags picked in the Filter row (lowercase); none = every set
     dir: store.get("dir", "ej"),
     mode: store.get("mode", "default"),
     kanjiLists: [],      // [{id, chapter, kanji}]
@@ -1061,7 +1061,7 @@ body.writing .foot { display: none; }
       verb: "Only for English → 日本語.",
     },
   };
-  // Sets are filtered by chapter and by tag; picks in hidden sets stay picked.
+  // Sets are filtered by chapter and by tag (the Filter row); picks in hidden sets stay picked.
   const setKind = (s) => (/^supp/i.test(s.section) ? "supp" : /^extra/i.test(s.section) ? "extras" : "main");
   // A set's tags are its own (sets/<id>.tags, from its details) plus its kind from the section name, when the table has
   // more than one kind. Tags match without case; a comma (or 、) separates them when typed.
@@ -1182,17 +1182,19 @@ body.writing .foot { display: none; }
     $("#pickSumRow").hidden = !n;
     $("#pickSum").textContent = `${n} set${n === 1 ? "" : "s"} picked${hidden ? `, ${hidden} not shown here` : ""}`;
   }
-  // The Show row: All, then every tag in use, most-used first. It's left out when no tag would narrow anything.
+  // The Filter row: every tag in use, most-used first, none picked to start (every set shows). It's left out when no
+  // tag would narrow anything.
   function renderTagRow(tags, on) {
     $("#pickTagRow").hidden = tags.every((t) => t.n === S.sets.length);
-    $("#pickTags").innerHTML = `<button class="chip" type="button" data-tag="" aria-pressed="${!on.length}">All</button>`
-      + tags.map((t) => `<button class="chip" type="button" data-tag="${esc(t.key)}" aria-pressed="${on.includes(t.key)}">${esc(t.name)}<span class="n">${t.n}</span></button>`).join("");
+    $("#pickTags").innerHTML = tags.map((t) => `<button class="chip" type="button" data-tag="${esc(t.key)}" aria-pressed="${on.includes(t.key)}">${esc(t.name)}<span class="n">${t.n}</span></button>`).join("")
+      + (on.length ? `<button class="link small" type="button" id="tagClear">Clear filter</button>` : "");
+    const save = () => { store.set("pickTags", [...S.pickTags]); renderSetup(); };
     $("#pickTags").querySelectorAll("[data-tag]").forEach((b) => (b.onclick = () => {
       const k = b.dataset.tag;
-      if (!k) S.pickTags.clear();
-      else { for (const x of [...S.pickTags]) if (!tags.some((t) => t.key === x)) S.pickTags.delete(x); S.pickTags.has(k) ? S.pickTags.delete(k) : S.pickTags.add(k); }
-      store.set("pickTags", [...S.pickTags]); renderSetup();
+      for (const x of [...S.pickTags]) if (!tags.some((t) => t.key === x)) S.pickTags.delete(x);
+      S.pickTags.has(k) ? S.pickTags.delete(k) : S.pickTags.add(k); save();
     }));
+    if (on.length) $("#tagClear").onclick = () => { S.pickTags.clear(); save(); };
   }
   $("#pickClear").onclick = () => { S.selected.clear(); saveSetup(); renderSetup(); };
   function renderSetup() {
@@ -1241,7 +1243,7 @@ body.writing .foot { display: none; }
       const who = chs.size === 1 ? esc(chLabel([...chs][0].split("\u0001")[1])) + " has" : states.every((x) => x === "all") ? "There are" : "These chapters have";
       box.innerHTML = !shown.length
         ? !chs.size ? `<div class="empty"><span>No chapters picked. Tap All or a chapter above to see its sets.</span></div>`
-        : `<div class="empty"><b>No sets to show.</b><span>${who} no sets tagged ${onNames.join(" or ")}. Tap All above to see the rest.</span></div>`
+        : `<div class="empty"><b>No sets to show.</b><span>${who} no sets tagged ${onNames.join(" or ")}. Clear the filter above to see the rest.</span></div>`
         : groups.map((sets, i) => {
         const ch = String(sets[0].chapter), name = /^\d/.test(ch) ? "Chapter " + esc(ch) : esc(ch);
         const usable = sets.filter((s) => readyCount(s.words)), all = usable.length && usable.every((s) => S.selected.has(s.id));
