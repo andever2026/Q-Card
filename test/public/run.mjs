@@ -304,6 +304,8 @@ await phone.close();
 // ---------- 8b. delete an account: its data, then the Google account ----------
 await page.click('#histAsk [data-hist="on"]'); await page.waitForTimeout(300);
 ok(!!(await fsData(page))["users/u2/data/settings"], "delete: (history setting saved, so there's something under data/)");
+await page.click('[data-set="samples-greetings"]'); await page.click("#startBtn"); await page.waitForTimeout(300); await scribble(page); await page.click("#quitBtn"); await page.waitForTimeout(200);
+ok(await vis(page, "#resumeBtn"), "delete: (a practice left midway, with writing, to resume)");
 await page.click("#settingsBtn"); await page.click("#delStart");
 ok(/deletes your account/.test(await text(page, "#delAcct")) && await vis(page, "#delYes"), "delete: asks before deleting");
 await page.screenshot({ path: join(out, "8-delete.png") });
@@ -315,6 +317,8 @@ data = await fsData(page);
 ok(!Object.keys(data).some((p) => p.startsWith("users/u2/")) && Object.keys(data).some((p) => p.startsWith("users/u1/")), "delete: everything of that account is gone, other accounts untouched", Object.keys(data).filter((p) => p.startsWith("users/u2/")).join(", "));
 ok((await page.evaluate(() => JSON.parse(localStorage.getItem("fake:deleted") || "[]"))).includes("u2"), "delete: the Google account is deleted too (signing in again first when Google asks)");
 ok(await page.evaluate(() => document.querySelector("#welcome").open), "delete: the page starts over at the welcome pop-up");
+ok(!(await vis(page, "#resumeBtn")) && await page.evaluate(() => localStorage.getItem("jpq:resume") === null && localStorage.getItem("jpq:selected") === null),
+  "delete: the account's choices and its practice to resume (words and writing) are gone from this browser too", await page.evaluate(() => localStorage.getItem("jpq:resume")));
 
 // ---------- 9. use without signing in: everything in this browser ----------
 const lctx = await browser.newContext({ acceptDownloads: true });
@@ -621,6 +625,112 @@ for (const [label, seed, want] of [
   ok(p.errors.length === 0, "samples: no page errors", p.errors.join(" | "));
   await c.close();
 }
+
+// ---------- 16. leaving a practice at an awkward moment; words of different sets that share an id ----------
+const qctx = await browser.newContext();
+const qp = await newPage(qctx, { init: () => {
+  if (localStorage.getItem("qcard:mode")) return;
+  const put = (k, v) => localStorage.setItem("qcard:local:" + k, JSON.stringify(v));
+  localStorage.setItem("qcard:mode", "local"); put("meta/samples", { offeredAt: "x" });
+  put("sets/q-c", { collection: "Q", unit: "U", name: "C", words: [{ id: "x", en: "water", kana: "みず", kanji: "水" }, { id: "y", en: "tea", kana: "おちゃ", kanji: "お茶" }, { id: "z", en: "rice", kana: "ごはん", kanji: "" }] });
+  // A hand-made file may number each set's words 1, 2, …
+  put("sets/q-a", { collection: "Q", unit: "U", name: "A", words: [{ id: "1", en: "water", kana: "みず", kanji: "水" }, { id: "2", en: "tea", kana: "おちゃ", kanji: "お茶" }] });
+  put("sets/q-b", { collection: "Q", unit: "U", name: "B", words: [{ id: "1", en: "rice", kana: "ごはん", kanji: "" }, { id: "2", en: "meat", kana: "にく", kanji: "肉" }] });
+  localStorage.setItem("jpq:selected", '["q-c"]'); localStorage.setItem("jpq:dir", '"je"');
+} });
+const qGot = async () => { for (let i = 0; i < 8 && await vis(qp, "#quiz"); i++) { await scribble(qp); await qp.click("#checkBtn"); await qp.waitForTimeout(150); await qp.click("#selfGot"); await qp.waitForTimeout(1300); } };
+await qp.click("#startBtn"); await qp.waitForTimeout(300);
+const q1 = await text(qp, "#qText");
+await scribble(qp); await qp.click("#checkBtn"); await qp.waitForTimeout(150);
+ok(await vis(qp, "#selfCheck"), "quit while self-marking: (the self-marking panel waits)");
+await qp.click("#quitBtn"); await qp.waitForTimeout(200);
+await qp.click("#resumeBtn"); await qp.waitForTimeout(300);
+ok((await text(qp, "#qText")) === q1 && /^0 of 3 done/.test(await text(qp, "#progLbl")) && !(await qp.$eval("#checkBtn", (b) => b.disabled)),
+  "quit while self-marking: Resume asks that question again, with what was written", `${q1} → ${await text(qp, "#qText")}, ${await text(qp, "#progLbl")}`);
+if (await qp.$eval("#checkBtn", (b) => b.disabled)) await scribble(qp);
+await qp.click("#checkBtn"); await qp.waitForTimeout(150); await qp.click("#selfGot"); await qp.waitForTimeout(200);
+await qp.click("#quitBtn"); await qp.click("#resumeBtn"); await qp.waitForTimeout(100);
+const q2 = await text(qp, "#qText");
+await qp.waitForTimeout(1400);
+ok(await vis(qp, "#quiz") && (await text(qp, "#qText")) === q2 && /^1 of 3 done/.test(await text(qp, "#progLbl")), "Quit and Resume during the 花丸: the word resumed on stays, none is skipped", `${q2} → ${await text(qp, "#qText")}`);
+await qGot();
+await qp.click("#newBtn"); await qp.waitForTimeout(200);
+await qp.click('[data-set="q-c"]'); await qp.click('[data-set="q-a"]'); await qp.click('[data-set="q-b"]'); await qp.click("#startBtn"); await qp.waitForTimeout(300);
+await qGot();
+ok(await vis(qp, "#results") && [await text(qp, "#rWords"), await text(qp, "#rFirst"), await text(qp, "#rTries")].join(",") === "4,4,4",
+  "words of different sets with the same id are each their own question: all right first time", [await text(qp, "#rWords"), await text(qp, "#rFirst"), await text(qp, "#rTries")].join(","));
+ok(qp.errors.length === 0, "awkward moments: no page errors", qp.errors.join(" | "));
+// A check still running (the checker loading over a slow connection) when the student quits and starts another practice.
+const cctx = await browser.newContext();
+const cp = await newPage(cctx, { init: () => {
+  if (localStorage.getItem("qcard:mode")) return;
+  const put = (k, v) => localStorage.setItem("qcard:local:" + k, JSON.stringify(v));
+  localStorage.setItem("qcard:mode", "local"); put("meta/samples", { offeredAt: "x" });
+  put("sets/c", { collection: "C", unit: "U", name: "C", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }, { id: "b", en: "tea", kana: "おちゃ", kanji: "お茶" }, { id: "c", en: "to eat", kana: "たべる", kanji: "食べる" }] });
+  put("data/users/local/settings", { history: true });
+  put("data/users/local/t1", { finishedAt: "2026-10-20T10:00:00Z", dir: "ej", mode: "default", sets: ["U › C"], words: [{ id: "a", en: "water", jp: "水", dir: "ej", tries: 3 }] });
+  localStorage.setItem("jpq:selected", '["c"]');
+} });
+await cp.route("**/data/templates.json", async (r) => { await new Promise((res) => setTimeout(res, 1500)); await r.continue(); });
+await cp.click("#startBtn"); await cp.waitForTimeout(300);
+await scribble(cp); await cp.click("#checkBtn"); await cp.waitForTimeout(150);
+ok(await vis(cp, "#checking"), "quit while checking: (still checking)");
+await cp.click("#quitBtn"); await cp.click("#startBtn"); await cp.waitForTimeout(2500);
+const cres = await cp.evaluate(() => JSON.parse(localStorage.getItem("jpq:resume")));
+ok(!(await vis(cp, "#feedback")) && !(await vis(cp, "#selfCheck")) && /^0 of 3 done/.test(await text(cp, "#progLbl")) && !Object.keys(cres?.tries || {}).length,
+  "quit while checking: the old answer isn't marked on the new practice's first question", JSON.stringify(cres?.tries));
+await cp.click("#quitBtn"); await cp.waitForTimeout(200);
+// History's "Practice these" with Verb forms picked: the words on the list are whole words, so they're practiced in Default.
+await cp.click("#mode-verb"); await cp.click("#histAll"); await cp.waitForTimeout(300); await cp.click("#hPractise"); await cp.waitForTimeout(300);
+ok(await vis(cp, "#quiz") && /^0 of 1 done/.test(await text(cp, "#progLbl")) && (await text(cp, "#qText")) === "water", "Practice these with Verb forms picked: practices the listed words (in Default)", `${await text(cp, "#progLbl")} ${await text(cp, "#qText")}`);
+await cp.click(await vis(cp, "#quiz") ? "#quitBtn" : "#newBtn"); await cp.waitForTimeout(200);
+ok(await cp.$eval("#mode-default", (b) => b.getAttribute("aria-pressed") === "true") && await cp.evaluate(() => Object.keys(localStorage).filter((k) => /data\/users\/local\/t\d/.test(k)).length) === 1,
+  "Practice these with Verb forms picked: Default is picked after, and no empty session is saved");
+ok(cp.errors.length === 0, "quit while checking: no page errors", cp.errors.join(" | "));
+// The welcome pop-up closed with Escape is remembered like its X.
+const ectx = await browser.newContext();
+let ep = await newPage(ectx);
+await ep.keyboard.press("Escape"); await ep.waitForTimeout(200);
+ok(!(await ep.evaluate(() => document.querySelector("#welcome").open)) && await ep.evaluate(() => localStorage.getItem("qcard:mode")) === "local", "welcome: Escape closes it as a guest, like the X");
+await ep.close(); ep = await newPage(ectx);
+ok(!(await ep.evaluate(() => document.querySelector("#welcome").open)), "welcome: after Escape it doesn't come back on the next visit");
+
+// ---------- 17. another account on this browser: sharing handwriting isn't carried over; a set with no collection ----------
+const actx = await browser.newContext();
+const ap = await newPage(actx, { init: () => {
+  if (localStorage.getItem("fake:seeded")) return;
+  localStorage.setItem("fake:seeded", "1");
+  localStorage.setItem("fake:user", JSON.stringify({ uid: "a1", displayName: "A", email: "a@example.com" }));
+  localStorage.setItem("fake:fs", JSON.stringify({
+    "users/a1/meta/samples": { offeredAt: "x" }, "users/a1/data/prefs": { share: { on: true, at: "2026-10-01T00:00:00Z" } },
+    "users/b1/meta/samples": { offeredAt: "x" }, "users/b1/data/prefs": { dir: "je", selected: ["one"] }, "users/c1/meta/samples": { offeredAt: "x" },
+    // saved without a collection (a hand-made file can leave it out): shown under "No collection"
+    "users/b1/sets/one": { unit: "U", name: "One", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }] },
+  }));
+} });
+await ap.waitForTimeout(600);
+const signOut = async () => { await ap.click("#settingsBtn"); await ap.click("#signOutBtn"); await ap.waitForTimeout(800); };
+const signIn = async (u) => { await ap.evaluate((u) => { window.__nextUser = u; }, u); await ap.click("#settingsBtn"); await ap.click("#signOutBtn"); await ap.waitForTimeout(1200); };
+await ap.click("#settingsBtn");
+ok(/^On since/.test(await text(ap, "#shareInfo")), "share, another account: (the first account shares its handwriting)", await text(ap, "#shareInfo"));
+await ap.click("#settingsClose");
+await signOut(); await signIn({ uid: "b1", displayName: "B", email: "b@example.com" });
+await ap.click("#settingsBtn");
+ok(/b@example\.com/.test(await text(ap, "#acctName")) && /^Off\./.test(await text(ap, "#shareInfo")), "share, another account: an account that never said yes isn't sharing", await text(ap, "#shareInfo"));
+await ap.click("#settingsClose");
+await ap.click("#startBtn"); await ap.waitForTimeout(300); await scribble(ap); await ap.click("#checkBtn"); await ap.waitForTimeout(200); await ap.click("#selfGot"); await ap.waitForTimeout(1500);
+ok(!Object.keys(await fsData(ap)).some((k) => k.startsWith("users/b1/training/")), "share, another account: none of its handwriting is saved");
+await ap.click("#newBtn"); await ap.waitForTimeout(200);
+ok(await vis(ap, '[data-set="one"]') && await vis(ap, '#pickChs [data-k="0"]'), "no collection: (the set and its unit show)");
+await ap.click('#pickChs [data-k="0"]'); await ap.click("#dir-ej"); await ap.waitForTimeout(1300);
+ok((await fsData(ap))["users/b1/data/prefs"]?.dir === "ej", "no collection: choices are still saved to the account (Firestore refuses an empty field name)", JSON.stringify((await fsData(ap))["users/b1/data/prefs"]?.dir));
+await signOut();
+await ap.evaluate(() => localStorage.setItem("jpq:share", JSON.stringify({ on: true, at: "2026-10-01T00:00:00Z" }))); // another account said yes on this browser
+await signIn({ uid: "c1", displayName: "C", email: "c@example.com" });
+await ap.click("#settingsBtn");
+ok(/c@example\.com/.test(await text(ap, "#acctName")) && /^Off\./.test(await text(ap, "#shareInfo")) && !(await fsData(ap))["users/c1/data/prefs"]?.share,
+  "share, another account: a first sign-in doesn't take this browser's yes along", await text(ap, "#shareInfo"));
+ok(ap.errors.length === 0, "another account: no page errors", ap.errors.join(" | "));
 
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");

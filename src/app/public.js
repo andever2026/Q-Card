@@ -145,8 +145,9 @@
     $("#welcomeErr").textContent = err || ""; $("#welcomeErr").hidden = !err;
     if (!$("#welcome").open) $("#welcome").showModal();
   }
-  // Closing the pop-up (its X) is the same as continuing as a guest.
+  // Closing the pop-up (its X, or Escape) is the same as continuing as a guest.
   $("#guestBtn").onclick = $("#welcomeClose").onclick = () => { try { localStorage.setItem("qcard:mode", "local"); } catch {} welcomed(); $("#welcome").close(); };
+  $("#welcome").addEventListener("cancel", () => $("#welcomeClose").click());
   // Google's sign-in window; the page then reloads into the account (see boot). onErr says why it didn't work.
   async function signIn(btn, onErr) {
     btn.disabled = true;
@@ -191,12 +192,11 @@
         for (const c of ["sets", "kanji", "training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
         for (const p of [...paths, "meta/books", "meta/courses", "meta/samples"]) await db.doc(p).delete();
         try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
+        // Every choice this site kept in this browser goes too (colours, picks, a practice to resume with its writing): signed in,
+        // they're the account's copy. A guest's own sets and history (qcard:local:…) stay unless it's the guest being deleted.
+        try { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:") || (!account && k.startsWith("qcard:"))) localStorage.removeItem(k); } catch {}
         if (account) await platform.deleteAccount(); // which signs out, and the page starts over (see boot)
-        else {
-          // A guest starts over as a new visitor: every choice this site kept in this browser goes too (colours, picks, a practice to resume).
-          try { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:") || k.startsWith("qcard:")) localStorage.removeItem(k); } catch {}
-          location.reload();
-        }
+        else location.reload(); // a guest starts over as a new visitor
       } catch (err) {
         e.target.disabled = false; e.target.textContent = "Delete everything";
         $("#delErr").hidden = false;

@@ -45,7 +45,14 @@ function allowed(path, write = false) {
 function clean(v, where) {
   if (v === undefined) return undefined;
   if (Array.isArray(v)) return v.map((x) => { if (Array.isArray(x)) throw { code: "invalid-argument", message: "nested arrays in " + where }; return clean(x, where); });
-  if (v && typeof v === "object") { const o = {}; for (const [k, x] of Object.entries(v)) { const c = clean(x, where); if (c !== undefined) o[k] = c; } return o; }
+  if (v && typeof v === "object") {
+    const o = {};
+    for (const [k, x] of Object.entries(v)) {
+      if (!k) throw { code: "invalid-argument", message: "Document fields must not be empty, in " + where }; // like real Firestore
+      const c = clean(x, where); if (c !== undefined) o[k] = c;
+    }
+    return o;
+  }
   return v;
 }
 export const initializeFirestore = (_app, settings) => ({ settings });

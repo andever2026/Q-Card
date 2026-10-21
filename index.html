@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-/XTdWKDzWDXHNNFA3yzCVGK6w+ka1DhcERR6zgVsQsY=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-qljo9b8XiA+GJiqfLsg/s3rtAuMffkt6vTfXEf9Q23o=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -1430,6 +1430,10 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       if (S.dir !== "je") items.push({ key: w.id + ":ej", dir: "ej", w });
       if (S.dir !== "ej") items.push({ key: w.id + ":je", dir: "je", w });
     }
+    // Word ids are only sure to be unique within a set (a hand-made file may number each set's words 1, 2, …): a question
+    // whose key is already taken gets its own, so tries and progress stay per question.
+    const keys = new Set();
+    for (const it of items) { let k = it.key, n = 2; while (keys.has(k)) k = `${it.key}#${n++}`; keys.add(k); it.key = k; }
     Object.assign(Q, { items, queue: order(items), wrong: [], round: 1, tries: {}, done: new Set(), total: items.length,
       meta: { dir: S.dir, mode: S.mode, sets: [...new Set(words.map((w) => w.set))] } });
     show("quiz");
@@ -1449,10 +1453,12 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
   function saveResume() {
     clearTimeout(inkTimer);
     if (!Q.meta) return;
-    const pending = [...(Q.cur && !Q.answered ? [Q.cur] : []), ...Q.queue];
+    // The question on screen stays to do until it's marked right or wrong (the self-marking panel may still be waiting).
+    const open = Q.cur && !Q.done.has(Q.cur.key) && !Q.wrong.includes(Q.cur);
+    const pending = [...(open ? [Q.cur] : []), ...Q.queue];
     const r = { items: Q.items, pending: pending.map((it) => it.key), wrong: Q.wrong.map((it) => it.key), done: [...Q.done], tries: Q.tries, round: Q.round, meta: Q.meta, upto: quizUpto, savedAt: new Date().toISOString() };
     // What's written for the question still open comes back too.
-    if (Q.cur && !Q.answered && (!main.empty || !furi.empty)) r.ink = { key: Q.cur.key, main: inkOf(main), furi: inkOf(furi) };
+    if (open && (!main.empty || !furi.empty)) r.ink = { key: Q.cur.key, main: inkOf(main), furi: inkOf(furi) };
     // A very long practice (thousands of questions) isn't kept, so saving stays quick.
     store.set("resume", JSON.stringify(r).length < 400000 ? r : null);
   }
@@ -1590,20 +1596,24 @@ CORRECT: <YES or NO, matching your REASON>`;
     invalid_json: "Claude's answer came back in the wrong format. Press Check again.",
     tpl_load: "Couldn't load the handwriting checker. Check your connection and press Check again.",
   };
+  // A check still running when the student quits (or a practice started or resumed meanwhile) belongs to a question that's
+  // no longer on screen: its answer stays unchecked, kept for Resume with what was written.
+  const gone = (cur) => Q.cur !== cur || $("#quiz").hidden;
   // The built-in checker reads English → 日本語 answers, and 日本語 → English answers written the way the meaning is
   // worded. Other English (a synonym, say) and words it has no strokes for are marked by the student (selfMark).
   async function check() {
     if (main.empty || Q.busy) return;
-    const { w, dir } = Q.cur;
+    const cur = Q.cur, { w, dir } = cur;
     Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true;
     $("#overrideBtn").textContent = "The checker misread my writing, count it as correct";
     let self = false;
     try {
       const res = dir === "je" ? await englishCheck(w) : await builtinCheck(w, dir === "ej" && !furi.empty);
+      if (gone(cur)) return;
       shareAnswer(!res ? "unread" : res.ok ? "right" : dir === "ej" ? "wrong" : "unmatched", res?.r);
       if (res && (res.ok || dir === "ej")) grade(res.ok, res.r); else self = res ? "unmatched" : "unread";
     } catch (e) {
-      showErr(ERR[e?.code] || "Something went wrong with the check. Press Check to try again.");
+      if (!gone(cur)) showErr(ERR[e?.code] || "Something went wrong with the check. Press Check to try again.");
     } finally {
       Q.busy = false; $("#checking").hidden = $("#checkingFuri").hidden = true; syncCheck();
     }
@@ -1790,7 +1800,8 @@ CORRECT: <YES or NO, matching your REASON>`;
     main.c.classList.add("locked"); furi.c.classList.add("locked");
     // Force kanji hides the reading of 日本語 → English questions until the answer is checked.
     if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
-    if (ok) { Q.done.add(key); saveResume(); hanamaru().then(nextItem); return; }
+    // The next word comes after the 花丸, unless another practice was started or resumed meanwhile (Quit, then Start or Resume).
+    if (ok) { const cur = Q.cur; Q.done.add(key); saveResume(); hanamaru().then(() => Q.cur === cur && nextItem()); return; }
     Q.wrong.push(Q.cur); saveResume();
     $("#tools").hidden = true;
     $("#fbReason").textContent = r?.reason || "";
@@ -1871,7 +1882,8 @@ CORRECT: <YES or NO, matching your REASON>`;
   }
   $("#loveList").addEventListener("click", (e) => { const b = e.target.closest(".skipw"); if (b) { const k = b.closest("li").dataset.key; setSkip([k], !Q.skip.has(k)); } });
   $("#skipAll").onclick = () => { const ks = [...document.querySelectorAll("#loveList li")].map((li) => li.dataset.key); setSkip(ks, !ks.every((k) => Q.skip.has(k))); };
-  $("#againBtn").onclick = () => { const seen = new Set(); startTest(Q.love.filter((w) => !seen.has(w.id) && seen.add(w.id)), quizUpto); };
+  // Each word once (Both asks it twice); words of different sets can share an id.
+  $("#againBtn").onclick = () => { const seen = new Set(), k = (w) => w.set + "\u0001" + w.id; startTest(Q.love.filter((w) => !seen.has(k(w)) && seen.add(k(w))), quizUpto); };
   $("#newBtn").onclick = () => { show("setup"); renderSetup(); };
 
   // Saves the finished session; called again with its id when the skip choices change afterwards.
@@ -1939,16 +1951,20 @@ CORRECT: <YES or NO, matching your REASON>`;
   function syncPrefs() {
     const ref = db.doc(`data/users/${uid}/prefs`);
     let first = true, timer = null, stopped = false;
+    // Firestore refuses a whole document with an empty field name, and sets with no collection are under "" in bookShow and tShow:
+    // that one row's choice stays in this browser.
+    const named = (v) => (v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).filter(([k]) => k)) : v);
     const save = () => {
       clearTimeout(timer); timer = null;
       if (stopped) return;
-      const p = Object.fromEntries(PREF_KEYS.map((k) => [k, store.get(k, null)]).filter(([, v]) => v != null));
+      const p = Object.fromEntries(PREF_KEYS.map((k) => [k, named(store.get(k, null))]).filter(([, v]) => v != null));
       Promise.resolve().then(() => ref.set({ ...p, updatedAt: new Date().toISOString() })).catch(() => {});
     };
     const off = ref.onSnapshot((snap) => {
       if (!first) return;
       first = false; setTimeout(() => typeof off === "function" && off(), 0);
-      if (snap.exists) usePrefs(snap.data() || {}); else save();
+      // A yes to sharing handwriting left in this browser is another account's, so a first sign-in doesn't take it along.
+      if (snap.exists) usePrefs(snap.data() || {}); else { store.set("share", null); save(); }
       prefsChanged = () => { clearTimeout(timer); timer = setTimeout(save, 800); };
       const flush = () => { if (timer) save(); };
       addEventListener("pagehide", flush);
@@ -1958,7 +1974,8 @@ CORRECT: <YES or NO, matching your REASON>`;
   }
   function usePrefs(p) {
     // A practice to resume is the account's, or none: one left in this browser may be from another account or already finished elsewhere.
-    for (const k of PREF_KEYS) if (p[k] != null || k === "resume") store.set(k, p[k] ?? null);
+    // So is the answer to sharing handwriting: only the account's own yes counts.
+    for (const k of PREF_KEYS) if (p[k] != null || k === "resume" || k === "share") store.set(k, p[k] ?? null);
     S.selected = new Set(store.get("selected", []));
     Object.assign(S.pick, { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", [])) });
     Object.assign(S.tpick, { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) });
@@ -2128,7 +2145,10 @@ CORRECT: <YES or NO, matching your REASON>`;
   $("#hPractise").onclick = () => {
     const ids = new Set(S.toughIds), words = [];
     for (const s of S.sets) for (const w of s.words) if (ids.has(w.id) && (w.en || "").trim() && (w.kana || w.kanji)) words.push({ ...w, set: setName(s) });
-    if (words.length) startTest(words);
+    if (!words.length) return;
+    // These are whole words (verb forms never come back here), so Verb forms, which would have nothing to ask, gives way to Default.
+    if (S.mode === "verb") { S.mode = "default"; saveSetup(); }
+    startTest(words);
   };
 
   function renderTests() {
@@ -2748,8 +2768,9 @@ CORRECT: <YES or NO, matching your REASON>`;
     $("#welcomeErr").textContent = err || ""; $("#welcomeErr").hidden = !err;
     if (!$("#welcome").open) $("#welcome").showModal();
   }
-  // Closing the pop-up (its X) is the same as continuing as a guest.
+  // Closing the pop-up (its X, or Escape) is the same as continuing as a guest.
   $("#guestBtn").onclick = $("#welcomeClose").onclick = () => { try { localStorage.setItem("qcard:mode", "local"); } catch {} welcomed(); $("#welcome").close(); };
+  $("#welcome").addEventListener("cancel", () => $("#welcomeClose").click());
   // Google's sign-in window; the page then reloads into the account (see boot). onErr says why it didn't work.
   async function signIn(btn, onErr) {
     btn.disabled = true;
@@ -2794,12 +2815,11 @@ CORRECT: <YES or NO, matching your REASON>`;
         for (const c of ["sets", "kanji", "training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
         for (const p of [...paths, "meta/books", "meta/courses", "meta/samples"]) await db.doc(p).delete();
         try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
+        // Every choice this site kept in this browser goes too (colours, picks, a practice to resume with its writing): signed in,
+        // they're the account's copy. A guest's own sets and history (qcard:local:…) stay unless it's the guest being deleted.
+        try { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:") || (!account && k.startsWith("qcard:"))) localStorage.removeItem(k); } catch {}
         if (account) await platform.deleteAccount(); // which signs out, and the page starts over (see boot)
-        else {
-          // A guest starts over as a new visitor: every choice this site kept in this browser goes too (colours, picks, a practice to resume).
-          try { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:") || k.startsWith("qcard:")) localStorage.removeItem(k); } catch {}
-          location.reload();
-        }
+        else location.reload(); // a guest starts over as a new visitor
       } catch (err) {
         e.target.disabled = false; e.target.textContent = "Delete everything";
         $("#delErr").hidden = false;
