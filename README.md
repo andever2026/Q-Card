@@ -6,32 +6,22 @@ Japanese Vocab Practice (this repository: Q-Card) is a flashcard site for Japane
 
 ## What it does
 
+- **Collections, units and sets.** Sets are grouped Collection › Unit › Set: a textbook and its chapters (Nakama 1 › Ch. 3 › A · Greetings), a class and its weeks (Japanese 1 › Week 3 › Food and drink), or anything else. Units sort by name with numbers in order, so Week 2 comes before Week 10. Kanji lists go by unit, and **Kanji learned up to** counts every kanji up to the unit you pick.
 - **Practice by hand.** English → 日本語, 日本語 → English, or both. Modes: Default, Force kanji (kanji you've learned must be kanji), Kana only, Katakana only, and Verb forms.
 - **Tags.** Give sets tags in their details (Verbs, Quiz 3…). The Filter row above the sets lists every tag in use with how many sets picking it would hide, the ones hiding the most first, and none picked; tapping tags narrows the sets to those tags, and Clear filter shows them all again. When a table has Extras or Supp. sets, Main sets, Extras and Supp. are tags too.
-- **Your own vocab.** Everyone brings their own lists: import a vocab file someone shared with you, or type sets into the vocab table. Q-Card ships no textbook lists. New visitors start with a few sample sets (`data/samples.json`: greetings, people, food, katakana words, everyday verbs and time, with kanji lists for three chapters) so every mode can be tried right away; **Remove the sample sets** under the set picker takes them out for good.
+- **Your own vocab.** Everyone brings their own lists: import a vocab file someone shared with you, or type sets into the vocab table. Q-Card ships no textbook lists. New visitors start with a few sample sets (`data/samples.json`: greetings, people, food, katakana words, everyday verbs and time, spread over three units, Week 1 to Week 3, each with a kanji list) so every mode can be tried right away; **Remove the sample sets** under the set picker takes them out for good.
 - **Private per person.** Sign in with Google and your sets, kanji lists and practice history live in your own space in the database, on any device. Or choose **Continue as a guest** and everything stays in your browser on that device.
 - **Settings.** The gear at the top opens Settings: colours, light or dark, which account you're using, sign in or out, how much vocab you have, and deleting your account (or, as a guest, everything saved in this browser).
-- **Two ways to check answers:**
-  - **Built-in checker** (default, free). Compares your strokes with stroke templates for kana and about 2,150 kanji, right in the browser. Your writing never leaves your device. It's less accurate than Claude, so you can always count an answer as correct yourself. 日本語 → English answers are marked by you.
-  - **Claude, with your own API key.** Claude reads your writing the way a teacher would, furigana included. Each check is billed to your own Anthropic account.
-
-## Your API key
-
-If you choose Claude, your Anthropic API key is used only from your browser:
-
-- It's sent only to `api.anthropic.com`. It's never saved to Q-Card's database or sent anywhere else, and the page's Content Security Policy blocks it from talking to any other site apart from Google's sign-in and database services. The page loads nothing else from other sites; even its fonts are served from the site itself.
-- By default it's kept for the current tab only (`sessionStorage`) and forgotten when you close the tab.
-- Tick **Remember on this device** to keep it in this browser (`localStorage`). Add a passcode and only an encrypted copy is stored (PBKDF2 + AES-GCM); you unlock it once per tab.
-- **Forget my key** removes every copy from the browser.
-- Best practice: create a separate key just for Q-Card in the [Anthropic Console](https://console.anthropic.com/) with a low monthly spending limit.
+- **Choices follow you.** The sets you picked, the filter, direction, mode, Kanji learned up to, colours and light or dark are saved to your account when you're signed in, so they're the same on every device. As a guest they're kept in this browser.
+- **Built-in checker.** Compares your strokes with stroke templates for kana and about 2,150 kanji, right in the browser, so your writing never leaves your device. If it misreads your writing you can count the answer as correct yourself. 日本語 → English answers are checked too when you print the meaning the way your set words it; anything else, such as a synonym or joined-up handwriting, you mark yourself.
 
 ## Data and privacy
 
-Data is stored in Firebase (Cloud Firestore) under `users/<your account id>/`. The [Firestore rules](firestore.rules) let each signed-in person read and write only their own folder, so other visitors can't see your data. As with any website's database, the site owner can see stored data in the Firebase console. Practice history is saved only after you turn it on, and you can delete it from the History page. **Delete my account** in Settings deletes all of your data and then your account.
+Data is stored in Firebase (Cloud Firestore) under `users/<your account id>/`. The [Firestore rules](firestore.rules) let each signed-in person read and write only their own folder, so other visitors can't see your data. As with any website's database, the site owner can see stored data in the Firebase console. Your choices on the page are saved there too (`users/<id>/data/prefs`). Practice history is saved only after you turn it on, and you can delete it from the History page. **Delete my account** in Settings deletes all of your data and then your account.
 
 As a guest, the site saves everything in your browser's `localStorage` on that device and sends none of it anywhere. Clearing the site's data in your browser deletes it, so export a copy now and then. To move it to an account later, export it, sign in, and import the file.
 
-Q-Card sets no cookies for tracking or ads and has no analytics. What it stores in your browser (your own data, your sign-in session, and your API key if you choose to keep it) is only what the features you use need.
+Q-Card sets no cookies for tracking or ads and has no analytics. What it stores in your browser (your own data, your choices and your sign-in session) is only what the features you use need. The page's Content Security Policy only lets it talk to Google's sign-in and database services, and it loads nothing from other sites; even its fonts are served from the site itself.
 
 ## How the code is laid out
 
@@ -40,11 +30,10 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 | `src/app.html` | The whole page (HTML, CSS and app code). Shared with a personal copy that runs as a claude.ai artifact; lines between `#if public` / `#if claude` markers go to one version only. |
 | `src/platform/firebase.js` | Public-site platform: Google sign-in, the Firestore adapter, file downloads. |
 | `src/platform/local.js` | Guest use (no sign-in): the same database shape, kept in the browser's `localStorage`. |
-| `src/platform/claude.js` | Checking with a visitor's own API key (Anthropic TypeScript SDK). Loaded only when used. |
 | `src/platform/config.js` | Firebase web config. These values are public by design; the rules above protect the data. |
 | `src/checker.js` | The built-in handwriting checker. |
 | `data/samples.json` | The sample sets new visitors start with, in the same format as an export. Written for this site, not taken from a textbook. |
-| `data/templates.json` | Stroke templates for the checker, generated from KanjiVG by `tools/make-templates.mjs`. |
+| `data/templates.json` | Stroke templates for the checker, generated from KanjiVG and the Hershey fonts (`tools/checker/hershey-latin.json`) by `tools/make-templates.mjs`. |
 | `fonts/` | The page's fonts, served from the site itself so visitors never contact Google Fonts. `tools/fetch-fonts.mjs` refreshes them. |
 | `tools/build.mjs` | Builds `index.html` and `js/*.js` (the site) and `build/claude-ai.html` (the claude.ai copy). |
 | `index.html`, `js/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus a beta build of the `beta` branch. |
@@ -54,7 +43,7 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 
 ```sh
 npm install
-npm run build     # writes index.html, js/platform.js, js/claude.js, build/claude-ai.html
+npm run build     # writes index.html, js/platform.js, build/claude-ai.html
 npm run check     # fails if the committed built files are out of date (CI runs this)
 ```
 
@@ -63,13 +52,14 @@ Edit files in `src/`, then build and commit the built files with your change.
 ### Testing
 
 ```sh
-node test/public/run.mjs          # sign-in, import, practice, own-key checks, key storage, CSP (Playwright)
+node test/public/run.mjs          # sign-in, import, practice, settings, saved choices, CSP (Playwright)
 node test/checker/eval.mjs --vocab <folder of vocab files>   # built-in checker accuracy and speed
+node test/checker/eval-en.mjs --vocab <folder> --hershey <hersheytext package>   # the same for English answers
 ```
 
 See [test/checker/README.md](test/checker/README.md) for how the checker works, its accuracy numbers and its weak spots. `test/checker/demo.html` is a standalone writing box for trying it out.
 
-GitHub runs the public-site tests on every pull request into `main`. They swap Firebase for an in-memory fake (`test/public/fake-firebase.js`) and mock Anthropic's API, so they need no accounts or keys.
+GitHub runs the public-site tests on every pull request into `main`. They swap Firebase for an in-memory fake (`test/public/fake-firebase.js`), so they need no accounts.
 
 ### Beta site
 
@@ -91,18 +81,18 @@ Export and Import use one JSON file:
 ```json
 {
   "app": "jp-vocab-practice",
-  "version": 1,
+  "version": 2,
   "sets": [
-    { "id": "sample-ch1-a", "book": "Sample", "chapter": 1, "section": "A", "label": "Food and drink", "tags": ["Verbs"],
+    { "id": "japanese-1-week-3-food", "collection": "Japanese 1", "unit": "Week 3", "name": "Food and drink", "tags": ["Verbs"],
       "words": [ { "id": "s1", "en": "to eat", "kana": "たべる", "kanji": "食べる" } ] }
   ],
-  "kanji": [ { "id": "sample-ch1", "book": "Sample", "chapter": 1, "kanji": "食飲水" } ],
-  "books": { "order": ["Sample"] },
-  "courses": null
+  "kanji": [ { "id": "japanese-1-week-3", "collection": "Japanese 1", "unit": "Week 3", "kanji": "食飲水" } ],
+  "collections": { "order": ["Japanese 1"] },
+  "courses": { "courses": [ { "name": "Spring", "parts": [ { "collection": "Japanese 1", "from": "Week 1", "to": "Week 8" } ] } ] }
 }
 ```
 
-Import adds new sets and replaces ones with the same `id`; it never deletes. `tags` is optional (up to 12 per set, matched without case). `kana` and `kanji` may list alternatives with `／` and optional parts in `（）`, like `（お）てんき`. See `test/public/fixtures/sample-export.json`.
+Import adds new sets and replaces ones with the same `id`; it never deletes. `collections.order` is the order collections are studied in, and `courses` (optional) gather ranges of units into rows of their own. Files exported before units existed (`book`, a numbered `chapter`, `section` and `label`) still import: chapter 3 becomes unit "Ch. 3" and section A with label Greetings becomes the set name "A · Greetings". `tags` is optional (up to 12 per set, matched without case). `kana` and `kanji` may list alternatives with `／` and optional parts in `（）`, like `（お）てんき`. See `test/public/fixtures/sample-export.json`.
 
 Please don't share files copied from copyrighted textbooks publicly.
 
@@ -111,7 +101,8 @@ Please don't share files copied from copyrighted textbooks publicly.
 Q-Card is licensed under the [GNU Affero General Public License v3.0](LICENSE).
 
 - Handwriting templates in `data/templates.json` are derived from [KanjiVG](https://kanjivg.tagaini.net), © Ulrich Apel, licensed under [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). That file is shared under the same license.
+- Letter and digit templates come from the Hershey fonts. The Hershey Fonts were originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of Standards. The format of the font data was originally created by James Hurt, Cognition, Inc. Taken from [hersheytext](https://github.com/techninja/hersheytextjs) (MIT).
 - Kanji readings come from [KANJIDIC](https://www.edrdg.org/wiki/index.php/KANJIDIC_Project), © the Electronic Dictionary Research and Development Group, licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
-- The built site bundles the [Firebase JS SDK](https://github.com/firebase/firebase-js-sdk) (Apache-2.0) and the [Anthropic TypeScript SDK](https://github.com/anthropics/anthropic-sdk-typescript) (MIT).
-- The checker's accuracy tests can also use hand-drawn characters from [KanjiCanvas](https://github.com/asdfjkl/kanjicanvas) (MIT) and the Tomoe dictionary via [tegaki](https://github.com/tegaki/tegaki) (LGPL). You download them yourself to run those tests; they aren't part of the site or this repository.
+- The built site bundles the [Firebase JS SDK](https://github.com/firebase/firebase-js-sdk) (Apache-2.0).
+- The checker's accuracy tests can also use hand-drawn characters from [KanjiCanvas](https://github.com/asdfjkl/kanjicanvas) (MIT) and the Tomoe dictionary via [tegaki](https://github.com/tegaki/tegaki) (LGPL), and the English tests use the single-line fonts in the [hersheytext](https://www.npmjs.com/package/hersheytext) package (MIT; its EMS fonts are SIL OFL). You download them yourself to run those tests; they aren't part of the site or this repository.
 - Fonts: [Klee One](https://github.com/fontworks-fonts/Klee) and [Zen Kaku Gothic New](https://github.com/googlefonts/zen-kakugothic), licensed under the SIL Open Font License 1.1 ([fonts/OFL.txt](fonts/OFL.txt)), copied from Google Fonts and served from this site.

@@ -1,10 +1,12 @@
 /*
  * Q-Card offline handwriting checker.
- * Verifies handwritten Japanese against a list of acceptable answers, entirely in the browser.
+ * Verifies handwritten Japanese (or, with latin: true, English) against a list of acceptable answers, entirely in the browser.
  * Copyright (C) the Q-Card authors. AGPL-3.0-only (see LICENSE).
- * Template data (data/templates.json) is derived from KanjiVG (C) Ulrich Apel, CC BY-SA 3.0.
+ * Template data (data/templates.json) is derived from KanjiVG (C) Ulrich Apel, CC BY-SA 3.0, and the Hershey Fonts
+ * (Dr. A. V. Hershey, U. S. National Bureau of Standards).
  *
- * API: QCardChecker.init(templatesJson), .has(ch), .verify({strokes, candidates, box, anyKana}), .top(strokes, box, n)
+ * API: QCardChecker.init(templatesJson), .has(ch), .verify({strokes, candidates, box, anyKana, latin}), .top(strokes, box, n),
+ *      .englishAnswers(meaning) (the candidates for an English meaning)
  * See test/checker/README.md for the algorithm.
  */
 (function (root) {
@@ -29,6 +31,12 @@
   const KNEIGH = 12;        // competitors taken from the expected template's own coarse neighbours
   const KFINE = 6;          // closest competitors re-scored with the finer distance
   let KAPPA = 0.45;         // decision point between two close templates (0.5 = halfway)
+  let LMARGIN = 0.03, LMARGIN_X = 0.1, LKAPPA = 5, LCEIL = 0.25; // English: as MARGIN, MARGIN_X (letter vs digit), KAPPA (5: off), CEIL
+  const LMAXLEN = 32;       // English: longer answers (letters and digits) aren't checked
+  let LOOPPEN = 0.04;       // English: a closed loop matched to an open stroke, or the reverse
+  let LPLACE = 0.15;        // English: cost per capital height a letter sits off where it belongs on the line
+  let PSLACK = 0.12;        // ... beyond this much
+  let LWIDE = 0.2, WSLACK = 0.5; // ... and per x-height a letter is wider than its template, beyond WSLACK
   const GRID = 8;           // coarse feature grid
   const AFF = 0.8;          // how far the per-template affine alignment may go (0 = off)
   const AFFPEN = 0.02;      // cost per unit of affine deformation
@@ -42,6 +50,7 @@
   let DEC = new Map();      // ch -> decoded template
   let COARSE = null;        // Float32Array(CHARS.length * FD)
   let unit = 109, qn = 92, alpha = "", AIDX = null;
+  let JPOOL = null, LPOOL = null; // template indices judged against Japanese / English writing
   const FD = 4 * GRID * GRID;
   const NEIGH = new Map();  // ch -> coarse neighbours of its template
   const DMAX2 = DMAX * DMAX;
@@ -54,9 +63,17 @@
   const SAME = ["カ力", "チ千", "エ工", "ロ口", "タ夕", "ニ二", "ハ八", "ト卜", "ー一", "へヘ", "べベ", "ぺペ", "りリ", "オ才", "ヒ匕", "メ乂",
     "0Oo", "1lI", "Cc", "Kk", "Pp", "Ss", "Uu", "Vv", "Ww", "Xx", "Zz", "・."];
   const SAMEMAP = new Map();
-  for (const g of SAME) for (const c of g) { const s = SAMEMAP.get(c) || new Set([c]); for (const d of g) s.add(d); SAMEMAP.set(c, s); }
+  const link = (g) => { for (const c of g) { const s = SAMEMAP.get(c) || new Set([c]); for (const d of g) s.add(d); SAMEMAP.set(c, s); } };
+  for (const g of SAME) link(g);
   // Punctuation may be left out.
   const OPTIONAL = new Set(["、", "。", "・", ",", ".", "!", "?", "！", "？"]);
+  // In English writing, ASCII punctuation is optional too.
+  const LPUNCT = new Set([".", ",", "'", "-", "!", "?", ":", ";", "\"", "(", ")"]);
+  const LONLY = new Set([...LPUNCT, "&"]); // templates (from the Hershey fonts) that only English writing uses
+  // Other ways of writing a Latin letter or digit are extra templates named "a#1", "g#1", ...; letterOf gives the letter.
+  const isDigit = (c) => c >= "0" && c <= "9";
+  const letterOf = (k) => (k.length > 2 && k[1] === "#" ? k[0] : k);
+  const latinKey = (k) => /^[0-9A-Za-z]$/.test(letterOf(k)) || LPUNCT.has(k);
   const isHira = (c) => c >= "ぁ" && c <= "ゖ";
   const isKata = (c) => c >= "ァ" && c <= "ヶ";
   const toOther = (c) => (isHira(c) ? String.fromCharCode(c.charCodeAt(0) + 0x60) : isKata(c) ? String.fromCharCode(c.charCodeAt(0) - 0x60) : null);
@@ -90,6 +107,39 @@
       acc += seg;
     }
     for (; k < n; k++) { out[2 * k] = pts[pts.length - 1][0]; out[2 * k + 1] = pts[pts.length - 1][1]; }
+    return out;
+  }
+  // A stroke that ends about where it started (o, 0, the bowl of a or d), resampled around the loop so that it can be
+  // compared from any starting point and in either direction; null for other strokes.
+  function loopOf(pts) {
+    const L = polyLen(pts);
+    if (pts.length < 4 || L < 1e-9) return null;
+    const a = pts[0], b = pts[pts.length - 1];
+    if (Math.hypot(a[0] - b[0], a[1] - b[1]) > 0.18 * L) return null;
+    const bb = bboxOf(pts);
+    if (Math.min(bb[2] - bb[0], bb[3] - bb[1]) < 0.15 * L) return null; // a retraced line, not a loop
+    const r = resample(pts.concat([a]), NP + 1);
+    return r.subarray(0, 2 * NP);
+  }
+  let CYC = false;          // compare loops from any starting point (English writing)
+  function loopDist(A, B) {
+    let best = Infinity;
+    for (let dir = 0; dir < 2; dir++) for (let sh = 0; sh < NP; sh++) {
+      let f = 0;
+      for (let k = 0; k < NP; k++) {
+        const j = dir ? (NP + sh - k) % NP : (sh + k) % NP;
+        f += lc(A[2 * k] - B[2 * j], A[2 * k + 1] - B[2 * j + 1]);
+        if (f >= best * NP) break;
+      }
+      f /= NP;
+      if (f < best) { best = f; loopShift = dir ? -1 - sh : sh; }
+    }
+    return SQ ? Math.sqrt(best) : best;
+  }
+  let loopShift = 0;
+  function rolled(B, sh) {
+    const out = new Float64Array(2 * NP);
+    for (let k = 0; k < NP; k++) { const j = sh >= 0 ? (sh + k) % NP : (NP + (-1 - sh) - k) % NP; out[2 * k] = B[2 * j]; out[2 * k + 1] = B[2 * j + 1]; }
     return out;
   }
   // De-duplicate raw pointer points and smooth them lightly (mouse wobble).
@@ -157,7 +207,7 @@
     let t = DEC.get(ch);
     if (t) return t;
     const { f, polys } = decodePolys(ch);
-    const strokes = polys.map((np) => { const u = unitOf(np, { poly: np }); u.w = WBASE + u.len; return u; });
+    const strokes = polys.map((np) => { const u = unitOf(np, { poly: np, lp: loopOf(np) }); u.w = WBASE + u.len; return u; });
     const chains = [];
     for (let a = 0; a < strokes.length; a++) for (let b = a + 1; b <= Math.min(a + 2, strokes.length - 1); b++) {
       let poly = [], w = 0;
@@ -168,6 +218,17 @@
     }
     let wsum = 0; for (const s of strokes) wsum += s.w;
     t = { ch, s: strokes, chains, wsum, size: f.s / unit, w: f.w / unit, h: f.h / unit, cy: f.cy / unit, cx: f.cx / unit, n: strokes.length };
+    // Latin: top and bottom in capital heights from the baseline (KanjiVG's own letters and the Hershey ones sit differently)
+    // and, for letters and digits, where they sit between the lines people write on: zt = 0 at the x-height, 1 at the
+    // capital height; zb = 0 on the baseline, 1 at the bottom of a descender; zw = width in x-heights
+    if (latinKey(ch)) {
+      const fam = ch.includes("#") ? "#1" : "", H = decodePolys("H" + fam).f;
+      const lt = (f.y0 - H.y1) / H.h, lb = (f.y1 - H.y1) / H.h;
+      if (/^[0-9A-Za-z]$/.test(letterOf(ch)) && lb - lt > 0.3) {
+        const X = (H.y1 - decodePolys("x" + fam).f.y0) / H.h, D = (decodePolys("p" + fam).f.y1 - H.y1) / H.h;
+        t.zt = Math.max(-0.5, Math.min(1.3, (-lt - X) / (1 - X))); t.zb = Math.max(-0.5, Math.min(1.5, lb / D)); t.zw = f.w / H.h / X;
+      }
+    }
     DEC.set(ch, t);
     return t;
   }
@@ -223,9 +284,10 @@
       }
     }
   }
-  function coarseRank(feat, k) {
-    const n = CHARS.length, bestC = [], bestD = [];
-    for (let i = 0; i < n; i++) {
+  function coarseRank(feat, k, pool) {
+    const n = pool ? pool.length : CHARS.length, bestC = [], bestD = [];
+    for (let ii = 0; ii < n; ii++) {
+      const i = pool ? pool[ii] : ii;
       let d = 0; const off = i * FD;
       for (let j = 0; j < FD; j++) d += feat[j] * COARSE[off + j];
       const dist = 1 - d;
@@ -247,26 +309,28 @@
       const poly = clean(raw);
       if (!poly.length) continue;
       const p = resample(poly, NP);
-      S.push({ poly, bb: bboxOf(poly), len: polyLen(poly), p, q: shapeQ(p), id: S.length });
+      S.push({ poly, bb: bboxOf(poly), len: polyLen(poly), p, q: shapeQ(p), lp: loopOf(poly), id: S.length });
     }
     // two strokes in a row may be one template stroke drawn in two pieces
     for (let i = 0; i + 1 < S.length; i++) { S[i].next = resample(S[i].poly.concat(S[i + 1].poly), NP); S[i].nq = shapeQ(S[i].next); }
     return S;
   }
-  function normUnit(src, f, inv, len, q) {
+  function normUnit(src, f, inv, len, q, lp) {
     const p = new Float64Array(2 * NP);
     let cx = 0, cy = 0;
     for (let k = 0; k < NP; k++) {
       const x = (src[2 * k] - f.cx) * inv, y = (src[2 * k + 1] - f.cy) * inv;
       p[2 * k] = x; p[2 * k + 1] = y; cx += x; cy += y;
     }
-    return { p, q, cx: cx / NP, cy: cy / NP, len };
+    const u = { p, q, cx: cx / NP, cy: cy / NP, len };
+    if (lp) { u.lp = new Float64Array(2 * NP); for (let k = 0; k < 2 * NP; k += 2) { u.lp[k] = (lp[k] - f.cx) * inv; u.lp[k + 1] = (lp[k + 1] - f.cy) * inv; } }
+    return u;
   }
   // Normalised view of a group of input strokes (ids ascending in drawing order).
   function groupView(S, ids) {
     const f = frameOf(ids.map((i) => S[i].bb));
     const inv = 1 / f.s;
-    const st = ids.map((i) => normUnit(S[i].p, f, inv, S[i].len * inv, S[i].q));
+    const st = ids.map((i) => normUnit(S[i].p, f, inv, S[i].len * inv, S[i].q, S[i].lp));
     const ch = [];
     for (let a = 0; a + 1 < ids.length; a++) {
       if (ids[a + 1] !== ids[a] + 1) continue;
@@ -274,7 +338,9 @@
       u.a = a;
       ch.push(u);
     }
-    return { f, st, ch, ids };
+    const G = { f, st, ch, ids };
+    if (CYC) G.S = S; // English: ink compared too (inkCost)
+    return G;
   }
   function groupPolys(S, G) {
     const inv = 1 / G.f.s;
@@ -343,9 +409,12 @@
     const push = (u, tu, ua, ub, ta, tb, w, extra) => {
       const dx = u.cx - tu.cx, dy = u.cy - tu.cy;
       if (dx * dx + dy * dy >= DMAX2) return; // mean distance >= centroid distance
-      const d = (fine ? sdistW(u.p, tu.p, tu.len) : sdist(u.p, tu.p, tu.len)) + extra;
+      let d = (fine ? sdistW(u.p, tu.p, tu.len) : sdist(u.p, tu.p, tu.len)) + extra, A = u.p, B = tu.p, rev = lastRev;
+      if (CYC && u.lp && tu.lp) { const l = loopDist(u.lp, tu.lp) + extra; if (l < d) { d = l; A = u.lp; B = rolled(tu.lp, loopShift); rev = false; } }
+      // English: a closed loop drawn for an open stroke, or the reverse (o / c, a / u)
+      if (CYC && ub < 0 && ta === tb && !u.lp !== !tu.lp) d += LOOPPEN;
       if (d >= DMAX) return;
-      const c = { d, ua, ub, ta, tb, c: (SQ ? d * d : d) * w, rev: lastRev, A: u.p, B: tu.p };
+      const c = { d, ua, ub, ta, tb, c: (SQ ? d * d : d) * w, rev, A, B };
       cand.push(c);
       if (ub < 0 && ta === tb && tu === t.s[ta]) single[ua * Tn + ta] = c;
     };
@@ -457,9 +526,61 @@
       q[k] = M.tx + M.a * x + M.b * y; q[k + 1] = M.ty + M.c * x + M.d * y;
       cx += q[k]; cy += q[k + 1];
     }
-    return { p: q, q: u.q, cx: cx / NP, cy: cy / NP, len: u.len, a: u.a };
+    const out = { p: q, q: u.q, cx: cx / NP, cy: cy / NP, len: u.len, a: u.a };
+    if (u.lp) {
+      out.lp = new Float64Array(2 * NP);
+      for (let k = 0; k < 2 * NP; k += 2) { const x = u.lp[k] - M.sx, y = u.lp[k + 1] - M.sy; out.lp[k] = M.tx + M.a * x + M.b * y; out.lp[k + 1] = M.ty + M.c * x + M.d * y; }
+    }
+    return out;
   }
   // Cost of explaining group G with template t (lower is better; ~0.03-0.12 for a good match).
+  // ---------------------------------------------------------------- English: ink matching
+  // English letters are written in many stroke orders and with or without lifting the pen, so a group may also be
+  // compared by its ink alone: points every INKSTEP along the strokes with their direction, each side's mean
+  // distance to the nearest point of the other (capped), averaged both ways.
+  const INKSTEP = 0.04, INKLAM = 0.08, INKCAP = 0.2;
+  let INKW = 2;             // ink distance weight against the stroke cost
+  let INKGATE = 0.1;        // a stroke match better than this needs no ink comparison
+  function inkOf(polys) {
+    const out = [];
+    for (const p of polys) {
+      if (p.length === 1 || polyLen(p) < INKSTEP) { out.push(p[0][0], p[0][1], -1); continue; }
+      for (let i = 1; i < p.length; i++) {
+        const x0 = p[i - 1][0], y0 = p[i - 1][1], x1 = p[i][0], y1 = p[i][1], L = Math.hypot(x1 - x0, y1 - y0);
+        if (L < 1e-9) continue;
+        let a = Math.atan2(y1 - y0, x1 - x0); if (a < 0) a += Math.PI;
+        const n = Math.max(1, Math.round(L / INKSTEP));
+        for (let k = 0; k < n; k++) out.push(x0 + (x1 - x0) * (k + 0.5) / n, y0 + (y1 - y0) * (k + 0.5) / n, a);
+      }
+    }
+    return Float64Array.from(out);
+  }
+  function inkHalf(A, B) {
+    let s = 0;
+    const cap2 = INKCAP * INKCAP;
+    for (let i = 0; i < A.length; i += 3) {
+      const x = A[i], y = A[i + 1], a = A[i + 2];
+      let best = cap2;
+      for (let j = 0; j < B.length; j += 3) {
+        const dx = x - B[j], dy = y - B[j + 1];
+        let d2 = dx * dx + dy * dy;
+        if (d2 >= best) continue;
+        const b = B[j + 2];
+        if (a >= 0 && b >= 0) { let da = Math.abs(a - b); if (da > Math.PI / 2) da = Math.PI - da; const sa = Math.sin(da) * INKLAM; d2 += sa * sa; }
+        if (d2 < best) best = d2;
+      }
+      s += Math.sqrt(best);
+    }
+    return s / Math.max(1, A.length / 3);
+  }
+  function inkCost(G, t) {
+    if (!t.ink) t.ink = inkOf(t.s.map((u) => u.poly));
+    if (!G.ink) G.ink = inkOf(groupPolys(G.S, G));
+    G.ic = G.ic || new Map();
+    let c = G.ic.get(t.ch);
+    if (c === undefined) { c = INKW * (inkHalf(G.ink, t.ink) + inkHalf(t.ink, G.ink)) / 2; G.ic.set(t.ch, c); }
+    return c;
+  }
   function match(G, t, detail, fine) {
     fine = fine === undefined ? USE_DTW : fine;
     let r = assign(G.st, G.ch, t, fine);
@@ -471,6 +592,7 @@
         if (r2.cost < r.cost) r = r2;
       }
     }
+    if (G.S && r.cost > INKGATE) { const ic = inkCost(G, t); if (ic < r.cost) { r.cost = ic; r.byInk = true; } }
     return detail ? r : r.cost;
   }
 
@@ -486,9 +608,10 @@
     out.delete(ch);
     return out;
   }
-  function neighbours(ch) {
-    let n = NEIGH.get(ch);
-    if (!n) { n = coarseRank(COARSE.subarray(CHARS.indexOf(ch) * FD, CHARS.indexOf(ch) * FD + FD), KNEIGH).map((x) => x[0]); NEIGH.set(ch, n); }
+  function neighbours(ch, pool) {
+    const key = (pool === LPOOL ? "L" : "J") + ch;
+    let n = NEIGH.get(key);
+    if (!n) { n = coarseRank(COARSE.subarray(CHARS.indexOf(ch) * FD, CHARS.indexOf(ch) * FD + FD), KNEIGH, pool).map((x) => x[0]); NEIGH.set(key, n); }
     return n;
   }
   // How far template c is from template e (c "written perfectly", judged as e). Cached.
@@ -504,52 +627,67 @@
     return d;
   }
   // Is the writing in G the expected char (any of expSet), rather than some other char?
-  function judge(S, G, expSet) {
+  function judge(S, G, expSet, latin, line) {
+    const pool = latin ? LPOOL : JPOOL;
+    const pl = (ch) => (line ? placement(G, getT(ch), line) : 0);
     // 1. plain costs for the expected chars and every plausible competitor
     const plain = new Map();
-    const pc = (ch) => { let c = plain.get(ch); if (c === undefined) { c = assign(G.st, G.ch, getT(ch), false).cost; plain.set(ch, c); } return c; };
+    const pc = (ch) => {
+      let c = plain.get(ch);
+      if (c === undefined) { const t = getT(ch); c = assign(G.st, G.ch, t, false).cost; if (G.S && c > INKGATE) c = Math.min(c, inkCost(G, t)); c += pl(ch); plain.set(ch, c); }
+      return c;
+    };
     for (const e of expSet) pc(e);
     const comp = new Set();
-    for (const [c] of coarseRank(coarseFeat(groupPolys(S, G)), KCOARSE)) comp.add(c);
+    for (const [c] of coarseRank(coarseFeat(groupPolys(S, G)), KCOARSE, pool)) comp.add(c);
     const vars = new Set();
-    for (const e of expSet) { for (const c of neighbours(e)) comp.add(c); for (const c of variantsOf(e)) { comp.add(c); vars.add(c); } }
+    for (const e of expSet) { for (const c of neighbours(e, pool)) comp.add(c); if (!latin) for (const c of variantsOf(e)) { comp.add(c); vars.add(c); } }
     for (const e of expSet) comp.delete(e);
     const others = [...comp].filter((c) => !expSet.some((e) => same(e, c) || shapeTwin(e, c)));
     others.sort((a, b) => pc(a) - pc(b));
     // 2. re-score the expected chars and the closest competitors with the finer (time-warped) distance
     const fine = new Map();
-    const fc = (ch) => { let c = fine.get(ch); if (c === undefined) { c = JUDGE_DTW ? match(G, getT(ch), false, true) : pc(ch); fine.set(ch, c); } return c; };
+    const fc = (ch) => { let c = fine.get(ch); if (c === undefined) { c = JUDGE_DTW ? match(G, getT(ch), false, true) + pl(ch) : pc(ch); fine.set(ch, c); } return c; };
     let bestE = null, ce = Infinity;
     for (const e of expSet) { const c = fc(e); if (c < ce) { ce = c; bestE = e; } }
     // a lot of ink that belongs to no stroke of the expected char (an extra character merged in, scribbles)
     const det = match(G, getT(bestE), true, JUDGE_DTW);
-    if (det.unInk > UNINK || det.extraU >= 2) return { ok: false, ch: bestE, cost: ce, other: null, otherCost: Infinity, unInk: det.unInk };
+    if (!det.byInk && (det.unInk > UNINK || det.extraU >= 2)) return { ok: false, ch: bestE, cost: ce, other: null, otherCost: Infinity, unInk: det.unInk };
     const kind = kindOf(bestE);
     let co = Infinity, other = null, bar = Infinity;
     // the expected char passes when it is (nearly) as close as every competitor; for competitors whose template is
     // itself close to the expected one, "nearly" shrinks with that distance (decide at a point between the two)
     others.slice(0, KFINE).forEach((c) => {
       const v = fc(c);
-      let m = scriptTwin(bestE, c) ? MARGIN_S : vars.has(c) ? MARGIN_V : kindOf(c) === kind ? MARGIN : MARGIN_X;
+      // (English: digit against letter by the char asked for, so an o also written as 0 isn't judged as a digit)
+      let m = latin ? (isDigit(letterOf(c)) === isDigit(letterOf(expSet[0])) ? LMARGIN : LMARGIN_X)
+        : scriptTwin(bestE, c) ? MARGIN_S : vars.has(c) ? MARGIN_V : kindOf(c) === kind ? MARGIN : MARGIN_X;
       if (SQ) {
-        m = Math.min((v + m) * (v + m) - v * v, KAPPA * tdist(bestE, c) ** 2);
+        m = Math.min((v + m) * (v + m) - v * v, (latin ? LKAPPA : KAPPA) * tdist(bestE, c) ** 2);
         if (v * v + m < bar) { bar = v * v + m; co = v; other = c; }
       } else {
         m = Math.min(m, KAPPA * tdist(bestE, c));
         if (v + m < bar) { bar = v + m; co = v; other = c; }
       }
     });
-    return { ok: ce <= CEIL && (SQ ? ce * ce : ce) <= bar, ch: bestE, cost: ce, other, otherCost: co };
+    return { ok: ce <= (latin ? LCEIL : CEIL) && (SQ ? ce * ce : ce) <= bar, ch: bestE, cost: ce, other, otherCost: co };
   }
 
   // ---------------------------------------------------------------- segmentation
-  function candidateInfo(text) {
+  function candidateInfo(text, latin) {
     const pos = [], unsupported = [];
+    let prev = " ";
     for (const ch of text) {
+      // English: a letter that starts a word may be a capital
+      const initial = /[\s"(\-]/.test(prev);
+      prev = ch;
       if (/\s/.test(ch)) continue;
-      if (OPTIONAL.has(ch) && !RAW[ch]) continue;
-      if (!RAW[ch]) unsupported.push(ch);
-      pos.push({ ch, optional: OPTIONAL.has(ch) });
+      const optional = OPTIONAL.has(ch) || (latin && LPUNCT.has(ch));
+      // ASCII punctuation has templates for English only; Japanese answers treat it as before (no template)
+      const known = !!RAW[ch] && (latin || !LONLY.has(ch));
+      if (optional && !known) continue;
+      if (!known) unsupported.push(ch);
+      pos.push({ ch, optional, initial });
     }
     return { pos, unsupported };
   }
@@ -673,7 +811,67 @@
     return { e: 0.7 * eq + 0.3 * Math.max(-1, Math.min(2, ey)), n: use.length, q, dy };
   }
 
-  function evaluate(S, P, seg, jcache, dbg) {
+  // ---------------------------------------------------------------- English: where letters sit on the line
+  // Fit the lines the writing sits on: baseline b + k * x, x-height hx, capital height ha and descender depth hd,
+  // taking each group as the letter it matches best (its top at x-height or capital height or between, by the
+  // template's zt; its bottom on the baseline or a descender, by zb). Robust least squares; weak priors keep ha and
+  // hd in proportion to hx when the word has no tall or descending letters.
+  function fitLine(views, P, mcache) {
+    const rows = [];
+    P.forEach((p, i) => {
+      const G = views[i];
+      if (!G || p.optional) return;
+      let best = null, bc = Infinity;
+      for (const c of p.opts) {
+        const key = G.ids.join(",") + "|" + c;
+        let v = mcache.get(key);
+        if (v === undefined) { v = match(G, getT(c)); mcache.set(key, v); }
+        if (v < bc) { bc = v; best = getT(c); }
+      }
+      if (!best || best.zt === undefined) return;
+      const x = (G.f.x0 + G.f.x1) / 2;
+      rows.push({ x, r: [1, 0, -(1 - best.zt), -best.zt, 0], y: G.f.y0 }, { x, r: [1, 0, 0, 0, best.zb], y: G.f.y1 });
+    });
+    if (rows.length < 4) return null;
+    let x0 = 0; for (const e of rows) x0 += e.x; x0 /= rows.length;
+    for (const e of rows) e.r[1] = e.x - x0;
+    const prior = [{ r: [0, 0, -1.45, 1, 0], y: 0 }, { r: [0, 0, -0.5, 0, 1], y: 0 }, { r: [0, 1, 0, 0, 0], y: 0 }];
+    let L = null;
+    const w = rows.map(() => 1);
+    for (let it = 0; it < 5; it++) {
+      const A = Array.from({ length: 5 }, () => new Float64Array(5)), B = new Float64Array(5);
+      const add = (r, y, wt) => { for (let a = 0; a < 5; a++) { B[a] += wt * r[a] * y; for (let b = 0; b < 5; b++) A[a][b] += wt * r[a] * r[b]; } };
+      rows.forEach((e, i) => add(e.r, e.y, w[i]));
+      add(prior[0].r, 0, 0.3); add(prior[1].r, 0, 0.3); add(prior[2].r, 0, 40 * rows.length);
+      const u = solve(A, B);
+      if (!u || !(u[2] > 1)) return L;
+      L = { b: u[0], k: Math.max(-0.25, Math.min(0.25, u[1])), hx: u[2], ha: Math.max(u[3], 1.1 * u[2]), hd: Math.max(u[4], 0.2 * u[2]), x0 };
+      rows.forEach((e, i) => { const res = Math.abs(e.y - (e.r[0] * L.b + e.r[1] * L.k + e.r[2] * L.hx + e.r[3] * L.ha + e.r[4] * L.hd)) / L.hx; w[i] = res < 0.2 ? 1 : 0.2 / res; });
+    }
+    return L;
+  }
+  function solve(A, B) {
+    const n = B.length, m = A.map((r, i) => [...r, B[i]]);
+    for (let c = 0; c < n; c++) {
+      let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(m[r][c]) > Math.abs(m[p][c])) p = r;
+      if (Math.abs(m[p][c]) < 1e-12) return null;
+      [m[c], m[p]] = [m[p], m[c]];
+      for (let r = 0; r < n; r++) if (r !== c) { const f = m[r][c] / m[c][c]; for (let k = c; k <= n; k++) m[r][k] -= f * m[c][k]; }
+    }
+    return m.map((r, i) => r[n] / r[i]);
+  }
+  // How far a group's top and bottom are from where template t belongs on those lines (in x-heights, past a slack),
+  // and how much wider the group is than t could be (another letter merged in).
+  function placement(G, t, L) {
+    if (t.zt === undefined) return 0;
+    const base = L.b + L.k * ((G.f.x0 + G.f.x1) / 2 - L.x0);
+    const top = base - (1 - t.zt) * L.hx - t.zt * L.ha, bot = base + t.zb * L.hd;
+    const dt = Math.abs(G.f.y0 - top) / L.hx, db = Math.abs(G.f.y1 - bot) / L.hx;
+    const dw = G.f.w / L.hx - t.zw - WSLACK;
+    return LPLACE * (Math.max(0, dt - PSLACK) + Math.max(0, db - PSLACK)) + LWIDE * Math.max(0, dw);
+  }
+
+  function evaluate(S, P, seg, jcache, dbg, latin, mcache) {
     const chars = [], sizes = [];
     let text = "", allOk = true;
     const views = seg.groups.map((g) => (g ? groupView(S, g) : null));
@@ -682,18 +880,20 @@
     P.forEach((p, k) => { if (views[k] && !p.optional && p.ch !== "ー") { const [sz] = expectedBox(p.opts[0]); if (sz >= 0.25) ems.push(views[k].f.s / sz); } });
     ems.sort((a, b) => a - b);
     const lineEmRef = ems.length >= 3 ? ems[ems.length >> 1] : 0;
+    const line = latin ? fitLine(views, P, mcache) : null;
+    const lkey = line ? `|${line.b.toFixed(1)},${line.k.toFixed(3)},${line.hx.toFixed(1)},${line.ha.toFixed(1)},${line.hd.toFixed(1)}` : "";
     P.forEach((p, i) => {
       const G = views[i];
       if (!G) {
         if (p.optional) return;
         chars.push({ ch: p.ch, ok: false, why: "missing" }); allOk = false; text += p.ch; return;
       }
-      const key = G.ids.join(",") + "|" + p.key;
+      const key = G.ids.join(",") + "|" + p.key + lkey;
       let j = jcache.get(key);
-      if (!j) { j = judge(S, G, p.opts); jcache.set(key, j); }
+      if (!j) { j = judge(S, G, p.opts, latin, line); jcache.set(key, j); }
       let why = j.ok ? null : "shape";
-      const ch = j.ch || p.ch;
-      if (!why && lineEmRef) {
+      const ch = letterOf(j.ch || p.ch);
+      if (!why && lineEmRef && !latin) {
         const t = getT(ch), f = SMALL2LARGE.has(ch) ? SMALLF : 1;
         if (G.f.w / lineEmRef > t.w * f * 1.5 + 0.4) why = i === P.length - 1 ? "extra" : "shape";
       }
@@ -710,15 +910,15 @@
       text += ch;
       // a failing position names the character that was asked for (what the student should have written)
       // (got: what it looked more like, when known)
-      const got = why === "shape" ? j.other : why === "small" ? LARGE2SMALL.get(ch) : why === "large" ? SMALL2LARGE.get(ch) : null;
+      const got = why === "shape" ? j.other && letterOf(j.other) : why === "small" ? LARGE2SMALL.get(ch) : why === "large" ? SMALL2LARGE.get(ch) : null;
       const c = why ? { ch: p.ch, ok: false, why } : { ch, ok: true, why: null };
       if (got) c.got = got;
-      if (dbg) Object.assign(c, { cost: +j.cost.toFixed(3), other: j.other, otherCost: +j.otherCost.toFixed(3) });
+      if (dbg) Object.assign(c, { cost: +j.cost.toFixed(3), other: j.other, otherCost: +j.otherCost.toFixed(3) }, line && j.ch ? { pl: +placement(G, getT(j.ch), line).toFixed(3), wr: +(G.f.w / line.hx).toFixed(2), tw: getT(j.ch).zw } : {});
       chars.push(c);
     });
     if (seg.extra.length) { chars.push({ ch: "", ok: false, why: "extra" }); allOk = false; }
     const out = { ok: allOk, text, chars, score: seg.cost };
-    if (dbg) Object.assign(out, { groups: seg.groups, extra: seg.extra, size: sizes });
+    if (dbg) Object.assign(out, { groups: seg.groups, extra: seg.extra, size: sizes, line });
     return out;
   }
 
@@ -727,13 +927,19 @@
   function init(json) {
     const t0 = now();
     if (!json || !json.chars || !json.alphabet) throw new Error("QCardChecker.init: not a templates.json object");
-    RAW = json.chars; unit = json.unit || 109; qn = json.q || 92; alpha = json.alphabet;
+    RAW = Object.assign({}, json.chars); unit = json.unit || 109; qn = json.q || 92; alpha = json.alphabet;
+    SAMEMAP.clear(); for (const g of SAME) link(g);
+    for (const [ch, list] of Object.entries(json.alt || {})) list.forEach((s, i) => { const k = ch + "#" + (i + 1); RAW[k] = s; link([ch, k]); });
     AIDX = new Int16Array(128).fill(0);
     for (let i = 0; i < alpha.length; i++) AIDX[alpha.charCodeAt(i)] = i;
     CHARS = Object.keys(RAW);
     DEC = new Map(); NEIGH.clear();
     COARSE = new Float32Array(CHARS.length * FD);
     CHARS.forEach((ch, i) => COARSE.set(coarseFeat(decodePolys(ch).polys), i * FD));
+    // English writing is judged against Latin letters and digits only; Japanese against the rest
+    // (KanjiVG's own letters and digits included, as before the extra Latin templates existed)
+    LPOOL = Int32Array.from(CHARS.map((k, i) => (/^[0-9A-Za-z]$/.test(letterOf(k)) && getT(k).size > 0.05 ? i : -1)).filter((i) => i >= 0));
+    JPOOL = Int32Array.from(CHARS.map((k, i) => (letterOf(k) === k && !LONLY.has(k) ? i : -1)).filter((i) => i >= 0));
     return { chars: CHARS.length, ms: now() - t0 };
   }
   function has(ch) { return !!(RAW && RAW[ch]); }
@@ -744,9 +950,11 @@
     opts = opts || {};
     const S = prepInput(opts.strokes);
     const cands = [...new Set((opts.candidates || []).map((c) => String(c).normalize("NFKC")).filter((c) => c.trim().length))];
-    const anyKana = !!opts.anyKana;
-    const infos = cands.map((c) => ({ text: c, ...candidateInfo(c) }));
-    const usable = infos.filter((x) => !x.unsupported.length && x.pos.some((p) => !p.optional));
+    const anyKana = !!opts.anyKana, latin = !!opts.latin;
+    CYC = latin;
+    const infos = cands.map((c) => ({ text: c, ...candidateInfo(c, latin) }));
+    // (English: a whole sentence is left to the student; reading 30+ letters is slow and less sure)
+    const usable = infos.filter((x) => !x.unsupported.length && x.pos.some((p) => !p.optional) && (!latin || x.pos.filter((p) => !p.optional).length <= LMAXLEN));
     const unsupported = [...new Set(infos.flatMap((x) => x.unsupported))];
     const done = (r) => Object.assign(r, { unsupported, ms: +(now() - t0).toFixed(1) });
     if (!usable.length) return done({ ok: null, text: cands[0] || "", chars: [] });
@@ -760,8 +968,13 @@
       const P = info.pos.map((p) => {
         const o = new Set([p.ch]);
         if (anyKana) { const x = toOther(p.ch); if (x && RAW[x]) o.add(x); }
+        // English: any way of writing the letter, and a capital where a word starts (a capital merged with the next
+        // letter is too easy to mistake for one letter otherwise). Letters whose capital looks the same (o, s, v...)
+        // are linked in SAMEMAP and so always take both.
+        if (latin && /[A-Za-z]/.test(p.ch)) { o.add(p.ch.toLowerCase()); if (p.initial) o.add(p.ch.toUpperCase()); }
         for (const c of [...o]) if (SAMEMAP.has(c)) for (const d of SAMEMAP.get(c)) if (RAW[d]) o.add(d);
-        const opts2 = [...o];
+        // (KanjiVG's own O is a closed loop that came out as a single point, so English leaves it out)
+        const opts2 = latin ? [...o].filter((c) => getT(c).size > 0.05) : [...o];
         return { ch: p.ch, opts: opts2, optional: p.optional, key: opts2.join("") };
       });
       const em = lineEm(S, P.filter((p) => !p.optional).length);
@@ -771,16 +984,16 @@
         if (r && (!seg || r.cost < seg.cost)) seg = r;
       }
       if (!seg) continue;
-      const res = evaluate(S, P, seg, jcache, opts.debug);
+      const res = evaluate(S, P, seg, jcache, opts.debug, latin, new Map());
       if (!res.ok) res.text = info.text; // closest candidate as given; text is the matched writing only when ok
-      if (opts.debug) (all = all || []).push({ cand: info.text, ok: res.ok, text: res.text, chars: res.chars, groups: res.groups, size: res.size });
+      if (opts.debug) (all = all || []).push({ cand: info.text, ok: res.ok, text: res.text, chars: res.chars, groups: res.groups, size: res.size, line: res.line });
       if (!best || better(res, best)) best = res;
       if (best.ok) break;
     }
     if (!best) { const c = usable[0]; return done({ ok: false, text: c.text, chars: c.pos.map((p) => ({ ch: p.ch, ok: false, why: "shape" })) }); }
     if (all) best.all = all;
     delete best.score;
-    if (!opts.debug) { delete best.groups; delete best.extra; delete best.size; }
+    if (!opts.debug) { delete best.groups; delete best.extra; delete best.size; delete best.line; }
     return done(best);
   }
   function better(a, b) {
@@ -800,9 +1013,47 @@
       .sort((a, b) => a.cost - b.cost).slice(0, n || 10);
   }
 
+  // Every way of writing an English meaning that verify({latin: true}) should accept: alternatives split at commas,
+  // semicolons and slashes; a part in parentheses may be left out (and kept when short: lip(s), (to) go); "to" before a
+  // verb and a leading a / an / the may be left out; numbers up to 100 may be written as words; accents may be left
+  // off; 〜 is left out.
+  const NUMW = "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen".split(" ");
+  const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+  const numWord = (n) => (n < 20 ? NUMW[n] : n < 100 ? TENS[Math.floor(n / 10)] + (n % 10 ? " " + NUMW[n % 10] : "") : n === 100 ? "one hundred" : null);
+  function englishAnswers(en) {
+    const s = String(en || "").normalize("NFKC").replace(/[’‘`´]/g, "'").replace(/[“”]/g, '"').replace(/[〜~]/g, " ");
+    const alts = [];
+    let depth = 0, cur = "";
+    for (const c of s) {
+      if (c === "(") depth++;
+      if (c === ")") depth = Math.max(0, depth - 1);
+      if (!depth && /[,;/]/.test(c)) { alts.push(cur); cur = ""; } else cur += c;
+    }
+    alts.push(cur);
+    const out = new Set(), verb = /^\s*\(?to\)?\s/i.test(s);
+    for (const a of alts) {
+      let forms = [""];
+      for (const p of a.trim().split(/(\([^)]*\))/)) {
+        const inner = /^\(.*\)$/.test(p) ? p.slice(1, -1).trim() : null;
+        if (inner === null) forms = forms.map((f) => f + p);
+        else if (inner && inner.length <= 12 && !/[,;]|etc/.test(inner)) forms = forms.flatMap((f) => [f, f + inner]);
+      }
+      for (let f of forms) {
+        f = f.replace(/\s+/g, " ").replace(/ ([.,!?:;])/g, "$1").trim();
+        if (!f) continue;
+        const vs = [f, f.replace(/^to\s+/i, ""), f.replace(/^(a|an|the)\s+/i, ""), verb && !/^to\s/i.test(f) ? "to " + f : ""];
+        for (const v of vs.filter(Boolean)) {
+          const plain = v.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // sauté -> saute
+          for (const x of new Set([v, plain])) { out.add(x); out.add(x.replace(/\b\d{1,3}\b/g, (d) => numWord(+d) ?? d)); }
+        }
+      }
+    }
+    return [...out];
+  }
+
   const api = {
-    init, has, verify, top,
-    _: { set: (o) => { if ("SQ" in o) SQ = o.SQ; if ("KAPPA" in o) KAPPA = o.KAPPA; if ("CEIL" in o) CEIL = o.CEIL; TD.clear(); }, tdist, setDTW: (v, j) => { USE_DTW = v; if (j !== undefined) JUDGE_DTW = j; }, sdist, assign, prepInput, groupView, match, getT, coarseFeat, coarseRank, judge, segment, orders, lineEm, variantsOf, SAMEMAP, SMALL2LARGE },
+    init, has, verify, top, englishAnswers,
+    _: { set: (o) => { if ("SQ" in o) SQ = o.SQ; if ("KAPPA" in o) KAPPA = o.KAPPA; if ("CEIL" in o) CEIL = o.CEIL; if ("LPLACE" in o) LPLACE = o.LPLACE; if ("LMARGIN" in o) LMARGIN = o.LMARGIN; if ("LMARGIN_X" in o) LMARGIN_X = o.LMARGIN_X; if ("LKAPPA" in o) LKAPPA = o.LKAPPA; if ("LCEIL" in o) LCEIL = o.LCEIL; if ("LOOPPEN" in o) LOOPPEN = o.LOOPPEN; if ("INKW" in o) INKW = o.INKW; if ("LWIDE" in o) LWIDE = o.LWIDE; if ("WSLACK" in o) WSLACK = o.WSLACK; if ("PSLACK" in o) PSLACK = o.PSLACK; if ("INKGATE" in o) INKGATE = o.INKGATE; TD.clear(); }, tdist, setDTW: (v, j) => { USE_DTW = v; if (j !== undefined) JUDGE_DTW = j; }, sdist, assign, prepInput, groupView, match, getT, coarseFeat, coarseRank, judge, segment, orders, lineEm, variantsOf, SAMEMAP, SMALL2LARGE },
   };
   root.QCardChecker = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

@@ -8,7 +8,6 @@
     "check": "node tools/build.mjs --check"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "0.131.0",
     "esbuild": "0.28.2",
     "firebase": "12.19.0"
   }

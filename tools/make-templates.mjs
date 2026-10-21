@@ -11,7 +11,10 @@
 //
 // The SVG files are only parsed as text (path "d" attributes); nothing in them is executed.
 // Output format (version 1):
-//   { "version": 1, "license": "...", "unit": 109, "q": 91, "chars": { "あ": "<stroke> <stroke> ...", ... } }
+//   { "version": 1, "license": "...", "unit": 109, "q": 91, "chars": { "あ": "<stroke> <stroke> ...", ... },
+//     "alt": { "a": ["<stroke> ..."], ... } }
+// "alt" holds other ways of writing Latin letters and digits (the one-storey a and g, for instance), and ASCII
+// punctuation goes into "chars"; both come from the Hershey sans font in tools/checker/hershey-latin.json.
 // Each stroke is a string of point pairs; every point is two characters from ALPHABET (x then y),
 // value v in 0..q-1 standing for v * unit / (q - 1) in KanjiVG's 109 x 109 box (y down).
 // Strokes keep KanjiVG's stroke order and drawing direction; they are simplified with Douglas-Peucker.
@@ -24,6 +27,8 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
 const ALPHABET = (() => { let s = ""; for (let c = 0x21; c <= 0x7e; c++) if (c !== 0x22 && c !== 0x5c) s += String.fromCharCode(c); return s; })(); // 92 symbols
 const Q = 92, UNIT = 109, TOL = 0.7;
+// Hershey glyphs go into the 109 box with the baseline at 78% and capitals 66% tall (Hershey: baseline 22, capitals 21 high).
+const H_BASE = 0.78, H_CAP = 0.66;
 
 function args() {
   const a = process.argv.slice(2), o = { out: path.join(ROOT, "data/templates.json") };
@@ -129,17 +134,20 @@ function strokesFromSvg(text) {
 }
 
 // ---------- simplification ----------
-function dp(pts, tol) {
+// loops: KanjiVG strokes are kept as they have always been built (a stroke ending where it began, such as the
+// handakuten circle, collapses); the Hershey letters keep their loops (o, 0).
+function dp(pts, tol, loops) {
   if (pts.length <= 2) return pts.slice();
   const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1;
   const stack = [[0, pts.length - 1]];
   while (stack.length) {
     const [a, b] = stack.pop();
     const [ax, ay] = pts[a], [bx, by] = pts[b];
-    const dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy) || 1e-9;
+    const dx = bx - ax, dy = by - ay, L = loops ? Math.hypot(dx, dy) : Math.hypot(dx, dy) || 1e-9;
     let best = -1, bi = -1;
     for (let i = a + 1; i < b; i++) {
-      const d = Math.abs((pts[i][0] - ax) * dy - (pts[i][1] - ay) * dx) / L;
+      // distance to the chord, or to its start when the stroke ends where it began (a loop)
+      const d = L > 0 ? Math.abs((pts[i][0] - ax) * dy - (pts[i][1] - ay) * dx) / L : Math.hypot(pts[i][0] - ax, pts[i][1] - ay);
       if (d > best) { best = d; bi = i; }
     }
     if (best > tol) { keep[bi] = 1; stack.push([a, bi], [bi, b]); }
@@ -147,11 +155,65 @@ function dp(pts, tol) {
   return pts.filter((_, i) => keep[i]);
 }
 const quant = (v) => Math.max(0, Math.min(Q - 1, Math.round((v * (Q - 1)) / UNIT)));
-function encodeStroke(pts) {
-  let s = dp(pts, TOL).map(([x, y]) => [quant(x), quant(y)]);
+function encodeStroke(pts, loops) {
+  let s = dp(pts, TOL, loops).map(([x, y]) => [quant(x), quant(y)]);
   s = s.filter((p, i) => i === 0 || p[0] !== s[i - 1][0] || p[1] !== s[i - 1][1]);
   if (s.length === 1) s.push(s[0].slice());
   return s.map(([x, y]) => ALPHABET[x] + ALPHABET[y]).join("");
+}
+
+// Hershey path data ("M x,y L x,y x,y ...") -> strokes in the 109 box, centred across.
+function hersheyStrokes(d) {
+  const strokes = [];
+  for (const part of d.split("M").map((x) => x.trim()).filter(Boolean)) {
+    strokes.push(part.replace(/L/g, " ").trim().split(/\s+/).map((xy) => xy.split(",").map(Number)));
+  }
+  let x0 = Infinity, x1 = -Infinity;
+  for (const s of strokes) for (const [x] of s) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); }
+  const cx = (x0 + x1) / 2, k = H_CAP / 21;
+  return strokes.map((s) => s.map(([x, y]) => [(0.5 + (x - cx) * k) * UNIT, (H_BASE + (y - 22) * k) * UNIT]));
+}
+// The same letter written the way people often do, without lifting the pen: straight strokes go down or to the right,
+// and each stroke continues from where the last one ended (v, w, M, Z), running back over it first when it starts
+// partway along it (h, n, m, r, b, p). Returns null when that changes nothing.
+function penDown(strokes) {
+  const near = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.06 * UNIT;
+  const st = strokes.map((s) => {
+    const [x0, y0] = s[0], [x1, y1] = s[s.length - 1];
+    const down = Math.abs(y1 - y0) > 1.5 * Math.abs(x1 - x0) && y1 < y0, left = Math.abs(x1 - x0) > 1.5 * Math.abs(y1 - y0) && x1 < x0;
+    return s.length === 2 && (down || left) ? s.slice().reverse() : s.slice();
+  });
+  const out = [st[0]];
+  for (const s of st.slice(1)) {
+    const cur = out[out.length - 1], end = cur[cur.length - 1];
+    if (s.length < 2) { out.push(s); continue; }
+    if (near(s[0], end)) { out[out.length - 1] = cur.concat(s.slice(1)); continue; }
+    if (near(s[s.length - 1], end)) { out[out.length - 1] = cur.concat(s.slice(0, -1).reverse()); continue; }
+    // closest point on the current stroke to where this one starts: run back to it
+    let bi = -1, bd = Infinity, bp = null;
+    for (let i = 1; i < cur.length; i++) {
+      const [ax, ay] = cur[i - 1], [bx, by] = cur[i], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1e-9;
+      const t = Math.max(0, Math.min(1, ((s[0][0] - ax) * dx + (s[0][1] - ay) * dy) / L2)), p = [ax + t * dx, ay + t * dy];
+      const d = Math.hypot(p[0] - s[0][0], p[1] - s[0][1]);
+      if (d < bd) { bd = d; bi = i; bp = p; }
+    }
+    if (bd < 0.06 * UNIT) { out[out.length - 1] = cur.concat(cur.slice(bi, -1).reverse(), [bp], s); continue; }
+    out.push(s);
+  }
+  return out.length < strokes.length ? out : null;
+}
+function latinExtras(out) {
+  const src = JSON.parse(fs.readFileSync(path.join(HERE, "checker/hershey-latin.json"), "utf8"));
+  const alt = {};
+  for (const [ch, d] of Object.entries(src.glyphs)) {
+    const st = hersheyStrokes(d), enc = st.map((x) => encodeStroke(x, true)).join(" ");
+    if (/[0-9A-Za-z]/.test(ch)) {
+      alt[ch] = [enc];
+      const one = penDown(st);
+      if (one) alt[ch].push(one.map((x) => encodeStroke(x, true)).join(" "));
+    } else if (!out[ch]) out[ch] = enc;
+  }
+  return alt;
 }
 
 async function main() {
@@ -179,17 +241,21 @@ async function main() {
     if (!fs.existsSync(file)) { missing.push(ch); continue; }
     const strokes = strokesFromSvg(fs.readFileSync(file, "utf8"));
     if (!strokes.length) { missing.push(ch); continue; }
-    out[ch] = strokes.map(encodeStroke).join(" ");
+    out[ch] = strokes.map((s) => encodeStroke(s, false)).join(" ");
   }
+  const alt = latinExtras(out);
   const json = {
     version: 1,
     license: "Stroke data derived from KanjiVG (https://kanjivg.tagaini.net), Copyright (C) 2009/2010/2011 Ulrich Apel, " +
       "licensed under the Creative Commons Attribution-Share Alike 3.0 licence (https://creativecommons.org/licenses/by-sa/3.0/). " +
-      "This derived file (resampled, simplified, quantized strokes) is distributed under the same licence. Built by tools/make-templates.mjs.",
+      "This derived file (resampled, simplified, quantized strokes) is distributed under the same licence. " +
+      "Latin letters in \"alt\" and ASCII punctuation: the Hershey Fonts, originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of Standards; " +
+      "font data format originally created by James Hurt, Cognition, Inc.; via hersheytext, Copyright (c) 2014 James T, MIT License. Built by tools/make-templates.mjs.",
     unit: UNIT,
     q: Q,
     alphabet: ALPHABET,
     chars: out,
+    alt,
   };
   fs.writeFileSync(o.out, JSON.stringify(json));
   const size = fs.statSync(o.out).size;

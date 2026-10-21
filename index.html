@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-KfcBIsy1Em1MzKyi5sOT3DMTERmL5HFRLYKVUW3P6as=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://api.anthropic.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-5UhAtgIG9HVsE9rx23j0hE33r0hv9ihVfoBDlaOmnE0=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -32,28 +32,29 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #11141a; --surface: #1a1e26; --sunk: #151920; --ink: #e6e9ef; --muted: #9aa2b4;
-    --line: #2c3240; --guide: #343c4c; --ai: #93acec; --ai-soft: #222c44; --shu: #ff6f5b; --shu-soft: #3a2220; --ok: #62c98f;
+    --bg: #181818; --surface: #222222; --sunk: #1c1c1c; --ink: #ececec; --muted: #a3a3a3; --line: #363636; --guide: #3f3f3f;
+    --ai: #93acec; --ai-soft: #272c38; --shu: #ff6f5b; --shu-soft: #3a2522; --ok: #62c98f;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #11141a; --surface: #1a1e26; --sunk: #151920; --ink: #e6e9ef; --muted: #9aa2b4;
-  --line: #2c3240; --guide: #343c4c; --ai: #93acec; --ai-soft: #222c44; --shu: #ff6f5b; --shu-soft: #3a2220; --ok: #62c98f;
+  --bg: #181818; --surface: #222222; --sunk: #1c1c1c; --ink: #ececec; --muted: #a3a3a3; --line: #363636; --guide: #3f3f3f;
+  --ai: #93acec; --ai-soft: #272c38; --shu: #ff6f5b; --shu-soft: #3a2522; --ok: #62c98f;
   color-scheme: dark;
 }
-/* Claude palette: warm ivory paper, terracotta accent, crimson pen. Picked per viewer (data-palette). */
+/* Claude palette: warm ivory paper, terracotta accent, crimson pen. Picked per viewer (data-palette).
+   Dark mode is the same plain grey in both palettes, with only the accent colours differing (the owner). */
 :root[data-palette="claude"] {
   --bg: #f0eee6; --surface: #fdfcf9; --sunk: #f4f2ec; --ink: #1f1e1c; --muted: #696760; --line: #dedad0; --guide: #d3cec2; --ai: #ad5230; --ai-soft: #f6e5dc; --shu: #b0263c; --shu-soft: #f7e0e3; --ok: #4d7a34;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-palette="claude"]:not([data-theme="light"]) {
-    --bg: #1f1e1d; --surface: #2a2926; --sunk: #232220; --ink: #f0eee6; --muted: #a8a59b; --line: #3d3c38; --guide: #45433e; --ai: #e08560; --ai-soft: #3b2a22; --shu: #f0707e; --shu-soft: #3d2226; --ok: #7cbf6a;
+    --bg: #181818; --surface: #222222; --sunk: #1c1c1c; --ink: #ececec; --muted: #a3a3a3; --line: #363636; --guide: #3f3f3f; --ai: #e08560; --ai-soft: #382b25; --shu: #f0707e; --shu-soft: #3a2427; --ok: #7cbf6a;
     color-scheme: dark;
   }
 }
 :root[data-palette="claude"][data-theme="dark"] {
-  --bg: #1f1e1d; --surface: #2a2926; --sunk: #232220; --ink: #f0eee6; --muted: #a8a59b; --line: #3d3c38; --guide: #45433e; --ai: #e08560; --ai-soft: #3b2a22; --shu: #f0707e; --shu-soft: #3d2226; --ok: #7cbf6a;
+  --bg: #181818; --surface: #222222; --sunk: #1c1c1c; --ink: #ececec; --muted: #a3a3a3; --line: #363636; --guide: #3f3f3f; --ai: #e08560; --ai-soft: #382b25; --shu: #f0707e; --shu-soft: #3a2427; --ok: #7cbf6a;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -106,7 +107,17 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .settings .sethead { display: flex; justify-content: space-between; align-items: center; }
 .settings section { display: grid; gap: 8px; }
 .settings p { margin: 0; }
-.settings .seg i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: -1px; }
+.settings .setrow { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+.palpick { display: inline-flex; gap: 6px; }
+.palpick button { border: 2px solid transparent; background: none; border-radius: 50%; padding: 3px; display: inline-flex; }
+.palpick button:hover { border-color: var(--line); }
+.palpick button[aria-pressed="true"] { border-color: var(--ink); }
+.palpick i { width: 22px; height: 22px; border-radius: 50%; display: inline-block; }
+.delrow { display: flex; align-items: center; gap: 8px; }
+.qtip { position: relative; display: inline-flex; color: var(--muted); cursor: help; border-radius: 50%; }
+.qtip:hover, .qtip:focus-visible, .qtip.open { color: var(--ink); }
+.qtipbody { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(250px, 60vw); background: var(--ink); color: var(--surface); padding: 6px 9px; border-radius: 6px; font-size: .82rem; line-height: 1.4; z-index: 2; }
+.qtip:hover .qtipbody, .qtip:focus-visible .qtipbody, .qtip.open .qtipbody { display: block; }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
 body:not(.ready) section, body:not(.ready) #banner { display: none !important; }
@@ -127,7 +138,7 @@ body.ready #gate { display: none; }
 .pkinds { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .pchs { display: grid; gap: 6px; }
 .pchs:empty { display: none; }
-/* With 2+ books, the book names and "Show" share one label column, as wide as the longest label. */
+/* With 2+ collections, the collection names and "Show" share one label column, as wide as the longest label. */
 .pbar.labeled { grid-template-columns: minmax(var(--labw, 0px), max-content) minmax(0, 1fr); column-gap: 12px; }
 .pbar.labeled > * { grid-column: 1 / -1; }
 .pbar.labeled :is(.pchs, .pchrow, .pkinds) { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; column-gap: 12px; }
@@ -143,7 +154,7 @@ body.ready #gate { display: none; }
 .pbar .chips { gap: 6px; }
 .chip.soft[aria-pressed="true"] { background: var(--ai-soft); border-color: var(--ai); color: var(--ai); }
 .chip.soft[aria-pressed="true"]::before { content: "✓"; }
-.tag { display: inline-block; padding: 0 8px; text-transform: none; letter-spacing: normal; border: 1px solid var(--line); border-radius: 999px; background: var(--sunk); color: var(--muted); font-size: .72rem; font-weight: 500; line-height: 1.6; vertical-align: 1px; }
+.tsethead .tag { display: inline-block; padding: 0 8px; text-transform: none; letter-spacing: normal; border: 1px solid var(--line); border-radius: 999px; background: var(--sunk); color: var(--muted); font-size: .72rem; font-weight: 500; line-height: 1.6; vertical-align: 1px; }
 .chip:disabled { opacity: .5; cursor: not-allowed; }
 .seg { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; width: fit-content; max-width: 100%; }
 .seg button { border: none; background: var(--surface); padding: 8px 14px; border-right: 1px solid var(--line); }
@@ -152,11 +163,23 @@ body.ready #gate { display: none; }
 .opt { display: grid; gap: 6px; }
 .modes { display: grid; gap: 8px; grid-template-columns: 1fr; }
 .mode { text-align: left; border: 1px solid var(--line); background: var(--sunk); border-radius: 8px; padding: 10px 12px; display: grid; grid-template-columns: 7.5rem 1fr; align-items: baseline; column-gap: 12px; row-gap: 2px; }
-@media (max-width: 480px) { .mode { grid-template-columns: 1fr; } }
+@media (max-width: 480px) {
+  .mode { grid-template-columns: 1fr; }
+  /* The three directions share one row on a phone; a long one breaks onto two lines before "Both" would wrap. */
+  #dirSeg { display: grid; grid-template-columns: 1fr 1fr auto; width: 100%; }
+  #dirSeg button { padding: 8px; font-size: .9rem; word-break: keep-all; }
+  .startbtns { width: 100%; }
+  .startbtns .btn { flex: 1 1 auto; }
+}
 .mode b { font-weight: 700; }
 .mode span { font-size: .82rem; color: var(--muted); }
 .mode[aria-pressed="true"] { border-color: var(--ai); background: var(--ai-soft); }
 .startrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.startbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+.startbtns .n { color: var(--muted); font-weight: 400; margin-left: 4px; }
+/* While writing, the page is just the practice: the title and the settings gear step aside. */
+body.writing > .wrap > header { display: contents; }
+body.writing > .wrap > header > :not(dialog) { display: none; }
 .hist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .hist li { display: flex; justify-content: space-between; gap: 12px; font-size: .9rem; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
 .hist li span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -217,7 +240,7 @@ body.ready #gate { display: none; }
 .love li.none { display: block; }
 .skipw { font-size: .8rem; white-space: nowrap; }
 .skipw[aria-pressed="true"] { color: var(--ai); }
-@media (max-width: 480px) { .skipw { white-space: normal; max-width: 6.5rem; text-align: right; } }
+@media (max-width: 480px) { .love li:has(.skipw) { grid-template-columns: 3rem 1fr; } .love li .skipw { grid-column: 2; justify-self: start; padding-left: 0; } }
 .love .tries { font-size: 1.4rem; font-weight: 700; color: var(--shu); text-align: center; font-variant-numeric: tabular-nums; }
 .love .w { font-family: var(--font-jp); font-size: 1.15rem; font-weight: 600; }
 .love .w small { font-family: var(--font-ui); font-weight: 400; color: var(--muted); font-size: .85rem; margin-left: 6px; }
@@ -251,6 +274,16 @@ td.jp { font-family: var(--font-jp); font-size: 1.05rem; }
 td input[type="text"] { width: 100%; font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid transparent; border-radius: 6px; padding: 5px 7px; }
 td input[type="text"]:hover { border-color: var(--line); }
 td.c { text-align: center; width: 4.5rem; }
+@media (max-width: 560px) {
+  /* On a phone each word is a small card: English on top, kana and kanji under it, delete at the side. */
+  .tscroll table { min-width: 0; }
+  .tscroll thead { display: none; }
+  .tscroll table, .tscroll tbody { display: block; }
+  .tscroll tr { display: grid; grid-template-columns: 1fr 1fr auto; align-items: center; border-bottom: 1px dashed var(--line); padding: 4px 0; }
+  .tscroll td { border: none; padding: 2px 3px; }
+  .tscroll td:first-child { grid-column: 1 / 3; }
+  .tscroll td.c { grid-column: 3; grid-row: 1 / 3; width: auto; }
+}
 .rowdel { background: none; border: none; color: var(--muted); font-size: 1.1rem; padding: 2px 8px; }
 .rowdel:hover { color: var(--shu); }
 .tactions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -296,7 +329,7 @@ td.c { text-align: center; width: 4.5rem; }
 .newset input { font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 9rem; }
 .setedit { background: var(--sunk); border-radius: 8px; padding: 10px 12px; }
 .setedit input { background: var(--surface); }
-.setedit [data-ef="chapter"], .setedit [data-ef="section"], .setedit [data-kch] { width: 6rem; }
+.setedit [data-ef="unit"], .setedit [data-kunit] { width: 8rem; }
 .setedit [data-ef="label"], .setedit [data-ef="tags"] { width: 14rem; max-width: 100%; }
 .setedit .btn.primary { padding: 8px 14px; }
 .editerr { color: var(--shu); font-size: .85rem; align-self: center; }
@@ -315,23 +348,18 @@ body { margin: 0; }
 #welcome { border: none; border-radius: 14px; padding: 26px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--muted); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
 #welcome::backdrop { background: rgba(17, 20, 26, .5); }
 .welcome { display: grid; gap: 14px; text-align: center; }
+.dlgx { position: absolute; top: 10px; right: 10px; border: none; background: none; color: var(--muted); padding: 6px; border-radius: 8px; display: inline-flex; }
+.dlgx:hover { color: var(--ink); background: var(--sunk); }
 .welcome p { margin: 0; text-wrap: pretty; }
 .welcome .lead { color: var(--ink); font-weight: 500; }
 .signbtns { display: grid; gap: 10px; margin: 4px 0; }
-#checkPanel { grid-template-columns: minmax(0, 1fr); }
-.keybox { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.keybox .sel { width: 100%; max-width: 26rem; }
-.keyform { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
-.keyform label { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); min-width: 0; max-width: 100%; }
-.keyform label.tick { display: flex; gap: 6px; align-items: center; font-size: .9rem; color: var(--ink); padding-bottom: 9px; }
-.keyform input[type="password"] { font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 100%; }
-.keyform label:not(.tick) { flex: 0 1 22rem; }
 .keyerr { color: var(--shu); }
 .fb.self { border-color: var(--ai); }
 .fb.self .stamp { color: var(--ai); border-color: var(--ai); }
-.foot { max-width: 720px; margin: 28px auto 0; text-align: center; color: var(--muted); font-size: .8rem; display: grid; gap: 4px; }
+.foot { max-width: 720px; margin: 40px auto 0; text-align: center; color: var(--muted); font-size: .8rem; display: grid; gap: 4px; }
 .foot a { color: inherit; }
 body.writing .foot { display: none; }
+body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits near the bottom edge */
 </style>
 <script>try { if (JSON.parse(localStorage.getItem("jpq:palette")) === "claude") document.documentElement.dataset.palette = "claude"; } catch {}</script>
 <script>try { const t = JSON.parse(localStorage.getItem("jpq:theme")); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
@@ -342,6 +370,7 @@ body.writing .foot { display: none; }
   <header class="head">
     <h1>Japanese Vocab Practice</h1>
     <dialog id="welcome" aria-label="Welcome to Japanese Vocab Practice">
+      <button class="dlgx" type="button" id="welcomeClose" aria-label="Close and continue as a guest" title="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18"/></svg></button>
       <div class="welcome">
         <p class="lead">This tool aims to improve written Japanese skills by combining traditional Q-Cards with handwriting recognition.</p>
         <p>To start, sign in with Google to sync your data across devices, or continue as a guest to keep it in this browser only.</p>
@@ -352,10 +381,10 @@ body.writing .foot { display: none; }
     <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
     <dialog id="settings" aria-label="Settings"><div class="settings">
       <div class="sethead"><h2>Settings</h2><button class="ghost" type="button" id="settingsClose" aria-label="Close settings">✕</button></div>
-      <section><h3>Colours</h3>
-        <div class="seg" id="palPick" role="group" aria-label="Colours"><button type="button" data-pal="indigo"><i style="background:#2c4a8f"></i>Blue</button><button type="button" data-pal="claude"><i style="background:#c96442"></i>Warm</button></div>
+      <section class="setrow"><h3>Colours</h3>
+        <div class="palpick" id="palPick" role="group" aria-label="Colours"><button type="button" data-pal="indigo" aria-label="Blue" title="Blue"><i style="background:#2c4a8f"></i></button><button type="button" data-pal="claude" aria-label="Warm" title="Warm"><i style="background:#c96442"></i></button></div>
       </section>
-      <section><h3>Light or dark</h3>
+      <section class="setrow"><h3>Light or dark</h3>
         <div class="seg" id="themePick" role="group" aria-label="Light or dark"><button type="button" data-theme-pick="">Match device</button><button type="button" data-theme-pick="light">Light</button><button type="button" data-theme-pick="dark">Dark</button></div>
       </section>
       <section><h3>Account</h3>
@@ -363,6 +392,12 @@ body.writing .foot { display: none; }
         <div class="tactions"><button class="btn" type="button" id="signOutBtn">Sign out</button></div>
       </section>
       <section><h3>Your vocab</h3><p class="muted" id="setStats"></p></section>
+      <section id="portPanel" hidden><h3>Export / import</h3>
+        <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and courses, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
+        <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
+        <p class="muted small" id="portMsg" hidden></p>
+        <div class="impprev" id="importPreview" hidden></div>
+      </section>
       <section><h3>Delete</h3><div id="delAcct"></div></section>
     </div></dialog>
   </header>
@@ -374,13 +409,13 @@ body.writing .foot { display: none; }
     <div class="panel">
       <div class="head"><h3>Sets</h3>
         <div class="headr"><button class="link" id="toTable">vocab table</button>
-          <div class="seg mini" id="groupSeg" role="group" aria-label="Chapter rows by" hidden>
-            <button type="button" data-group="book">Textbook</button><button type="button" data-group="course">Course</button>
+          <div class="seg mini" id="groupSeg" role="group" aria-label="Unit rows by" hidden>
+            <button type="button" data-group="book">Collection</button><button type="button" data-group="course">Course</button>
           </div>
         </div>
       </div>
       <div class="pbar" id="pickBar" hidden>
-        <div class="pchs" id="pickChs" role="group" aria-label="Chapter"></div>
+        <div class="pchs" id="pickChs" role="group" aria-label="Units"></div>
         <div class="pkinds" id="pickTagRow" hidden><span class="muted small">Filter</span>
           <div class="chips" id="pickTags" role="group" aria-label="Show sets tagged"></div>
         </div>
@@ -414,34 +449,7 @@ body.writing .foot { display: none; }
       </div>
       <div class="startrow">
         <span class="muted small" id="countLbl">Pick at least one set.</span>
-        <button class="btn primary" id="startBtn" disabled>Start practice</button>
-      </div>
-    </div>
-    <div class="panel" id="checkPanel">
-      <div class="opt">
-        <h3>How answers are checked</h3>
-        <div class="seg" id="checkerSeg" role="group" aria-label="How answers are checked">
-          <button type="button" data-checker="builtin">Built-in checker</button>
-          <button type="button" data-checker="claude">Claude, with your API key</button>
-        </div>
-        <p class="muted small" id="checkerHint"></p>
-      </div>
-      <div class="keybox" id="keyBox" hidden>
-        <p class="small" id="keyStatus"></p>
-        <form class="keyform" id="keyForm" autocomplete="off">
-          <label>Anthropic API key<input type="password" id="keyInput" placeholder="sk-ant-…" spellcheck="false" autocomplete="off" required></label>
-          <label class="tick"><input type="checkbox" id="keyRemember"> Remember on this device</label>
-          <label id="keyPassRow" hidden>Lock it with a passcode (optional)<input type="password" id="keyPass" autocomplete="new-password"></label>
-          <button class="btn" type="submit">Use this key</button>
-        </form>
-        <form class="keyform" id="unlockForm" hidden>
-          <label>Passcode<input type="password" id="unlockPass" autocomplete="current-password" required></label>
-          <button class="btn" type="submit">Unlock</button>
-        </form>
-        <p class="small keyerr" id="keyMsg" role="status" hidden></p>
-        <div class="keyform"><label>Model<select class="sel" id="modelSel"></select></label></div>
-        <div class="tactions"><button type="button" class="btn" id="forgetKey" hidden>Forget my key</button></div>
-        <p class="muted small">Your key goes only from this browser to Anthropic. This site never saves it to its database or sends it anywhere else. To be safe, make a separate key just for this site in the Anthropic Console and give it a low monthly spending limit.</p>
+        <span class="startbtns"><button class="btn" id="resumeBtn" hidden></button><button class="btn primary" id="startBtn" disabled>Start practice</button></span>
       </div>
     </div>
     <div class="panel" id="histPanel" hidden>
@@ -483,7 +491,7 @@ body.writing .foot { display: none; }
       <button class="btn primary" id="checkBtn" disabled>Check</button>
     </div>
     <div class="fb self" id="selfCheck" hidden>
-      <div class="fbhead"><span class="stamp">自己採点</span><span>Compare what you wrote with the answer.</span></div>
+      <div class="fbhead"><span class="stamp">自己採点</span><span id="selfHead">Compare what you wrote with the answer.</span></div>
       <div class="answer" id="selfAnswer"></div>
       <div class="fbfoot"><button class="btn" type="button" id="selfMiss">I missed it</button><button class="btn primary" type="button" id="selfGot">I got it right</button></div>
     </div>
@@ -569,53 +577,45 @@ body.writing .foot { display: none; }
     <div class="qbar"><button class="ghost" id="backBtn">← Back to practice</button></div>
     <div class="panel">
       <div class="head"><h2>Vocab table</h2>
-        <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="bookOrderBtn" hidden>Change textbook order</button>
-          <div class="seg mini" id="tGroupSeg" role="group" aria-label="Chapter rows by" hidden>
-            <button type="button" data-group="book">Textbook</button><button type="button" data-group="course">Course</button>
+        <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="bookOrderBtn" hidden>Change collection order</button>
+          <div class="seg mini" id="tGroupSeg" role="group" aria-label="Unit rows by" hidden>
+            <button type="button" data-group="book">Collection</button><button type="button" data-group="course">Course</button>
           </div>
         </div>
       </div>
       <div class="tbar">
-        <input type="search" class="tsearch" id="tSearch" placeholder="Search English, kana or kanji" aria-label="Search the vocab table in every chapter">
+        <input type="search" class="tsearch" id="tSearch" placeholder="Search English, kana or kanji" aria-label="Search the vocab table in every unit">
         <div class="bookorder setedit" id="bookOrderEd" hidden></div>
-        <div class="pbar tpbar" id="tPickBar"><div class="pchs" id="tChs" role="group" aria-label="Chapter"></div></div>
+        <div class="pbar tpbar" id="tPickBar"><div class="pchs" id="tChs" role="group" aria-label="Units"></div></div>
         <div class="tsum"><span class="muted small" id="tSummary"></span><button class="link" id="tOpenAll" type="button"></button></div>
       </div>
       <div id="setTables"></div>
       <form class="newset" id="newSetForm" hidden>
-        <label>Book<input id="nsBook" list="bookList" placeholder="Nakama 2" required></label>
-        <label>Chapter<input id="nsChapter" placeholder="11" required></label>
-        <label>Section<input id="nsSection" placeholder="A" required></label>
-        <label>Name (optional)<input id="nsLabel" placeholder="Body & health"></label>
+        <label>Collection<input id="nsCol" list="colList" placeholder="Japanese 1" required></label>
+        <label>Unit<input id="nsUnit" list="unitList" placeholder="Week 3" required></label>
+        <label>Set name<input id="nsName" placeholder="Food and drink" required></label>
         <label>Tags (optional)<input id="nsTags" placeholder="Verbs, Quiz 3"></label>
         <button class="btn" type="submit">Add set</button>
       </form>
     </div>
     <div class="panel">
-      <div class="head"><h2>Kanji by chapter</h2><span class="muted small" id="kanjiCount"></span></div>
-      <p class="muted small">The kanji each chapter teaches. Paste them in any form; only kanji are kept. This follows the chapters picked in the vocab table.</p>
+      <div class="head"><h2>Kanji by unit</h2><span class="muted small" id="kanjiCount"></span></div>
+      <p class="muted small">The kanji each unit teaches, for Force kanji and “Kanji learned up to”. Paste them in any form; only kanji are kept. This follows the units picked in the vocab table.</p>
       <div class="tsum"><span class="muted small" id="kSummary"></span><button class="link" id="kAllBtn" type="button"></button></div>
       <div id="kanjiLists"></div>
       <form class="newset" id="newKanjiForm" hidden>
-        <label>Book<input id="nkBook" list="bookList" placeholder="Nakama 2" required></label>
-        <label>Chapter<input id="nkChapter" placeholder="11" required></label>
-        <button class="btn" type="submit">Add chapter</button>
+        <label>Collection<input id="nkCol" list="colList" placeholder="Japanese 1" required></label>
+        <label>Unit<input id="nkUnit" list="unitList" placeholder="Week 3" required></label>
+        <button class="btn" type="submit">Add kanji list</button>
       </form>
-      <datalist id="bookList"></datalist>
-    </div>
-    <div class="panel" id="portPanel" hidden>
-      <div class="head"><h2>Export / import</h2><span class="muted small" id="portCount"></span></div>
-      <p class="muted small">Export saves every vocab set and kanji list, plus the textbook order and courses, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
-      <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
-      <p class="muted small" id="portMsg" hidden></p>
-      <div class="impprev" id="importPreview" hidden></div>
+      <datalist id="colList"></datalist><datalist id="unitList"></datalist>
     </div>
   </section>
   <div class="tip" id="tip" role="tooltip" hidden></div>
 </div>
 <footer class="foot">
   <p>Japanese Vocab Practice is free and open source under the AGPL-3.0: <a href="https://github.com/andever2026/Q-Card" rel="noopener">source code on GitHub</a>.</p>
-  <p>Handwriting templates from <a href="https://kanjivg.tagaini.net" rel="noopener">KanjiVG</a> (CC BY-SA 3.0). Kanji readings from <a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project" rel="noopener">KANJIDIC</a> (EDRDG, CC BY-SA 4.0).</p>
+  <p>Handwriting templates from <a href="https://kanjivg.tagaini.net" rel="noopener">KanjiVG</a> (CC BY-SA 3.0) and the Hershey fonts (Dr. A. V. Hershey, U. S. National Bureau of Standards). Kanji readings from <a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project" rel="noopener">KANJIDIC</a> (EDRDG, CC BY-SA 4.0).</p>
 </footer>
 <script src="js/platform.js"></script>
 
@@ -623,9 +623,16 @@ body.writing .foot { display: none; }
 (() => {
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // Choices people make on the page. They're kept in this browser and, for someone signed in, in their account
+  // too (data/users/<id>/prefs, see syncPrefs), so they come along to other devices.
+  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "palette", "theme", "resume"];
+  let prefsChanged = () => {};
   const store = {
     get(k, d) { try { const v = localStorage.getItem("jpq:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-    set(k, v) { try { localStorage.setItem("jpq:" + k, JSON.stringify(v)); return true; } catch { return false; } },
+    set(k, v) {
+      if (PREF_KEYS.includes(k)) prefsChanged();
+      try { localStorage.setItem("jpq:" + k, JSON.stringify(v)); return true; } catch { return false; }
+    },
   };
   // Before tags, the Show row switched kinds of sets off; the kinds left on carry over as picked tags.
   function oldKindPicks() {
@@ -643,20 +650,20 @@ body.writing .foot { display: none; }
   const S = {
     sets: [], loaded: false,
     selected: new Set(store.get("selected", [])),
-    // Chapters shown on the practice page (pick) and in the vocab table (tpick), see makePicker. pick.show null = a page before v42,
+    // Units shown on the practice page (pick) and in the vocab table (tpick), see makePicker. pick.show null = a page before v42,
     // where an empty pickChs meant everything; tpick.show null = a page before v45, which showed one book and chapter (tableBook, tableCh).
     // (Older pages also stored the books shown, in pickBooks or pickBook, and bare chapter numbers, read as chapters of the first book.)
     pick: { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", null) ?? [store.get("pickCh", "all")].filter((c) => c !== "all")) },
     tpick: { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) },
-    groupBy: store.get("groupBy", "book"), // chapter rows by "book" or "course"
-    courses: [],                           // meta/courses: [{name, parts: [{book, from, to}]}], in course order; a line break in a name breaks its label
+    groupBy: store.get("groupBy", "book"), // unit rows by collection ("book") or "course"
+    courses: [],                           // meta/courses: [{name, parts: [{collection, from, to}]}], in course order; a line break in a name breaks its label
     oldBooks: store.get("pickBooks", null) ?? (store.get("pickBook", null) != null ? [store.get("pickBook", null)] : null),
     tableBook: store.get("tableBook", null), // book shown in the vocab table
     pickTags: new Set(store.get("pickTags", null) ?? oldKindPicks()), // tags picked in the Filter row (lowercase); none = every set
     dir: store.get("dir", "ej"),
     mode: store.get("mode", "default"),
-    kanjiLists: [],      // [{id, chapter, kanji}]
-    upto: store.get("uptoPick", "auto"), // "auto" follows the highest picked chapter; older manual picks lived under "upto"
+    kanjiLists: [],      // [{id, collection, unit, kanji}]
+    upto: store.get("uptoPick", "auto"), // "auto" follows the highest picked unit; older manual picks lived under "upto"
     kdrafts: new Map(),  // listId -> edited kanji string
     kConfirmDel: null,
     drafts: new Map(),   // setId -> words[] being edited
@@ -665,13 +672,13 @@ body.writing .foot { display: none; }
     tq: "",              // vocab table search text
     openSets: new Set(), // expanded sets in the vocab table
     touched: new Set(),  // word ids edited during the current search, kept visible
-    kAll: false,         // kanji panel: every chapter instead of the vocab table's chapter
+    kAll: false,         // kanji panel: every unit instead of the vocab table's units
     tAll: false,         // search: draw every match instead of the first TLIMIT
-    editSet: null, editVals: null, // set whose chapter/section/name is being edited
-    kEdit: null, kEditVal: "", kEditBook: "",  // kanji list whose book and chapter are being edited
-    formBook: null,                // book last filled into the new set / new kanji forms
-    bookOrder: [],                 // saved book order (meta/books); books not in it come after, by name
-    orderEdit: null,               // the book order being edited in the vocab table, or null
+    editSet: null, editVals: null, // set whose collection/unit/name is being edited
+    kEdit: null, kEditUnit: "", kEditCol: "",  // kanji list whose collection and unit are being edited
+    formCol: null,                 // collection last filled into the new set / new kanji forms
+    colOrder: [],                  // saved book order (meta/books); books not in it come after, by name
+    orderEdit: null,               // the collection order being edited in the vocab table, or null
   };
 
   // ---------- views ----------
@@ -685,13 +692,16 @@ body.writing .foot { display: none; }
     pads.forEach((p) => p.draw());
   }
   document.querySelectorAll("#palPick [data-pal]").forEach((b) => (b.onclick = () => setPalette(b.dataset.pal)));
-  // Settings pop-up (the gear in the header): colours, and on the public site light or dark, the account and deleting.
-  $("#settingsBtn").onclick = () => { renderSettings(); $("#settings").showModal(); };
+  // Settings pop-up (the gear in the header): colours, the vocab counts, export / import, and on the public site light or dark,
+  // the account and deleting.
+  function openSettings() { renderSettings(); $("#settings").showModal(); }
+  $("#settingsBtn").onclick = openSettings;
   $("#settingsClose").onclick = () => $("#settings").close();
   $("#settings").addEventListener("click", (e) => { if (e.target === $("#settings")) $("#settings").close(); });
   function renderSettings() {
     const n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`, words = S.sets.reduce((a, s) => a + readyCount(s.words || []), 0);
     $("#setStats").textContent = [n(S.sets.length, "set"), n(words, "word"), n(S.kanjiLists.length, "kanji list"), ...(S.history?.length ? [n(S.history.length, "practice session") + " saved"] : [])].join(" · ");
+    renderPort();
     renderAccount();
   }
   function setTheme(t) {
@@ -712,7 +722,7 @@ body.writing .foot { display: none; }
   const active = new Map(); // pointerId -> the pad its stroke is in now (a stroke can move to the other box)
   // Undo history: { gid } for a stroke (all its pieces, in any box), { erased: [[pad, stroke, index], …] } for one eraser drag.
   const history = [];
-  let gidSeq = 0, erasing = false, eraseG = null;
+  let gidSeq = 0, erasing = false, eraseG = null, inkTimer = null;
   const ERASE_R = 12; // px around the eraser that counts as touching a stroke
   const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   class Pad {
@@ -848,7 +858,7 @@ body.writing .foot { display: none; }
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawAll);
   new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   const syncCheck = () => { $("#checkBtn").disabled = main.empty || Q.busy || Q.answered; };
-  furi.onChange = syncCheck; main.onChange = syncCheck;
+  furi.onChange = main.onChange = () => { syncCheck(); inkChanged(); };
   // Undo the latest stroke or eraser drag that touched one of these boxes; entries whose strokes are already gone are skipped.
   function undoIn(ps) {
     while (history.length) {
@@ -901,52 +911,66 @@ body.writing .foot { display: none; }
   $("#scratchClear").onclick = () => scratch.clear();
 
   // ---------- data ----------
-  const chapterNum = (c) => { const n = parseFloat(c); return isNaN(n) ? 999 : n; };
-  // Lettered sections first, then Kanji sets, Extras, and supplementary lists.
+  // Vocab is grouped Collection › Unit › Set: a collection (a textbook, a course, any list of lists) has units (Ch. 3,
+  // Week 1, any name), and each unit has sets; kanji lists go by unit. Documents saved before October 2026 name a book,
+  // a numbered chapter and a section with an optional label: they're read as collection, unit "Ch. N" and set name "A · Label".
+  const coll = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+  const tidy = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+  const oldUnit = (v) => { const c = tidy(v, 60).replace(/^ch(apter)?\.?\s*(?=\d)/i, ""); return /^\d+$/.test(c) ? `Ch. ${+c}` : c; };
+  const docCol = (d) => tidy(d.collection ?? d.book, 100);
+  const docUnit = (d) => (d.unit != null ? tidy(d.unit, 60) : oldUnit(d.chapter)) || "No unit";
+  const docName = (d) => tidy(d.name ?? [d.section, d.label].map((x) => tidy(x, 200)).filter(Boolean).join(" · "), 200) || "Untitled set";
+  // Units sort by name with numbers in order (Week 2 before Week 10). In a unit, Kanji sets, Extras and supplementary lists come last.
+  const byUnit = (a, b) => coll.compare(String(a), String(b));
   const secRank = (s) => { s = String(s || ""); return /^kanji/i.test(s) ? 1 : /^extra/i.test(s) ? 2 : /^supp/i.test(s) ? 3 : 0; };
-  const sortSets = (a, b) => byBook(bookOf(a), bookOf(b)) || chapterNum(a.chapter) - chapterNum(b.chapter) || String(a.chapter).localeCompare(String(b.chapter)) || secRank(a.section) - secRank(b.section) || String(a.section).localeCompare(String(b.section));
-  // "Ch. 5", "Chapter 5" and "5" all mean chapter 5; numeric chapters are stored as numbers.
-  const cleanCh = (v) => { const c = String(v ?? "").trim().replace(/^ch(apter)?\.?\s*(?=\d)/i, ""); return /^\d+$/.test(c) ? +c : c; };
-  const sameCh = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
-  const chLabel = (c) => (/^\d/.test(String(c)) ? `Ch. ${c}` : String(c));
-  const byChapter = (a, b) => chapterNum(a) - chapterNum(b) || String(a).localeCompare(String(b));
-  const slug = (t) => t.toLowerCase().replace(/[^a-z0-9_.-]+/g, "-");
+  const sortSets = (a, b) => byCol(colOf(a), colOf(b)) || byUnit(a.unit, b.unit) || secRank(a.name) - secRank(b.name) || coll.compare(a.name, b.name);
+  const sortLists = (a, b) => byCol(colOf(a), colOf(b)) || byUnit(a.unit, b.unit);
+  const sameName = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+  const slug = (t, d) => t.toLowerCase().replace(/[^a-z0-9_.-]+/g, "-").replace(/^[^a-z0-9]+|-+$/g, "").slice(0, 80) || d;
   const freeId = (base, taken) => { let id = base, n = 2; while (taken.has(id)) id = `${base}-${n++}`; return id; };
-  // Textbooks: every set and kanji list names its book (Nakama 1, Nakama 2, …); chapters are numbered per book.
-  const bookOf = (x) => String(x.book || "").trim();
-  // Books follow the saved order (the order they're studied in); any book not in it comes after, by name.
-  const bookRank = (b) => { const i = S.bookOrder.indexOf(b); return i < 0 ? S.bookOrder.length : i; };
-  const byBook = (a, b) => bookRank(a) - bookRank(b) || String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" });
-  const books = () => [...new Set([...S.sets, ...S.kanjiLists].map(bookOf))].sort(byBook);
-  const multiBook = () => books().length > 1;
-  const bookLabel = (b) => b || "No book";
-  const sameBook = (a, b) => a.toLowerCase() === b.toLowerCase();
-  // The book in view: the one picked, or the first book while the picked one doesn't exist (yet).
-  const shownBook = (b) => { const bs = books(); return bs.includes(b) ? b : bs[0] ?? ""; };
-  const canonBook = (v) => { const t = String(v || "").trim().replace(/\s+/g, " "); return books().find((b) => sameBook(b, t)) ?? t; };
-  const chKey = (x) => `${bookOf(x)}\u0001${x.chapter}`;
-  const setName = (s) => `${multiBook() ? bookLabel(bookOf(s)) + " · " : ""}${chLabel(s.chapter)} ${s.section}`;
+  const colOf = (x) => x.collection || "";
+  // Collections follow the saved order (meta/books: the order they're studied in); any not in it come after, by name.
+  const colRank = (b) => { const i = S.colOrder.indexOf(b); return i < 0 ? S.colOrder.length : i; };
+  const byCol = (a, b) => colRank(a) - colRank(b) || coll.compare(String(a), String(b));
+  const cols = () => [...new Set([...S.sets, ...S.kanjiLists].map(colOf))].sort(byCol);
+  const multiCol = () => cols().length > 1;
+  const colLabel = (b) => b || "No collection";
+  // The collection in view: the one picked, or the first one while the picked one doesn't exist (yet).
+  const shownCol = (b) => { const bs = cols(); return bs.includes(b) ? b : bs[0] ?? ""; };
+  // Typed names match an existing collection, or unit of that collection, whatever their case ("ch. 3" is "Ch. 3").
+  const canonCol = (v) => { const t = tidy(v, 100); return cols().find((b) => sameName(b, t)) ?? t; };
+  const canonUnit = (col, v) => { const t = tidy(v, 60); return [...S.sets, ...S.kanjiLists].find((x) => colOf(x) === col && sameName(x.unit, t))?.unit ?? t; };
+  const unitKey = (x) => `${colOf(x)}\u0001${x.unit}`;
+  const keyUnit = (k) => k.split("\u0001")[1];
+  // Picks saved before units name the chapter number ("Nakama 1\u00013"), now "Nakama 1\u0001Ch. 3" (unless a unit is named "3").
+  const newKey = (k, has) => (/\u0001\d+$/.test(k) && !has(k) ? k.replace(/\u0001(\d+)$/, "\u0001Ch. $1") : k);
+  // "Nakama 1 › Ch. 3" when there's more than one collection, else "Ch. 3".
+  const unitTitle = (x) => `${multiCol() ? colLabel(colOf(x)) + " › " : ""}${x.unit}`;
+  const setName = (s) => `${unitTitle(s)} › ${s.name}`;
   const jpForm = (w) => w.kanji || w.kana;
 
+  // A course takes a range of units from one collection, by name: { collection, from, to }. Older courses gave a book and chapter numbers.
+  const coursePart = (p) => (p?.collection != null ? { collection: tidy(p.collection, 100), from: tidy(p.from, 60), to: tidy(p.to, 60) }
+    : { collection: tidy(p?.book, 100), from: oldUnit(p?.from), to: oldUnit(p?.to) });
   function onCourses(snap) {
     raw.courses = snap.exists ? snap.data() : null;
     const list = snap.exists ? snap.data()?.courses : null;
     S.courses = (Array.isArray(list) ? list : []).filter((c) => c && c.name && Array.isArray(c.parts))
-      .map((c) => ({ name: String(c.name), parts: c.parts.map((p) => ({ book: String(p.book ?? ""), from: Number(p.from), to: Number(p.to) })) }));
+      .map((c) => ({ name: String(c.name), parts: c.parts.map(coursePart) }));
     renderSetup(); renderTable();
   }
   function onBookOrder(snap) {
     raw.books = snap.exists ? snap.data() : null;
     const o = snap.exists ? snap.data()?.order : null;
-    S.bookOrder = Array.isArray(o) ? o.map(String) : [];
+    S.colOrder = Array.isArray(o) ? o.map(String) : [];
     S.sets.sort(sortSets);
-    S.kanjiLists.sort((a, b) => byBook(bookOf(a), bookOf(b)) || byChapter(a.chapter, b.chapter));
+    S.kanjiLists.sort(sortLists);
     if (S.kLoaded) renderUpto(); // before the kanji lists load, renderUpto would reset the choice
     renderSetup(); renderTable();
   }
   function onSets(snap) {
     raw.sets = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    S.sets = snap.docs.map((d) => ({ id: d.id, ...d.data(), chapter: cleanCh(d.data().chapter), words: (d.data().words || []).map((w) => ({ ...w })) })).sort(sortSets);
+    S.sets = snap.docs.map((d) => { const x = d.data(); return { id: d.id, collection: docCol(x), unit: docUnit(x), name: docName(x), tags: x.tags, words: (x.words || []).map((w) => ({ ...w })) }; }).sort(sortSets);
     S.loaded = true;
     const ids = new Set(S.sets.map((s) => s.id));
     for (const id of [...S.selected]) if (!ids.has(id)) S.selected.delete(id);
@@ -1078,23 +1102,23 @@ body.writing .foot { display: none; }
       verb: "Narrows the picked set(s) to verbs only, and goes through their five forms.",
     },
     je: {
-      default: "Words show the way the textbook writes them, with the reading underneath.",
+      default: "Words show as written in the set, with the reading underneath.",
       kanji: "Words show only the kanji you’ve learned, with no reading.",
       kana: "Words show in kana only.",
       kata: "Narrows the picked set(s) to the words that include katakana.",
       verb: "Only for English → 日本語.",
     },
     both: {
-      default: "Kanji optional when you write. Japanese questions show the textbook form with the reading.",
+      default: "Kanji optional when you write. Japanese questions show the word as written, with the reading.",
       kanji: "Kanji you’ve learned must be written as kanji, and Japanese questions show only those kanji, with no reading.",
       kana: "Only the reading counts when you write, and Japanese questions show kana only.",
       kata: "Narrows the picked set(s) to the words that include katakana.",
       verb: "Only for English → 日本語.",
     },
   };
-  // Sets are filtered by chapter and by tag (the Filter row); picks in hidden sets stay picked.
-  const setKind = (s) => (/^supp/i.test(s.section) ? "supp" : /^extra/i.test(s.section) ? "extras" : "main");
-  // A set's tags are its own (sets/<id>.tags, from its details) plus its kind from the section name, when the table has
+  // Sets are filtered by unit and by tag (the Filter row); picks in hidden sets stay picked.
+  const setKind = (s) => (/^supp/i.test(s.name) ? "supp" : /^extra/i.test(s.name) ? "extras" : "main");
+  // A set's tags are its own (sets/<id>.tags, from its details) plus its kind from the start of its name, when the table has
   // more than one kind. Tags match without case; a comma (or 、) separates them when typed.
   const KIND_TAGS = { main: "Main sets", extras: "Extras", supp: "Supp." };
   const tagKey = (t) => t.toLowerCase();
@@ -1113,27 +1137,27 @@ body.writing .foot { display: none; }
     for (const s of S.sets) for (const t of setTags(s, kinds)) { const k = tagKey(t); if (!m.has(k)) m.set(k, { key: k, name: t, n: 0 }); m.get(k).n++; }
     return { kinds, list: [...m.values()].sort((a, b) => a.n - b.n || a.name.localeCompare(b.name)) };
   }
-  const setBooks = () => books().filter((b) => S.sets.some((s) => bookOf(s) === b));
-  const chsOf = (book) => [...new Set(S.sets.filter((s) => bookOf(s) === book).map((s) => String(s.chapter)))];
-  const bookKeys = (book) => chsOf(book).map((c) => `${book}\u0001${c}`);
+  const setCols = () => cols().filter((b) => S.sets.some((s) => colOf(s) === b));
+  const unitsOf = (col) => [...new Set(S.sets.filter((s) => colOf(s) === col).map((s) => s.unit))];
+  const colKeys = (col) => unitsOf(col).map((c) => `${col}\u0001${c}`);
   const courseMode = () => S.groupBy === "course" && S.courses.length > 0;
-  // A chapter picker: one row of chips per book, or per course with any chapters no course covers under "Other".
-  // Each book shows all, none or some of its chapters: st.show maps book -> "all" | "none" | "some" (missing = "all"),
-  // and st.picks holds the chKey()s shown for "some". o: { st, showKey, chsKey, books(), keys(book), bar, rows, dot(key), onChange() }.
+  // A unit picker: one row of chips per collection, or per course with any units no course covers under "Other".
+  // Each collection shows all, none or some of its units: st.show maps collection -> "all" | "none" | "some" (missing = "all"),
+  // and st.picks holds the unitKey()s shown for "some". o: { st, showKey, chsKey, cols(), keys(col), bar, rows, dot(key), onChange() }.
   function makePicker(o) {
     const st = o.st;
     const picksOf = (b) => [...st.picks].filter((k) => k.startsWith(b + "\u0001"));
     const save = () => { store.set(o.showKey, st.show); store.set(o.chsKey, [...st.picks]); };
     const p = {
       picksOf,
-      // "some" with no chapters left counts as "none".
+      // "some" with no units left counts as "none".
       state(b) { const m = st.show?.[b] ?? "all"; return m === "some" && !picksOf(b).length ? "none" : m; },
       has(k) { const b = k.split("\u0001")[0], m = p.state(b); return m === "all" || (m === "some" && st.picks.has(k)); },
-      shownKeys: () => o.books().flatMap(o.keys).filter(p.has),
-      // Shows exactly the chapter keys given.
+      shownKeys: () => o.cols().flatMap(o.keys).filter(p.has),
+      // Shows exactly the unit keys given.
       set(keys) {
         const show = { ...st.show };
-        for (const b of o.books()) {
+        for (const b of o.cols()) {
           const ks = o.keys(b), on = ks.filter((k) => keys.has(k));
           show[b] = on.length === ks.length ? "all" : on.length ? "some" : "none";
           picksOf(b).forEach((k) => st.picks.delete(k));
@@ -1141,7 +1165,7 @@ body.writing .foot { display: none; }
         }
         st.show = show; save();
       },
-      // Makes sure one chapter shows, even one that is only about to be added.
+      // Makes sure one unit shows, even one that is only about to be added.
       add(k) {
         const b = k.split("\u0001")[0], m = p.state(b);
         if (m === "all") return;
@@ -1150,10 +1174,10 @@ body.writing .foot { display: none; }
       },
       replace(show, picks) { st.show = show; st.picks = picks; save(); },
       groups() {
-        const bs = o.books();
-        if (!courseMode()) return bs.map((b) => ({ name: bookLabel(b), keys: o.keys(b) }));
+        const bs = o.cols();
+        if (!courseMode()) return bs.map((b) => ({ name: colLabel(b), keys: o.keys(b) }));
         const all = bs.flatMap(o.keys), used = new Set();
-        const inPart = (k, pt) => { const [b, c] = k.split("\u0001"), n = parseFloat(c); return b === pt.book && !isNaN(n) && n >= pt.from && n <= pt.to; };
+        const inPart = (k, pt) => { const [b, u] = k.split("\u0001"); return b === pt.collection && byUnit(u, pt.from) >= 0 && byUnit(u, pt.to) <= 0; };
         const gs = S.courses.map((c) => {
           const keys = all.filter((k) => !used.has(k) && c.parts.some((pt) => inPart(k, pt)));
           keys.forEach((k) => used.add(k));
@@ -1169,20 +1193,20 @@ body.writing .foot { display: none; }
         o.bar.classList.toggle("labeled", labeled);
         o.rows.innerHTML = groups.map((g, gi) => {
           const sg = stateOf(g);
-          const chips = g.keys.map((k, i) => `<button class="chip" type="button" data-k="${i}" aria-pressed="${sg === "some" && p.has(k)}">${esc(chLabel(k.split("\u0001")[1]))}${o.dot(k)}</button>`).join("");
+          const chips = g.keys.map((k, i) => `<button class="chip" type="button" data-k="${i}" aria-pressed="${sg === "some" && p.has(k)}">${esc(keyUnit(k))}${o.dot(k)}</button>`).join("");
           return `<div class="pchrow" data-g="${gi}">${labeled ? `<span class="chbook muted small${g.name.includes("\n") ? " two" : ""}">${esc(g.name)}</span>` : ""}<div class="chips"><button class="chip" type="button" data-k="all" aria-pressed="${sg === "all"}">All</button>${chips}</div></div>`;
         }).join("");
-        // The label column is as wide as the widest name in either view (books or courses), so switching views doesn't shift the chips.
+        // The label column is as wide as the widest name in either view (collections or courses), so switching views doesn't shift the chips.
         const lab = o.rows.querySelector(".chbook");
         if (lab) {
           const ctx = (makePicker.cv ||= document.createElement("canvas")).getContext("2d");
           ctx.font = getComputedStyle(lab).font;
-          const names = [...o.books().map(bookLabel), ...S.courses.map((c) => c.name), "Other"];
+          const names = [...o.cols().map(colLabel), ...S.courses.map((c) => c.name), "Other"];
           const w = Math.max(...names.flatMap((n) => n.split("\n")).map((t) => ctx.measureText(t).width));
           o.bar.style.setProperty("--labw", Math.ceil(w) + 1 + "px");
         }
-        // All turns a whole row on or off. A chapter tapped while its row is all on or all off shows just that chapter
-        // of the row; after that, chapters toggle on their own, and picking every chapter of a row is the same as its All.
+        // All turns a whole row on or off. A unit tapped while its row is all on or all off shows just that unit
+        // of the row; after that, units toggle on their own, and picking every unit of a row is the same as its All.
         o.rows.querySelectorAll("[data-k]").forEach((b) => (b.onclick = () => {
           const g = groups[+b.closest("[data-g]").dataset.g], sg = stateOf(g), k = b.dataset.k === "all" ? null : g.keys[+b.dataset.k];
           const keys = new Set(p.shownKeys());
@@ -1195,11 +1219,11 @@ body.writing .foot { display: none; }
     };
     return p;
   }
-  const PP = makePicker({ st: S.pick, showKey: "bookShow", chsKey: "pickChs", books: setBooks, keys: bookKeys, bar: $("#pickBar"), rows: $("#pickChs"),
-    dot: (k) => (S.sets.some((s) => S.selected.has(s.id) && chKey(s) === k) ? `<span class="dot pick" title="Has picked sets">•</span>` : ""),
+  const PP = makePicker({ st: S.pick, showKey: "bookShow", chsKey: "pickChs", cols: setCols, keys: colKeys, bar: $("#pickBar"), rows: $("#pickChs"),
+    dot: (k) => (S.sets.some((s) => S.selected.has(s.id) && unitKey(s) === k) ? `<span class="dot pick" title="Has picked sets">•</span>` : ""),
     onChange: () => renderSetup() });
-  const chShown = (s) => PP.has(chKey(s));
-  // Both pages share one Textbook / Course switch.
+  const chShown = (s) => PP.has(unitKey(s));
+  // Both pages share one Collection / Course switch.
   function syncGroupSegs() {
     for (const id of ["#groupSeg", "#tGroupSeg"]) {
       $(id).hidden = !S.courses.length;
@@ -1207,11 +1231,11 @@ body.writing .foot { display: none; }
     }
   }
   document.querySelectorAll("[data-group]").forEach((b) => (b.onclick = () => { S.groupBy = b.dataset.group; store.set("groupBy", S.groupBy); renderSetup(); renderTable(); }));
-  function renderPickBar(shown) {
+  function renderPickBar() {
     PP.render(); syncGroupSegs();
-    const n = S.selected.size, hidden = [...S.selected].filter((id) => !shown.some((s) => s.id === id)).length;
+    const n = S.selected.size;
     $("#pickSumRow").hidden = !n;
-    $("#pickSum").textContent = `${n} set${n === 1 ? "" : "s"} picked${hidden ? `, ${hidden} not shown here` : ""}`;
+    $("#pickSum").textContent = `${n} set${n === 1 ? "" : "s"} picked`;
   }
   // The Filter row: every tag in use, each with how many sets picking it hides (the sets without it), most hidden first.
   // None is picked to start, so every set shows. It's left out when no tag would narrow anything.
@@ -1235,51 +1259,52 @@ body.writing .foot { display: none; }
     renderSampleNote();
     if (!S.sets.length) {
       box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets into the vocab table.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open the vocab table</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
-      $("#emptyImport").onclick = () => { renderTable(); show("table"); $("#portPanel").scrollIntoView({ block: "center" }); $("#importBtn").click(); };
+      $("#emptyImport").onclick = () => { openSettings(); $("#importBtn").click(); };
       $("#emptyTable").onclick = () => { renderTable(); show("table"); };
       $("#emptySamples").onclick = (e) => { e.target.disabled = true; addSamples().catch(() => { e.target.disabled = false; banner("The sample sets couldn't be added. Try again."); }); };
     } else {
       // Sets with no ready words can't be picked.
       for (const s of S.sets) if (!readyCount(s.words)) S.selected.delete(s.id);
-      // Older pages stored bare chapter numbers: read them as chapters of the first book.
-      const pk = S.pick.picks;
-      for (const c of [...pk]) if (!c.includes("\u0001")) { pk.delete(c); pk.add(`${books()[0]}\u0001${c}`); }
-      for (const k of pk) if (!S.sets.some((s) => chKey(s) === k)) pk.delete(k);
-      // Pages before v40 showed one book (or a chosen few) at a time: carry that view over once, as chapter picks.
+      // Older pages stored bare chapter numbers: read them as chapters of the first collection.
+      const pk = S.pick.picks, has = (k) => S.sets.some((s) => unitKey(s) === k);
+      for (const c of [...pk]) if (!c.includes("\u0001")) { pk.delete(c); pk.add(`${cols()[0]}\u0001${oldUnit(c)}`); }
+      for (const c of [...pk]) { const k = newKey(c, has); if (k !== c) { pk.delete(c); pk.add(k); } }
+      for (const k of pk) if (!has(k)) pk.delete(k);
+      // Pages before v40 showed one book (or a chosen few) at a time: carry that view over once, as unit picks.
       if (S.oldBooks) {
-        const was = setBooks().filter((b) => S.oldBooks.includes(b));
-        if (was.length && was.length < setBooks().length) {
-          const keep = new Set(was.flatMap((b) => { const ks = bookKeys(b).filter((k) => S.pick.picks.has(k)); return ks.length ? ks : bookKeys(b); }));
+        const was = setCols().filter((b) => S.oldBooks.includes(b));
+        if (was.length && was.length < setCols().length) {
+          const keep = new Set(was.flatMap((b) => { const ks = colKeys(b).filter((k) => S.pick.picks.has(k)); return ks.length ? ks : colKeys(b); }));
           S.pick.picks = keep; store.set("pickChs", [...keep]);
         }
         S.oldBooks = null; store.set("pickBooks", null); store.set("pickBook", null);
       }
-      // Pages before v42 kept only pickChs, where none meant every chapter: read each book's picks as its state, once.
+      // Pages before v42 kept only pickChs, where none meant every chapter: read each collection's picks as its state, once.
       if (S.pick.show == null) {
         const any = S.pick.picks.size > 0, show = {};
-        for (const b of setBooks()) { const ks = PP.picksOf(b); show[b] = !any || ks.length === bookKeys(b).length ? "all" : ks.length ? "some" : "none"; if (show[b] === "all") ks.forEach((k) => S.pick.picks.delete(k)); }
+        for (const b of setCols()) { const ks = PP.picksOf(b); show[b] = !any || ks.length === colKeys(b).length ? "all" : ks.length ? "some" : "none"; if (show[b] === "all") ks.forEach((k) => S.pick.picks.delete(k)); }
         PP.replace(show, S.pick.picks);
       }
-      const multi = setBooks().length > 1, states = setBooks().map(PP.state);
+      const multi = setCols().length > 1, states = setCols().map(PP.state);
       // Picked tags that no set has any more are ignored, so they can't hide everything.
       const tags = tagCounts(), on = [...S.pickTags].filter((k) => tags.list.some((t) => t.key === k));
       const tagged = (s) => !on.length || setTags(s, tags.kinds).some((t) => on.includes(tagKey(t)));
-      const chs = new Set(S.sets.filter(chShown).map(chKey)), shown = S.sets.filter((s) => chShown(s) && tagged(s));
+      const chs = new Set(S.sets.filter(chShown).map(unitKey)), shown = S.sets.filter((s) => chShown(s) && tagged(s));
       renderTagRow(tags.list, on);
-      renderPickBar(shown);
+      renderPickBar();
       const byCh = new Map();
-      for (const s of shown) { if (!byCh.has(chKey(s))) byCh.set(chKey(s), []); byCh.get(chKey(s)).push(s); }
+      for (const s of shown) { if (!byCh.has(unitKey(s))) byCh.set(unitKey(s), []); byCh.get(unitKey(s)).push(s); }
       const groups = [...byCh.values()];
       const onNames = tags.list.filter((t) => on.includes(t.key)).map((t) => `“${esc(t.name)}”`);
-      const who = chs.size === 1 ? esc(chLabel([...chs][0].split("\u0001")[1])) + " has" : states.every((x) => x === "all") ? "There are" : "These chapters have";
+      const who = chs.size === 1 ? esc(keyUnit([...chs][0])) + " has" : states.every((x) => x === "all") ? "There are" : "These units have";
       box.innerHTML = !shown.length
-        ? !chs.size ? `<div class="empty"><span>No chapters picked. Tap All or a chapter above to see its sets.</span></div>`
+        ? !chs.size ? `<div class="empty"><span>No units picked. Tap All or a unit above to see its sets.</span></div>`
         : `<div class="empty"><b>No sets to show.</b><span>${who} no sets tagged ${onNames.join(" or ")}. Clear the filter above to see the rest.</span></div>`
         : groups.map((sets, i) => {
-        const ch = String(sets[0].chapter), name = /^\d/.test(ch) ? "Chapter " + esc(ch) : esc(ch);
+        const name = esc(sets[0].unit);
         const usable = sets.filter((s) => readyCount(s.words)), all = usable.length && usable.every((s) => S.selected.has(s.id));
-        return `<div class="chapter"><div class="chrow"><b>${multi ? `${esc(bookLabel(bookOf(sets[0])))} · ${name}` : name}</b>${usable.length ? `<button class="link" data-all="${i}">${all ? "Clear" : "Select all"}</button>` : ""}</div>
-          <div class="chips">${sets.map((s) => { const n = readyCount(s.words); return `<button class="chip" data-set="${esc(s.id)}" aria-pressed="${!!n && S.selected.has(s.id)}"${n ? "" : " disabled"} title="${esc(n ? s.label || "" : "No words yet")}">${esc(s.section)}${s.label ? ` · ${esc(s.label)}` : ""}<span class="n">${n}</span></button>`; }).join("")}</div></div>`;
+        return `<div class="chapter"><div class="chrow"><b>${multi ? `${esc(colLabel(colOf(sets[0])))} › ${name}` : name}</b>${usable.length ? `<button class="link" data-all="${i}">${all ? "Clear" : "Select all"}</button>` : ""}</div>
+          <div class="chips">${sets.map((s) => { const n = readyCount(s.words); return `<button class="chip" data-set="${esc(s.id)}" aria-pressed="${!!n && S.selected.has(s.id)}"${n ? "" : ` disabled title="No words yet"`}>${esc(s.name)}<span class="n">${n}</span></button>`; }).join("")}</div></div>`;
       }).join("");
       box.querySelectorAll("[data-set]").forEach((b) => (b.onclick = () => { const id = b.dataset.set; S.selected.has(id) ? S.selected.delete(id) : S.selected.add(id); saveSetup(); renderSetup(); }));
       box.querySelectorAll("[data-all]").forEach((b) => (b.onclick = () => {
@@ -1301,37 +1326,40 @@ body.writing .foot { display: none; }
       : n ? `${n} ${kata}word${n === 1 ? "" : "s"}${S.dir === "both" ? `, ${items} questions` : ""}`
       : kata && S.selected.size ? "No katakana words in the picked set(s)." : "Pick at least one set.";
     $("#startBtn").disabled = !n;
+    renderResume();
     renderUpto();
   }
-  // "Kanji learned up to" picks one chapter list (book + chapter); every list before it, earlier books included, counts as learned.
+  // "Kanji learned up to" picks one unit's kanji list (collection + unit); every list before it, earlier collections included, counts as learned.
   function renderUpto() {
-    const sel = $("#uptoSel"), lists = S.kanjiLists, multi = multiBook();
+    const sel = $("#uptoSel"), lists = S.kanjiLists, multi = multiCol();
     const opts = lists.length
-      ? [["auto", ["Highest picked chapter"]], ...new Map(lists.map((k) => [chKey(k), [chLabel(k.chapter), bookOf(k)]])), ["none", ["Nothing yet"]], ["all", ["Every kanji in the table"]]]
+      ? [["auto", ["Highest picked unit"]], ...new Map(lists.map((k) => [unitKey(k), [k.unit, colOf(k)]])), ["none", ["Nothing yet"]], ["all", ["Every kanji in the table"]]]
       : [["all", ["Every kanji in the table"]]];
-    // Older pages stored a bare chapter number: read it as that chapter of the first book.
-    if (S.upto && !opts.some(([v]) => v === S.upto) && lists.some((k) => chKey(k) === `${books()[0]}\u0001${S.upto}`)) S.upto = `${books()[0]}\u0001${S.upto}`;
+    // Older pages stored a bare chapter number (read as that chapter of the first collection) or a chapter number after the book.
+    const has = (k) => opts.some(([v]) => v === k);
+    if (S.upto && !has(S.upto) && !S.upto.includes("\u0001") && has(`${cols()[0]}\u0001${oldUnit(S.upto)}`)) S.upto = `${cols()[0]}\u0001${oldUnit(S.upto)}`;
+    if (S.upto) S.upto = newKey(S.upto, has);
     // With no kanji lists (yet: they can load after the sets, or be added later) the choice is kept for when they come.
-    if (lists.length && !opts.some(([v]) => v === S.upto)) S.upto = chKey(lists[lists.length - 1]);
+    if (lists.length && !opts.some(([v]) => v === S.upto)) S.upto = unitKey(lists[lists.length - 1]);
     const cur = lists.length ? S.upto : "all";
-    // With more than one book, each chapter names its book so the closed menu reads "Nakama 2 · Ch. 3".
-    const opt = ([v, [l, b]]) => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(multi && b != null ? `${bookLabel(b)} · ${l}` : l)}</option>`;
+    // With more than one collection, each unit names its collection so the closed menu reads "Nakama 2 › Ch. 3".
+    const opt = ([v, [l, b]]) => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(multi && b != null ? `${colLabel(b)} › ${l}` : l)}</option>`;
     sel.innerHTML = opts.map(opt).join("");
-    const set = learnedSet(), key = uptoKey(), list = lists.find((k) => chKey(k) === key);
-    const upTo = S.upto !== "auto" ? "" : !S.selected.size ? "Follows the sets you pick" : list ? `Up to ${multi ? bookLabel(bookOf(list)) + " · " : ""}${chLabel(list.chapter)} · ` : "";
-    $("#uptoHint").textContent = !lists.length ? "Add chapter kanji lists in the vocab table to choose a chapter." : S.upto === "auto" && !S.selected.size ? upTo : set ? `${upTo}${set.size} kanji learned` : "";
+    const set = learnedSet(), key = uptoKey(), list = lists.find((k) => unitKey(k) === key);
+    const upTo = S.upto !== "auto" ? "" : !S.selected.size ? "Follows the sets you pick" : list ? `Up to ${unitTitle(list)} · ` : "";
+    $("#uptoHint").textContent = !lists.length ? "Add kanji lists to units in the vocab table to choose a unit." : S.upto === "auto" && !S.selected.size ? upTo : set ? `${upTo}${set.size} kanji learned` : "";
   }
   $("#uptoSel").onchange = (e) => { S.upto = e.target.value; store.set("uptoPick", S.upto); renderUpto(); };
-  // The chapter list "Highest picked chapter" stands for: the last kanji list at or before the furthest picked chapter
-  // (book order, then chapter). No picks = every list; picks before the first list = none.
+  // The list "Highest picked unit" stands for: the last kanji list at or before the furthest picked unit
+  // (collection order, then unit). No picks = every list; picks before the first list = none.
   function uptoKey() {
     if (S.upto !== "auto") return S.upto;
-    const after = (a, b) => byBook(bookOf(a), bookOf(b)) || byChapter(a.chapter, b.chapter);
+    const after = sortLists;
     let top = null;
     for (const s of S.sets) if (S.selected.has(s.id) && (!top || after(s, top) > 0)) top = s;
     if (!top) return "all";
     const ok = S.kanjiLists.filter((k) => after(k, top) <= 0);
-    return ok.length ? chKey(ok[ok.length - 1]) : "none";
+    return ok.length ? unitKey(ok[ok.length - 1]) : "none";
   }
   function saveSetup() { store.set("selected", [...S.selected]); store.set("dir", S.dir); store.set("mode", S.mode); }
   document.querySelectorAll("#dirSeg button").forEach((b) => (b.onclick = () => { S.dir = b.dataset.dir; saveSetup(); renderSetup(); }));
@@ -1341,7 +1369,10 @@ body.writing .foot { display: none; }
 
   // ---------- quiz ----------
   const Q = { items: [], queue: [], wrong: [], round: 1, cur: null, tries: {}, busy: false, answered: false, total: 0, done: new Set(), meta: null };
-  function startTest(words) {
+  // The "Kanji learned up to" list the practice in progress counts, fixed when it starts (a resumed one keeps its own).
+  let quizUpto = null;
+  function startTest(words, upto = uptoKey()) {
+    quizUpto = upto;
     const items = [];
     for (const w of words) {
       // Verb forms: five questions per verb, or the one form a "practice again" word already is.
@@ -1362,7 +1393,61 @@ body.writing .foot { display: none; }
     return shuffle([...g.values()]).flat();
   }
   $("#startBtn").onclick = () => startTest(selectedWords());
-  $("#quitBtn").onclick = () => { show("setup"); };
+  $("#quitBtn").onclick = () => { saveResume(); show("setup"); renderSetup(); };
+  // The practice in progress is saved after every question (choice "resume", which follows the account like the others),
+  // so one left midway can be picked up again from the practice page. Finishing clears it; starting another replaces it.
+  function saveResume() {
+    clearTimeout(inkTimer);
+    if (!Q.meta) return;
+    const pending = [...(Q.cur && !Q.answered ? [Q.cur] : []), ...Q.queue];
+    const r = { items: Q.items, pending: pending.map((it) => it.key), wrong: Q.wrong.map((it) => it.key), done: [...Q.done], tries: Q.tries, round: Q.round, meta: Q.meta, upto: quizUpto, savedAt: new Date().toISOString() };
+    // What's written for the question still open comes back too.
+    if (Q.cur && !Q.answered && (!main.empty || !furi.empty)) r.ink = { key: Q.cur.key, main: inkOf(main), furi: inkOf(furi) };
+    // A very long practice (thousands of questions) isn't kept, so saving stays quick.
+    store.set("resume", JSON.stringify(r).length < 400000 ? r : null);
+  }
+  // A box's strokes, with its size (to fit them into a smaller box on another device) and which strokes are the two
+  // parts of one that crossed between the boxes (g, so Undo still takes both).
+  const inkOf = (pad) => ({ w: pad.w, h: pad.h, s: pad.strokes.filter((st) => st.length && st !== pad.cur).map((st) => ({ g: st.gid, p: st.map(([x, y]) => [Math.round(x * 2) / 2, Math.round(y * 2) / 2]) })) });
+  function restoreInk(ink) {
+    const gids = new Map();
+    for (const [pad, k] of [[furi, "furi"], [main, "main"]]) {
+      const d = ink[k];
+      if (!d?.s?.length || !pad.w) continue;
+      const f = Math.min(1, pad.w / (d.w || pad.w), pad.h / (d.h || pad.h));
+      for (const { g, p } of d.s) {
+        if (!Array.isArray(p) || !p.length) continue;
+        const st = p.map(([x, y]) => [x * f, y * f]);
+        if (!gids.has(g)) { gids.set(g, ++gidSeq); history.push({ gid: gidSeq }); }
+        st.gid = gids.get(g);
+        pad.strokes.push(st);
+      }
+      pad.draw(); pad.onChange();
+    }
+  }
+  // Saved again shortly after each stroke, so the writing survives closing the page too.
+  function inkChanged() { clearTimeout(inkTimer); if (Q.cur && !Q.answered && !$("#quiz").hidden) inkTimer = setTimeout(saveResume, 600); }
+  const resumable = () => { const r = store.get("resume", null); return Array.isArray(r?.items) && r.items.length && Array.isArray(r.pending) ? r : null; };
+  function renderResume() {
+    const r = resumable(), b = $("#resumeBtn");
+    b.hidden = !r;
+    if (r) { b.innerHTML = `Resume last practice<span class="n">${r.items.length - (r.done || []).length} left</span>`; b.title = (r.meta?.sets || []).join(", "); }
+  }
+  $("#resumeBtn").onclick = () => {
+    const r = resumable();
+    if (!r) return renderResume();
+    const by = new Map(r.items.map((it) => [it.key, it])), pick = (ks) => (ks || []).map((k) => by.get(k)).filter(Boolean);
+    // It goes on in its own direction and mode.
+    if (DIRS[r.meta?.dir]) S.dir = r.meta.dir;
+    if (MODES[r.meta?.mode]) S.mode = r.meta.mode;
+    saveSetup();
+    quizUpto = r.upto ?? uptoKey();
+    Object.assign(Q, { items: r.items, queue: pick(r.pending), wrong: pick(r.wrong), round: r.round || 1, tries: r.tries || {}, done: new Set(r.done || []), total: r.items.length,
+      meta: r.meta || { dir: S.dir, mode: S.mode, sets: [] } });
+    show("quiz");
+    nextItem();
+    if (r.ink && r.ink.key === Q.cur?.key) { pads.forEach((p) => p.resize()); restoreInk(r.ink); saveResume(); }
+  };
 
   function nextItem() {
     if (!Q.queue.length) {
@@ -1390,6 +1475,7 @@ body.writing .foot { display: none; }
     $("#progLbl").textContent = `${Q.done.size} of ${Q.total} done` + (Q.round > 1 ? ` · round ${Q.round}, ${Q.queue.length + 1} left to fix` : "");
     $("#meterFill").style.width = (Q.done.size / Q.total) * 100 + "%";
     syncCheck();
+    saveResume();
     requestAnimationFrame(() => pads.forEach((p) => p.resize()));
   }
 
@@ -1449,46 +1535,25 @@ CORRECT: <YES or NO, matching your REASON>`;
     session_expired: "Your claude.ai session expired. Sign in again, then press Check.",
     images_unavailable: "This view can't send handwriting to Claude. Try opening the page in claude.ai in a browser.",
     invalid_json: "Claude's answer came back in the wrong format. Press Check again.",
-    key_invalid: "Anthropic didn't accept your API key. Check it under “How answers are checked”.",
-    key_denied: "Your API key isn't allowed to do this. Check its permissions in the Anthropic Console.",
-    key_rate: "Your API key hit a rate limit. Wait a moment and press Check again.",
-    key_credit: "Your Anthropic account is out of credit or over its spending limit.",
-    key_model: "That model isn't available to your key. Pick another one under “How answers are checked”.",
-    key_bad: "Anthropic couldn't process this check. Press Check to try again.",
-    key_network: "Couldn't reach Anthropic. Check your connection and press Check again.",
-    key_busy: "Anthropic is busy right now. Wait a moment and press Check again.",
-    key_refused: "Claude didn't check this one. Press Check to try again, or switch to the built-in checker.",
-    key_error: "Something went wrong with the check. Press Check to try again.",
     tpl_load: "Couldn't load the handwriting checker. Check your connection and press Check again.",
   };
+  // The built-in checker reads English → 日本語 answers, and 日本語 → English answers written the way the meaning is
+  // worded. Other English (a synonym, say) and words it has no strokes for are marked by the student (selfMark).
   async function check() {
     if (main.empty || Q.busy) return;
-    const { w, dir } = Q.cur, useClaude = S.checker === "claude";
-    if (useClaude && !apiKey) { showErr(`${keyWhere() === "locked" ? "Unlock" : "Add"} your API key under “How answers are checked” first, or switch to the built-in checker.`); return; }
-    if (!useClaude && dir === "je") { selfMark(); return; }
+    const { w, dir } = Q.cur;
     Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true;
-    const hasFuri = dir === "ej" && !furi.empty;
-    $("#overrideBtn").textContent = `${useClaude ? "Claude" : "The checker"} misread my writing, count it as correct`;
+    $("#overrideBtn").textContent = "The checker misread my writing, count it as correct";
     let self = false;
     try {
-      if (useClaude) {
-        S.readBy = "Claude read: ";
-        const imgs = hasFuri ? [await sheetBlob(), await furi.toBlob(4)] : [await main.toBlob()];
-        const { text } = await platform.askClaude({ apiKey, model: S.model, prompt: buildPrompt(w, dir, hasFuri), images: imgs });
-        const r = parseVerdict(text);
-        const ok = dir === "ej" ? (r.correct || readMatches(w, r)) && !badFuri(w, r) && (S.mode !== "kata" || kataOk(w, r)) : r.correct;
-        grade(ok, r);
-      } else {
-        S.readBy = "Read as: ";
-        const res = await builtinCheck(w, hasFuri);
-        if (res) grade(res.ok, res.r); else self = true;
-      }
+      const res = dir === "je" ? await englishCheck(w) : await builtinCheck(w, dir === "ej" && !furi.empty);
+      if (res && (res.ok || dir === "ej")) grade(res.ok, res.r); else self = res ? "unmatched" : "unread";
     } catch (e) {
       showErr(ERR[e?.code] || "Something went wrong with the check. Press Check to try again.");
     } finally {
       Q.busy = false; $("#checking").hidden = $("#checkingFuri").hidden = true; syncCheck();
     }
-    if (self) selfMark();
+    if (self) selfMark(self === "unmatched");
   }
   // Claude's transcription is the reliable part: when what it read is exactly the expected answer, the answer is right.
   const norm = (s) => String(s || "").normalize("NFKC").replace(/[\s「」『』"'.,。、〜～・]/g, "");
@@ -1545,12 +1610,12 @@ CORRECT: <YES or NO, matching your REASON>`;
   // Furigana over two separate kanji comes back joined (たいふう + く over 台風が来る → たいふうく), so it only has to follow the reading in order.
   const inOrder = (f, kana) => { let i = 0; for (const ch of kana) if (ch === f[i]) i++; return i === f.length; };
   function badFuri(w, r) { const f = hira(r.furigana); return !!f && !forms(w).some((p) => inOrder(f, hira(p.kana))); }
-  // Learned kanji: everything in the chapter lists up to the chosen one (lists are sorted by book, then chapter). null = treat every kanji as learned.
+  // Learned kanji: everything in the kanji lists up to the chosen one (lists are sorted by collection, then unit). null = treat every kanji as learned.
   function learnedSet() {
-    const key = uptoKey();
+    const key = !$("#quiz").hidden && quizUpto ? quizUpto : uptoKey();
     if (!S.kanjiLists.length || key === "all") return null;
     if (key === "none") return new Set();
-    const end = S.kanjiLists.findIndex((k) => chKey(k) === key);
+    const end = S.kanjiLists.findIndex((k) => unitKey(k) === key);
     return new Set(S.kanjiLists.slice(0, end + 1).flatMap((k) => [...(k.kanji || "")]));
   }
   const isLearned = (c, set = learnedSet()) => !set || set.has(c) || c === "々" || c === "〆";
@@ -1671,8 +1736,8 @@ CORRECT: <YES or NO, matching your REASON>`;
     main.c.classList.add("locked"); furi.c.classList.add("locked");
     // Force kanji hides the reading of 日本語 → English questions until the answer is checked.
     if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
-    if (ok) { Q.done.add(key); hanamaru().then(nextItem); return; }
-    Q.wrong.push(Q.cur);
+    if (ok) { Q.done.add(key); saveResume(); hanamaru().then(nextItem); return; }
+    Q.wrong.push(Q.cur); saveResume();
     $("#tools").hidden = true;
     $("#fbReason").textContent = r?.reason || "";
     const a = $("#fbAnswer");
@@ -1682,7 +1747,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     nb.hidden = !need.length || need.length === [...new Set([...w.kanji].filter((c) => KANJI.test(c)))].length;
     nb.innerHTML = nb.hidden ? "" : `Must be kanji here: <b>${esc(need.join("、"))}</b>. The rest can be kana.`;
     const read = [r?.furigana ? `furigana 「${r.furigana}」` : "", r?.main ? `「${r.main}」` : ""].filter(Boolean);
-    $("#fbRead").innerHTML = read.length ? esc(S.readBy) + read.map(esc).join(" over ") : "";
+    $("#fbRead").innerHTML = read.length ? "Read as: " + read.map(esc).join(" over ") : "";
     $("#feedback").hidden = false; $("#overrideBtn").hidden = false; setErasing(false);
     requestAnimationFrame(() => { scratch.resize(); $("#feedback").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); });
   }
@@ -1690,6 +1755,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   $("#overrideBtn").onclick = () => {
     Q.wrong = Q.wrong.filter((it) => it !== Q.cur);
     Q.done.add(Q.cur.key);
+    saveResume();
     nextItem();
   };
 
@@ -1712,6 +1778,7 @@ CORRECT: <YES or NO, matching your REASON>`;
 
   // ---------- results ----------
   function finish() {
+    store.set("resume", null);
     const rows = Q.items.map((it) => ({ it, n: Q.tries[it.key] || 1 }));
     $("#rWords").textContent = rows.length;
     $("#rFirst").textContent = rows.filter((r) => r.n === 1).length;
@@ -1749,8 +1816,8 @@ CORRECT: <YES or NO, matching your REASON>`;
   }
   $("#loveList").addEventListener("click", (e) => { const b = e.target.closest(".skipw"); if (b) { const k = b.closest("li").dataset.key; setSkip([k], !Q.skip.has(k)); } });
   $("#skipAll").onclick = () => { const ks = [...document.querySelectorAll("#loveList li")].map((li) => li.dataset.key); setSkip(ks, !ks.every((k) => Q.skip.has(k))); };
-  $("#againBtn").onclick = () => { const seen = new Set(); startTest(Q.love.filter((w) => !seen.has(w.id) && seen.add(w.id))); };
-  $("#newBtn").onclick = () => show("setup");
+  $("#againBtn").onclick = () => { const seen = new Set(); startTest(Q.love.filter((w) => !seen.has(w.id) && seen.add(w.id)), quizUpto); };
+  $("#newBtn").onclick = () => { show("setup"); renderSetup(); };
 
   // Saves the finished session; called again with its id when the skip choices change afterwards.
   async function saveResult(rows, again) {
@@ -1811,6 +1878,43 @@ CORRECT: <YES or NO, matching your REASON>`;
   const fmtWhen = (iso) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const fmtDay = (iso) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   const firstTry = (t) => { const ws = t.words || []; return { n: ws.length, first: ws.filter((w) => w.tries === 1).length }; };
+
+  // On load the account's copy of the choices replaces this browser's (a first sign-in saves this browser's instead),
+  // and each later change is saved back shortly after it's made. Returns a function that stops the saving.
+  function syncPrefs() {
+    const ref = db.doc(`data/users/${uid}/prefs`);
+    let first = true, timer = null, stopped = false;
+    const save = () => {
+      clearTimeout(timer); timer = null;
+      if (stopped) return;
+      const p = Object.fromEntries(PREF_KEYS.map((k) => [k, store.get(k, null)]).filter(([, v]) => v != null));
+      Promise.resolve().then(() => ref.set({ ...p, updatedAt: new Date().toISOString() })).catch(() => {});
+    };
+    const off = ref.onSnapshot((snap) => {
+      if (!first) return;
+      first = false; setTimeout(() => typeof off === "function" && off(), 0);
+      if (snap.exists) usePrefs(snap.data() || {}); else save();
+      prefsChanged = () => { clearTimeout(timer); timer = setTimeout(save, 800); };
+      const flush = () => { if (timer) save(); };
+      addEventListener("pagehide", flush);
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flush(); });
+    }, () => {});
+    return () => { stopped = true; clearTimeout(timer); prefsChanged = () => {}; };
+  }
+  function usePrefs(p) {
+    // A practice to resume is the account's, or none: one left in this browser may be from another account or already finished elsewhere.
+    for (const k of PREF_KEYS) if (p[k] != null || k === "resume") store.set(k, p[k] ?? null);
+    S.selected = new Set(store.get("selected", []));
+    Object.assign(S.pick, { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", [])) });
+    Object.assign(S.tpick, { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) });
+    S.groupBy = store.get("groupBy", "book");
+    S.pickTags = new Set(store.get("pickTags", []));
+    S.dir = store.get("dir", "ej"); S.mode = store.get("mode", "default"); S.upto = store.get("uptoPick", "auto");
+    S.loveWin = String(store.get("loveWin", "all"));
+    setPalette(store.get("palette", "indigo"));
+    setTheme(store.get("theme", ""));
+    renderSetup(); renderTable();
+  }
 
   function watchHistory() {
     if (!db || !uid) return;
@@ -2027,27 +2131,26 @@ CORRECT: <YES or NO, matching your REASON>`;
   function renderKanji() {
     $("#newKanjiForm").hidden = !canWrite;
     const box = $("#kanjiLists"), all = S.kanjiLists;
-    // The lists for the chapters picked in the vocab table, or every list.
-    const picked = all.filter((k) => TP.has(chKey(k))), every = S.kAll || picked.length === all.length;
-    const lists = all.filter((k) => every || TP.has(chKey(k)) || S.kdrafts.has(k.id)), multi = multiBook();
-    const name = (k) => (multi ? bookLabel(bookOf(k)) + " · " : "") + chLabel(k.chapter);
+    // The lists for the units picked in the vocab table, or every list.
+    const picked = all.filter((k) => TP.has(unitKey(k))), every = S.kAll || picked.length === all.length;
+    const lists = all.filter((k) => every || TP.has(unitKey(k)) || S.kdrafts.has(k.id)), name = unitTitle;
     $("#kanjiCount").textContent = lists.length ? `${new Set(lists.flatMap((k) => [...(k.kanji || "")])).size} kanji` : "";
-    $("#kSummary").textContent = !all.length ? "" : every ? `All ${all.length} chapter lists` : lists.length === 1 ? name(lists[0]) : lists.length ? `${lists.length} chapter lists` : "";
+    $("#kSummary").textContent = !all.length ? "" : every && all.length > 1 ? `All ${all.length} kanji lists` : lists.length === 1 ? name(lists[0]) : lists.length ? `${lists.length} kanji lists` : "";
     $("#kAllBtn").hidden = !all.length || picked.length === all.length;
-    $("#kAllBtn").textContent = S.kAll ? "Show only the picked chapters" : "Show all chapters";
-    if (!all.length) { box.innerHTML = `<div class="empty"><span>No chapter lists yet${canWrite ? ". Add a chapter below and paste its kanji." : "."}</span></div>`; return; }
-    if (!lists.length) { box.innerHTML = `<div class="empty"><span>${TP.shownKeys().length ? "The picked chapters have no kanji lists" : "No chapters picked"}${canWrite ? ". Add one below if a chapter teaches kanji." : "."}</span></div>`; return; }
+    $("#kAllBtn").textContent = S.kAll ? "Show only the picked units" : "Show all units";
+    if (!all.length) { box.innerHTML = `<div class="empty"><span>No kanji lists yet${canWrite ? ". Add a unit below and paste its kanji." : "."}</span></div>`; return; }
+    if (!lists.length) { box.innerHTML = `<div class="empty"><span>${TP.shownKeys().length ? "The picked units have no kanji lists" : "No units picked"}${canWrite ? ". Add one below if a unit teaches kanji." : "."}</span></div>`; return; }
     box.innerHTML = lists.map((k) => {
       const dirty = S.kdrafts.has(k.id), v = dirty ? S.kdrafts.get(k.id) : k.kanji || "", del = S.kConfirmDel === k.id;
       const editing = canWrite && S.kEdit === k.id;
       const head = editing
-        ? `<form class="newset setedit" data-kform><label>Book<input data-kbook list="bookList" value="${esc(S.kEditBook)}" required></label><label>Chapter<input data-kch value="${esc(S.kEditVal)}" required></label><button class="btn primary" type="submit">Save chapter</button><button class="btn" type="button" data-kcancel>Cancel</button><span class="editerr" data-kerr></span></form>`
+        ? `<form class="newset setedit" data-kform><label>Collection<input data-kcol list="colList" value="${esc(S.kEditCol)}" required></label><label>Unit<input data-kunit list="unitList" value="${esc(S.kEditUnit)}" required></label><button class="btn primary" type="submit">Save</button><button class="btn" type="button" data-kcancel>Cancel</button><span class="editerr" data-kerr></span></form>`
         : `<div class="head"><h2>${esc(name(k))}</h2><span class="muted small" data-kcount="${esc(k.id)}">${onlyKanji(v).length} kanji</span></div>`;
       if (!canWrite) return `<div class="krow">${head}<span class="ro">${esc(v) || "—"}</span></div>`;
       return `<div class="krow" data-kid="${esc(k.id)}">${head}
-        <input type="text" id="k-${esc(k.id)}" value="${esc(v)}" placeholder="Paste this chapter's kanji" aria-label="Kanji for chapter ${esc(k.chapter)}">
+        <input type="text" id="k-${esc(k.id)}" value="${esc(v)}" placeholder="Paste this unit's kanji" aria-label="Kanji for ${esc(name(k))}">
         <div class="tactions"><button class="btn primary" data-ksave ${dirty ? "" : "disabled"}>Save</button>${dirty ? `<span class="dirty">Unsaved changes</span><button class="link" data-kdiscard>Discard</button>` : ""}
-          <span style="flex:1"></span>${del ? `<span class="small">Delete this chapter's list?</span><button class="btn danger" data-kdel-yes>Delete</button><button class="btn" data-kdel-no>Keep</button>` : `${editing ? "" : `<button class="ghost small" data-kedit>Edit chapter</button>`}<button class="ghost small" data-kdel>Delete chapter</button>`}</div>
+          <span style="flex:1"></span>${del ? `<span class="small">Delete this kanji list?</span><button class="btn danger" data-kdel-yes>Delete</button><button class="btn" data-kdel-no>Keep</button>` : `${editing ? "" : `<button class="ghost small" data-kedit>Edit unit</button>`}<button class="ghost small" data-kdel>Delete list</button>`}</div>
       </div>`;
     }).join("");
     if (!canWrite) return;
@@ -2070,24 +2173,24 @@ CORRECT: <YES or NO, matching your REASON>`;
       const dis = row.querySelector("[data-kdiscard]"); if (dis) dis.onclick = () => { S.kdrafts.delete(id); renderKanji(); };
       const d1 = row.querySelector("[data-kdel]"); if (d1) d1.onclick = () => { S.kConfirmDel = id; renderKanji(); };
       const dn = row.querySelector("[data-kdel-no]"); if (dn) dn.onclick = () => { S.kConfirmDel = null; renderKanji(); };
-      const dy = row.querySelector("[data-kdel-yes]"); if (dy) dy.onclick = async () => { S.kConfirmDel = null; S.kdrafts.delete(id); try { await db.doc("kanji/" + id).delete(); } catch { banner("Couldn't delete that chapter. Reload and try again."); } };
-      const ke = row.querySelector("[data-kedit]"); if (ke) ke.onclick = () => { S.kEdit = id; S.kEditVal = String(k.chapter); S.kEditBook = bookOf(k); renderKanji(); row.ownerDocument.querySelector(`[data-kid="${CSS.escape(id)}"] [data-kch]`)?.focus(); };
+      const dy = row.querySelector("[data-kdel-yes]"); if (dy) dy.onclick = async () => { S.kConfirmDel = null; S.kdrafts.delete(id); try { await db.doc("kanji/" + id).delete(); } catch { banner("Couldn't delete that kanji list. Reload and try again."); } };
+      const ke = row.querySelector("[data-kedit]"); if (ke) ke.onclick = () => { S.kEdit = id; S.kEditUnit = k.unit; S.kEditCol = colOf(k); renderKanji(); row.ownerDocument.querySelector(`[data-kid="${CSS.escape(id)}"] [data-kunit]`)?.focus(); };
       const kf = row.querySelector("[data-kform]");
       if (kf) {
         const err = (m) => { kf.querySelector("[data-kerr]").textContent = m; };
-        kf.querySelector("[data-kch]").addEventListener("input", (e) => { S.kEditVal = e.target.value; err(""); });
-        kf.querySelector("[data-kbook]").addEventListener("input", (e) => { S.kEditBook = e.target.value; err(""); });
+        kf.querySelector("[data-kunit]").addEventListener("input", (e) => { S.kEditUnit = e.target.value; err(""); });
+        kf.querySelector("[data-kcol]").addEventListener("input", (e) => { S.kEditCol = e.target.value; err(""); });
         kf.querySelector("[data-kcancel]").onclick = () => { S.kEdit = null; renderKanji(); };
         kf.onsubmit = async (e) => {
           e.preventDefault();
-          const ch = cleanCh(S.kEditVal), bk = canonBook(S.kEditBook);
-          if (ch === "" || !bk) return err("Type a book and a chapter.");
-          if (S.kanjiLists.some((x) => x.id !== id && sameBook(bookOf(x), bk) && sameCh(x.chapter, ch))) return err(`${bk} ${chLabel(ch)} already has a kanji list.`);
+          const col = canonCol(S.kEditCol), unit = canonUnit(col, S.kEditUnit);
+          if (!unit || !col) return err("Type a collection and a unit.");
+          if (S.kanjiLists.some((x) => x.id !== id && sameName(colOf(x), col) && sameName(x.unit, unit))) return err(`${col} › ${unit} already has a kanji list.`);
           const b = kf.querySelector("[type=submit]"); b.disabled = true; b.textContent = "Saving…";
-          try { await db.doc("kanji/" + id).update({ book: bk, chapter: ch, updatedAt: new Date().toISOString() }); }
-          catch { b.disabled = false; b.textContent = "Save chapter"; return err("Couldn't save. Try again."); }
-          if (S.upto === chKey(k)) { S.upto = chKey({ book: bk, chapter: ch }); store.set("uptoPick", S.upto); }
-          S.kEdit = null; pickCh(ch, bk);
+          try { await db.doc("kanji/" + id).update({ collection: col, unit, updatedAt: new Date().toISOString() }); }
+          catch { b.disabled = false; b.textContent = "Save"; return err("Couldn't save. Try again."); }
+          if (S.upto === unitKey(k)) { S.upto = unitKey({ collection: col, unit }); store.set("uptoPick", S.upto); }
+          S.kEdit = null; pickUnit(unit, col);
           renderTable(); renderUpto();
         };
       }
@@ -2095,36 +2198,36 @@ CORRECT: <YES or NO, matching your REASON>`;
   }
   $("#newKanjiForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const bk = canonBook($("#nkBook").value), ch = cleanCh($("#nkChapter").value); if (ch === "" || !bk) return;
-    pickCh(ch, bk); renderTable();
-    if (S.kanjiLists.some((k) => sameBook(bookOf(k), bk) && sameCh(k.chapter, ch))) { e.target.reset(); $("#nkBook").value = bk; return; }
-    const id = freeId(slug(`${bk}-ch${ch}`), new Set(S.kanjiLists.map((k) => k.id)));
-    try { await db.doc("kanji/" + id).set({ book: bk, chapter: ch, kanji: "", updatedAt: new Date().toISOString() }); e.target.reset(); $("#nkBook").value = bk; }
-    catch { banner("Couldn't add the chapter. Only the owner and editors can change the table."); }
+    const col = canonCol($("#nkCol").value), unit = canonUnit(col, $("#nkUnit").value); if (!unit || !col) return;
+    pickUnit(unit, col); renderTable();
+    if (S.kanjiLists.some((k) => sameName(colOf(k), col) && sameName(k.unit, unit))) { e.target.reset(); $("#nkCol").value = col; return; }
+    const id = freeId(slug(`${col}-${unit}`, "kanji"), new Set(S.kanjiLists.map((k) => k.id)));
+    try { await db.doc("kanji/" + id).set({ collection: col, unit, kanji: "", updatedAt: new Date().toISOString() }); e.target.reset(); $("#nkCol").value = col; }
+    catch { banner("Couldn't add the kanji list. Only the owner and editors can change the table."); }
   });
   function onKanji(snap) {
     raw.kanji = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     S.kLoaded = true;
-    S.kanjiLists = snap.docs.map((d) => ({ id: d.id, ...d.data(), chapter: cleanCh(d.data().chapter) })).sort((a, b) => byBook(bookOf(a), bookOf(b)) || byChapter(a.chapter, b.chapter));
+    S.kanjiLists = snap.docs.map((d) => { const x = d.data(); return { id: d.id, collection: docCol(x), unit: docUnit(x), kanji: String(x.kanji ?? "") }; }).sort(sortLists);
     renderUpto(); renderTable(); renderSetup();
   }
 
-  // Chapters picked like on the practice page, sets folded until opened; a search looks across every chapter.
-  // Chapter chips come from every chapter used by a vocab set or a kanji list.
-  const tKeys = (b) => [...new Set([...S.sets, ...S.kanjiLists].filter((x) => bookOf(x) === b).map((x) => String(x.chapter)))].sort(byChapter).map((c) => `${b}\u0001${c}`);
-  const TP = makePicker({ st: S.tpick, showKey: "tShow", chsKey: "tChs", books, keys: tKeys, bar: $("#tPickBar"), rows: $("#tChs"),
-    dot: (k) => (S.sets.some((s) => S.drafts.has(s.id) && chKey(s) === k) ? `<span class="dot" title="Unsaved changes">•</span>` : ""),
+  // Units picked like on the practice page, sets folded until opened; a search looks across every unit.
+  // Unit chips come from every unit used by a vocab set or a kanji list.
+  const tKeys = (b) => [...new Set([...S.sets, ...S.kanjiLists].filter((x) => colOf(x) === b).map((x) => x.unit))].sort(byUnit).map((c) => `${b}\u0001${c}`);
+  const TP = makePicker({ st: S.tpick, showKey: "tShow", chsKey: "tChs", cols, keys: tKeys, bar: $("#tPickBar"), rows: $("#tChs"),
+    dot: (k) => (S.sets.some((s) => S.drafts.has(s.id) && unitKey(s) === k) ? `<span class="dot" title="Unsaved changes">•</span>` : ""),
     onChange: () => { clearSearch(); renderTable(); } });
-  // The book new sets and kanji lists default to: the first one with chapters showing.
-  const curBook = () => TP.shownKeys()[0]?.split("\u0001")[0] ?? books()[0] ?? "";
+  // The collection new sets and kanji lists default to: the first one with units showing.
+  const curCol = () => TP.shownKeys()[0]?.split("\u0001")[0] ?? cols()[0] ?? "";
   $("#kAllBtn").onclick = () => { S.kAll = !S.kAll; renderKanji(); };
-  const pickCh = (c, book) => TP.add(`${book}\u0001${c}`);
+  const pickUnit = (unit, col) => TP.add(`${col}\u0001${unit}`);
   // Search keys are cached per word and rebuilt only when the word's text changes.
-  const searchKeys = new WeakMap();
+  const searunitKeys = new WeakMap();
   function wordKeys(w) {
     const src = `${w.en}\u0001${w.kana}\u0001${w.kanji}`;
-    let k = searchKeys.get(w);
-    if (!k || k.src !== src) searchKeys.set(w, (k = { src, en: String(w.en || "").toLowerCase(), kana: hira(w.kana), kanji: hira(w.kanji) }));
+    let k = searunitKeys.get(w);
+    if (!k || k.src !== src) searunitKeys.set(w, (k = { src, en: String(w.en || "").toLowerCase(), kana: hira(w.kana), kanji: hira(w.kanji) }));
     return k;
   }
   function wordHit(w, q) {
@@ -2133,28 +2236,31 @@ CORRECT: <YES or NO, matching your REASON>`;
   }
   const TLIMIT = 40; // matching rows drawn at once while searching
   function renderTableBar() {
-    // Pages before v45 showed one book and one chapter (or All) at a time: start from that view, or the first chapter.
+    // Pages before v45 showed one book and one chapter (or All) at a time: start from that view, or the first unit.
     if (S.tpick.show == null) {
-      const b0 = shownBook(S.tableBook), ks = tKeys(b0), c0 = S.tableCh == null ? null : String(S.tableCh), show = {};
-      for (const b of books()) show[b] = "none";
-      const k = ks.find((x) => x.split("\u0001")[1] === c0) ?? ks[0];
+      const b0 = shownCol(S.tableBook), ks = tKeys(b0), c0 = S.tableCh == null ? null : String(S.tableCh), show = {};
+      for (const b of cols()) show[b] = "none";
+      const k = ks.find((x) => keyUnit(x) === oldUnit(c0)) ?? ks[0];
       if (c0 === "all") show[b0] = "all"; else if (k) show[b0] = "some";
       TP.replace(show, new Set(c0 !== "all" && k ? [k] : []));
     }
-    $("#bookOrderBtn").hidden = !canWrite || books().length < 2 || !!S.orderEdit;
+    const tp = S.tpick.picks, all = new Set(cols().flatMap(tKeys)), was = tp.size;
+    for (const c of [...tp]) { const k = newKey(c, (x) => all.has(x)); if (k !== c) { tp.delete(c); tp.add(k); } }
+    if (tp.size !== was || [...tp].some((k) => /\u0001\d+$/.test(k) && !all.has(k))) TP.replace(S.tpick.show, tp);
+    $("#bookOrderBtn").hidden = !canWrite || cols().length < 2 || !!S.orderEdit;
     TP.render(); syncGroupSegs();
     renderBookOrder();
   }
-  $("#bookOrderBtn").onclick = () => { S.orderEdit = books(); renderTable(); };
-  // Book order editor: move books up or down, then Save. "Kanji learned up to" counts books in this order.
+  $("#bookOrderBtn").onclick = () => { S.orderEdit = cols(); renderTable(); };
+  // Collection order editor: move collections up or down, then Save. "Kanji learned up to" counts collections in this order.
   function renderBookOrder() {
-    const ed = $("#bookOrderEd"), cur = books();
+    const ed = $("#bookOrderEd"), cur = cols();
     if (S.orderEdit) S.orderEdit = [...S.orderEdit.filter((b) => cur.includes(b)), ...cur.filter((b) => !S.orderEdit.includes(b))];
     ed.hidden = !S.orderEdit || cur.length < 2 || !canWrite;
     if (ed.hidden) { ed.innerHTML = ""; return; }
     const o = S.orderEdit, changed = o.some((b, i) => b !== cur[i]);
-    ed.innerHTML = `<p class="muted small" style="margin:0">Put the books in the order you study them. “Kanji learned up to” counts every kanji in the books above the one you pick.</p>
-      <ol>${o.map((b, i) => `<li><span class="n">${i + 1}</span><b>${esc(bookLabel(b))}</b><button class="ghost" type="button" data-bup="${i}" aria-label="Move ${esc(bookLabel(b))} up"${i ? "" : " disabled"}>↑</button><button class="ghost" type="button" data-bdown="${i}" aria-label="Move ${esc(bookLabel(b))} down"${i < o.length - 1 ? "" : " disabled"}>↓</button></li>`).join("")}</ol>
+    ed.innerHTML = `<p class="muted small" style="margin:0">Put the collections in the order you study them. “Kanji learned up to” counts every kanji in the collections above the one you pick.</p>
+      <ol>${o.map((b, i) => `<li><span class="n">${i + 1}</span><b>${esc(colLabel(b))}</b><button class="ghost" type="button" data-bup="${i}" aria-label="Move ${esc(colLabel(b))} up"${i ? "" : " disabled"}>↑</button><button class="ghost" type="button" data-bdown="${i}" aria-label="Move ${esc(colLabel(b))} down"${i < o.length - 1 ? "" : " disabled"}>↓</button></li>`).join("")}</ol>
       <div class="row"><button class="btn primary" type="button" id="boSave"${changed ? "" : " disabled"}>Save order</button><button class="btn" type="button" id="boCancel">Cancel</button><span class="muted small">${changed ? "Unsaved changes" : ""}</span><span class="editerr" id="boErr"></span></div>`;
     const move = (i, d) => { const j = i + d; [o[i], o[j]] = [o[j], o[i]]; renderBookOrder(); ed.querySelector(`[data-b${d < 0 ? "up" : "down"}="${j}"]:not(:disabled)`)?.focus(); };
     ed.querySelectorAll("[data-bup]").forEach((b) => (b.onclick = () => move(+b.dataset.bup, -1)));
@@ -2176,7 +2282,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   });
   $("#tOpenAll").onclick = () => {
     if (S.tq.trim()) { S.tAll = true; renderTable(true); return; }
-    const ids = S.sets.filter((s) => TP.has(chKey(s))).map((s) => s.id);
+    const ids = S.sets.filter((s) => TP.has(unitKey(s))).map((s) => s.id);
     const allOpen = ids.every((id) => S.openSets.has(id));
     for (const id of ids) allOpen ? S.openSets.delete(id) : S.openSets.add(id);
     renderTable();
@@ -2186,16 +2292,17 @@ CORRECT: <YES or NO, matching your REASON>`;
     if (!searchOnly) { renderKanji(); renderPort(); }
     $("#tableRole").hidden = canWrite;
     $("#newSetForm").hidden = !canWrite;
-    $("#bookList").innerHTML = books().filter(Boolean).map((b) => `<option value="${esc(b)}"></option>`).join("");
-    // Prefill the Book fields with the book being viewed, keeping anything typed until the view moves to another book.
-    if (S.formBook !== curBook()) { S.formBook = curBook(); for (const id of ["#nsBook", "#nkBook"]) $(id).value = S.formBook; }
-    else for (const id of ["#nsBook", "#nkBook"]) if (!$(id).value && document.activeElement !== $(id)) $(id).value = S.formBook;
+    $("#colList").innerHTML = cols().filter(Boolean).map((b) => `<option value="${esc(b)}"></option>`).join("");
+    // Prefill the Collection fields with the collection being viewed, keeping anything typed until the view moves to another one.
+    if (S.formCol !== curCol()) { S.formCol = curCol(); for (const id of ["#nsCol", "#nkCol"]) $(id).value = S.formCol; }
+    else for (const id of ["#nsCol", "#nkCol"]) if (!$(id).value && document.activeElement !== $(id)) $(id).value = S.formCol;
+    $("#unitList").innerHTML = tKeys(S.formCol).map((k) => `<option value="${esc(keyUnit(k))}"></option>`).join("");
     const box = $("#setTables");
     const bar = $(".tbar"); bar.hidden = !S.loaded || !S.sets.length;
     if (!S.loaded) { box.innerHTML = `<div class="empty">Loading…</div>`; return; }
     if (!S.sets.length) { box.innerHTML = `<div class="empty"><b>No sets yet.</b><span>${canWrite ? "Add a set below, then fill in its words." : ""}</span></div>`; return; }
     renderTableBar();
-    const q = S.tq.trim(), keys = TP.shownKeys(), allKeys = books().flatMap(tKeys);
+    const q = S.tq.trim(), keys = TP.shownKeys(), allKeys = cols().flatMap(tKeys);
     // Each shown set: which rows (indexes into the full word list) to draw, and whether it is open.
     // While searching, only the first TLIMIT matches are drawn (edited and blank rows always are).
     const shown = [], qk = { en: q.toLowerCase(), jp: hira(q) };
@@ -2211,39 +2318,38 @@ CORRECT: <YES or NO, matching your REASON>`;
           else if (S.touched.has(w.id) || !(w.en || w.kana || w.kanji)) idx.push(i);
         });
         if (any || S.drafts.has(s.id) && idx.length) shown.push({ s, words, idx, open: true });
-      } else if (TP.has(chKey(s))) {
+      } else if (TP.has(unitKey(s))) {
         shown.push({ s, words, idx: words.map((w, i) => i), open: S.openSets.has(s.id) });
       }
     }
     const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
     const [b1, c1] = (keys[0] || "").split("\u0001");
-    const where = keys.length === 1 ? `${multiBook() ? bookLabel(b1) + " · " : ""}${chLabel(c1)}` : keys.length === allKeys.length ? (multiBook() ? "All books" : "All chapters") : plural(keys.length, "chapter");
+    const where = keys.length === 1 ? `${multiCol() ? colLabel(b1) + " › " : ""}${c1}` : keys.length === allKeys.length ? (multiCol() ? "All collections" : "All units") : plural(keys.length, "unit");
     $("#tSummary").textContent = q
-      ? (!total ? "" : drawn < total ? `Showing the first ${drawn} of ${total} matches. Keep typing to narrow it down.` : `${plural(total, "matching word")} in ${plural(shown.length, "set")}, ${multiBook() ? "all books" : "all chapters"}`)
+      ? (!total ? "" : drawn < total ? `Showing the first ${drawn} of ${total} matches. Keep typing to narrow it down.` : `${plural(total, "matching word")} in ${plural(shown.length, "set")}, ${multiCol() ? "all collections" : "all units"}`)
       : !keys.length ? "" : `${where}: ${plural(shown.length, "set")}, ${plural(shown.reduce((n, x) => n + readyCount(x.words), 0), "word")}`;
     const openAll = $("#tOpenAll"); openAll.hidden = q ? drawn >= total : !shown.length;
     openAll.textContent = q ? `Show all ${total}` : shown.every((x) => x.open) ? "Close all sets" : "Open all sets";
-    if (q && !shown.length) { box.innerHTML = `<div class="empty"><b>No words match “${esc(q)}”.</b><span>Search looks at English, kana and kanji in every ${multiBook() ? "book and chapter" : "chapter"}.</span></div>`; return; }
-    if (!keys.length) { box.innerHTML = `<div class="empty"><span>No chapters picked. Tap All or a chapter above to see its sets.</span></div>`; return; }
+    if (q && !shown.length) { box.innerHTML = `<div class="empty"><b>No words match “${esc(q)}”.</b><span>Search looks at English, kana and kanji in every ${multiCol() ? "collection and unit" : "unit"}.</span></div>`; return; }
+    if (!keys.length) { box.innerHTML = `<div class="empty"><span>No units picked. Tap All or a unit above to see its sets.</span></div>`; return; }
     if (!shown.length) { box.innerHTML = `<div class="empty"><span>${esc(where)} ${keys.length === 1 ? "has" : "have"} no vocab sets yet${canWrite ? ". Add one below." : "."}</span></div>`; return; }
-    const manyBooks = new Set(shown.map(({ s }) => bookOf(s))).size > 1;
+    const manyCols = new Set(shown.map(({ s }) => colOf(s))).size > 1;
     box.innerHTML = shown.map(({ s, words, idx, open }) => {
       const dirty = S.drafts.has(s.id);
-      const head = `<h3 class="tseth"><button class="tsethead" type="button" data-toggle aria-expanded="${open}"><span class="t"><span class="car" aria-hidden="true">›</span>${esc(q || manyBooks ? setName(s) : `${chLabel(s.chapter)} ${s.section}`)}${s.label ? ` <span class="muted small">${esc(s.label)}</span>` : ""}${cleanTags(s.tags).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</span>
+      const head = `<h3 class="tseth"><button class="tsethead" type="button" data-toggle aria-expanded="${open}"><span class="t"><span class="car" aria-hidden="true">›</span>${esc(q || manyCols ? setName(s) : `${s.unit} › ${s.name}`)}${cleanTags(s.tags).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</span>
         <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> ` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button></h3>`;
       if (!open) return `<div class="tset" data-sid="${esc(s.id)}">${head}</div>`;
       const rows = idx.map((i) => { const w = words[i]; return canWrite
-        ? `<tr><td><input type="text" id="w-${s.id}-${w.id}-en" data-i="${i}" data-f="en" value="${esc(w.en)}"></td>
-             <td class="jp"><input type="text" id="w-${s.id}-${w.id}-kana" data-i="${i}" data-f="kana" value="${esc(w.kana)}"></td>
-             <td class="jp"><input type="text" id="w-${s.id}-${w.id}-kanji" data-i="${i}" data-f="kanji" value="${esc(w.kanji)}"></td>
+        ? `<tr><td><input type="text" id="w-${s.id}-${w.id}-en" data-i="${i}" data-f="en" value="${esc(w.en)}" placeholder="English"></td>
+             <td class="jp"><input type="text" id="w-${s.id}-${w.id}-kana" data-i="${i}" data-f="kana" value="${esc(w.kana)}" placeholder="Kana"></td>
+             <td class="jp"><input type="text" id="w-${s.id}-${w.id}-kanji" data-i="${i}" data-f="kanji" value="${esc(w.kanji)}" placeholder="Kanji"></td>
              <td class="c"><button class="rowdel" data-del="${i}" aria-label="Delete row">×</button></td></tr>`
         : `<tr><td>${esc(w.en)}</td><td class="jp">${esc(w.kana)}</td><td class="jp">${esc(w.kanji)}</td></tr>`; }).join("");
       const del = S.confirmDel === s.id, ev = canWrite && S.editSet === s.id && S.editVals;
       const edit = ev ? `<form class="newset setedit" data-editform>
-          <label>Book<input data-ef="book" list="bookList" value="${esc(ev.book)}" required></label>
-          <label>Chapter<input data-ef="chapter" value="${esc(ev.chapter)}" required></label>
-          <label>Section<input data-ef="section" value="${esc(ev.section)}" required></label>
-          <label>Name (optional)<input data-ef="label" value="${esc(ev.label)}"></label>
+          <label>Collection<input data-ef="collection" list="colList" value="${esc(ev.collection)}" required></label>
+          <label>Unit<input data-ef="unit" list="unitList" value="${esc(ev.unit)}" required></label>
+          <label>Set name<input data-ef="name" value="${esc(ev.name)}" required></label>
           <label>Tags (optional)<input data-ef="tags" value="${esc(ev.tags)}" placeholder="Verbs, Quiz 3"></label>
           <button class="btn primary" type="submit">Save details</button><button class="btn" type="button" data-editcancel>Cancel</button><span class="editerr" data-editerr></span>
         </form>` : "";
@@ -2290,7 +2396,7 @@ CORRECT: <YES or NO, matching your REASON>`;
       const dn = el.querySelector("[data-delset-no]"); if (dn) dn.onclick = () => { S.confirmDel = null; renderTable(); };
       const dy = el.querySelector("[data-delset-yes]"); if (dy) dy.onclick = async () => { S.confirmDel = null; S.drafts.delete(sid); try { await db.doc("sets/" + sid).delete(); } catch {} };
       const es = el.querySelector("[data-editset]");
-      if (es) es.onclick = () => { S.editSet = sid; S.editVals = { book: bookOf(s), chapter: String(s.chapter), section: s.section || "", label: s.label || "", tags: cleanTags(s.tags).join(", ") }; renderTable(); document.querySelector(`[data-sid="${CSS.escape(sid)}"] [data-ef="book"]`)?.focus(); };
+      if (es) es.onclick = () => { S.editSet = sid; S.editVals = { collection: colOf(s), unit: s.unit, name: s.name, tags: cleanTags(s.tags).join(", ") }; renderTable(); document.querySelector(`[data-sid="${CSS.escape(sid)}"] [data-ef="name"]`)?.focus(); };
       const ef = el.querySelector("[data-editform]");
       if (ef) {
         const err = (m) => { ef.querySelector("[data-editerr]").textContent = m; };
@@ -2298,13 +2404,13 @@ CORRECT: <YES or NO, matching your REASON>`;
         ef.querySelector("[data-editcancel]").onclick = () => { S.editSet = null; renderTable(); };
         ef.onsubmit = async (e) => {
           e.preventDefault();
-          const book = canonBook(S.editVals.book), ch = cleanCh(S.editVals.chapter), sec = S.editVals.section.trim(), label = S.editVals.label.trim(), tags = cleanTags(S.editVals.tags);
-          if (!book || ch === "" || !sec) return err("Book, chapter and section can't be empty.");
-          if (S.sets.some((x) => x.id !== sid && sameBook(bookOf(x), book) && sameCh(x.chapter, ch) && sameCh(x.section, sec))) return err(`${book} ${chLabel(ch)} ${sec} already exists.`);
+          const col = canonCol(S.editVals.collection), unit = canonUnit(col, S.editVals.unit), name = tidy(S.editVals.name, 200), tags = cleanTags(S.editVals.tags);
+          if (!col || !unit || !name) return err("Collection, unit and set name can't be empty.");
+          if (S.sets.some((x) => x.id !== sid && sameName(colOf(x), col) && sameName(x.unit, unit) && sameName(x.name, name))) return err(`${col} › ${unit} › ${name} already exists.`);
           const b = ef.querySelector("[type=submit]"); b.disabled = true; b.textContent = "Saving…";
-          try { await db.doc("sets/" + sid).update({ book, chapter: ch, section: sec, label, tags, updatedAt: new Date().toISOString() }); }
+          try { await db.doc("sets/" + sid).update({ collection: col, unit, name, tags, updatedAt: new Date().toISOString() }); }
           catch { b.disabled = false; b.textContent = "Save details"; return err("Couldn't save. Try again."); }
-          S.editSet = null; S.openSets.add(sid); pickCh(ch, book);
+          S.editSet = null; S.openSets.add(sid); pickUnit(unit, col);
           renderTable();
         };
       }
@@ -2317,16 +2423,16 @@ CORRECT: <YES or NO, matching your REASON>`;
   }
   $("#newSetForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const book = canonBook($("#nsBook").value), ch = cleanCh($("#nsChapter").value), sec = $("#nsSection").value.trim(), label = $("#nsLabel").value.trim(), tags = cleanTags($("#nsTags").value);
-    if (!book || ch === "" || !sec) return;
-    if (S.sets.some((s) => sameBook(bookOf(s), book) && sameCh(s.chapter, ch) && sameCh(s.section, sec))) { $("#nsSection").setCustomValidity("That set already exists"); $("#nsSection").reportValidity(); $("#nsSection").setCustomValidity(""); return; }
-    const id = freeId(slug(`${book}-ch${ch}-${sec}`), new Set(S.sets.map((s) => s.id)));
-    pickCh(ch, book);
+    const col = canonCol($("#nsCol").value), unit = canonUnit(col, $("#nsUnit").value), name = tidy($("#nsName").value, 200), tags = cleanTags($("#nsTags").value);
+    if (!col || !unit || !name) return;
+    if (S.sets.some((s) => sameName(colOf(s), col) && sameName(s.unit, unit) && sameName(s.name, name))) { $("#nsName").setCustomValidity("That set already exists"); $("#nsName").reportValidity(); $("#nsName").setCustomValidity(""); return; }
+    const id = freeId(slug(`${col}-${unit}-${name}`, "set"), new Set(S.sets.map((s) => s.id)));
+    pickUnit(unit, col);
     S.openSets.add(id);
     clearSearch();
     try {
-      await db.doc("sets/" + id).set({ book, chapter: ch, section: sec, label, ...(tags.length ? { tags } : {}), words: [{ id: rid(), en: "", kana: "", kanji: "" }], updatedAt: new Date().toISOString() });
-      e.target.reset(); $("#nsBook").value = book;
+      await db.doc("sets/" + id).set({ collection: col, unit, name, ...(tags.length ? { tags } : {}), words: [{ id: rid(), en: "", kana: "", kanji: "" }], updatedAt: new Date().toISOString() });
+      e.target.reset(); $("#nsCol").value = col; $("#nsUnit").value = unit;
     } catch { banner("Couldn't add the set. Only the owner and editors can change the table."); }
   });
 
@@ -2334,24 +2440,24 @@ CORRECT: <YES or NO, matching your REASON>`;
   const APP = "jp-vocab-practice";
   const ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/;
   const str = (v, n = 500) => String(v ?? "").slice(0, n);
-  const chap = (v) => (typeof v === "number" && Number.isFinite(v) ? v : str(v, 40));
   // Each cleaner returns the document to store, or null when the file's entry isn't usable. File contents are untrusted.
   const cleanSet = (d) => !d || typeof d !== "object" || !ID_RE.test(String(d.id ?? "")) || !Array.isArray(d.words) ? null : {
-    book: str(d.book, 100), chapter: chap(d.chapter), section: str(d.section, 40), label: str(d.label, 200), ...(cleanTags(d.tags).length ? { tags: cleanTags(d.tags) } : {}),
+    collection: docCol(d), unit: docUnit(d), name: docName(d), ...(cleanTags(d.tags).length ? { tags: cleanTags(d.tags) } : {}),
     words: d.words.slice(0, 3000).filter((w) => w && typeof w === "object").map((w) => ({ id: ID_RE.test(String(w.id ?? "")) ? String(w.id) : rid(), en: str(w.en), kana: str(w.kana), kanji: str(w.kanji) })) };
-  const cleanKanji = (d) => !d || typeof d !== "object" || !ID_RE.test(String(d.id ?? "")) ? null : { book: str(d.book, 100), chapter: chap(d.chapter), kanji: str(d.kanji, 20000) };
+  const cleanKanji = (d) => !d || typeof d !== "object" || !ID_RE.test(String(d.id ?? "")) ? null : { collection: docCol(d), unit: docUnit(d), kanji: str(d.kanji, 20000) };
   const cleanBooks = (d) => Array.isArray(d?.order) ? { order: d.order.slice(0, 50).map((b) => str(b, 100)) } : null;
-  const cleanCourses = (d) => Array.isArray(d?.courses) ? { courses: d.courses.slice(0, 50).filter((c) => c && c.name && Array.isArray(c.parts)).map((c) => ({ name: str(c.name, 100),
-    parts: c.parts.slice(0, 20).filter((x) => x && Number.isFinite(+x.from) && Number.isFinite(+x.to)).map((x) => ({ book: str(x.book, 100), from: +x.from, to: +x.to })) })) } : null;
+  // Courses come as stored ({ courses: [...] }) or, in a hand-made file, as the bare list.
+  function cleanCourses(d) {
+    const list = Array.isArray(d) ? d : d?.courses;
+    return Array.isArray(list) ? { courses: list.slice(0, 50).filter((c) => c && c.name && Array.isArray(c.parts)).map((c) => ({ name: str(c.name, 100),
+      parts: c.parts.slice(0, 20).filter((x) => x && typeof x === "object").map(coursePart).filter((x) => x.from && x.to) })) } : null;
+  }
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-  const kName = (k) => `${multiBook() ? bookLabel(bookOf(k)) + " · " : ""}${chLabel(k.chapter)}`;
   const portMsg = (m) => { $("#portMsg").hidden = !m; $("#portMsg").textContent = m || ""; };
 
   function renderPort() {
     $("#portPanel").hidden = !canWrite || !db;
     if ($("#portPanel").hidden) return;
-    const words = S.sets.reduce((n, x) => n + x.words.length, 0);
-    $("#portCount").textContent = `${S.sets.length} sets · ${words.toLocaleString()} words · ${S.kanjiLists.length} kanji lists`;
     $("#exportBtn").disabled = !downloads || !S.loaded || importing;
     $("#exportBtn").title = downloads ? "" : "Saving files isn't available in this view.";
     $("#importBtn").disabled = importing;
@@ -2359,9 +2465,11 @@ CORRECT: <YES or NO, matching your REASON>`;
 
   async function exportVocab() {
     const setById = new Map(raw.sets.map((d) => [d.id, d])), kById = new Map(raw.kanji.map((d) => [d.id, d]));
-    const file = { app: APP, version: 1, exportedAt: new Date().toISOString(),
-      sets: S.sets.map((x) => setById.get(x.id)).filter(Boolean), kanji: S.kanjiLists.map((k) => kById.get(k.id)).filter(Boolean),
-      books: raw.books, courses: raw.courses };
+    // Written in the current format (collection, unit, name), whatever format each document was saved in.
+    const tidied = (list, byId, clean) => list.map((x) => byId.get(x.id)).filter(Boolean).map((d) => ({ id: d.id, ...clean(d) }));
+    const file = { app: APP, version: 2, exportedAt: new Date().toISOString(),
+      sets: tidied(S.sets, setById, cleanSet), kanji: tidied(S.kanjiLists, kById, cleanKanji),
+      collections: cleanBooks(raw.books), courses: cleanCourses(raw.courses) };
     const name = `japanese-vocab-${new Date().toLocaleDateString("en-CA")}.json`;
     portMsg("");
     try { await downloads.save({ filename: name, data: JSON.stringify(file, null, 1) }); portMsg(`Saved ${name}.`); }
@@ -2377,9 +2485,9 @@ CORRECT: <YES or NO, matching your REASON>`;
       for (const d of Array.isArray(list) ? list : []) { const c = clean(d); if (c) seen.set(String(d.id), c); else skipped++; }
       return [...seen].map(([id, doc]) => ({ id, doc, title: title(doc), status: !have.has(id) ? "new" : same(have.get(id), doc) ? "same" : "changed" }));
     };
-    const sets = walk(file.sets, raw.sets, cleanSet, setName), kanji = walk(file.kanji, raw.kanji, cleanKanji, kName);
+    const sets = walk(file.sets, raw.sets, cleanSet, setName), kanji = walk(file.kanji, raw.kanji, cleanKanji, unitTitle);
     const meta = (v, here, clean) => { const c = v == null ? null : clean(v); if (v != null && !c) skipped++; return c && { doc: c, changed: !same(clean(here), c) }; };
-    return { name, exportedAt: file.exportedAt, sets, kanji, books: meta(file.books, raw.books, cleanBooks), courses: meta(file.courses, raw.courses, cleanCourses), skipped };
+    return { name, exportedAt: file.exportedAt, sets, kanji, books: meta(file.collections ?? file.books, raw.books, cleanBooks), courses: meta(file.courses, raw.courses, cleanCourses), skipped };
   }
 
   function renderImport() {
@@ -2399,7 +2507,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     const todo = p.sets.filter((x) => x.status !== "same").length + p.kanji.filter((x) => x.status !== "same").length + (p.books?.changed ? 1 : 0) + (p.courses?.changed ? 1 : 0);
     const when = p.exportedAt && !isNaN(new Date(p.exportedAt)) ? ` · exported ${new Date(p.exportedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : "";
     box.innerHTML = `<div><b>${esc(p.name)}</b><span class="muted small">${esc(when)}</span></div>
-      <ul class="small"><li>${line(p.sets, "Vocab sets")}</li><li>${line(p.kanji, "Kanji lists")}</li><li>${metaLine(p.books, "Textbook order")}</li><li>${metaLine(p.courses, "Courses")}</li>
+      <ul class="small"><li>${line(p.sets, "Vocab sets")}</li><li>${line(p.kanji, "Kanji lists")}</li><li>${metaLine(p.books, "Collection order")}</li><li>${metaLine(p.courses, "Courses")}</li>
       ${p.skipped ? `<li>${p.skipped} ${p.skipped === 1 ? "entry isn't" : "entries aren't"} valid and will be skipped</li>` : ""}</ul>
       ${names("new")}${names("changed")}
       <div class="tactions">${todo ? `<button class="btn primary" type="button" id="importGo">Import ${todo} ${todo === 1 ? "change" : "changes"}</button><button class="link" type="button" id="importCancel">Cancel</button>`
@@ -2420,7 +2528,7 @@ CORRECT: <YES or NO, matching your REASON>`;
       for (const [path, doc] of jobs) { portMsg(`Importing ${done + 1} of ${jobs.length}…`); await db.doc(path).set(doc); done++; }
       const n = (pre, st) => p[pre].filter((x) => x.status === st).length, pl = (k, w) => k && `${k} ${w}${k === 1 ? "" : "s"}`;
       portMsg(`Imported: ${[pl(n("sets", "new"), "new set"), pl(n("sets", "changed"), "updated set"), pl(n("kanji", "new") + n("kanji", "changed"), "kanji list"),
-        p.books?.changed && "textbook order", p.courses?.changed && "courses"].filter(Boolean).join(", ")}.`);
+        p.books?.changed && "collection order", p.courses?.changed && "courses"].filter(Boolean).join(", ")}.`);
     } catch (e) {
       portMsg(`Stopped after ${done} of ${jobs.length}: ${e?.message || "the database refused the change"}. What was imported stays; import the file again to finish.`);
     }
@@ -2440,9 +2548,9 @@ CORRECT: <YES or NO, matching your REASON>`;
 
   // ---------- public site: sample sets ----------
   // A new visitor starts with the sets in data/samples.json (written for this site, not from a textbook), so there's
-  // something to practice before learning the vocab table. They're ordinary sets in their own book. meta/samples
+  // something to practice before learning the vocab table. They're ordinary sets in their own collection. meta/samples
   // records that they were offered, so they never come back on their own once removed.
-  const SAMPLE_BOOK = "Sample sets", isSample = (x) => bookOf(x) === SAMPLE_BOOK;
+  const SAMPLE_COL = "Sample sets", isSample = (x) => colOf(x) === SAMPLE_COL;
   async function addSamples() {
     const res = await fetch("data/samples.json");
     if (!res.ok) throw new Error("samples " + res.status);
@@ -2465,7 +2573,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     if (!n) { sampleAsk = false; return; }
     el.innerHTML = sampleAsk
       ? `Remove the ${n} sample ${n === 1 ? "set" : "sets"} and their kanji lists? <button class="link" type="button" id="sampleYes">Remove</button> · <button class="link" type="button" id="sampleNo">Keep them</button>`
-      : `The sample sets are here so you can try the page right away. Add your own in the vocab table or import a file whenever you're ready. <button class="link" type="button" id="sampleRemove">Remove the sample sets</button>`;
+      : `The sample sets are here so you can try the page right away. Add your own in the vocab table, or import a file from Settings, whenever you're ready. <button class="link" type="button" id="sampleRemove">Remove the sample sets</button>`;
     if (!sampleAsk) { $("#sampleRemove").onclick = () => { sampleAsk = true; renderSampleNote(); }; return; }
     $("#sampleNo").onclick = () => { sampleAsk = false; renderSampleNote(); };
     $("#sampleYes").onclick = async () => {
@@ -2478,90 +2586,10 @@ CORRECT: <YES or NO, matching your REASON>`;
     };
   }
 
-  // ---------- public site: how answers are checked ----------
-  // The built-in checker (default) or Claude with the visitor's own Anthropic API key. The key is used from this
-  // browser only and never written to the database: it stays in sessionStorage (gone when the tab closes) unless
-  // "Remember on this device" is ticked (localStorage), where a passcode can lock it (PBKDF2 + AES-GCM).
   const platform = window.qcardPlatform;
-  const MODELS = [
-    ["claude-opus-5-5", "Opus 5.5: most accurate, about 2 to 3¢ a check"],
-    ["claude-sonnet-5-5", "Sonnet 5.5: about 1¢ a check"],
-    ["claude-haiku-5-5", "Haiku 5.5: cheapest, well under 0.1¢ a check"],
-  ];
-  S.checker = store.get("checker", "builtin") === "claude" ? "claude" : "builtin";
-  S.model = MODELS.some(([id]) => id === store.get("model", "")) ? store.get("model", "") : MODELS[0][0];
-  S.readBy = "Read as: ";
-  const keep = (st) => ({
-    get: (k) => { try { return st().getItem(k); } catch { return null; } },
-    set: (k, v) => { try { st().setItem(k, v); return true; } catch { return false; } },
-    del: (k) => { try { st().removeItem(k); } catch {} },
-  });
-  const tabKeep = keep(() => sessionStorage), devKeep = keep(() => localStorage);
-  const K_KEY = "qcard:apiKey", K_LOCKED = "qcard:apiKeyLocked";
-  let apiKey = tabKeep.get(K_KEY) || devKeep.get(K_KEY) || "";
-  const keyWhere = () => (devKeep.get(K_LOCKED) ? (apiKey ? "unlocked" : "locked") : devKeep.get(K_KEY) ? "device" : apiKey ? "tab" : "none");
-  const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
-  const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-  async function passKey(pass, salt) {
-    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
-    return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 600000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
-  }
-  async function lockKey(key, pass) {
-    const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
-    const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await passKey(pass, salt), new TextEncoder().encode(key));
-    return JSON.stringify({ v: 1, salt: b64(salt), iv: b64(iv), ct: b64(ct) });
-  }
-  async function unlockKey(saved, pass) {
-    const o = JSON.parse(saved);
-    return new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(o.iv) }, await passKey(pass, unb64(o.salt)), unb64(o.ct)));
-  }
-  function forgetKey() { tabKeep.del(K_KEY); devKeep.del(K_KEY); devKeep.del(K_LOCKED); apiKey = ""; }
-
-  function renderChecker(msg) {
-    $("#checkerSeg").querySelectorAll("[data-checker]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.checker === S.checker));
-    $("#checkerHint").textContent = S.checker === "claude"
-      ? "Claude reads your writing the way a teacher would, furigana included. Each check is billed to your own Anthropic API key."
-      : "Free, and your writing never leaves this device. It's less accurate than Claude, so if it misreads your writing you can count the answer as correct. 日本語 → English answers are marked by you.";
-    $("#keyBox").hidden = S.checker !== "claude";
-    const where = keyWhere();
-    $("#keyStatus").textContent = {
-      none: "No key added yet.",
-      tab: "Using your key in this tab only. It's forgotten when you close the tab.",
-      device: "Your key is remembered on this device.",
-      unlocked: "Your key is remembered on this device, locked with your passcode, and unlocked in this tab.",
-      locked: "Your key is remembered on this device and locked. Enter your passcode to use it.",
-    }[where];
-    $("#keyForm").hidden = where !== "none";
-    $("#unlockForm").hidden = where !== "locked";
-    $("#forgetKey").hidden = where === "none";
-    $("#keyPassRow").hidden = !$("#keyRemember").checked;
-    $("#keyMsg").hidden = !msg; $("#keyMsg").textContent = msg || "";
-  }
-  $("#modelSel").innerHTML = MODELS.map(([id, label]) => `<option value="${id}"${id === S.model ? " selected" : ""}>${esc(label)}</option>`).join("");
-  $("#modelSel").onchange = (e) => { S.model = e.target.value; store.set("model", S.model); };
-  $("#checkerSeg").querySelectorAll("[data-checker]").forEach((b) => (b.onclick = () => { S.checker = b.dataset.checker; store.set("checker", S.checker); renderChecker(); }));
-  $("#keyRemember").onchange = () => renderChecker();
-  $("#keyForm").onsubmit = async (e) => {
-    e.preventDefault();
-    const k = $("#keyInput").value.trim(), pass = $("#keyPass").value, remember = $("#keyRemember").checked;
-    if (!/^sk-ant-\S{20,}$/.test(k)) { renderChecker("That doesn't look like an Anthropic API key. Keys start with sk-ant-."); return; }
-    forgetKey();
-    tabKeep.set(K_KEY, k);
-    if (remember && pass) devKeep.set(K_LOCKED, await lockKey(k, pass));
-    else if (remember) devKeep.set(K_KEY, k);
-    apiKey = k;
-    $("#keyInput").value = $("#keyPass").value = ""; $("#keyRemember").checked = false;
-    renderChecker();
-  };
-  $("#unlockForm").onsubmit = async (e) => {
-    e.preventDefault();
-    try { apiKey = await unlockKey(devKeep.get(K_LOCKED), $("#unlockPass").value); tabKeep.set(K_KEY, apiKey); $("#unlockPass").value = ""; renderChecker(); }
-    catch { renderChecker("That passcode didn't unlock the key. Try again, or forget the key and add it again."); }
-  };
-  $("#forgetKey").onclick = () => { forgetKey(); renderChecker("Done. This browser no longer has your key."); };
 
   // ---------- public site: built-in checker ----------
-  // Compares the strokes with stroke templates from KanjiVG (src/checker.js) against every accepted way of writing
+  // Compares the strokes with stroke templates from KanjiVG and the Hershey fonts (src/checker.js) against every accepted way of writing
   // the answer, so it only has to decide "is this one of these?", never read arbitrary writing.
   let templates = null;
   function loadTemplates() {
@@ -2622,9 +2650,16 @@ CORRECT: <YES or NO, matching your REASON>`;
     if (!ok) r.reason = "Furigana goes only over kanji you wrote, as their reading.";
     return { ok, r };
   }
-  // 日本語 → English answers, and words the built-in checker can't read, are marked by the student.
-  function selfMark() {
+  // 日本語 → English: the meaning in any of the ways it may be written (englishAnswers). null when the checker can't read it.
+  async function englishCheck(w) {
+    await loadTemplates();
+    const res = window.QCardChecker.verify({ strokes: strokesOf(main), candidates: window.QCardChecker.englishAnswers(w.en), box: { w: main.w, h: main.h }, latin: true });
+    return res.ok === null ? null : { ok: res.ok, r: { main: res.text, furigana: "", reason: "" } };
+  }
+  // 日本語 → English answers the checker couldn't match (unmatched), and words it can't read, are marked by the student.
+  function selfMark(unmatched) {
     const { w, dir } = Q.cur;
+    $("#selfHead").textContent = unmatched ? "The checker couldn't match this to the wording below. Did you mean the same thing?" : "Compare what you wrote with the answer.";
     Q.answered = true; syncCheck();
     main.c.classList.add("locked"); furi.c.classList.add("locked");
     $("#tools").hidden = true; setErasing(false);
@@ -2645,7 +2680,8 @@ CORRECT: <YES or NO, matching your REASON>`;
     $("#welcomeErr").textContent = err || ""; $("#welcomeErr").hidden = !err;
     if (!$("#welcome").open) $("#welcome").showModal();
   }
-  $("#guestBtn").onclick = () => { try { localStorage.setItem("qcard:mode", "local"); } catch {} $("#welcome").close(); };
+  // Closing the pop-up (its X) is the same as continuing as a guest.
+  $("#guestBtn").onclick = $("#welcomeClose").onclick = () => { try { localStorage.setItem("qcard:mode", "local"); } catch {} $("#welcome").close(); };
   $("#signInBtn").onclick = async () => {
     $("#signInBtn").disabled = true;
     try { await platform.signIn(); } // the page then reloads into the account (see boot)
@@ -2656,7 +2692,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     }
   };
   // Settings → Account and Delete. account is the signed-in person ({uid, email, name}), or null for a guest.
-  let account = null, delAsk = false;
+  let account = null, delAsk = false, stopPrefs = () => {};
   $("#settings").addEventListener("close", () => { delAsk = false; });
   function renderAccount() {
     $("#acctName").innerHTML = account ? `Signed in with Google as <b>${esc(account.email || account.name || "")}</b>.`
@@ -2665,21 +2701,34 @@ CORRECT: <YES or NO, matching your REASON>`;
     $("#signOutBtn").onclick = account ? () => platform.signOut() : () => { $("#settings").close(); welcome(); };
     const what = account ? "your account and its sets, kanji lists and practice history" : "the sets, kanji lists and practice history saved in this browser";
     $("#delAcct").innerHTML = !delAsk
-      ? `<button class="btn danger" type="button" id="delStart">${account ? "Delete my account" : "Delete everything in this browser"}</button>`
+      ? account ? `<button class="btn danger" type="button" id="delStart">Delete my account</button>`
+        : `<div class="delrow"><button class="btn danger" type="button" id="delStart" aria-describedby="delTip">Delete local storage</button>
+          <span class="qtip" tabindex="0" role="button" aria-label="What this does"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.4a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.7v.5"/><circle cx="12" cy="17.2" r=".4" fill="currentColor"/></svg><span class="qtipbody" role="tooltip" id="delTip">This deletes all local data (sets, kanji lists, practice history and settings), refreshes the page and treats you as a new user.</span></span></div>`
       : `<p class="small">This deletes ${what}, for good. Export your vocab first if you want a copy.</p>
         <div class="tactions"><button class="btn danger" type="button" id="delYes">Delete everything</button><button class="btn" type="button" id="delNo">Cancel</button></div>
         <p class="keyerr small" id="delErr" hidden></p>`;
-    if (!delAsk) { $("#delStart").onclick = () => { delAsk = true; renderAccount(); }; return; }
+    if (!delAsk) {
+      $("#delStart").onclick = () => { delAsk = true; renderAccount(); };
+      // A tap shows the tip on touch screens, where there's no hover.
+      const q = $("#delAcct .qtip");
+      if (q) { q.onclick = () => q.classList.toggle("open"); q.onblur = q.onmouseleave = () => q.classList.remove("open"); }
+      return;
+    }
     $("#delNo").onclick = () => { delAsk = false; renderAccount(); };
     $("#delYes").onclick = async (e) => {
       e.target.disabled = true; e.target.textContent = "Deleting…";
+      stopPrefs();
       try {
         const paths = [];
         for (const c of ["sets", "kanji", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
         for (const p of [...paths, "meta/books", "meta/courses", "meta/samples"]) await db.doc(p).delete();
         try { localStorage.removeItem("qcard:mode"); } catch {}
         if (account) await platform.deleteAccount(); // which signs out, and the page starts over (see boot)
-        else location.reload();
+        else {
+          // A guest starts over as a new visitor: every choice this site kept in this browser goes too (colours, picks, a practice to resume).
+          try { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:") || k.startsWith("qcard:")) localStorage.removeItem(k); } catch {}
+          location.reload();
+        }
       } catch (err) {
         e.target.disabled = false; e.target.textContent = "Delete everything";
         $("#delErr").hidden = false;
@@ -2692,7 +2741,6 @@ CORRECT: <YES or NO, matching your REASON>`;
   renderSetup();
   (() => {
     if (!platform) { $("#gate").innerHTML = "<b>The page couldn't start</b>Reload it to try again."; return; }
-    renderChecker();
     let started = null;
     const start = (id, store) => {
       started = uid = id;
@@ -2704,6 +2752,7 @@ CORRECT: <YES or NO, matching your REASON>`;
       db.doc("meta/books").onSnapshot(onBookOrder, () => {});
       db.doc("meta/courses").onSnapshot(onCourses, () => {});
       watchHistory();
+      if (id !== "local") stopPrefs = syncPrefs();
       offerSamples();
     };
     // As a guest, everything is kept in this browser (src/platform/local.js); choosing it in the welcome pop-up is remembered.
