@@ -45,7 +45,8 @@ export function collection(_fs, path) { if (!(segs(path).length % 2)) throw new 
 export const orderBy = (field, dir = "asc") => ({ t: "order", field, dir });
 export const limit = (n) => ({ t: "limit", n });
 export const query = (ref, ...parts) => ({ ...ref, parts: [...(ref.parts || []), ...parts] });
-const docSnap = (path) => ({ id: segs(path).at(-1), exists: () => path in data, data: () => (path in data ? structuredClone(data[path]) : undefined) });
+// Like Firestore, a snapshot keeps the data as it was when it was taken, even if the document changes before it's read.
+const docSnap = (path) => { const has = path in data, v = has ? structuredClone(data[path]) : undefined; return { id: segs(path).at(-1), exists: () => has, data: () => structuredClone(v) }; };
 function runQuery(q) {
   const base = segs(q.path).length;
   let paths = Object.keys(data).filter((p) => p.startsWith(q.path + "/") && segs(p).length === base + 1);
