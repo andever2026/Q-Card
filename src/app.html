@@ -124,6 +124,11 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .palpick button:hover { border-color: var(--line); }
 .palpick button[aria-pressed="true"] { border-color: var(--ink); }
 .palpick i { width: 22px; height: 22px; border-radius: 50%; display: inline-block; }
+.delrow { display: flex; align-items: center; gap: 8px; }
+.qtip { position: relative; display: inline-flex; color: var(--muted); cursor: help; border-radius: 50%; }
+.qtip:hover, .qtip:focus-visible, .qtip.open { color: var(--ink); }
+.qtipbody { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(250px, 60vw); background: var(--ink); color: var(--surface); padding: 6px 9px; border-radius: 6px; font-size: .82rem; line-height: 1.4; z-index: 2; }
+.qtip:hover .qtipbody, .qtip:focus-visible .qtipbody, .qtip.open .qtipbody { display: block; }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
 body:not(.ready) section, body:not(.ready) #banner { display: none !important; }
@@ -408,6 +413,12 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       </section>
 <!--#endif-->
       <section><h3>Your vocab</h3><p class="muted" id="setStats"></p></section>
+      <section id="portPanel" hidden><h3>Export / import</h3>
+        <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and courses, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
+        <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
+        <p class="muted small" id="portMsg" hidden></p>
+        <div class="impprev" id="importPreview" hidden></div>
+      </section>
 <!--#if public-->
       <section><h3>Delete</h3><div id="delAcct"></div></section>
 <!--#endif-->
@@ -630,13 +641,6 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       </form>
       <datalist id="colList"></datalist><datalist id="unitList"></datalist>
     </div>
-    <div class="panel" id="portPanel" hidden>
-      <div class="head"><h2>Export / import</h2><span class="muted small" id="portCount"></span></div>
-      <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and courses, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
-      <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
-      <p class="muted small" id="portMsg" hidden></p>
-      <div class="impprev" id="importPreview" hidden></div>
-    </div>
   </section>
   <div class="tip" id="tip" role="tooltip" hidden></div>
 </div>
@@ -721,13 +725,16 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
     pads.forEach((p) => p.draw());
   }
   document.querySelectorAll("#palPick [data-pal]").forEach((b) => (b.onclick = () => setPalette(b.dataset.pal)));
-  // Settings pop-up (the gear in the header): colours, and on the public site light or dark, the account and deleting.
-  $("#settingsBtn").onclick = () => { renderSettings(); $("#settings").showModal(); };
+  // Settings pop-up (the gear in the header): colours, the vocab counts, export / import, and on the public site light or dark,
+  // the account and deleting.
+  function openSettings() { renderSettings(); $("#settings").showModal(); }
+  $("#settingsBtn").onclick = openSettings;
   $("#settingsClose").onclick = () => $("#settings").close();
   $("#settings").addEventListener("click", (e) => { if (e.target === $("#settings")) $("#settings").close(); });
   function renderSettings() {
     const n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`, words = S.sets.reduce((a, s) => a + readyCount(s.words || []), 0);
     $("#setStats").textContent = [n(S.sets.length, "set"), n(words, "word"), n(S.kanjiLists.length, "kanji list"), ...(S.history?.length ? [n(S.history.length, "practice session") + " saved"] : [])].join(" · ");
+    renderPort();
     //#if public
     renderAccount();
     //#endif
@@ -1261,11 +1268,11 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
     }
   }
   document.querySelectorAll("[data-group]").forEach((b) => (b.onclick = () => { S.groupBy = b.dataset.group; store.set("groupBy", S.groupBy); renderSetup(); renderTable(); }));
-  function renderPickBar(shown) {
+  function renderPickBar() {
     PP.render(); syncGroupSegs();
-    const n = S.selected.size, hidden = [...S.selected].filter((id) => !shown.some((s) => s.id === id)).length;
+    const n = S.selected.size;
     $("#pickSumRow").hidden = !n;
-    $("#pickSum").textContent = `${n} set${n === 1 ? "" : "s"} picked${hidden ? `, ${hidden} not shown here` : ""}`;
+    $("#pickSum").textContent = `${n} set${n === 1 ? "" : "s"} picked`;
   }
   // The Filter row: every tag in use, each with how many sets picking it hides (the sets without it), most hidden first.
   // None is picked to start, so every set shows. It's left out when no tag would narrow anything.
@@ -1292,7 +1299,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
     if (!S.sets.length) {
       //#if public
       box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets into the vocab table.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open the vocab table</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
-      $("#emptyImport").onclick = () => { renderTable(); show("table"); $("#portPanel").scrollIntoView({ block: "center" }); $("#importBtn").click(); };
+      $("#emptyImport").onclick = () => { openSettings(); $("#importBtn").click(); };
       $("#emptyTable").onclick = () => { renderTable(); show("table"); };
       $("#emptySamples").onclick = (e) => { e.target.disabled = true; addSamples().catch(() => { e.target.disabled = false; banner("The sample sets couldn't be added. Try again."); }); };
       //#else
@@ -1327,7 +1334,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       const tagged = (s) => !on.length || setTags(s, tags.kinds).some((t) => on.includes(tagKey(t)));
       const chs = new Set(S.sets.filter(chShown).map(unitKey)), shown = S.sets.filter((s) => chShown(s) && tagged(s));
       renderTagRow(tags.list, on);
-      renderPickBar(shown);
+      renderPickBar();
       const byCh = new Map();
       for (const s of shown) { if (!byCh.has(unitKey(s))) byCh.set(unitKey(s), []); byCh.get(unitKey(s)).push(s); }
       const groups = [...byCh.values()];
@@ -2525,8 +2532,6 @@ CORRECT: <YES or NO, matching your REASON>`;
   function renderPort() {
     $("#portPanel").hidden = !canWrite || !db;
     if ($("#portPanel").hidden) return;
-    const words = S.sets.reduce((n, x) => n + x.words.length, 0);
-    $("#portCount").textContent = `${S.sets.length} sets · ${words.toLocaleString()} words · ${S.kanjiLists.length} kanji list${S.kanjiLists.length === 1 ? "" : "s"}`;
     $("#exportBtn").disabled = !downloads || !S.loaded || importing;
     $("#exportBtn").title = downloads ? "" : "Saving files isn't available in this view.";
     $("#importBtn").disabled = importing;
@@ -2647,7 +2652,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     if (!n) { sampleAsk = false; return; }
     el.innerHTML = sampleAsk
       ? `Remove the ${n} sample ${n === 1 ? "set" : "sets"} and their kanji lists? <button class="link" type="button" id="sampleYes">Remove</button> · <button class="link" type="button" id="sampleNo">Keep them</button>`
-      : `The sample sets are here so you can try the page right away. Add your own in the vocab table or import a file whenever you're ready. <button class="link" type="button" id="sampleRemove">Remove the sample sets</button>`;
+      : `The sample sets are here so you can try the page right away. Add your own in the vocab table, or import a file from Settings, whenever you're ready. <button class="link" type="button" id="sampleRemove">Remove the sample sets</button>`;
     if (!sampleAsk) { $("#sampleRemove").onclick = () => { sampleAsk = true; renderSampleNote(); }; return; }
     $("#sampleNo").onclick = () => { sampleAsk = false; renderSampleNote(); };
     $("#sampleYes").onclick = async () => {
@@ -2775,11 +2780,19 @@ CORRECT: <YES or NO, matching your REASON>`;
     $("#signOutBtn").onclick = account ? () => platform.signOut() : () => { $("#settings").close(); welcome(); };
     const what = account ? "your account and its sets, kanji lists and practice history" : "the sets, kanji lists and practice history saved in this browser";
     $("#delAcct").innerHTML = !delAsk
-      ? `<button class="btn danger" type="button" id="delStart">${account ? "Delete my account" : "Delete everything in this browser"}</button>`
+      ? account ? `<button class="btn danger" type="button" id="delStart">Delete my account</button>`
+        : `<div class="delrow"><button class="btn danger" type="button" id="delStart" aria-describedby="delTip">Delete local storage</button>
+          <span class="qtip" tabindex="0" role="button" aria-label="What this does"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.4a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.7v.5"/><circle cx="12" cy="17.2" r=".4" fill="currentColor"/></svg><span class="qtipbody" role="tooltip" id="delTip">This deletes all local data (sets, kanji lists, practice history and settings), refreshes the page and treats you as a new user.</span></span></div>`
       : `<p class="small">This deletes ${what}, for good. Export your vocab first if you want a copy.</p>
         <div class="tactions"><button class="btn danger" type="button" id="delYes">Delete everything</button><button class="btn" type="button" id="delNo">Cancel</button></div>
         <p class="keyerr small" id="delErr" hidden></p>`;
-    if (!delAsk) { $("#delStart").onclick = () => { delAsk = true; renderAccount(); }; return; }
+    if (!delAsk) {
+      $("#delStart").onclick = () => { delAsk = true; renderAccount(); };
+      // A tap shows the tip on touch screens, where there's no hover.
+      const q = $("#delAcct .qtip");
+      if (q) { q.onclick = () => q.classList.toggle("open"); q.onblur = q.onmouseleave = () => q.classList.remove("open"); }
+      return;
+    }
     $("#delNo").onclick = () => { delAsk = false; renderAccount(); };
     $("#delYes").onclick = async (e) => {
       e.target.disabled = true; e.target.textContent = "Deleting…";
@@ -2790,7 +2803,11 @@ CORRECT: <YES or NO, matching your REASON>`;
         for (const p of [...paths, "meta/books", "meta/courses", "meta/samples"]) await db.doc(p).delete();
         try { localStorage.removeItem("qcard:mode"); } catch {}
         if (account) await platform.deleteAccount(); // which signs out, and the page starts over (see boot)
-        else location.reload();
+        else {
+          // A guest starts over as a new visitor: every choice this site kept in this browser goes too (colours, picks, a practice to resume).
+          try { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:") || k.startsWith("qcard:")) localStorage.removeItem(k); } catch {}
+          location.reload();
+        }
       } catch (err) {
         e.target.disabled = false; e.target.textContent = "Delete everything";
         $("#delErr").hidden = false;
