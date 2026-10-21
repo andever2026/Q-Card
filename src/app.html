@@ -325,7 +325,7 @@ body { margin: 0; }
 #welcome::backdrop { background: rgba(17, 20, 26, .5); }
 .welcome { display: grid; gap: 14px; text-align: center; }
 .welcome p { margin: 0; text-wrap: pretty; }
-.welcome .lead { color: var(--ink); }
+.welcome .lead { color: var(--ink); font-weight: 500; }
 .signbtns { display: grid; gap: 10px; margin: 4px 0; }
 #checkPanel { grid-template-columns: minmax(0, 1fr); }
 .keybox { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
@@ -360,8 +360,6 @@ body.writing .foot { display: none; }
         <p>To start, sign in with Google to sync your data across devices, or continue as a guest to keep it in this browser only.</p>
         <div class="signbtns"><button class="btn primary" type="button" id="signInBtn">Sign in with Google</button><button class="btn primary" type="button" id="guestBtn">Continue as a guest</button></div>
         <p class="keyerr small" id="welcomeErr" hidden></p>
-        <p class="small">Signed in, your sets and practice history are saved to your account, so you see them on any device. Other visitors can't see them. As with any website's database, the site owner can see what's stored.</p>
-        <p class="small">As a guest, everything stays in this browser on this device and nobody else can see it. Clearing this site's data in your browser deletes it, so use Export now and then to keep a copy.</p>
       </div>
     </dialog>
 <!--#endif-->
