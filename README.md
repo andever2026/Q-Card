@@ -40,7 +40,7 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 | `fonts/` | The page's fonts, served from the site itself so visitors never contact Google Fonts. `tools/fetch-fonts.mjs` refreshes them. |
 | `tools/build.mjs` | Builds `index.html` and `js/*.js` (the site) and `build/claude-ai.html` (the claude.ai copy). |
 | `index.html`, `js/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus a beta build of the `beta` branch. |
-| `test/` | Browser tests for the public site (`test/public`) and the checker's accuracy tests (`test/checker`). |
+| `test/` | Browser tests for the public site (`test/public` with a fake Firebase, `test/emulator` with the real one on the Firebase emulators) and the checker's accuracy tests (`test/checker`). |
 
 ### Building
 
@@ -63,6 +63,15 @@ node test/checker/eval-en.mjs --vocab <folder> --hershey <hersheytext package>  
 See [test/checker/README.md](test/checker/README.md) for how the checker works, its accuracy numbers and its weak spots. `test/checker/demo.html` is a standalone writing box for trying it out.
 
 GitHub runs the public-site tests on every pull request into `main`. They swap Firebase for an in-memory fake (`test/public/fake-firebase.js`), so they need no accounts.
+
+`test/emulator/run.mjs` runs the page against the real Firebase SDK and the real `firestore.rules` instead, on the Firebase emulators (Auth and Firestore, project `demo-qcard`, so nothing reaches the real project): signing in from the welcome pop-up with the sample sets and saved choices, a practice left midway with its writing, sharing handwriting and deleting it, Dev tools, Delete my account, and the rules themselves. They need the Firebase CLI and Java 21 or later; the emulators start and stop around the run:
+
+```sh
+npm install --no-save playwright@1.56.1 firebase-tools@14   # both at once, or the second install removes the first
+PLAYWRIGHT_DIR=$PWD/node_modules/playwright npx firebase emulators:exec --config test/emulator/firebase.json --only auth,firestore --project demo-qcard "node test/emulator/run.mjs"
+```
+
+Or keep the emulators running (`npx firebase emulators:start` with the same options) and run `node test/emulator/run.mjs` as often as you like. GitHub runs these on pull requests into `main` too.
 
 ### Beta site
 
