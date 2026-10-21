@@ -57,7 +57,7 @@
   let shareDelAsk = false;
   $("#settings").addEventListener("close", () => { shareDelAsk = false; });
   function renderShare() {
-    $("#ownerSet").hidden = !siteOwner();
+    $("#ownerSet").hidden = !siteOwner;
     $("#shareSet").hidden = !account;
     if (!account) return;
     const s = shareState(), n = s.n || 0, when = s.at && !isNaN(new Date(s.at)) ? new Date(s.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
@@ -69,8 +69,9 @@
     $("#shareDelAsk").hidden = !shareDelAsk;
   }
   $("#shareToggle").onclick = () => { if (shareState().on) { setShare({ on: false }); renderShare(); } else askShare(0); };
-  // Owner tools: only for the site's owner (owners in src/platform/config.js), to see the question as people get it.
-  const siteOwner = () => !!account && !!platform.isSiteOwner?.(account.uid);
+  // Owner tools: only for the site's owner (owners/<uid> in Firestore, see firestore.rules), to see the question as people get it.
+  let siteOwner = false;
+  const checkSiteOwner = async () => { siteOwner = !!account && (await platform.isSiteOwner(account.uid)); renderShare(); };
   $("#ownAsk1").onclick = () => askShare(SHARE_EVERY, false);
   $("#ownAsk2").onclick = () => askShare(2 * SHARE_EVERY, true);
   $("#shareDel").onclick = () => { shareDelAsk = true; renderShare(); };

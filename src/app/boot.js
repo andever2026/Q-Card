@@ -61,6 +61,7 @@
       welcomed();
       account = u;
       start(u.uid, platform.db(u.uid));
+      checkSiteOwner();
     });
   })();
   //#endif
