@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-EHvVRfqbulQ7SMcutS2aPb8XMj36Yrgxqm/1stlpGec=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-R2v69hZE5a4uYxGxHVLNjiNXRldnxhw7tTH5mnEUZW8=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -32,28 +32,29 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #11141a; --surface: #1a1e26; --sunk: #151920; --ink: #e6e9ef; --muted: #9aa2b4;
-    --line: #2c3240; --guide: #343c4c; --ai: #93acec; --ai-soft: #222c44; --shu: #ff6f5b; --shu-soft: #3a2220; --ok: #62c98f;
+    --bg: #181818; --surface: #222222; --sunk: #1c1c1c; --ink: #ececec; --muted: #a3a3a3; --line: #363636; --guide: #3f3f3f;
+    --ai: #93acec; --ai-soft: #272c38; --shu: #ff6f5b; --shu-soft: #3a2522; --ok: #62c98f;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #11141a; --surface: #1a1e26; --sunk: #151920; --ink: #e6e9ef; --muted: #9aa2b4;
-  --line: #2c3240; --guide: #343c4c; --ai: #93acec; --ai-soft: #222c44; --shu: #ff6f5b; --shu-soft: #3a2220; --ok: #62c98f;
+  --bg: #181818; --surface: #222222; --sunk: #1c1c1c; --ink: #ececec; --muted: #a3a3a3; --line: #363636; --guide: #3f3f3f;
+  --ai: #93acec; --ai-soft: #272c38; --shu: #ff6f5b; --shu-soft: #3a2522; --ok: #62c98f;
   color-scheme: dark;
 }
-/* Claude palette: warm ivory paper, terracotta accent, crimson pen. Picked per viewer (data-palette). */
+/* Claude palette: warm ivory paper, terracotta accent, crimson pen. Picked per viewer (data-palette).
+   Dark mode is the same plain grey in both palettes, with only the accent colours differing (the owner). */
 :root[data-palette="claude"] {
   --bg: #f0eee6; --surface: #fdfcf9; --sunk: #f4f2ec; --ink: #1f1e1c; --muted: #696760; --line: #dedad0; --guide: #d3cec2; --ai: #ad5230; --ai-soft: #f6e5dc; --shu: #b0263c; --shu-soft: #f7e0e3; --ok: #4d7a34;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-palette="claude"]:not([data-theme="light"]) {
-    --bg: #1f1e1d; --surface: #2a2926; --sunk: #232220; --ink: #f0eee6; --muted: #a8a59b; --line: #3d3c38; --guide: #45433e; --ai: #e08560; --ai-soft: #3b2a22; --shu: #f0707e; --shu-soft: #3d2226; --ok: #7cbf6a;
+    --bg: #181818; --surface: #222222; --sunk: #1c1c1c; --ink: #ececec; --muted: #a3a3a3; --line: #363636; --guide: #3f3f3f; --ai: #e08560; --ai-soft: #382b25; --shu: #f0707e; --shu-soft: #3a2427; --ok: #7cbf6a;
     color-scheme: dark;
   }
 }
 :root[data-palette="claude"][data-theme="dark"] {
-  --bg: #1f1e1d; --surface: #2a2926; --sunk: #232220; --ink: #f0eee6; --muted: #a8a59b; --line: #3d3c38; --guide: #45433e; --ai: #e08560; --ai-soft: #3b2a22; --shu: #f0707e; --shu-soft: #3d2226; --ok: #7cbf6a;
+  --bg: #181818; --surface: #222222; --sunk: #1c1c1c; --ink: #ececec; --muted: #a3a3a3; --line: #363636; --guide: #3f3f3f; --ai: #e08560; --ai-soft: #382b25; --shu: #f0707e; --shu-soft: #3a2427; --ok: #7cbf6a;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -106,7 +107,12 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .settings .sethead { display: flex; justify-content: space-between; align-items: center; }
 .settings section { display: grid; gap: 8px; }
 .settings p { margin: 0; }
-.settings .seg i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: -1px; }
+.settings .setrow { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+.palpick { display: inline-flex; gap: 6px; }
+.palpick button { border: 2px solid transparent; background: none; border-radius: 50%; padding: 3px; display: inline-flex; }
+.palpick button:hover { border-color: var(--line); }
+.palpick button[aria-pressed="true"] { border-color: var(--ink); }
+.palpick i { width: 22px; height: 22px; border-radius: 50%; display: inline-block; }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
 body:not(.ready) section, body:not(.ready) #banner { display: none !important; }
@@ -143,7 +149,7 @@ body.ready #gate { display: none; }
 .pbar .chips { gap: 6px; }
 .chip.soft[aria-pressed="true"] { background: var(--ai-soft); border-color: var(--ai); color: var(--ai); }
 .chip.soft[aria-pressed="true"]::before { content: "✓"; }
-.tag { display: inline-block; padding: 0 8px; text-transform: none; letter-spacing: normal; border: 1px solid var(--line); border-radius: 999px; background: var(--sunk); color: var(--muted); font-size: .72rem; font-weight: 500; line-height: 1.6; vertical-align: 1px; }
+.tsethead .tag { display: inline-block; padding: 0 8px; text-transform: none; letter-spacing: normal; border: 1px solid var(--line); border-radius: 999px; background: var(--sunk); color: var(--muted); font-size: .72rem; font-weight: 500; line-height: 1.6; vertical-align: 1px; }
 .chip:disabled { opacity: .5; cursor: not-allowed; }
 .seg { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; width: fit-content; max-width: 100%; }
 .seg button { border: none; background: var(--surface); padding: 8px 14px; border-right: 1px solid var(--line); }
@@ -337,15 +343,18 @@ body { margin: 0; }
 #welcome { border: none; border-radius: 14px; padding: 26px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--muted); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
 #welcome::backdrop { background: rgba(17, 20, 26, .5); }
 .welcome { display: grid; gap: 14px; text-align: center; }
+.dlgx { position: absolute; top: 10px; right: 10px; border: none; background: none; color: var(--muted); padding: 6px; border-radius: 8px; display: inline-flex; }
+.dlgx:hover { color: var(--ink); background: var(--sunk); }
 .welcome p { margin: 0; text-wrap: pretty; }
 .welcome .lead { color: var(--ink); font-weight: 500; }
 .signbtns { display: grid; gap: 10px; margin: 4px 0; }
 .keyerr { color: var(--shu); }
 .fb.self { border-color: var(--ai); }
 .fb.self .stamp { color: var(--ai); border-color: var(--ai); }
-.foot { max-width: 720px; margin: 28px auto 0; text-align: center; color: var(--muted); font-size: .8rem; display: grid; gap: 4px; }
+.foot { max-width: 720px; margin: 40px auto 0; text-align: center; color: var(--muted); font-size: .8rem; display: grid; gap: 4px; }
 .foot a { color: inherit; }
 body.writing .foot { display: none; }
+body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits near the bottom edge */
 </style>
 <script>try { if (JSON.parse(localStorage.getItem("jpq:palette")) === "claude") document.documentElement.dataset.palette = "claude"; } catch {}</script>
 <script>try { const t = JSON.parse(localStorage.getItem("jpq:theme")); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
@@ -356,6 +365,7 @@ body.writing .foot { display: none; }
   <header class="head">
     <h1>Japanese Vocab Practice</h1>
     <dialog id="welcome" aria-label="Welcome to Japanese Vocab Practice">
+      <button class="dlgx" type="button" id="welcomeClose" aria-label="Close and continue as a guest" title="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18"/></svg></button>
       <div class="welcome">
         <p class="lead">This tool aims to improve written Japanese skills by combining traditional Q-Cards with handwriting recognition.</p>
         <p>To start, sign in with Google to sync your data across devices, or continue as a guest to keep it in this browser only.</p>
@@ -366,10 +376,10 @@ body.writing .foot { display: none; }
     <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
     <dialog id="settings" aria-label="Settings"><div class="settings">
       <div class="sethead"><h2>Settings</h2><button class="ghost" type="button" id="settingsClose" aria-label="Close settings">✕</button></div>
-      <section><h3>Colours</h3>
-        <div class="seg" id="palPick" role="group" aria-label="Colours"><button type="button" data-pal="indigo"><i style="background:#2c4a8f"></i>Blue</button><button type="button" data-pal="claude"><i style="background:#c96442"></i>Warm</button></div>
+      <section class="setrow"><h3>Colours</h3>
+        <div class="palpick" id="palPick" role="group" aria-label="Colours"><button type="button" data-pal="indigo" aria-label="Blue" title="Blue"><i style="background:#2c4a8f"></i></button><button type="button" data-pal="claude" aria-label="Warm" title="Warm"><i style="background:#c96442"></i></button></div>
       </section>
-      <section><h3>Light or dark</h3>
+      <section class="setrow"><h3>Light or dark</h3>
         <div class="seg" id="themePick" role="group" aria-label="Light or dark"><button type="button" data-theme-pick="">Match device</button><button type="button" data-theme-pick="light">Light</button><button type="button" data-theme-pick="dark">Dark</button></div>
       </section>
       <section><h3>Account</h3>
@@ -705,7 +715,7 @@ body.writing .foot { display: none; }
   const active = new Map(); // pointerId -> the pad its stroke is in now (a stroke can move to the other box)
   // Undo history: { gid } for a stroke (all its pieces, in any box), { erased: [[pad, stroke, index], …] } for one eraser drag.
   const history = [];
-  let gidSeq = 0, erasing = false, eraseG = null;
+  let gidSeq = 0, erasing = false, eraseG = null, inkTimer = null;
   const ERASE_R = 12; // px around the eraser that counts as touching a stroke
   const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   class Pad {
@@ -841,7 +851,7 @@ body.writing .foot { display: none; }
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawAll);
   new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   const syncCheck = () => { $("#checkBtn").disabled = main.empty || Q.busy || Q.answered; };
-  furi.onChange = syncCheck; main.onChange = syncCheck;
+  furi.onChange = main.onChange = () => { syncCheck(); inkChanged(); };
   // Undo the latest stroke or eraser drag that touched one of these boxes; entries whose strokes are already gone are skipped.
   function undoIn(ps) {
     while (history.length) {
@@ -1376,16 +1386,40 @@ body.writing .foot { display: none; }
     return shuffle([...g.values()]).flat();
   }
   $("#startBtn").onclick = () => startTest(selectedWords());
-  $("#quitBtn").onclick = () => { show("setup"); renderSetup(); };
+  $("#quitBtn").onclick = () => { saveResume(); show("setup"); renderSetup(); };
   // The practice in progress is saved after every question (choice "resume", which follows the account like the others),
   // so one left midway can be picked up again from the practice page. Finishing clears it; starting another replaces it.
   function saveResume() {
+    clearTimeout(inkTimer);
     if (!Q.meta) return;
     const pending = [...(Q.cur && !Q.answered ? [Q.cur] : []), ...Q.queue];
     const r = { items: Q.items, pending: pending.map((it) => it.key), wrong: Q.wrong.map((it) => it.key), done: [...Q.done], tries: Q.tries, round: Q.round, meta: Q.meta, upto: quizUpto, savedAt: new Date().toISOString() };
+    // What's written for the question still open comes back too.
+    if (Q.cur && !Q.answered && (!main.empty || !furi.empty)) r.ink = { key: Q.cur.key, main: inkOf(main), furi: inkOf(furi) };
     // A very long practice (thousands of questions) isn't kept, so saving stays quick.
     store.set("resume", JSON.stringify(r).length < 400000 ? r : null);
   }
+  // A box's strokes, with its size (to fit them into a smaller box on another device) and which strokes are the two
+  // parts of one that crossed between the boxes (g, so Undo still takes both).
+  const inkOf = (pad) => ({ w: pad.w, h: pad.h, s: pad.strokes.filter((st) => st.length && st !== pad.cur).map((st) => ({ g: st.gid, p: st.map(([x, y]) => [Math.round(x * 2) / 2, Math.round(y * 2) / 2]) })) });
+  function restoreInk(ink) {
+    const gids = new Map();
+    for (const [pad, k] of [[furi, "furi"], [main, "main"]]) {
+      const d = ink[k];
+      if (!d?.s?.length || !pad.w) continue;
+      const f = Math.min(1, pad.w / (d.w || pad.w), pad.h / (d.h || pad.h));
+      for (const { g, p } of d.s) {
+        if (!Array.isArray(p) || !p.length) continue;
+        const st = p.map(([x, y]) => [x * f, y * f]);
+        if (!gids.has(g)) { gids.set(g, ++gidSeq); history.push({ gid: gidSeq }); }
+        st.gid = gids.get(g);
+        pad.strokes.push(st);
+      }
+      pad.draw(); pad.onChange();
+    }
+  }
+  // Saved again shortly after each stroke, so the writing survives closing the page too.
+  function inkChanged() { clearTimeout(inkTimer); if (Q.cur && !Q.answered && !$("#quiz").hidden) inkTimer = setTimeout(saveResume, 600); }
   const resumable = () => { const r = store.get("resume", null); return Array.isArray(r?.items) && r.items.length && Array.isArray(r.pending) ? r : null; };
   function renderResume() {
     const r = resumable(), b = $("#resumeBtn");
@@ -1405,6 +1439,7 @@ body.writing .foot { display: none; }
       meta: r.meta || { dir: S.dir, mode: S.mode, sets: [] } });
     show("quiz");
     nextItem();
+    if (r.ink && r.ink.key === Q.cur?.key) { pads.forEach((p) => p.resize()); restoreInk(r.ink); saveResume(); }
   };
 
   function nextItem() {
@@ -2640,7 +2675,8 @@ CORRECT: <YES or NO, matching your REASON>`;
     $("#welcomeErr").textContent = err || ""; $("#welcomeErr").hidden = !err;
     if (!$("#welcome").open) $("#welcome").showModal();
   }
-  $("#guestBtn").onclick = () => { try { localStorage.setItem("qcard:mode", "local"); } catch {} $("#welcome").close(); };
+  // Closing the pop-up (its X) is the same as continuing as a guest.
+  $("#guestBtn").onclick = $("#welcomeClose").onclick = () => { try { localStorage.setItem("qcard:mode", "local"); } catch {} $("#welcome").close(); };
   $("#signInBtn").onclick = async () => {
     $("#signInBtn").disabled = true;
     try { await platform.signIn(); } // the page then reloads into the account (see boot)
