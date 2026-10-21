@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-5UhAtgIG9HVsE9rx23j0hE33r0hv9ihVfoBDlaOmnE0=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-co8j+bwKlxfq7QqObncc85AHA9KKJ3//v3u+Ro2J+ZA=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -43,18 +43,19 @@
   color-scheme: dark;
 }
 /* Claude palette: warm ivory paper, terracotta accent, crimson pen. Picked per viewer (data-palette).
-   Dark mode is the same plain grey in both palettes, with only the accent colours differing (the owner). */
+   Dark mode is plain grey in both palettes, with only the accent colours differing (the owner). Next to the orange accent
+   a neutral grey looks brownish, so Warm's greys lean a touch cool, and its highlight fill is grey rather than brown. */
 :root[data-palette="claude"] {
   --bg: #f0eee6; --surface: #fdfcf9; --sunk: #f4f2ec; --ink: #1f1e1c; --muted: #696760; --line: #dedad0; --guide: #d3cec2; --ai: #ad5230; --ai-soft: #f6e5dc; --shu: #b0263c; --shu-soft: #f7e0e3; --ok: #4d7a34;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-palette="claude"]:not([data-theme="light"]) {
-    --bg: #181818; --surface: #222222; --sunk: #1c1c1c; --ink: #ececec; --muted: #a3a3a3; --line: #363636; --guide: #3f3f3f; --ai: #e08560; --ai-soft: #382b25; --shu: #f0707e; --shu-soft: #3a2427; --ok: #7cbf6a;
+    --bg: #17181a; --surface: #212225; --sunk: #1b1c1e; --ink: #ececec; --muted: #a3a3a5; --line: #35373b; --guide: #3e4044; --ai: #e08560; --ai-soft: #2d2e32; --shu: #f0707e; --shu-soft: #3a2427; --ok: #7cbf6a;
     color-scheme: dark;
   }
 }
 :root[data-palette="claude"][data-theme="dark"] {
-  --bg: #181818; --surface: #222222; --sunk: #1c1c1c; --ink: #ececec; --muted: #a3a3a3; --line: #363636; --guide: #3f3f3f; --ai: #e08560; --ai-soft: #382b25; --shu: #f0707e; --shu-soft: #3a2427; --ok: #7cbf6a;
+  --bg: #17181a; --surface: #212225; --sunk: #1b1c1e; --ink: #ececec; --muted: #a3a3a5; --line: #35373b; --guide: #3e4044; --ai: #e08560; --ai-soft: #2d2e32; --shu: #f0707e; --shu-soft: #3a2427; --ok: #7cbf6a;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -353,6 +354,20 @@ body { margin: 0; }
 .welcome p { margin: 0; text-wrap: pretty; }
 .welcome .lead { color: var(--ink); font-weight: 500; }
 .signbtns { display: grid; gap: 10px; margin: 4px 0; }
+.tourbtn { background: var(--ai-soft); color: var(--ai); border-color: transparent; font-weight: 700; padding: 10px 20px; }
+.tourbtn:hover { border-color: var(--ai); }
+/* The tour: a ring around one part of the page with the rest dimmed (clicks still go through), and a card beside it. */
+.tourspot { position: fixed; z-index: 60; pointer-events: none; border-radius: 12px; box-shadow: 0 0 0 3px var(--ai), 0 0 0 200vmax rgba(10, 12, 16, .5);
+  transition: top .25s, left .25s, width .25s, height .25s; }
+.tourspot.none { box-shadow: 0 0 0 200vmax rgba(10, 12, 16, .5); }
+.tourcard { position: fixed; z-index: 61; width: min(360px, calc(100vw - 24px)); background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 14px; padding: 14px 16px 16px; box-shadow: 0 14px 40px rgba(0, 0, 0, .3); display: grid; gap: 8px; transition: top .25s, left .25s; }
+.tourcard p { margin: 0; text-wrap: pretty; }
+.tourcard .tourtitle { font-weight: 700; font-size: 1.05rem; }
+.tourcard .tourhead { display: flex; justify-content: space-between; align-items: center; margin: -4px -6px -4px 0; }
+.tourcard .dlgx { position: static; }
+.tourbtns { display: flex; justify-content: flex-end; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.tourbtns .link { margin-right: auto; }
 .keyerr { color: var(--shu); }
 .fb.self { border-color: var(--ai); }
 .fb.self .stamp { color: var(--ai); border-color: var(--ai); }
@@ -375,6 +390,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
         <p class="lead">This tool aims to improve written Japanese skills by combining traditional Q-Cards with handwriting recognition.</p>
         <p>To start, sign in with Google to sync your data across devices, or continue as a guest to keep it in this browser only.</p>
         <div class="signbtns"><button class="btn primary" type="button" id="signInBtn">Sign in with Google</button><button class="btn primary" type="button" id="guestBtn">Continue as a guest</button></div>
+        <button class="btn tourbtn" type="button" id="tourBtn">First time here? Take the 5-minute tour</button>
         <p class="keyerr small" id="welcomeErr" hidden></p>
       </div>
     </dialog>
@@ -390,6 +406,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       <section><h3>Account</h3>
         <p id="acctName"></p>
         <div class="tactions"><button class="btn" type="button" id="signOutBtn">Sign out</button></div>
+        <p class="keyerr small" id="acctErr" hidden></p>
       </section>
       <section><h3>Your vocab</h3><p class="muted" id="setStats"></p></section>
       <section id="portPanel" hidden><h3>Export / import</h3>
@@ -2674,23 +2691,28 @@ CORRECT: <YES or NO, matching your REASON>`;
   $("#selfMiss").onclick = () => { $("#selfCheck").hidden = true; grade(false, { reason: "You marked this one as missed." }); $("#overrideBtn").hidden = true; };
 
   // ---------- public site: welcome / sign-in ----------
-  // New visitors (and anyone who signed out) see a welcome pop-up over the page, which runs as a guest behind it.
+  // A first-time visitor sees a welcome pop-up over the page, which runs as a guest behind it. Once they've picked
+  // anything (guest, the tour, the X, or signing in) it's remembered (qcard:welcomed) and doesn't come back, signed out
+  // or not, until "Delete" starts the browser over (the owner). Signing in from Settings goes straight to Google.
   let startLocal = () => {};
+  const welcomed = () => { try { localStorage.setItem("qcard:welcomed", "1"); } catch {} };
   function welcome(err) {
     $("#welcomeErr").textContent = err || ""; $("#welcomeErr").hidden = !err;
     if (!$("#welcome").open) $("#welcome").showModal();
   }
   // Closing the pop-up (its X) is the same as continuing as a guest.
-  $("#guestBtn").onclick = $("#welcomeClose").onclick = () => { try { localStorage.setItem("qcard:mode", "local"); } catch {} $("#welcome").close(); };
-  $("#signInBtn").onclick = async () => {
-    $("#signInBtn").disabled = true;
-    try { await platform.signIn(); } // the page then reloads into the account (see boot)
+  $("#guestBtn").onclick = $("#welcomeClose").onclick = () => { try { localStorage.setItem("qcard:mode", "local"); } catch {} welcomed(); $("#welcome").close(); };
+  // Google's sign-in window; the page then reloads into the account (see boot). onErr says why it didn't work.
+  async function signIn(btn, onErr) {
+    btn.disabled = true;
+    try { await platform.signIn(); }
     catch (e) {
-      $("#signInBtn").disabled = false;
+      btn.disabled = false;
       if (/popup-closed-by-user|cancelled-popup-request/.test(e?.code)) return;
-      welcome(e?.code === "auth/popup-blocked" ? "Your browser blocked the sign-in window. Allow pop-ups for this site, then try again." : "Sign-in didn't work. Try again.");
+      onErr(e?.code === "auth/popup-blocked" ? "Your browser blocked the sign-in window. Allow pop-ups for this site, then try again." : "Sign-in didn't work. Try again.");
     }
-  };
+  }
+  $("#signInBtn").onclick = () => signIn($("#signInBtn"), welcome);
   // Settings → Account and Delete. account is the signed-in person ({uid, email, name}), or null for a guest.
   let account = null, delAsk = false, stopPrefs = () => {};
   $("#settings").addEventListener("close", () => { delAsk = false; });
@@ -2698,7 +2720,8 @@ CORRECT: <YES or NO, matching your REASON>`;
     $("#acctName").innerHTML = account ? `Signed in with Google as <b>${esc(account.email || account.name || "")}</b>.`
       : "Not signed in. As a guest, everything is kept in this browser on this device.";
     $("#signOutBtn").textContent = account ? "Sign out" : "Sign in with Google";
-    $("#signOutBtn").onclick = account ? () => platform.signOut() : () => { $("#settings").close(); welcome(); };
+    $("#acctErr").hidden = true;
+    $("#signOutBtn").onclick = account ? () => platform.signOut() : () => signIn($("#signOutBtn"), (m) => { $("#acctErr").textContent = m; $("#acctErr").hidden = false; });
     const what = account ? "your account and its sets, kanji lists and practice history" : "the sets, kanji lists and practice history saved in this browser";
     $("#delAcct").innerHTML = !delAsk
       ? account ? `<button class="btn danger" type="button" id="delStart">Delete my account</button>`
@@ -2722,7 +2745,7 @@ CORRECT: <YES or NO, matching your REASON>`;
         const paths = [];
         for (const c of ["sets", "kanji", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
         for (const p of [...paths, "meta/books", "meta/courses", "meta/samples"]) await db.doc(p).delete();
-        try { localStorage.removeItem("qcard:mode"); } catch {}
+        try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
         if (account) await platform.deleteAccount(); // which signs out, and the page starts over (see boot)
         else {
           // A guest starts over as a new visitor: every choice this site kept in this browser goes too (colours, picks, a practice to resume).
@@ -2737,6 +2760,164 @@ CORRECT: <YES or NO, matching your REASON>`;
       }
     };
   }
+  // ---------- public site: the tour ----------
+  // "First time here? Take the 5-minute tour" in the welcome pop-up: a guided first practice as a guest. Each step rings
+  // part of the page (the rest is dimmed but still works) and says what it's for. A step with `done` waits for the
+  // visitor to do it, and Next does it for them (`act`); a step whose part isn't on the page is skipped (after `grace` ms,
+  // for a part that may still be loading).
+  const vis = (el) => !!el && el.getClientRects().length > 0;
+  const firstVis = (...sels) => sels.map((s) => $(s)).find(vis) || null;
+  const TOUR = [
+    { title: "Welcome to the tour", next: "Start the tour",
+      text: "In about 5 minutes you'll practice a word with the sample sets and see where everything is. You're using the page as a guest for now. Leave any time with the ✕." },
+    { view: "setup", at: () => $("#setPicker [data-set]:not(:disabled)"), title: "Pick a set", grace: 2000,
+      text: "These are your vocab sets, grouped Collection › Unit › Set. The sample sets are here to try. Tap a set to pick it (you can pick more than one).",
+      done: () => S.selected.size > 0, act: () => $("#setPicker [data-set]:not(:disabled)")?.click() },
+    { view: "setup", at: () => firstVis("#pickBar"), title: "Units and filters",
+      text: "These chips show or hide whole units. When sets have tags, a Filter row narrows them down too." },
+    { view: "setup", at: () => $("#dirSeg"), title: "Direction",
+      text: "English → 日本語 shows the English and you write the Japanese. 日本語 → English is the other way round, and Both mixes them. We'll use English → 日本語.",
+      leave: () => { if (S.dir !== "ej") $("#dir-ej").click(); } },
+    { view: "setup", at: () => $("#modeSeg"), title: "Modes",
+      text: "Modes change what you're asked: Kana only, Force kanji (the kanji you've learned), Katakana only, or Verb forms (five forms of each verb). Default takes any correct mix of kana and kanji.",
+      leave: () => { if (S.mode !== "default") $("#mode-default").click(); } },
+    { view: "setup", at: () => firstVis(".uptorow"), title: "Kanji learned up to",
+      text: "Tell the page how far you've got with kanji. It goes by your kanji lists to decide what Force kanji asks for and how 日本語 → English questions are shown." },
+    { view: "setup", at: () => $("#startBtn"), title: "Start practicing", text: "Tap Start practice.",
+      done: () => vis($("#quiz")), act: () => $("#startBtn").click() },
+    { view: "quiz", at: () => $("#quiz .prompt"), title: "The question",
+      text: "Each card shows the set the word comes from and its English. You write the Japanese below." },
+    { view: "quiz", at: () => $("#mainPad"), title: "The answer box",
+      text: "Write here with a finger, a stylus or the mouse. Neatness and stroke order don't matter." },
+    { view: "quiz", at: () => $("#furiPad"), title: "Furigana",
+      text: "Wrote kanji? You can add its reading in this thin strip above it. It's optional." },
+    { view: "quiz", at: () => $("#tools .itools"), title: "Writing tools",
+      text: "Undo takes back the last stroke (Ctrl+Z works too), the bin clears everything, and the switch turns the pen into an eraser that removes whole strokes." },
+    { view: "quiz", id: "write", at: () => [$("#quiz .sheet"), $("#tools")], title: "Your turn", next: "Check",
+      text: "Write the answer, then tap Check. Not sure? Write your best guess: you'll see the answer either way.",
+      done: () => tour.checked && !vis($("#checking")), ready: () => !$("#checkBtn").disabled, act: () => $("#checkBtn").click(), skip: "quit" },
+    { view: "quiz", at: () => firstVis("#selfCheck", "#feedback", "#quiz .prompt"), title: "The result",
+      text: "A right answer gets a 花丸 and the next word comes up by itself. Otherwise you see the answer and a scratch pad to practice it. When the checker can't read your writing you mark it yourself, and if it misreads a right answer you can count it as correct." },
+    { view: "quiz", at: () => firstVis("#scratchPad"), title: "Scratch pad",
+      text: "Practice the right answer here as many times as you like. It isn't marked." },
+    { view: "quiz", id: "quit", at: () => $("#quitBtn"), title: "Stop any time",
+      text: "Next word → moves on, and you can also leave midway. Tap ← Quit now.",
+      done: () => vis($("#setup")), act: () => $("#quitBtn").click() },
+    { view: "setup", at: () => firstVis("#resumeBtn"), title: "Pick up where you left off",
+      text: "Because you left midway, Resume last practice carries on where you stopped, even with what you'd written. Start practice begins a new one." },
+    { view: "setup", at: () => firstVis("#histPanel"), title: "Your practice",
+      text: "Your recent practice shows up here. Turn on history to see your progress and which words need the most love." },
+    { view: "setup", at: () => $("#toTable"), title: "The vocab table", text: "Tap vocab table to see the words in every set.",
+      done: () => vis($("#table")), act: () => $("#toTable").click() },
+    { view: "table", at: () => firstVis("#setTables"), title: "Your sets",
+      text: "Open a set to see its words. You can edit them, and the set's details and tags." },
+    { view: "table", at: () => firstVis("#newSetForm"), title: "Add your own sets",
+      text: "Give a new set its collection (a textbook or course), its unit (like Ch. 3 or Week 1) and a name, then type in the words. You can also import a file from Settings." },
+    { view: "table", at: () => firstVis("#kanjiLists")?.closest(".panel"), title: "Kanji lists",
+      text: "One list per unit with the kanji it teaches. Kanji learned up to counts these." },
+    { view: "table", at: () => $("#backBtn"), title: "Back to practice", text: "Tap ← Back to practice.",
+      done: () => vis($("#setup")), act: () => $("#backBtn").click() },
+    { view: "setup", at: () => $("#settingsBtn"), title: "Settings",
+      text: "The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data." },
+    { title: "That's the tour!", end: true,
+      text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and history on all your devices." },
+  ];
+  const tour = { i: -1, on: false, checked: false, doneAtStart: false, since: 0, frame: 0, card: null, spot: null };
+  const tourEls = (st) => { const a = st?.at?.(); return (Array.isArray(a) ? a : [a]).filter(vis); };
+
+  function startTour() {
+    if (!tour.card) {
+      tour.spot = document.createElement("div"); tour.spot.className = "tourspot";
+      tour.card = document.createElement("div"); tour.card.className = "tourcard"; tour.card.setAttribute("role", "dialog"); tour.card.setAttribute("aria-label", "Tour");
+      document.body.append(tour.spot, tour.card);
+      // Check is how "Your turn" ends; the capture phase sees the click before the page handles it.
+      $("#checkBtn").addEventListener("click", () => { if (tour.on) tour.checked = true; }, true);
+    }
+    tour.on = true; tour.spot.hidden = tour.card.hidden = false;
+    goStep(0);
+    cancelAnimationFrame(tour.frame); tour.frame = requestAnimationFrame(tourTick);
+  }
+  function endTour() {
+    tour.on = false; tour.i = -1; cancelAnimationFrame(tour.frame);
+    tour.spot.hidden = tour.card.hidden = true;
+  }
+  function goStep(i, dir = 1) {
+    TOUR[tour.i]?.leave?.();
+    while (TOUR[i]?.at && !TOUR[i].grace && !tourEls(TOUR[i]).length && TOUR[i + dir]) i += dir;
+    tour.i = i; tour.since = performance.now(); tour.checked = false;
+    // A step that's already done when it starts (a set was picked before) just explains; it doesn't race on.
+    tour.doneAtStart = !!TOUR[i].done?.();
+    renderTourCard();
+    const el = tourEls(TOUR[i])[0];
+    if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+  const stepIndex = (id) => TOUR.findIndex((s) => s.id === id);
+  // The steps Back can return to: earlier ones on the same page that don't wait for anything.
+  function backIndex() {
+    const st = TOUR[tour.i];
+    if (st.done) return -1;
+    for (let j = tour.i - 1; j > 0; j--) { const p = TOUR[j]; if (p.view !== st.view || p.done) return -1; if (tourEls(p).length) return j; }
+    return -1;
+  }
+  function renderTourCard() {
+    const st = TOUR[tour.i], n = TOUR.length;
+    const back = backIndex() >= 0 ? `<button class="ghost" type="button" data-tour="back">Back</button>` : "";
+    const btns = st.end
+      ? `<button class="btn" type="button" data-tour="close">Keep going as a guest</button><button class="btn primary" type="button" data-tour="signin">Sign in with Google</button>`
+      : `${st.skip ? `<button class="link" type="button" data-tour="skip">Skip this</button>` : ""}${back}<button class="btn primary" type="button" data-tour="next">${st.next || "Next"}</button>`;
+    tour.card.innerHTML = `<div class="tourhead"><span class="muted small">${tour.i + 1} of ${n}</span>
+        <button class="dlgx" type="button" data-tour="close" aria-label="End the tour" title="End the tour"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18"/></svg></button></div>
+      <p class="tourtitle">${esc(st.title)}</p><p>${esc(st.text)}</p><div class="tourbtns">${btns}</div>`;
+    tour.card.querySelectorAll("[data-tour]").forEach((b) => (b.onclick = () => tourButton(b.dataset.tour)));
+    syncTourNext();
+  }
+  function syncTourNext() {
+    const b = tour.card.querySelector('[data-tour="next"]'), st = TOUR[tour.i];
+    if (b) b.disabled = !!st.ready && !st.ready();
+  }
+  function tourButton(what) {
+    const st = TOUR[tour.i];
+    if (what === "close") return endTour();
+    if (what === "signin") { endTour(); return signIn(tour.card.querySelector('[data-tour="signin"]'), banner); }
+    if (what === "back") return goStep(backIndex(), -1);
+    if (what === "skip") return goStep(stepIndex(st.skip));
+    if (st.done && !st.done()) { st.act?.(); if (st.id !== "write") return nextTourStep(); return; }
+    nextTourStep();
+  }
+  function nextTourStep() {
+    if (tour.i < TOUR.length - 1) goStep(tour.i + 1);
+  }
+  // Every frame: follow the ringed part as the page moves, move on once a waiting step is done, and skip a step whose
+  // part hasn't shown up within a moment (sets still loading get that moment too).
+  function tourTick(now) {
+    if (!tour.on) return;
+    tour.frame = requestAnimationFrame(tourTick);
+    const st = TOUR[tour.i], els = tourEls(st);
+    if (st.done && !tour.doneAtStart && st.done() && now - tour.since > 300) return nextTourStep();
+    if (st.at && !els.length && now - tour.since > (st.grace || 300)) return nextTourStep();
+    syncTourNext();
+    placeTour(els);
+  }
+  function placeTour(els) {
+    const vw = innerWidth, vh = innerHeight, card = tour.card, w = card.offsetWidth, h = card.offsetHeight, s = tour.spot.style;
+    if (!els.length) {
+      Object.assign(s, { top: vh / 2 + "px", left: vw / 2 + "px", width: "0px", height: "0px" });
+      tour.spot.classList.add("none");
+      Object.assign(card.style, { top: Math.max(12, (vh - h) / 2) + "px", left: Math.max(12, (vw - w) / 2) + "px" });
+      return;
+    }
+    tour.spot.classList.remove("none");
+    const rs = els.map((e) => e.getBoundingClientRect()), pad = 6;
+    const r = { top: Math.min(...rs.map((x) => x.top)) - pad, left: Math.min(...rs.map((x) => x.left)) - pad,
+      bottom: Math.max(...rs.map((x) => x.bottom)) + pad, right: Math.max(...rs.map((x) => x.right)) + pad };
+    Object.assign(s, { top: r.top + "px", left: r.left + "px", width: r.right - r.left + "px", height: r.bottom - r.top + "px" });
+    // Below the ringed part if it fits, else above, else at the bottom of the screen.
+    const top = vh - r.bottom >= h + 20 ? r.bottom + 10 : r.top >= h + 20 ? r.top - h - 10 : vh - h - 12;
+    const left = Math.min(Math.max(12, (r.left + r.right) / 2 - w / 2), vw - w - 12);
+    Object.assign(card.style, { top: top + "px", left: left + "px" });
+  }
+  document.addEventListener("keydown", (e) => { if (tour.on && e.key === "Escape" && !document.querySelector("dialog[open]")) endTour(); });
+  $("#tourBtn").onclick = () => { $("#guestBtn").click(); startTour(); };
   // ---------- boot ----------
   renderSetup();
   (() => {
@@ -2765,13 +2946,14 @@ CORRECT: <YES or NO, matching your REASON>`;
       if (started) { if ((u?.uid || "local") !== started && (u || started !== "local")) location.reload(); return; }
       if (!u) {
         let guest = false;
-        try { guest = localStorage.getItem("qcard:mode") === "local"; } catch {}
+        try { guest = localStorage.getItem("qcard:mode") === "local" || localStorage.getItem("qcard:welcomed") === "1"; } catch {}
         startLocal();
         if (!guest) welcome();
         return;
       }
       // Signing in leaves this browser's own data where it is; it's there again after "Use without signing in".
       try { localStorage.removeItem("qcard:mode"); } catch {}
+      welcomed();
       account = u;
       start(u.uid, platform.db(u.uid));
     });

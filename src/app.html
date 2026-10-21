@@ -41,6 +41,7 @@
         <p class="lead">This tool aims to improve written Japanese skills by combining traditional Q-Cards with handwriting recognition.</p>
         <p>To start, sign in with Google to sync your data across devices, or continue as a guest to keep it in this browser only.</p>
         <div class="signbtns"><button class="btn primary" type="button" id="signInBtn">Sign in with Google</button><button class="btn primary" type="button" id="guestBtn">Continue as a guest</button></div>
+        <button class="btn tourbtn" type="button" id="tourBtn">First time here? Take the 5-minute tour</button>
         <p class="keyerr small" id="welcomeErr" hidden></p>
       </div>
     </dialog>
@@ -58,6 +59,7 @@
       <section><h3>Account</h3>
         <p id="acctName"></p>
         <div class="tactions"><button class="btn" type="button" id="signOutBtn">Sign out</button></div>
+        <p class="keyerr small" id="acctErr" hidden></p>
       </section>
 <!--#endif-->
       <section><h3>Your vocab</h3><p class="muted" id="setStats"></p></section>
@@ -323,6 +325,7 @@
 
   //#if public
   //#include app/public.js
+  //#include app/tour.js
   //#endif
   //#include app/boot.js
 })();

@@ -32,18 +32,19 @@
   color-scheme: dark;
 }
 /* Claude palette: warm ivory paper, terracotta accent, crimson pen. Picked per viewer (data-palette).
-   Dark mode is the same plain grey in both palettes, with only the accent colours differing (the owner). */
+   Dark mode is plain grey in both palettes, with only the accent colours differing (the owner). Next to the orange accent
+   a neutral grey looks brownish, so Warm's greys lean a touch cool, and its highlight fill is grey rather than brown. */
 :root[data-palette="claude"] {
   --bg: #f0eee6; --surface: #fdfcf9; --sunk: #f4f2ec; --ink: #1f1e1c; --muted: #696760; --line: #dedad0; --guide: #d3cec2; --ai: #ad5230; --ai-soft: #f6e5dc; --shu: #b0263c; --shu-soft: #f7e0e3; --ok: #4d7a34;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-palette="claude"]:not([data-theme="light"]) {
-    --bg: #181818; --surface: #222222; --sunk: #1c1c1c; --ink: #ececec; --muted: #a3a3a3; --line: #363636; --guide: #3f3f3f; --ai: #e08560; --ai-soft: #382b25; --shu: #f0707e; --shu-soft: #3a2427; --ok: #7cbf6a;
+    --bg: #17181a; --surface: #212225; --sunk: #1b1c1e; --ink: #ececec; --muted: #a3a3a5; --line: #35373b; --guide: #3e4044; --ai: #e08560; --ai-soft: #2d2e32; --shu: #f0707e; --shu-soft: #3a2427; --ok: #7cbf6a;
     color-scheme: dark;
   }
 }
 :root[data-palette="claude"][data-theme="dark"] {
-  --bg: #181818; --surface: #222222; --sunk: #1c1c1c; --ink: #ececec; --muted: #a3a3a3; --line: #363636; --guide: #3f3f3f; --ai: #e08560; --ai-soft: #382b25; --shu: #f0707e; --shu-soft: #3a2427; --ok: #7cbf6a;
+  --bg: #17181a; --surface: #212225; --sunk: #1b1c1e; --ink: #ececec; --muted: #a3a3a5; --line: #35373b; --guide: #3e4044; --ai: #e08560; --ai-soft: #2d2e32; --shu: #f0707e; --shu-soft: #3a2427; --ok: #7cbf6a;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -343,6 +344,20 @@ body { margin: 0; }
 .welcome p { margin: 0; text-wrap: pretty; }
 .welcome .lead { color: var(--ink); font-weight: 500; }
 .signbtns { display: grid; gap: 10px; margin: 4px 0; }
+.tourbtn { background: var(--ai-soft); color: var(--ai); border-color: transparent; font-weight: 700; padding: 10px 20px; }
+.tourbtn:hover { border-color: var(--ai); }
+/* The tour: a ring around one part of the page with the rest dimmed (clicks still go through), and a card beside it. */
+.tourspot { position: fixed; z-index: 60; pointer-events: none; border-radius: 12px; box-shadow: 0 0 0 3px var(--ai), 0 0 0 200vmax rgba(10, 12, 16, .5);
+  transition: top .25s, left .25s, width .25s, height .25s; }
+.tourspot.none { box-shadow: 0 0 0 200vmax rgba(10, 12, 16, .5); }
+.tourcard { position: fixed; z-index: 61; width: min(360px, calc(100vw - 24px)); background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 14px; padding: 14px 16px 16px; box-shadow: 0 14px 40px rgba(0, 0, 0, .3); display: grid; gap: 8px; transition: top .25s, left .25s; }
+.tourcard p { margin: 0; text-wrap: pretty; }
+.tourcard .tourtitle { font-weight: 700; font-size: 1.05rem; }
+.tourcard .tourhead { display: flex; justify-content: space-between; align-items: center; margin: -4px -6px -4px 0; }
+.tourcard .dlgx { position: static; }
+.tourbtns { display: flex; justify-content: flex-end; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.tourbtns .link { margin-right: auto; }
 .keyerr { color: var(--shu); }
 .fb.self { border-color: var(--ai); }
 .fb.self .stamp { color: var(--ai); border-color: var(--ai); }
