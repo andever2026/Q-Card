@@ -8,6 +8,10 @@
   let gidSeq = 0, erasing = false, eraseG = null, inkTimer = null;
   const ERASE_R = 12; // px around the eraser that counts as touching a stroke
   const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  // Beside each stroke's points: when each was drawn (ms from the stroke's start, t0) and the pen pressure, plus the kind
+  // of pointer. Only shared handwriting (see share.js) uses them.
+  const stamp = (st, ev) => { st.ts.push(Math.round(ev.timeStamp - st.t0)); st.fs.push(Math.round((ev.pressure || 0) * 100) / 100); };
+  const startStroke = (st, t0, dev) => Object.assign(st, { t0, dev, ts: [], fs: [] });
   class Pad {
     constructor(canvas, kind) {
       this.c = canvas; this.kind = kind; this.strokes = []; this.cur = null; this.onChange = () => {};
@@ -35,6 +39,7 @@
       if (erasing || (e.pointerType === "pen" && e.buttons & 32)) { eraseG = { id: e.pointerId, erased: [] }; eraseAt(e); return; }
       this.curType = e.pointerType; this.curId = e.pointerId; active.set(e.pointerId, this);
       this.cur = [this.pt(e)]; this.cur.gid = ++gidSeq;
+      startStroke(this.cur, e.timeStamp, e.pointerType); stamp(this.cur, e);
       this.strokes.push(this.cur);
       history.push({ gid: this.cur.gid });
       this.draw();
@@ -45,7 +50,7 @@
       if (!this.cur || e.pointerId !== this.curId) return;
       const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
       let pad = this;
-      for (const ev of evs) { pad = pad.handoff(ev); pad.cur.push(pad.pt(ev)); }
+      for (const ev of evs) { pad = pad.handoff(ev); pad.cur.push(pad.pt(ev)); stamp(pad.cur, ev); }
       pad.draw();
     }
     // A stroke that crosses into the other box (furigana ↔ answer) carries on there as a new stroke in that box.
@@ -54,10 +59,10 @@
       if (inside(this.c)) return this;
       const to = pads.find((p) => p !== this && !p.cur && !p.c.hidden && !p.c.classList.contains("locked") && inside(p.c));
       if (!to) return this;
-      const id = this.curId, type = this.curType, gid = this.cur.gid;
+      const id = this.curId, type = this.curType, gid = this.cur.gid, t0 = this.cur.t0;
       this.cur = null; this.draw(); this.onChange();
       try { to.c.setPointerCapture(id); } catch {}
-      to.curType = type; to.curId = id; to.cur = []; to.cur.gid = gid; active.set(id, to); // same gid: Undo and the eraser treat both parts as one stroke
+      to.curType = type; to.curId = id; to.cur = startStroke([], t0, type); to.cur.gid = gid; active.set(id, to); // same gid: Undo and the eraser treat both parts as one stroke
       to.strokes.push(to.cur);
       return to;
     }

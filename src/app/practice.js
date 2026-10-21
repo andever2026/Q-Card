@@ -38,8 +38,10 @@
     store.set("resume", JSON.stringify(r).length < 400000 ? r : null);
   }
   // A box's strokes, with its size (to fit them into a smaller box on another device) and which strokes are the two
-  // parts of one that crossed between the boxes (g, so Undo still takes both).
-  const inkOf = (pad) => ({ w: pad.w, h: pad.h, s: pad.strokes.filter((st) => st.length && st !== pad.cur).map((st) => ({ g: st.gid, p: st.map(([x, y]) => [Math.round(x * 2) / 2, Math.round(y * 2) / 2]) })) });
+  // parts of one that crossed between the boxes (g, so Undo still takes both). Points are one flat list (x, y, x, y…):
+  // Firestore can't store a list inside a list, and the whole choices document would fail to save.
+  const flatXY = (st) => st.flatMap(([x, y]) => [Math.round(x * 2) / 2, Math.round(y * 2) / 2]);
+  const inkOf = (pad) => ({ w: pad.w, h: pad.h, s: pad.strokes.filter((st) => st.length && st !== pad.cur).map((st) => ({ g: st.gid, p: flatXY(st) })) });
   function restoreInk(ink) {
     const gids = new Map();
     for (const [pad, k] of [[furi, "furi"], [main, "main"]]) {
@@ -48,7 +50,8 @@
       const f = Math.min(1, pad.w / (d.w || pad.w), pad.h / (d.h || pad.h));
       for (const { g, p } of d.s) {
         if (!Array.isArray(p) || !p.length) continue;
-        const st = p.map(([x, y]) => [x * f, y * f]);
+        const pts = typeof p[0] === "number" ? Array.from({ length: p.length >> 1 }, (_, i) => [p[2 * i], p[2 * i + 1]]) : p; // pairs: saved before Oct 21
+        const st = pts.map(([x, y]) => [x * f, y * f]);
         if (!gids.has(g)) { gids.set(g, ++gidSeq); history.push({ gid: gidSeq }); }
         st.gid = gids.get(g);
         pad.strokes.push(st);
@@ -202,6 +205,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     let self = false;
     try {
       const res = dir === "je" ? await englishCheck(w) : await builtinCheck(w, dir === "ej" && !furi.empty);
+      shareAnswer(!res ? "unread" : res.ok ? "right" : dir === "ej" ? "wrong" : "unmatched", res?.r);
       if (res && (res.ok || dir === "ej")) grade(res.ok, res.r); else self = res ? "unmatched" : "unread";
     } catch (e) {
       showErr(ERR[e?.code] || "Something went wrong with the check. Press Check to try again.");
