@@ -25,7 +25,7 @@ const platformJs = (await esbuild.build({
   bundle: true, format: "iife", write: false, alias: { "firebase/app": fake, "firebase/auth": fake, "firebase/firestore": fake },
 })).outputFiles[0].text;
 
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png" };
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".css": "text/css", ".woff2": "font/woff2" };
 const server = createServer((req, res) => {
   const p = join(root, decodeURIComponent(new URL(req.url, "http://x").pathname).replace(/\/$/, "/index.html"));
   if (!p.startsWith(root) || !existsSync(p)) { res.writeHead(404); return res.end(); }
@@ -51,7 +51,6 @@ async function newPage(ctx, { width = 900, init } = {}) {
   });
   if (init) await page.addInitScript(init);
   await page.route("**/js/platform.js", (r) => r.fulfill({ contentType: "text/javascript", body: platformJs }));
-  await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
   await page.route("https://api.anthropic.com/**", async (r) => {
     const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST, OPTIONS" };
     if (r.request().method() === "OPTIONS") return r.fulfill({ status: 204, headers: cors });
@@ -81,6 +80,7 @@ let page = await newPage(ctx);
 ok(await vis(page, "#signInBtn"), "signed out: sign-in button shows");
 ok(!(await vis(page, "#setup")), "signed out: practice page hidden");
 ok(/site owner can see/.test(await text(page, "#gate")), "signed out: note that the site owner can see stored data");
+ok((await page.evaluate(() => document.fonts.load("600 20px 'Klee One'", "あ"))).length > 0, "fonts: Klee One loads from the site");
 await page.screenshot({ path: join(out, "1-signin.png") });
 await page.evaluate(() => { window.__signInError = "auth/popup-blocked"; });
 await page.click("#signInBtn"); await page.waitForTimeout(200);
@@ -254,6 +254,7 @@ await page.evaluate(() => { window.__nextUser = { uid: "u2", displayName: "Other
 await page.click("#signInBtn"); await page.waitForTimeout(600);
 ok(await vis(page, "#emptyImport"), "another account starts empty");
 ok(page.errors.length === 0, "no page errors", page.errors.join(" | "));
+ok(!allRequests.some((r) => /fonts\.(googleapis|gstatic)\.com/.test(r.url)), "fonts: nothing requested from Google Fonts");
 
 // ---------- 8. phone width ----------
 const phone = await newPage(ctx, { width: 375 });

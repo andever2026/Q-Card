@@ -17,7 +17,7 @@ Q-Card is a flashcard site for Japanese vocabulary that checks your handwriting.
 
 If you choose Claude, your Anthropic API key is used only from your browser:
 
-- It's sent only to `api.anthropic.com`. It's never saved to Q-Card's database or sent anywhere else, and the page's Content Security Policy blocks it from talking to any other site apart from Google's sign-in and database services.
+- It's sent only to `api.anthropic.com`. It's never saved to Q-Card's database or sent anywhere else, and the page's Content Security Policy blocks it from talking to any other site apart from Google's sign-in and database services. The page loads nothing else from other sites; even its fonts are served from the site itself.
 - By default it's kept for the current tab only (`sessionStorage`) and forgotten when you close the tab.
 - Tick **Remember on this device** to keep it in this browser (`localStorage`). Add a passcode and only an encrypted copy is stored (PBKDF2 + AES-GCM); you unlock it once per tab.
 - **Forget my key** removes every copy from the browser.
@@ -42,6 +42,7 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 | `src/platform/config.js` | Firebase web config. These values are public by design; the rules above protect the data. |
 | `src/checker.js` | The built-in handwriting checker. |
 | `data/templates.json` | Stroke templates for the checker, generated from KanjiVG by `tools/make-templates.mjs`. |
+| `fonts/` | The page's fonts, served from the site itself so visitors never contact Google Fonts. `tools/fetch-fonts.mjs` refreshes them. |
 | `tools/build.mjs` | Builds `index.html` and `js/*.js` (the site) and `build/claude-ai.html` (the claude.ai copy). |
 | `index.html`, `js/` | Built files. GitHub Pages serves these straight from the `main` branch, so they're committed. |
 | `test/` | Browser tests for the public site (`test/public`) and the checker's accuracy tests (`test/checker`). |
@@ -104,4 +105,4 @@ Q-Card is licensed under the [GNU Affero General Public License v3.0](LICENSE).
 - Kanji readings come from [KANJIDIC](https://www.edrdg.org/wiki/index.php/KANJIDIC_Project), © the Electronic Dictionary Research and Development Group, licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 - The built site bundles the [Firebase JS SDK](https://github.com/firebase/firebase-js-sdk) (Apache-2.0) and the [Anthropic TypeScript SDK](https://github.com/anthropics/anthropic-sdk-typescript) (MIT).
 - The checker's accuracy tests can also use hand-drawn characters from [KanjiCanvas](https://github.com/asdfjkl/kanjicanvas) (MIT) and the Tomoe dictionary via [tegaki](https://github.com/tegaki/tegaki) (LGPL). You download them yourself to run those tests; they aren't part of the site or this repository.
-- Fonts: Klee One and Zen Kaku Gothic New from Google Fonts (SIL Open Font License).
+- Fonts: [Klee One](https://github.com/fontworks-fonts/Klee) and [Zen Kaku Gothic New](https://github.com/googlefonts/zen-kakugothic), licensed under the SIL Open Font License 1.1 ([fonts/OFL.txt](fonts/OFL.txt)), copied from Google Fonts and served from this site.
