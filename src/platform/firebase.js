@@ -4,7 +4,7 @@
 // (window.claude.use("db" | "user" | "downloads")), so this hands it objects with the same shape.
 // Bundled into js/platform.js by tools/build.mjs.
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, deleteUser, reauthenticateWithPopup } from "firebase/auth";
 import { initializeFirestore, doc, collection, query, orderBy, limit, onSnapshot, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import config from "./config.js";
 import { makeLocalDb } from "./local.js";
@@ -81,6 +81,13 @@ window.qcardPlatform = {
   onAuth: (cb) => onAuthStateChanged(auth, (u) => cb(who(u))),
   signIn: () => signInWithPopup(auth, new GoogleAuthProvider()),
   signOut: () => signOut(auth),
+  // Deleting the sign-in itself needs a recent sign-in; after a while Google asks the person to confirm it's them first.
+  deleteAccount: async () => {
+    const u = auth.currentUser;
+    if (!u) return;
+    try { await deleteUser(u); }
+    catch (e) { if (e?.code !== "auth/requires-recent-login") throw e; await reauthenticateWithPopup(u, new GoogleAuthProvider()); await deleteUser(u); }
+  },
   db: makeDb,
   localDb: makeLocalDb,
   user: makeUser,

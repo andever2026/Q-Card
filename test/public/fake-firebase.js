@@ -12,7 +12,7 @@ export const initializeApp = (config) => ({ config });
 const authCbs = new Set();
 let current = load(LS_USER, null);
 const emit = () => authCbs.forEach((cb) => cb(current));
-export const getAuth = () => ({});
+export const getAuth = () => ({ get currentUser() { return current; } });
 export class GoogleAuthProvider {}
 export function onAuthStateChanged(_auth, cb) { authCbs.add(cb); setTimeout(() => cb(current), 0); return () => authCbs.delete(cb); }
 export async function signInWithPopup() {
@@ -22,6 +22,14 @@ export async function signInWithPopup() {
   return { user: current };
 }
 export async function signOut() { current = null; localStorage.removeItem(LS_USER); emit(); }
+// window.__staleLogin makes deleteUser ask for a recent sign-in first, as Firebase does after a while.
+let reauthed = false;
+export async function reauthenticateWithPopup() { if (window.__signInError) throw { code: window.__signInError }; reauthed = true; }
+export async function deleteUser() {
+  if (window.__staleLogin && !reauthed) throw { code: "auth/requires-recent-login" };
+  window.__deletedUsers = [...(window.__deletedUsers || []), current?.uid]; localStorage.setItem("fake:deleted", JSON.stringify(window.__deletedUsers));
+  current = null; localStorage.removeItem(LS_USER); emit();
+}
 
 // ---------- firestore ----------
 let data = load(LS_DB, {}); // path → fields

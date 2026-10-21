@@ -7,9 +7,10 @@ Japanese Vocab Practice (this repository: Q-Card) is a flashcard site for Japane
 ## What it does
 
 - **Practice by hand.** English → 日本語, 日本語 → English, or both. Modes: Default, Force kanji (kanji you've learned must be kanji), Kana only, Katakana only, and Verb forms.
-- **Tags.** Give sets tags in their details (Verbs, Quiz 3…). The Filter row above the sets lists every tag in use, most-used first, with none picked; tapping tags narrows the sets to those tags, and Clear filter shows them all again. When a table has Extras or Supp. sets, Main sets, Extras and Supp. are tags too.
+- **Tags.** Give sets tags in their details (Verbs, Quiz 3…). The Filter row above the sets lists every tag in use with how many sets picking it would hide, the ones hiding the most first, and none picked; tapping tags narrows the sets to those tags, and Clear filter shows them all again. When a table has Extras or Supp. sets, Main sets, Extras and Supp. are tags too.
 - **Your own vocab.** Everyone brings their own lists: import a vocab file someone shared with you, or type sets into the vocab table. Q-Card ships no textbook lists. New visitors start with a few sample sets (`data/samples.json`: greetings, people, food, katakana words, everyday verbs and time, with kanji lists for three chapters) so every mode can be tried right away; **Remove the sample sets** under the set picker takes them out for good.
 - **Private per person.** Sign in with Google and your sets, kanji lists and practice history live in your own space in the database, on any device. Or choose **Continue as a guest** and everything stays in your browser on that device.
+- **Settings.** The gear at the top opens Settings: colours, light or dark, which account you're using, sign in or out, how much vocab you have, and deleting your account (or, as a guest, everything saved in this browser).
 - **Two ways to check answers:**
   - **Built-in checker** (default, free). Compares your strokes with stroke templates for kana and about 2,150 kanji, right in the browser. Your writing never leaves your device. It's less accurate than Claude, so you can always count an answer as correct yourself. 日本語 → English answers are marked by you.
   - **Claude, with your own API key.** Claude reads your writing the way a teacher would, furigana included. Each check is billed to your own Anthropic account.
@@ -26,7 +27,7 @@ If you choose Claude, your Anthropic API key is used only from your browser:
 
 ## Data and privacy
 
-Data is stored in Firebase (Cloud Firestore) under `users/<your account id>/`. The [Firestore rules](firestore.rules) let each signed-in person read and write only their own folder, so other visitors can't see your data. As with any website's database, the site owner can see stored data in the Firebase console. Practice history is saved only after you turn it on, and you can delete it from the History page.
+Data is stored in Firebase (Cloud Firestore) under `users/<your account id>/`. The [Firestore rules](firestore.rules) let each signed-in person read and write only their own folder, so other visitors can't see your data. As with any website's database, the site owner can see stored data in the Firebase console. Practice history is saved only after you turn it on, and you can delete it from the History page. **Delete my account** in Settings deletes all of your data and then your account.
 
 As a guest, the site saves everything in your browser's `localStorage` on that device and sends none of it anywhere. Clearing the site's data in your browser deletes it, so export a copy now and then. To move it to an account later, export it, sign in, and import the file.
 
