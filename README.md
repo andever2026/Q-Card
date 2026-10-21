@@ -1,6 +1,6 @@
-# Q-Card
+# Q-Card: Japanese Vocab Practice
 
-Q-Card is a flashcard site for Japanese vocabulary that checks your handwriting. You see a word, write the answer by hand (finger, Apple Pencil or mouse), and Q-Card tells you whether you got it right. Only Japanese is supported at the moment.
+Japanese Vocab Practice (this repository: Q-Card) is a flashcard site for Japanese vocabulary that checks your handwriting. You see a word, write the answer by hand (finger, Apple Pencil or mouse), and Q-Card tells you whether you got it right. Only Japanese is supported at the moment.
 
 **Site:** https://andever2026.github.io/Q-Card/
 
@@ -8,7 +8,7 @@ Q-Card is a flashcard site for Japanese vocabulary that checks your handwriting.
 
 - **Practice by hand.** English → 日本語, 日本語 → English, or both. Modes: Default, Force kanji (kanji you've learned must be kanji), Kana only, Katakana only, and Verb forms.
 - **Your own vocab.** Everyone brings their own lists: import a vocab file someone shared with you, or type sets into the vocab table. Q-Card ships no textbook lists.
-- **Private per person.** Sign in with Google and your sets, kanji lists and practice history live in your own space in the database, on any device. Or choose **Use without signing in** and everything stays in your browser on that device.
+- **Private per person.** Sign in with Google and your sets, kanji lists and practice history live in your own space in the database, on any device. Or choose **Continue as a guest** and everything stays in your browser on that device.
 - **Two ways to check answers:**
   - **Built-in checker** (default, free). Compares your strokes with stroke templates for kana and about 2,150 kanji, right in the browser. Your writing never leaves your device. It's less accurate than Claude, so you can always count an answer as correct yourself. 日本語 → English answers are marked by you.
   - **Claude, with your own API key.** Claude reads your writing the way a teacher would, furigana included. Each check is billed to your own Anthropic account.
@@ -27,7 +27,7 @@ If you choose Claude, your Anthropic API key is used only from your browser:
 
 Data is stored in Firebase (Cloud Firestore) under `users/<your account id>/`. The [Firestore rules](firestore.rules) let each signed-in person read and write only their own folder, so other visitors can't see your data. As with any website's database, the site owner can see stored data in the Firebase console. Practice history is saved only after you turn it on, and you can delete it from the History page.
 
-Without signing in, Q-Card saves everything in your browser's `localStorage` on that device and sends none of it anywhere. Clearing the site's data in your browser deletes it, so export a copy now and then. To move it to an account later, export it, sign in, and import the file.
+As a guest, the site saves everything in your browser's `localStorage` on that device and sends none of it anywhere. Clearing the site's data in your browser deletes it, so export a copy now and then. To move it to an account later, export it, sign in, and import the file.
 
 Q-Card sets no cookies for tracking or ads and has no analytics. What it stores in your browser (your own data, your sign-in session, and your API key if you choose to keep it) is only what the features you use need.
 
@@ -37,7 +37,7 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 | --- | --- |
 | `src/app.html` | The whole page (HTML, CSS and app code). Shared with a personal copy that runs as a claude.ai artifact; lines between `#if public` / `#if claude` markers go to one version only. |
 | `src/platform/firebase.js` | Public-site platform: Google sign-in, the Firestore adapter, file downloads. |
-| `src/platform/local.js` | Use without signing in: the same database shape, kept in the browser's `localStorage`. |
+| `src/platform/local.js` | Guest use (no sign-in): the same database shape, kept in the browser's `localStorage`. |
 | `src/platform/claude.js` | Checking with a visitor's own API key (Anthropic TypeScript SDK). Loaded only when used. |
 | `src/platform/config.js` | Firebase web config. These values are public by design; the rules above protect the data. |
 | `src/checker.js` | The built-in handwriting checker. |
