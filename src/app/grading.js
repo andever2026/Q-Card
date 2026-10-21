@@ -46,7 +46,7 @@
   })();
   function hanamaru() {
     const svg = $("#maru"), p = $("#maruPath");
-    svg.hidden = false;
+    svg.removeAttribute("hidden"); // an <svg> has no .hidden property, so the attribute itself goes
     const len = p.getTotalLength(), reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
     p.style.strokeDasharray = len; p.style.strokeDashoffset = reduce ? 0 : len;
     if (!reduce) p.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 750, easing: "ease-out", fill: "forwards" });

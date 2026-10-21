@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-qljo9b8XiA+GJiqfLsg/s3rtAuMffkt6vTfXEf9Q23o=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-Iwgkm007ieEDTLt7dsiCugNl0lni5MAoto2KDyZooLo=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -106,9 +106,11 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 #settings::backdrop { background: rgba(17, 20, 26, .5); }
 .settings { display: grid; gap: 18px; }
 .settings .sethead { display: flex; justify-content: space-between; align-items: center; }
+.settings .sethead .ghost { padding: 6px 12px; margin-right: -10px; } /* a ✕ wide enough to tap, in the same place */
 .settings section { display: grid; gap: 8px; }
-.settings p { margin: 0; }
+.settings p { margin: 0; overflow-wrap: anywhere; } /* a long email address wraps instead of widening the pop-up */
 .settings .setrow { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+@media (max-width: 480px) { #themePick button { padding-inline: 10px; } } /* Match device, Light and Dark stay on one line on a small phone */
 .palpick { display: inline-flex; gap: 6px; }
 .palpick button { border: 2px solid transparent; background: none; border-radius: 50%; padding: 3px; display: inline-flex; }
 .palpick button:hover { border-color: var(--line); }
@@ -119,6 +121,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .qtip:hover, .qtip:focus-visible, .qtip.open { color: var(--ink); }
 .qtipbody { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(250px, 60vw); background: var(--ink); color: var(--surface); padding: 6px 9px; border-radius: 6px; font-size: .82rem; line-height: 1.4; z-index: 2; }
 .qtip:hover .qtipbody, .qtip:focus-visible .qtipbody, .qtip.open .qtipbody { display: block; }
+/* On a phone the tip opens above the whole row from its left edge, so the pop-up's right side doesn't cut it off. */
+@media (max-width: 480px) { .delrow { position: relative; } .delrow .qtip { position: static; } .delrow .qtipbody { left: 0; transform: none; } }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
 body:not(.ready) section, body:not(.ready) #banner { display: none !important; }
@@ -139,8 +143,9 @@ body.ready #gate { display: none; }
 .pkinds { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .pchs { display: grid; gap: 6px; }
 .pchs:empty { display: none; }
-/* With 2+ collections, the collection names and "Show" share one label column, as wide as the longest label. */
-.pbar.labeled { grid-template-columns: minmax(var(--labw, 0px), max-content) minmax(0, 1fr); column-gap: 12px; }
+/* With 2+ collections, the collection names and "Show" share one label column, as wide as the longest label
+   (on a narrow phone a long name wraps instead, so the chips keep at least 9rem). */
+.pbar.labeled { grid-template-columns: minmax(min(var(--labw, 0px), 100% - 9rem - 12px), max-content) minmax(9rem, 1fr); column-gap: 12px; }
 .pbar.labeled > * { grid-column: 1 / -1; }
 .pbar.labeled :is(.pchs, .pchrow, .pkinds) { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; column-gap: 12px; }
 .pbar.labeled :is(.pchrow, .pkinds) > .chips { align-self: start; }
@@ -184,6 +189,8 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .hist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .hist li { display: flex; justify-content: space-between; gap: 12px; font-size: .9rem; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
 .hist li span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* On a phone the date and score go under the set names when they don't fit beside them. */
+@media (max-width: 480px) { .hist li { flex-wrap: wrap; row-gap: 2px; } }
 .histask { display: grid; gap: 10px; }
 .histask p { margin: 0; font-size: .92rem; }
 
@@ -197,7 +204,7 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .qtext { font-size: clamp(1.6rem, 6vw, 2.3rem); font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 .qtext.jp { font-family: var(--font-jp); font-weight: 600; }
 .qsub { font-family: var(--font-jp); color: var(--muted); font-size: 1rem; min-height: 1.4em; }
-.toclear { color: var(--ai); white-space: nowrap; }
+.toclear { color: var(--ai); display: inline-block; } /* kept whole on its line; wraps only on a phone too narrow for it */
 .qsub.vform { font-family: inherit; color: var(--ai); font-weight: 700; font-size: 1.1rem; }
 .mode:disabled { opacity: .45; cursor: not-allowed; }
 .zlabel { font-size: .72rem; letter-spacing: .1em; color: var(--muted); display: flex; justify-content: space-between; }
@@ -233,7 +240,7 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 /* Results */
 .big { font-size: 2.2rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.stats div { display: grid; gap: 6px; }
+.stats div { display: grid; gap: 6px; align-content: start; } /* labels stay under their numbers when a neighbour's wraps */
 .love { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .love li { display: grid; grid-template-columns: 3rem 1fr; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 8px; background: var(--sunk); }
 .love li:has(.skipw) { grid-template-columns: 3rem 1fr auto; }
@@ -348,6 +355,7 @@ td.c { text-align: center; width: 4.5rem; }
 body { margin: 0; }
 #welcome { border: none; border-radius: 14px; padding: 26px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--muted); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
 #welcome::backdrop { background: rgba(17, 20, 26, .5); }
+@media (max-width: 480px) { #welcome { padding-top: 44px; } } /* on a phone the intro's first line would run under the ✕ */
 .welcome { display: grid; gap: 14px; text-align: center; }
 .dlgx { position: absolute; top: 10px; right: 10px; border: none; background: none; color: var(--muted); padding: 6px; border-radius: 8px; display: inline-flex; }
 .dlgx:hover { color: var(--ink); background: var(--sunk); }
@@ -1515,7 +1523,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
     }
     Q.cur = Q.queue.shift(); Q.answered = false; Q.busy = false;
     const { w, dir } = Q.cur;
-    $("#feedback").hidden = true; $("#tools").hidden = false; $("#checkErr").hidden = true; $("#maru").hidden = true;
+    $("#feedback").hidden = true; $("#tools").hidden = false; $("#checkErr").hidden = true; $("#maru").setAttribute("hidden", "");
     $("#selfCheck").hidden = true;
     main.c.classList.remove("locked"); furi.c.classList.remove("locked");
     furi.clear(); main.clear(); scratch.clear(); history.length = 0; setErasing(false);
@@ -1834,7 +1842,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   })();
   function hanamaru() {
     const svg = $("#maru"), p = $("#maruPath");
-    svg.hidden = false;
+    svg.removeAttribute("hidden"); // an <svg> has no .hidden property, so the attribute itself goes
     const len = p.getTotalLength(), reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
     p.style.strokeDasharray = len; p.style.strokeDashoffset = reduce ? 0 : len;
     if (!reduce) p.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 750, easing: "ease-out", fill: "forwards" });
@@ -2916,8 +2924,12 @@ CORRECT: <YES or NO, matching your REASON>`;
     // A step that's already done when it starts (a set was picked before) just explains; it doesn't race on.
     tour.doneAtStart = !!TOUR[i].done?.();
     renderTourCard();
-    const el = tourEls(TOUR[i])[0];
-    if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
+    const els = tourEls(TOUR[i]);
+    if (!els.length) return;
+    // Centred, unless that leaves no room above or below it for the card (a short phone screen): then near the top, card under it.
+    const rs = els.map((e) => e.getBoundingClientRect()), top = Math.min(...rs.map((r) => r.top)), h = Math.max(...rs.map((r) => r.bottom)) - top;
+    if ((innerHeight - h) / 2 >= tour.card.offsetHeight + 26) els[0].scrollIntoView({ block: "center", behavior: "smooth" });
+    else scrollBy({ top: top - 16, behavior: "smooth" });
   }
   const stepIndex = (id) => TOUR.findIndex((s) => s.id === id);
   // The steps Back can return to: earlier ones on the same page that don't wait for anything.
