@@ -7,7 +7,7 @@ Japanese Vocab Practice (this repository: Q-Card) is a flashcard site for Japane
 ## What it does
 
 - **Practice by hand.** English → 日本語, 日本語 → English, or both. Modes: Default, Force kanji (kanji you've learned must be kanji), Kana only, Katakana only, and Verb forms.
-- **Your own vocab.** Everyone brings their own lists: import a vocab file someone shared with you, or type sets into the vocab table. Q-Card ships no textbook lists.
+- **Your own vocab.** Everyone brings their own lists: import a vocab file someone shared with you, or type sets into the vocab table. Q-Card ships no textbook lists. New visitors start with a few sample sets (`data/samples.json`: greetings, people, food, katakana words, everyday verbs and time, with kanji lists for three chapters) so every mode can be tried right away; **Remove the sample sets** under the set picker takes them out for good.
 - **Private per person.** Sign in with Google and your sets, kanji lists and practice history live in your own space in the database, on any device. Or choose **Continue as a guest** and everything stays in your browser on that device.
 - **Two ways to check answers:**
   - **Built-in checker** (default, free). Compares your strokes with stroke templates for kana and about 2,150 kanji, right in the browser. Your writing never leaves your device. It's less accurate than Claude, so you can always count an answer as correct yourself. 日本語 → English answers are marked by you.
@@ -41,6 +41,7 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 | `src/platform/claude.js` | Checking with a visitor's own API key (Anthropic TypeScript SDK). Loaded only when used. |
 | `src/platform/config.js` | Firebase web config. These values are public by design; the rules above protect the data. |
 | `src/checker.js` | The built-in handwriting checker. |
+| `data/samples.json` | The sample sets new visitors start with, in the same format as an export. Written for this site, not taken from a textbook. |
 | `data/templates.json` | Stroke templates for the checker, generated from KanjiVG by `tools/make-templates.mjs`. |
 | `fonts/` | The page's fonts, served from the site itself so visitors never contact Google Fonts. `tools/fetch-fonts.mjs` refreshes them. |
 | `tools/build.mjs` | Builds `index.html` and `js/*.js` (the site) and `build/claude-ai.html` (the claude.ai copy). |
