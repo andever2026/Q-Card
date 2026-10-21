@@ -3,7 +3,7 @@ name: Check
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, beta]
 
 permissions:
   contents: read
@@ -20,3 +20,31 @@ jobs:
       - run: npm ci
       - name: Built files match src/
         run: npm run check
+
+  # The full browser tests (test/public/run.mjs) run before anything goes into main, which is the live site.
+  # Pushes to beta skip them so the beta link updates quickly.
+  browser-tests:
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Browser tests
+        run: node test/public/run.mjs
+        env:
+          PLAYWRIGHT_DIR: ${{ github.workspace }}/node_modules/playwright
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-shots
+          path: build/test-shots
+          retention-days: 7

@@ -47,7 +47,7 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 | `data/templates.json` | Stroke templates for the checker, generated from KanjiVG by `tools/make-templates.mjs`. |
 | `fonts/` | The page's fonts, served from the site itself so visitors never contact Google Fonts. `tools/fetch-fonts.mjs` refreshes them. |
 | `tools/build.mjs` | Builds `index.html` and `js/*.js` (the site) and `build/claude-ai.html` (the claude.ai copy). |
-| `index.html`, `js/` | Built files. GitHub Pages serves these straight from the `main` branch, so they're committed. |
+| `index.html`, `js/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus a beta build of the `beta` branch. |
 | `test/` | Browser tests for the public site (`test/public`) and the checker's accuracy tests (`test/checker`). |
 
 ### Building
@@ -69,7 +69,13 @@ node test/checker/eval.mjs --vocab <folder of vocab files>   # built-in checker 
 
 See [test/checker/README.md](test/checker/README.md) for how the checker works, its accuracy numbers and its weak spots. `test/checker/demo.html` is a standalone writing box for trying it out.
 
-The public-site tests swap Firebase for an in-memory fake (`test/public/fake-firebase.js`) and mock Anthropic's API, so they need no accounts or keys.
+GitHub runs the public-site tests on every pull request into `main`. They swap Firebase for an in-memory fake (`test/public/fake-firebase.js`) and mock Anthropic's API, so they need no accounts or keys.
+
+### Beta site
+
+Changes go to the `beta` branch first. After the build check passes, `.github/workflows/pages.yml` publishes it at [/Q-Card/beta/](https://andever2026.github.io/Q-Card/beta/), next to the live site from `main`. When beta looks right, a pull request from `beta` into `main` runs the full browser tests, and merging it updates the live site.
+
+The beta page is built with `node tools/build.mjs --beta`: it carries a Beta tag and keeps its own browser storage, so guest data and settings there never mix with the live site's. Google sign-in is shared, so signing in on beta uses the same account and data. Publishing needs Settings → Pages → Source set to **GitHub Actions**.
 
 ### Firebase setup (for a copy of this project)
 
