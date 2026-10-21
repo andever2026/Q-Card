@@ -1,7 +1,7 @@
 # Offline handwriting checker
 
-`src/checker.js` checks handwritten Japanese against the answers a card accepts, in the browser, with no network
-use beyond loading `data/templates.json` once. Because the expected answer is known, it verifies ("is this one of
+`src/checker.js` checks handwritten Japanese, and printed English (see [English](#english)), against the answers a
+card accepts, in the browser, with no network use beyond loading `data/templates.json` once. Because the expected answer is known, it verifies ("is this one of
 these strings?") rather than recognising free text.
 
 ## Files
@@ -9,11 +9,13 @@ these strings?") rather than recognising free text.
 | file | what |
 | --- | --- |
 | `src/checker.js` | the checker (plain JS, no dependencies; classic script, CommonJS, or bundled) |
-| `data/templates.json` | stroke templates for 2,394 characters (209 KB, 151 KB gzipped), generated |
-| `tools/make-templates.mjs` | builds the templates from KanjiVG |
+| `data/templates.json` | stroke templates for 2,406 characters plus 62 letter variants (212 KB), generated |
+| `tools/make-templates.mjs` | builds the templates from KanjiVG and `tools/checker/hershey-latin.json` |
+| `tools/checker/hershey-latin.json` | Hershey "futural" letters, digits and punctuation (SVG path data) |
 | `tools/checker/charset.txt` | the kanji that get templates (the 2,148 kanji the page knows readings for) |
 | `test/checker/synth.mjs` | synthetic handwriting, and words composed from hand-drawn reference characters |
 | `test/checker/eval.mjs` | accuracy and speed evaluation |
+| `test/checker/synth-en.mjs`, `eval-en.mjs` | synthetic printed English, and the English evaluation |
 | `test/checker/demo.html` | a writing box for trying the checker by hand |
 
 ## API
@@ -21,13 +23,15 @@ these strings?") rather than recognising free text.
 ```js
 QCardChecker.init(templatesJson)   // -> { chars, ms }; parses the templates (about 100 ms)
 QCardChecker.has(ch)               // -> true if ch has a template
-QCardChecker.verify({ strokes, candidates, box: { w, h }, anyKana })
+QCardChecker.verify({ strokes, candidates, box: { w, h }, anyKana, latin })
 // -> { ok: true | false | null, text, chars: [{ ch, ok, why, got? }], unsupported: [...], ms }
 QCardChecker.top(strokes, box, n)  // -> [{ ch, cost, coarse }], best single-character matches (debugging)
+QCardChecker.englishAnswers(meaning) // -> the candidates for an English meaning ("to eat" -> to eat, eat, ...)
 ```
 
 - `strokes`: `[[[x, y], ...], ...]` in drawing order, CSS px, y down.
 - `candidates`: acceptable answers (NFKC). Punctuation (、。・ etc.) may be left out by the writer.
+- `latin`: the candidates are English (see [English](#english)).
 - `anyKana`: every kana position also accepts the same kana in the other script; `text` then gives what was written.
 - `ok: true`: the writing matches a candidate; `text` is that candidate as written.
 - `ok: false`: `text` is the closest candidate and `chars` goes through it position by position. A failing
@@ -52,7 +56,8 @@ node tools/make-templates.mjs --kanjivg ... --page src/app.html        # also ad
 Kana (with small and voiced forms, ゔ, ヴ), ー, 々, 、。・, digits, Latin letters and the kanji look-alikes above
 are built in; kanji come from `tools/checker/charset.txt`. Each stroke keeps KanjiVG's order and direction, is
 simplified (Douglas-Peucker, 0.7 units) and quantised to 92 levels in the 109-unit box, two printable characters
-per point.
+per point. The Hershey letters, digits and ASCII punctuation in `tools/checker/hershey-latin.json` are added the
+same way (closed loops kept), with each letter's pen-down form in `alt` (see [English](#english)).
 
 ## Running the evaluation
 
@@ -155,9 +160,64 @@ kanji checked against two candidates (お邪魔します, 天麩羅): 250-480 ms
   with a mouse or finger yet.
 - **Speed**: complex kanji make the segmentation search and the judging slower; worst seen 480 ms on this machine.
 
+## English
+
+`verify({ latin: true })` checks printed English (the meaning on 日本語 → English cards). The page passes
+`englishAnswers(meaning)`: the meaning split into alternatives at commas, semicolons and slashes, a part in
+parentheses optional (and kept when short: lip(s), (to) go), "to" before a verb and a leading a / an / the optional,
+numbers up to 100 also as words, accents optional. Whatever isn't accepted goes to self-marking on the page, so a
+synonym or a misread is never marked wrong.
+
+What differs from Japanese:
+
+- **Templates.** Letters, digits and punctuation from the Hershey "futural" font (`tools/checker/hershey-latin.json`),
+  each letter in two forms: as plotted, and pen-down (strokes that start where another ends or on it joined, the
+  way people write h, n, b, d in one go). KanjiVG's own letters stay too, except its O, which came out as a point.
+  English writing is judged against letters and digits only; Japanese writing never sees the Hershey templates.
+- **Case.** A capital is accepted only where a word starts; letters whose capital has the same shape (o, s, c, v,
+  w, x, z...) always take both, and size and position decide. Writing in all capitals is left to the student.
+- **Punctuation** may be left out.
+- **Loops** (o, a, d, 0...) are compared from any starting point and in either direction; an open stroke matched
+  to a closed loop costs a little.
+- **The line.** Baseline (with slope), x-height, capital height and descender depth are fitted to the whole
+  answer by robust least squares. A letter costs extra when its top or bottom sits off where it belongs or when it
+  is much wider than its template, which tells p/P, x/X, l/1 and merged letters apart.
+- **Ink.** Letters vary more in stroke paths than kana do, so each letter is also compared as ink (an
+  oriented-point chamfer distance, both ways), and the lower of the stroke and ink costs counts.
+- **Margins.** The expected letter may be 0.03 worse than another letter (0.1 against a digit), never more than
+  0.25; no shrinking for close templates.
+- **Length.** Answers longer than 32 letters (whole sentences, about 0.5% of the meanings in our sets) aren't
+  checked; they are slow and less sure.
+
+`node test/checker/eval-en.mjs --vocab <folder> --hershey <hersheytext package> --n 300` writes meanings from
+the vocab files with three single-line fonts the checker has never seen (EMS Readability, Readability Italic and
+Tech from the hersheytext package), turned into strokes the way people print (split at reversals, retraced ink
+dropped, downstrokes top to bottom, pen kept down between touching pieces), then deformed, slanted, set on a
+drifting baseline, with i/j dots and t/f crossbars sometimes added after the word and mouse-like noise. Seeds 1
+and 2, Node 22 on the dev container:
+
+| category | n | result | target |
+| --- | ---: | ---: | --- |
+| correct meaning accepted | 596 | 86.1% | accept |
+| correct meaning accepted, neater writing (`--level 0.5`) | 298 | 93.3% | accept |
+| correct meaning accepted, written with the template letters (no `--hershey`) | 299 | 93.3% | accept |
+| wrong: a random other meaning | 596 | 0.2% accepted | reject |
+| wrong: the other meaning closest in spelling (edit distance up to 40%) | 452 | 3.1% accepted | reject |
+| wrong: one letter changed | 594 | 4.4% accepted | reject |
+| wrong: one letter left out | 594 | 1.2% accepted | reject |
+
+Speed: median 90 ms, p90 350 ms, max 0.9 s per check on this machine; phones will be 2-4x slower.
+
+Known weak spots: joined-up (cursive) writing isn't modelled and falls back to self-marking; most wrong answers
+that pass are one look-alike letter away (bad / bag, cheek / check, snow / show, a / o, e / c), which matters
+little when checking a meaning; a capital that swallows the next letter can still pass now and then.
+
 ## Attribution
 
 - Templates: KanjiVG, Copyright (C) 2009/2010/2011 Ulrich Apel, CC BY-SA 3.0, https://kanjivg.tagaini.net.
   `data/templates.json` is derived from it and is CC BY-SA 3.0 (its `license` field says so).
+- Letter, digit and punctuation templates: the Hershey Fonts, originally created by Dr. A. V. Hershey while working at
+  the U. S. National Bureau of Standards; the font data format was originally created by James Hurt, Cognition,
+  Inc. Taken from hersheytext (https://github.com/techninja/hersheytextjs), © 2014 James T, MIT.
 - Test data only, not shipped: KanjiCanvas reference patterns, MIT, © Dominik Klein; Tomoe handwriting dictionary
-  (LGPL) via the tegaki project.
+  (LGPL) via the tegaki project; the hersheytext package's fonts (MIT; its EMS fonts are SIL OFL).

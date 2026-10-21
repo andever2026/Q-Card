@@ -13,7 +13,7 @@ Japanese Vocab Practice (this repository: Q-Card) is a flashcard site for Japane
 - **Private per person.** Sign in with Google and your sets, kanji lists and practice history live in your own space in the database, on any device. Or choose **Continue as a guest** and everything stays in your browser on that device.
 - **Settings.** The gear at the top opens Settings: colours, light or dark, which account you're using, sign in or out, how much vocab you have, and deleting your account (or, as a guest, everything saved in this browser).
 - **Choices follow you.** The sets you picked, the filter, direction, mode, Kanji learned up to, colours and light or dark are saved to your account when you're signed in, so they're the same on every device. As a guest they're kept in this browser.
-- **Built-in checker.** Compares your strokes with stroke templates for kana and about 2,150 kanji, right in the browser, so your writing never leaves your device. If it misreads your writing you can count the answer as correct yourself. 日本語 → English answers are marked by you.
+- **Built-in checker.** Compares your strokes with stroke templates for kana and about 2,150 kanji, right in the browser, so your writing never leaves your device. If it misreads your writing you can count the answer as correct yourself. 日本語 → English answers are checked too when you print the meaning the way your set words it; anything else, such as a synonym or joined-up handwriting, you mark yourself.
 
 ## Data and privacy
 
@@ -33,7 +33,7 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 | `src/platform/config.js` | Firebase web config. These values are public by design; the rules above protect the data. |
 | `src/checker.js` | The built-in handwriting checker. |
 | `data/samples.json` | The sample sets new visitors start with, in the same format as an export. Written for this site, not taken from a textbook. |
-| `data/templates.json` | Stroke templates for the checker, generated from KanjiVG by `tools/make-templates.mjs`. |
+| `data/templates.json` | Stroke templates for the checker, generated from KanjiVG and the Hershey fonts (`tools/checker/hershey-latin.json`) by `tools/make-templates.mjs`. |
 | `fonts/` | The page's fonts, served from the site itself so visitors never contact Google Fonts. `tools/fetch-fonts.mjs` refreshes them. |
 | `tools/build.mjs` | Builds `index.html` and `js/*.js` (the site) and `build/claude-ai.html` (the claude.ai copy). |
 | `index.html`, `js/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus a beta build of the `beta` branch. |
@@ -54,6 +54,7 @@ Edit files in `src/`, then build and commit the built files with your change.
 ```sh
 node test/public/run.mjs          # sign-in, import, practice, settings, saved choices, CSP (Playwright)
 node test/checker/eval.mjs --vocab <folder of vocab files>   # built-in checker accuracy and speed
+node test/checker/eval-en.mjs --vocab <folder> --hershey <hersheytext package>   # the same for English answers
 ```
 
 See [test/checker/README.md](test/checker/README.md) for how the checker works, its accuracy numbers and its weak spots. `test/checker/demo.html` is a standalone writing box for trying it out.
@@ -100,7 +101,8 @@ Please don't share files copied from copyrighted textbooks publicly.
 Q-Card is licensed under the [GNU Affero General Public License v3.0](LICENSE).
 
 - Handwriting templates in `data/templates.json` are derived from [KanjiVG](https://kanjivg.tagaini.net), © Ulrich Apel, licensed under [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). That file is shared under the same license.
+- Letter and digit templates come from the Hershey fonts. The Hershey Fonts were originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of Standards. The format of the font data was originally created by James Hurt, Cognition, Inc. Taken from [hersheytext](https://github.com/techninja/hersheytextjs) (MIT).
 - Kanji readings come from [KANJIDIC](https://www.edrdg.org/wiki/index.php/KANJIDIC_Project), © the Electronic Dictionary Research and Development Group, licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 - The built site bundles the [Firebase JS SDK](https://github.com/firebase/firebase-js-sdk) (Apache-2.0).
-- The checker's accuracy tests can also use hand-drawn characters from [KanjiCanvas](https://github.com/asdfjkl/kanjicanvas) (MIT) and the Tomoe dictionary via [tegaki](https://github.com/tegaki/tegaki) (LGPL). You download them yourself to run those tests; they aren't part of the site or this repository.
+- The checker's accuracy tests can also use hand-drawn characters from [KanjiCanvas](https://github.com/asdfjkl/kanjicanvas) (MIT) and the Tomoe dictionary via [tegaki](https://github.com/tegaki/tegaki) (LGPL), and the English tests use the single-line fonts in the [hersheytext](https://www.npmjs.com/package/hersheytext) package (MIT; its EMS fonts are SIL OFL). You download them yourself to run those tests; they aren't part of the site or this repository.
 - Fonts: [Klee One](https://github.com/fontworks-fonts/Klee) and [Zen Kaku Gothic New](https://github.com/googlefonts/zen-kakugothic), licensed under the SIL Open Font License 1.1 ([fonts/OFL.txt](fonts/OFL.txt)), copied from Google Fonts and served from this site.

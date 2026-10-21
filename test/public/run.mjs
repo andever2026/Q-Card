@@ -191,6 +191,41 @@ if (entry.length > 1) {
   ok(await vis(page, "#results"), "built-in practice reaches the results page");
   ok(await page.evaluate(() => window.QCardChecker.verify({ strokes: [[[0, 0], [10, 10]]], candidates: ["龘"], box: { w: 100, h: 100 } }).ok === null),
     "built-in: a character without a template comes back unchecked (self-marked)");
+
+  // 日本語 → English: the meaning as worded is accepted; other English is self-marked (synthetic print from test/checker/synth-en.mjs)
+  const { writeEnglish, defaultFont } = await import("../checker/synth-en.mjs");
+  const font = defaultFont();
+  const byJp = new Map(fixture.sets.flatMap((s) => s.words).flatMap((w) => [[w.kanji, w], [w.kana, w]]).filter(([k]) => k));
+  const writeEn = async (str, seed) => {
+    const b = await (await page.$("#mainPad")).boundingBox();
+    const { strokes, box } = writeEnglish(str, font, seed, { level: 0.3, late: 0, swap: 0, reverse: 0, mouse: false, capPx: 40 });
+    const k = Math.min(1, b.width / box.w, b.height / box.h);
+    for (const s of strokes) {
+      await page.mouse.move(b.x + s[0][0] * k, b.y + s[0][1] * k); await page.mouse.down();
+      for (const [x, y] of s.slice(1)) await page.mouse.move(b.x + x * k, b.y + y * k);
+      await page.mouse.up();
+    }
+  };
+  await page.click("#newBtn"); await page.waitForTimeout(200);
+  await page.click("#dir-je"); await page.click("#startBtn"); await page.waitForTimeout(300);
+  r = 0;
+  while (await vis(page, "#quiz") && r < 12) {
+    const w = byJp.get(await text(page, "#qText"));
+    if (!w) { ok(false, "English: prompt is a fixture word", await text(page, "#qText")); break; }
+    // 1st word: its meaning; 2nd: another meaning (self-marked); 3rd: its meaning, capitalised
+    const other = ["water", "coffee", "school"].find((x) => x !== w.en);
+    const answer = r === 1 ? other : r === 2 ? w.en[0].toUpperCase() + w.en.slice(1) : w.en;
+    await writeEn(answer, 21 + r); await page.click("#checkBtn"); await page.waitForTimeout(600);
+    const wrong = await vis(page, "#feedback"), self = await vis(page, "#selfCheck");
+    if (r === 0) ok(!wrong && !self, "English: the meaning as worded is accepted", answer);
+    if (r === 1) ok(self && !wrong && /couldn't match/.test(await text(page, "#selfHead")), "English: another meaning goes to self-marking, saying it didn't match", `${answer} for ${w.en}`);
+    if (r === 2) ok(!wrong && !self, "English: a capital first letter is accepted", answer);
+    if (self) await page.click("#selfGot");
+    else if (wrong) await page.click("#nextBtn");
+    await page.waitForTimeout(1300);
+    r++;
+  }
+  ok(r === 3 && await vis(page, "#results"), "English practice reaches the results page");
 }
 
 // ---------- 4. no "How answers are checked" card ----------
