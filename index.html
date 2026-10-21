@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-B9iEpPchx2MnysqOb/TSyCI+bkdEAtfEVnpTJccaEeg=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-/XTdWKDzWDXHNNFA3yzCVGK6w+ka1DhcERR6zgVsQsY=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -429,9 +429,9 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
         <div class="tactions"><button class="btn" type="button" id="shareToggle">Turn on…</button><button class="link" type="button" id="shareDel" hidden>Delete what I've shared</button></div>
         <div class="tactions" id="shareDelAsk" hidden><span class="small">Delete every answer you've shared, for good?</span><button class="btn danger" type="button" id="shareDelYes">Delete</button><button class="btn" type="button" id="shareDelNo">Cancel</button></div>
       </section>
-      <section id="ownerSet" hidden><h3>Owner tools</h3>
-        <p class="muted small">Only the site's owner sees this. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
-        <div class="tactions"><button class="btn" type="button" id="ownAsk1">First time</button><button class="btn" type="button" id="ownAsk2">Later times</button></div>
+      <section id="devSet" hidden><h3>Dev tools</h3>
+        <p class="muted small">Only developers see this. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
+        <div class="tactions"><button class="btn" type="button" id="devAsk1">First time</button><button class="btn" type="button" id="devAsk2">Later times</button></div>
       </section>
       <section><h3>Your vocab</h3><p class="muted" id="setStats"></p></section>
       <section id="portPanel" hidden><h3>Export / import</h3>
@@ -3025,7 +3025,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   let shareDelAsk = false;
   $("#settings").addEventListener("close", () => { shareDelAsk = false; });
   function renderShare() {
-    $("#ownerSet").hidden = !siteOwner;
+    $("#devSet").hidden = !isDev;
     $("#shareSet").hidden = !account;
     if (!account) return;
     const s = shareState(), n = s.n || 0, when = s.at && !isNaN(new Date(s.at)) ? new Date(s.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
@@ -3037,11 +3037,11 @@ CORRECT: <YES or NO, matching your REASON>`;
     $("#shareDelAsk").hidden = !shareDelAsk;
   }
   $("#shareToggle").onclick = () => { if (shareState().on) { setShare({ on: false }); renderShare(); } else askShare(0); };
-  // Owner tools: only for the site's owner (owners/<uid> in Firestore, see firestore.rules), to see the question as people get it.
-  let siteOwner = false;
-  const checkSiteOwner = async () => { siteOwner = !!account && (await platform.isSiteOwner(account.uid)); renderShare(); };
-  $("#ownAsk1").onclick = () => askShare(SHARE_EVERY, false);
-  $("#ownAsk2").onclick = () => askShare(2 * SHARE_EVERY, true);
+  // Dev tools: only for developers (dev/<uid> in Firestore, see firestore.rules), to see the question as people get it.
+  let isDev = false;
+  const checkDev = async () => { isDev = !!account && (await platform.isDev(account.uid)); renderShare(); };
+  $("#devAsk1").onclick = () => askShare(SHARE_EVERY, false);
+  $("#devAsk2").onclick = () => askShare(2 * SHARE_EVERY, true);
   $("#shareDel").onclick = () => { shareDelAsk = true; renderShare(); };
   $("#shareDelNo").onclick = () => { shareDelAsk = false; renderShare(); };
   $("#shareDelYes").onclick = async (e) => {
@@ -3090,7 +3090,7 @@ CORRECT: <YES or NO, matching your REASON>`;
       welcomed();
       account = u;
       start(u.uid, platform.db(u.uid));
-      checkSiteOwner();
+      checkDev();
     });
   })();
 })();

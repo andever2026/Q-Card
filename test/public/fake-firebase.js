@@ -39,7 +39,7 @@ const segs = (p) => p.split("/").filter(Boolean);
 function allowed(path, write = false) {
   const s = segs(path);
   if (!current) throw { code: "permission-denied", message: "signed out" };
-  if (s[0] === "owners" && s.length === 2 && s[1] === current.uid && !write) return;
+  if (s[0] === "dev" && s.length === 2 && s[1] === current.uid && !write) return;
   if (s[0] !== "users" || s[1] !== current.uid) throw { code: "permission-denied", message: "rules: " + path };
 }
 function clean(v, where) {
