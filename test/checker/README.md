@@ -50,7 +50,7 @@ KanjiVG's per-character SVGs are needed (the `kanji/` folder of a KanjiVG releas
 
 ```sh
 node tools/make-templates.mjs --kanjivg path/to/kanjivg/kanji          # add --fetch to download missing files
-node tools/make-templates.mjs --kanjivg ... --page src/app.html        # also add kanji from the page's READ_SRC
+node tools/make-templates.mjs --kanjivg ... --page src/app/answers.js  # also add kanji from the page's READ_SRC
 ```
 
 Kana (with small and voiced forms, ゔ, ヴ), ー, 々, 、。・, digits, Latin letters and the kanji look-alikes above

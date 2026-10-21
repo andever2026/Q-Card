@@ -20,10 +20,11 @@ const ok = (cond, msg, extra = "") => { console.log(`${cond ? "✓" : "✗"} ${m
 const fake = join(root, "test/public/fake-firebase.js");
 const entry = ['import "./src/platform/firebase.js";'];
 if (process.env.WITH_CHECKER !== "0" && existsSync(join(root, "src/checker.js"))) entry.push('import "./src/checker.js";');
-const platformJs = (await esbuild.build({
+const bundle = async (plugins = []) => (await esbuild.build({
   stdin: { contents: entry.join("\n"), resolveDir: root, sourcefile: "test-entry.js" },
-  bundle: true, format: "iife", write: false, alias: { "firebase/app": fake, "firebase/auth": fake, "firebase/firestore": fake },
+  bundle: true, format: "iife", write: false, alias: { "firebase/app": fake, "firebase/auth": fake, "firebase/firestore": fake }, plugins,
 })).outputFiles[0].text;
+const platformJs = await bundle();
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".css": "text/css", ".woff2": "font/woff2" };
 const server = createServer((req, res) => {
@@ -36,7 +37,7 @@ const base = `http://localhost:${server.address().port}/`;
 const browser = await chromium.launch();
 const apiCalls = [], allRequests = [];
 
-async function newPage(ctx, { width = 900, init } = {}) {
+async function newPage(ctx, { width = 900, init, initArg } = {}) {
   const page = await ctx.newPage();
   await page.setViewportSize({ width, height: 1000 });
   page.errors = [];
@@ -47,7 +48,7 @@ async function newPage(ctx, { width = 900, init } = {}) {
     window.__csp = [];
     document.addEventListener("securitypolicyviolation", (e) => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
   });
-  if (init) await page.addInitScript(init);
+  if (init) await page.addInitScript(init, initArg);
   await page.route("**/js/platform.js", (r) => r.fulfill({ contentType: "text/javascript", body: platformJs }));
   // Checking with a visitor's own API key was taken out; nothing should call Anthropic any more.
   await page.route("https://api.anthropic.com/**", (r) => { apiCalls.push(r.request().url()); return r.abort(); });
@@ -281,9 +282,9 @@ ok(!(await page.evaluate(() => window.__csp)).length, "no Content-Security-Polic
 
 // ---------- 7. sign out, another person sees none of it ----------
 await page.click("#settingsBtn"); await page.click("#signOutBtn"); await page.waitForTimeout(800);
-ok(await page.evaluate(() => document.querySelector("#welcome").open), "sign out from Settings: welcome pop-up again");
+ok(!(await page.evaluate(() => document.querySelector("#welcome").open)) && await vis(page, "#setup"), "sign out from Settings: no welcome pop-up after the first visit");
 await page.evaluate(() => { window.__nextUser = { uid: "u2", displayName: "Other", email: "other@example.com" }; });
-await page.click("#signInBtn"); await page.waitForTimeout(600);
+await page.click("#settingsBtn"); await page.click("#signOutBtn"); await page.waitForTimeout(600);
 ok(await vis(page, '[data-set="samples-greetings"]') && !(await vis(page, '[data-set="sample-ch1-a"]')), "another account starts with only the sample sets");
 ok(page.errors.length === 0, "no page errors", page.errors.join(" | "));
 ok(!allRequests.some((r) => /fonts\.(googleapis|gstatic)\.com/.test(r.url)), "fonts: nothing requested from Google Fonts");
@@ -366,15 +367,16 @@ ok(!(await vis(lp, '[data-set="samples-greetings"]')), "samples: removed ones do
 ok(await lp.evaluate(() => document.documentElement.dataset.theme === "light"), "settings: Light is still on after coming back");
 await lp.click("#settingsBtn"); await lp.click('#themePick [data-theme-pick=""]');
 ok(await lp.evaluate(() => !("theme" in document.documentElement.dataset)), "settings: Match device follows the device again");
+await lp.evaluate(() => { window.__signInError = "auth/popup-blocked"; });
 await lp.click("#signOutBtn"); await lp.waitForTimeout(200);
-ok(!(await setOpen(lp)) && await lp.evaluate(() => document.querySelector("#welcome").open), "guest: Sign in with Google in Settings opens the welcome pop-up");
-await lp.click("#signInBtn"); await lp.waitForTimeout(1000);
+ok(await setOpen(lp) && !(await lp.evaluate(() => document.querySelector("#welcome").open)) && /blocked the sign-in window/.test(await text(lp, "#acctErr")), "guest: Sign in with Google in Settings goes straight to Google (a blocked pop-up is explained there)");
+await lp.evaluate(() => { window.__signInError = null; });
+await lp.click("#signOutBtn"); await lp.waitForTimeout(1000);
 await lp.click("#settingsBtn");
 ok(/student@example\.com/.test(await text(lp, "#acctName")) && await vis(lp, '[data-set="samples-greetings"]') && !(await vis(lp, '[data-set="sample-ch1-a"]')), "Sign in from local: switches to the new account, which starts with the samples");
 ok(await lp.evaluate(() => localStorage.getItem("qcard:mode")) === null, "signed in: no longer remembered as local");
 await lp.click("#signOutBtn"); await lp.waitForTimeout(1000);
-ok(await vis(lp, "#guestBtn"), "signed out: welcome pop-up again");
-await lp.click("#guestBtn"); await lp.waitForTimeout(400);
+ok(!(await lp.evaluate(() => document.querySelector("#welcome").open)) && await vis(lp, "#setup"), "signed out: straight back to this browser's data, no pop-up");
 ok(await vis(lp, '[data-set="sample-ch1-a"]'), "local data is still there after using an account");
 await lp.click("#settingsBtn"); await lp.click('#palPick [data-pal="claude"]'); await lp.click("#delStart");
 ok(/saved in this browser/.test(await text(lp, "#delAcct")), "delete (guest): asks before deleting this browser's data");
@@ -484,6 +486,141 @@ ok(!(await vis(rp, "#resumeBtn")) && (await rp.evaluate(() => localStorage.getIt
 await rp.click("#startBtn"); await rp.waitForTimeout(300); await rp.click("#quitBtn"); await rp.waitForTimeout(200);
 ok(await vis(rp, "#resumeBtn") && /3 left/.test(await text(rp, "#resumeBtn")), "resume: starting a new practice replaces the one to resume", await text(rp, "#resumeBtn"));
 ok(rp.errors.length === 0, "resume: no page errors", rp.errors.join(" | "));
+
+// ---------- 13. the 5-minute tour from the welcome pop-up ----------
+for (const width of [900, 375]) {
+  const tctx = await browser.newContext();
+  const tp = await newPage(tctx, { width });
+  const tag = width < 500 ? "phone" : "wide";
+  ok(await vis(tp, "#tourBtn") && /5-minute tour/.test(await text(tp, "#tourBtn")), `tour (${tag}): the welcome pop-up offers the tour`);
+  if (width > 500) await tp.locator("#welcome").screenshot({ path: join(out, "13-welcome-tour.png") });
+  await tp.click("#tourBtn"); await tp.waitForTimeout(400);
+  ok(!(await tp.evaluate(() => document.querySelector("#welcome").open)) && await tp.evaluate(() => localStorage.getItem("qcard:mode")) === "local" && await vis(tp, ".tourcard"), `tour (${tag}): starts as a guest with the tour card`);
+  const titles = [];
+  for (let i = 0; i < 40 && await vis(tp, ".tourcard"); i++) {
+    const title = await text(tp, ".tourcard .tourtitle");
+    if (titles.at(-1) !== title) titles.push(title);
+    if (["Pick a set", "Your turn", "The result", "Kanji lists"].includes(title) || (width < 500 && ["The answer box", "Settings"].includes(title)))
+      await tp.screenshot({ path: join(out, `13-tour-${tag}-${title.toLowerCase().replace(/[^a-z]+/g, "-")}.png`) });
+    if (title === "That's the tour!") break;
+    if (title === "Your turn") { await scribble(tp); await tp.waitForTimeout(100); }
+    await tp.click('.tourcard [data-tour="next"]'); await tp.waitForTimeout(500);
+  }
+  const want = ["Welcome to the tour", "Pick a set", "Direction", "Modes", "Kanji learned up to", "Start practicing", "The question", "The answer box", "Furigana", "Writing tools", "Your turn", "The result", "Stop any time", "Pick up where you left off", "The vocab table", "Your sets", "Add your own sets", "Kanji lists", "Back to practice", "Settings", "That's the tour!"];
+  ok(want.every((t) => titles.includes(t)), `tour (${tag}): goes from the welcome step through practice, the vocab table and Settings to the end`, titles.join(" › "));
+  ok(await vis(tp, "#setup") && await vis(tp, "#resumeBtn"), `tour (${tag}): ends back on the practice page, with the practice left midway to resume`);
+  await tp.click('.tourcard [data-tour="close"]'); await tp.waitForTimeout(200);
+  ok(!(await vis(tp, ".tourcard")) && !(await vis(tp, ".tourspot")), `tour (${tag}): Keep going as a guest closes it`);
+  ok(tp.errors.length === 0, `tour (${tag}): no page errors`, tp.errors.join(" | "));
+  await tctx.close();
+}
+
+// ---------- 14. asking to share handwriting after every 10th practice; what's saved; Settings ----------
+const sctx = await browser.newContext();
+const sp = await newPage(sctx, { init: () => {
+  if (localStorage.getItem("fake:user")) return;
+  localStorage.setItem("fake:user", JSON.stringify({ uid: "t1", displayName: "Share Test", email: "share@example.com" }));
+  localStorage.setItem("fake:fs", JSON.stringify({
+    "users/t1/meta/samples": { offeredAt: "x" },
+    "users/t1/sets/one": { collection: "S", unit: "U", name: "One", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }] },
+    "users/t1/data/prefs": { practices: 9, dir: "je", selected: ["one"] },
+  }));
+} });
+await sp.waitForTimeout(600);
+const training = async () => Object.entries(await fsData(sp)).filter(([p]) => p.startsWith("users/t1/training/"));
+const practiceOnce = async (how = "#selfGot") => {
+  await sp.click("#startBtn"); await sp.waitForTimeout(300);
+  await scribble(sp); await scribble(sp); await sp.click("#checkBtn"); await sp.waitForTimeout(200);
+  await sp.click(how); await sp.waitForTimeout(1500);
+};
+const shareOpen = () => sp.evaluate(() => document.querySelector("#shareAsk").open);
+await practiceOnce();
+ok(await vis(sp, "#results") && await shareOpen(), "share: the 10th finished practice asks to share handwriting");
+ok(!(await vis(sp, "#shareNeverRow")) && /finished 10 practices/.test(await text(sp, "#shareCount")), "share: the first time there's no \"Don't ask me again\"", await text(sp, "#shareCount"));
+await sp.locator("#shareAsk").screenshot({ path: join(out, "14-share-ask.png") });
+await sp.click("#shareNo"); await sp.waitForTimeout(200);
+ok(!(await shareOpen()) && !(await training()).length, "share: Not now closes it and nothing is saved");
+await sp.click("#newBtn"); await sp.waitForTimeout(200);
+await practiceOnce();
+ok(!(await shareOpen()), "share: the 11th practice doesn't ask");
+await sp.click("#newBtn"); await sp.waitForTimeout(200);
+await sp.evaluate(() => localStorage.setItem("jpq:practices", "19"));
+await practiceOnce();
+ok(await shareOpen() && await vis(sp, "#shareNeverRow"), "share: the 20th practice asks again, now with \"Don't ask me again\"");
+await sp.locator("#shareAsk").screenshot({ path: join(out, "14-share-ask-again.png") });
+await sp.click("#shareYes"); await sp.waitForTimeout(1300);
+ok((await fsData(sp))["users/t1/data/prefs"]?.share?.on === true, "share: Yes is saved with the account's choices");
+await sp.click("#newBtn"); await sp.waitForTimeout(200);
+await practiceOnce();
+let tr = await training();
+const rec = tr[0]?.[1], st = rec?.main?.s?.[0];
+ok(tr.length === 1 && rec.word.kanji === "水" && rec.dir === "je" && rec.checker.verdict === "unmatched" && rec.student === "right", "share: an answer is saved to users/<uid>/training with the word, the checker's verdict and the student's own call", JSON.stringify(rec && { ...rec, main: undefined, furi: undefined }));
+ok(rec?.main?.s?.length === 2 && st.xy.every((n) => typeof n === "number") && st.xy.length === 2 * st.t.length && st.t.length === st.f.length && st.dev === "mouse" && rec.main.s[1].at > 0,
+  "share: each stroke keeps its points (a flat list), timing, pressure and pointer kind", JSON.stringify(st).slice(0, 160));
+await sp.click("#settingsBtn"); await sp.waitForTimeout(200);
+ok(await vis(sp, "#shareSet") && /^On since .*1 answer shared/.test(await text(sp, "#shareInfo")), "share: Settings shows it's on and how many answers were shared", await text(sp, "#shareInfo"));
+await sp.locator("#shareSet").screenshot({ path: join(out, "14-share-settings.png") });
+await sp.click("#shareDel"); await sp.click("#shareDelYes"); await sp.waitForTimeout(300);
+ok(!(await training()).length && /0 answers shared/.test(await text(sp, "#shareInfo")) && !(await vis(sp, "#shareDel")), "share: Delete what I've shared removes every saved answer", await text(sp, "#shareInfo"));
+await sp.click("#shareToggle"); await sp.waitForTimeout(200);
+ok(/^Off\./.test(await text(sp, "#shareInfo")) && (await text(sp, "#shareToggle")) === "Turn on…", "share: Turn off stops it");
+await sp.click("#settingsClose"); await sp.click("#newBtn"); await sp.waitForTimeout(200);
+await practiceOnce();
+ok(!(await training()).length, "share: nothing is saved once it's turned off");
+// quitting midway saves what's written for Resume; the account's copy must hold only flat lists (Firestore can't store nested ones)
+await sp.click("#newBtn"); await sp.waitForTimeout(200);
+await sp.click("#startBtn"); await sp.waitForTimeout(300); await scribble(sp); await sp.click("#quitBtn"); await sp.waitForTimeout(1300);
+const rink = (await fsData(sp))["users/t1/data/prefs"]?.resume?.ink?.main?.s?.[0]?.p;
+ok(Array.isArray(rink) && rink.length > 4 && rink.every((n) => typeof n === "number"), "resume: the writing saved for Resume reaches the account (flat list of numbers)", JSON.stringify(rink)?.slice(0, 80));
+await sp.click("#settingsBtn"); await sp.click("#shareToggle"); await sp.waitForTimeout(200);
+ok(await shareOpen() && !(await vis(sp, "#shareNeverRow")) && !(await text(sp, "#shareCount")), "share: Turn on… in Settings asks the same question, without the count or the checkbox");
+await sp.click("#shareNo");
+ok(!(await vis(sp, "#devSet")), "dev tools: hidden for everyone who isn't a developer");
+await sp.click("#settingsClose");
+ok(sp.errors.length === 0, "share: no page errors", sp.errors.join(" | "));
+// a developer (dev/<uid>, made in the Firebase console) gets Dev tools in Settings to open the question themselves
+await sp.evaluate(() => { const fs = JSON.parse(localStorage.getItem("fake:fs")); fs["dev/t1"] = { role: "dev" }; localStorage.setItem("fake:fs", JSON.stringify(fs)); });
+const op = await newPage(sctx);
+await op.waitForTimeout(600); await op.click("#settingsBtn"); await op.waitForTimeout(200);
+ok(await vis(op, "#devSet"), "dev tools: a developer sees them in Settings");
+await op.locator("#devSet").screenshot({ path: join(out, "14-dev-tools.png") });
+const asked = () => op.evaluate(() => JSON.parse(localStorage.getItem("jpq:share"))?.asked);
+const askedBefore = await asked();
+await op.click("#devAsk1"); await op.waitForTimeout(200);
+ok(await op.evaluate(() => document.querySelector("#shareAsk").open) && !(await vis(op, "#shareNeverRow")) && /finished 10 practices/.test(await text(op, "#shareCount")), "dev tools: First time opens the question as first asked");
+await op.click("#shareNo"); await op.click("#devAsk2"); await op.waitForTimeout(200);
+ok(await vis(op, "#shareNeverRow") && /finished 20 practices/.test(await text(op, "#shareCount")), "dev tools: Later times opens it with \"Don't ask me again\"");
+await op.click("#shareNo");
+ok((await asked()) === askedBefore, "dev tools: opening it doesn't count as being asked");
+ok(op.errors.length === 0, "dev tools: no page errors", op.errors.join(" | "));
+// guests are never asked: their handwriting stays in the browser
+const gp = await newPage(await browser.newContext(), { init: () => {
+  if (localStorage.getItem("qcard:mode")) return;
+  const put = (k, v) => localStorage.setItem("qcard:local:" + k, JSON.stringify(v));
+  localStorage.setItem("qcard:mode", "local"); put("meta/samples", { offeredAt: "x" });
+  put("sets/g", { collection: "G", unit: "U", name: "One", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }] });
+  localStorage.setItem("jpq:practices", "9"); localStorage.setItem("jpq:dir", '"je"'); localStorage.setItem("jpq:selected", '["g"]');
+} });
+await gp.click("#startBtn"); await gp.waitForTimeout(300); await scribble(gp); await gp.click("#checkBtn"); await gp.waitForTimeout(200); await gp.click("#selfGot"); await gp.waitForTimeout(1500);
+ok(await vis(gp, "#results") && !(await gp.evaluate(() => document.querySelector("#shareAsk").open)) && !(await vis(gp, "#shareSet")), "share: a guest's 10th practice doesn't ask, and Settings has no sharing section");
+
+// ---------- 15. sample sets: an offer cut short is finished next time; an account with its own sets gets none ----------
+for (const [label, seed, want] of [
+  ["an offer cut short (the page closed midway) is finished next time", { "users/t2/sets/samples-food": { collection: "Sample sets", unit: "Week 2", name: "Food", words: [] } }, 6],
+  ["an account with its own sets and no record of the offer gets none", { "users/t2/sets/mine": { collection: "Mine", unit: "1", name: "A", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }] } }, 0],
+]) {
+  const c = await browser.newContext();
+  const p = await newPage(c, { init: (seed) => {
+    if (localStorage.getItem("fake:user")) return;
+    localStorage.setItem("fake:user", JSON.stringify({ uid: "t2", displayName: "Sample Test", email: "s@example.com" }));
+    localStorage.setItem("fake:fs", JSON.stringify(seed));
+  }, initArg: seed });
+  await p.waitForTimeout(800);
+  const d = await fsData(p), n = Object.keys(d).filter((k) => /^users\/t2\/sets\/samples-/.test(k)).length;
+  ok(n === want && !!d["users/t2/meta/samples"], "samples: " + label, `${n} sample sets, offered: ${!!d["users/t2/meta/samples"]}`);
+  ok(p.errors.length === 0, "samples: no page errors", p.errors.join(" | "));
+  await c.close();
+}
 
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");

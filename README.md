@@ -11,13 +11,14 @@ Japanese Vocab Practice (this repository: Q-Card) is a flashcard site for Japane
 - **Tags.** Give sets tags in their details (Verbs, Quiz 3…). The Filter row above the sets lists every tag in use with how many sets picking it would hide, the ones hiding the most first, and none picked; tapping tags narrows the sets to those tags, and Clear filter shows them all again. When a table has Extras or Supp. sets, Main sets, Extras and Supp. are tags too.
 - **Your own vocab.** Everyone brings their own lists: import a vocab file someone shared with you, or type sets into the vocab table. Q-Card ships no textbook lists. New visitors start with a few sample sets (`data/samples.json`: greetings, people, food, katakana words, everyday verbs and time, spread over three units, Week 1 to Week 3, each with a kanji list) so every mode can be tried right away; **Remove the sample sets** under the set picker takes them out for good.
 - **Private per person.** Sign in with Google and your sets, kanji lists and practice history live in your own space in the database, on any device. Or choose **Continue as a guest** and everything stays in your browser on that device.
+- **A 5-minute tour.** First-time visitors can take a guided tour from the welcome pop-up: it rings each part of the page in turn and walks through picking a set, a first practice word, the vocab table and Settings, as a guest. The welcome pop-up only shows on a first visit; after that, signing in is in Settings.
 - **Settings.** The gear at the top opens Settings: colours, light or dark, which account you're using, sign in or out, how much vocab you have, and deleting your account (or, as a guest, everything saved in this browser).
 - **Choices follow you.** The sets you picked, the filter, direction, mode, Kanji learned up to, colours and light or dark are saved to your account when you're signed in, so they're the same on every device. As a guest they're kept in this browser.
 - **Built-in checker.** Compares your strokes with stroke templates for kana and about 2,150 kanji, right in the browser, so your writing never leaves your device. If it misreads your writing you can count the answer as correct yourself. 日本語 → English answers are checked too when you print the meaning the way your set words it; anything else, such as a synonym or joined-up handwriting, you mark yourself.
 
 ## Data and privacy
 
-Data is stored in Firebase (Cloud Firestore) under `users/<your account id>/`. The [Firestore rules](firestore.rules) let each signed-in person read and write only their own folder, so other visitors can't see your data. As with any website's database, the site owner can see stored data in the Firebase console. Your choices on the page are saved there too (`users/<id>/data/prefs`). Practice history is saved only after you turn it on, and you can delete it from the History page. **Delete my account** in Settings deletes all of your data and then your account.
+Data is stored in Firebase (Cloud Firestore) under `users/<your account id>/`. The [Firestore rules](firestore.rules) let each signed-in person read and write only their own folder, so other visitors can't see your data. As with any website's database, the site owner can see stored data in the Firebase console. Your choices on the page are saved there too (`users/<id>/data/prefs`). Practice history is saved only after you turn it on, and you can delete it from the History page. Handwriting is kept only if you agree to share it: after every 10th finished practice, a signed-in person who hasn't said yes is asked (from the second time, with a "Don't ask me again" box). With sharing on, each answer you check is saved to `users/<id>/training/` with its strokes (points, timing, pen pressure, pen/finger/mouse), the word, and how the checker and you marked it, to tune and train the checker. Settings turns it off and deletes what was shared. Guests are never asked. **Delete my account** in Settings deletes all of your data and then your account.
 
 As a guest, the site saves everything in your browser's `localStorage` on that device and sends none of it anywhere. Clearing the site's data in your browser deletes it, so export a copy now and then. To move it to an account later, export it, sign in, and import the file.
 
@@ -27,7 +28,9 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 
 | Path | What it is |
 | --- | --- |
-| `src/app.html` | The whole page (HTML, CSS and app code). Shared with a personal copy that runs as a claude.ai artifact; lines between `#if public` / `#if claude` markers go to one version only. |
+| `src/app.html` | The page's markup. It pulls in the stylesheet and the app code from `src/app/` with `#include` lines, and is shared with a personal copy that runs as a claude.ai artifact: lines between `#if public` / `#if claude` markers (in any of these files) go to one version only. |
+| `src/app/styles.css` | The page's styles, including the light and dark themes. |
+| `src/app/*.js` | The app code, one part per file in page order: `core` (state, storage, views), `pads` (the writing boxes), `data` (loading vocab), `verbs` (verb forms), `setup` (the practice page and set picker), `practice` (asking and checking), `answers` (what counts as a right answer: forms, furigana, kanji), `grading`, `results`, `history`, `table` (the vocab table), `export-import`, `public` (public site only: sample sets, built-in checker, sign-in), `tour` (the 5-minute tour, public site only), `share` (asking to share handwriting for training, public site only), `boot`. They're parts of one function, so they share names and only work once the build puts them together. |
 | `src/platform/firebase.js` | Public-site platform: Google sign-in, the Firestore adapter, file downloads. |
 | `src/platform/local.js` | Guest use (no sign-in): the same database shape, kept in the browser's `localStorage`. |
 | `src/platform/config.js` | Firebase web config. These values are public by design; the rules above protect the data. |
@@ -73,6 +76,7 @@ The beta page is built with `node tools/build.mjs --beta`: it carries a Beta tag
 2. In Authentication → Sign-in method, enable **Google**.
 3. In Authentication → Settings → Authorized domains, add the site's domain (for GitHub Pages, `<username>.github.io`).
 4. Put the project's web config in `src/platform/config.js` and `frame-src` in `tools/build.mjs`, then build.
+5. Optionally, to get Dev tools in Settings: sign in once, then in Firestore Database → Data start a collection `dev` with a document whose id is your User UID (Authentication → Users) and any field, like `role` = `dev`. The rules let each person read only their own entry and nobody write one, so only the console can make someone a developer.
 
 ## Vocab files
 
