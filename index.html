@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-OtMq9bAMe8ZDUDiMBWCfKXwKv7uoZN26NS5YWjYEhiA=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-/+2fJd3QyNXZ+BORwRseY9XTlCieumlGdquNNJyy1wI=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -152,7 +152,14 @@ body.ready #gate { display: none; }
 .opt { display: grid; gap: 6px; }
 .modes { display: grid; gap: 8px; grid-template-columns: 1fr; }
 .mode { text-align: left; border: 1px solid var(--line); background: var(--sunk); border-radius: 8px; padding: 10px 12px; display: grid; grid-template-columns: 7.5rem 1fr; align-items: baseline; column-gap: 12px; row-gap: 2px; }
-@media (max-width: 480px) { .mode { grid-template-columns: 1fr; } }
+@media (max-width: 480px) {
+  .mode { grid-template-columns: 1fr; }
+  /* The three directions share one row on a phone; a long one breaks onto two lines before "Both" would wrap. */
+  #dirSeg { display: grid; grid-template-columns: 1fr 1fr auto; width: 100%; }
+  #dirSeg button { padding: 8px; font-size: .9rem; word-break: keep-all; }
+  .startbtns { width: 100%; }
+  .startbtns .btn { flex: 1 1 auto; }
+}
 .mode b { font-weight: 700; }
 .mode span { font-size: .82rem; color: var(--muted); }
 .mode[aria-pressed="true"] { border-color: var(--ai); background: var(--ai-soft); }
@@ -222,7 +229,7 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .love li.none { display: block; }
 .skipw { font-size: .8rem; white-space: nowrap; }
 .skipw[aria-pressed="true"] { color: var(--ai); }
-@media (max-width: 480px) { .skipw { white-space: normal; max-width: 6.5rem; text-align: right; } }
+@media (max-width: 480px) { .love li:has(.skipw) { grid-template-columns: 3rem 1fr; } .love li .skipw { grid-column: 2; justify-self: start; padding-left: 0; } }
 .love .tries { font-size: 1.4rem; font-weight: 700; color: var(--shu); text-align: center; font-variant-numeric: tabular-nums; }
 .love .w { font-family: var(--font-jp); font-size: 1.15rem; font-weight: 600; }
 .love .w small { font-family: var(--font-ui); font-weight: 400; color: var(--muted); font-size: .85rem; margin-left: 6px; }
@@ -256,6 +263,16 @@ td.jp { font-family: var(--font-jp); font-size: 1.05rem; }
 td input[type="text"] { width: 100%; font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid transparent; border-radius: 6px; padding: 5px 7px; }
 td input[type="text"]:hover { border-color: var(--line); }
 td.c { text-align: center; width: 4.5rem; }
+@media (max-width: 560px) {
+  /* On a phone each word is a small card: English on top, kana and kanji under it, delete at the side. */
+  .tscroll table { min-width: 0; }
+  .tscroll thead { display: none; }
+  .tscroll table, .tscroll tbody { display: block; }
+  .tscroll tr { display: grid; grid-template-columns: 1fr 1fr auto; align-items: center; border-bottom: 1px dashed var(--line); padding: 4px 0; }
+  .tscroll td { border: none; padding: 2px 3px; }
+  .tscroll td:first-child { grid-column: 1 / 3; }
+  .tscroll td.c { grid-column: 3; grid-row: 1 / 3; width: auto; }
+}
 .rowdel { background: none; border: none; color: var(--muted); font-size: 1.1rem; padding: 2px 8px; }
 .rowdel:hover { color: var(--shu); }
 .tactions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -2282,9 +2299,9 @@ CORRECT: <YES or NO, matching your REASON>`;
         <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> ` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button></h3>`;
       if (!open) return `<div class="tset" data-sid="${esc(s.id)}">${head}</div>`;
       const rows = idx.map((i) => { const w = words[i]; return canWrite
-        ? `<tr><td><input type="text" id="w-${s.id}-${w.id}-en" data-i="${i}" data-f="en" value="${esc(w.en)}"></td>
-             <td class="jp"><input type="text" id="w-${s.id}-${w.id}-kana" data-i="${i}" data-f="kana" value="${esc(w.kana)}"></td>
-             <td class="jp"><input type="text" id="w-${s.id}-${w.id}-kanji" data-i="${i}" data-f="kanji" value="${esc(w.kanji)}"></td>
+        ? `<tr><td><input type="text" id="w-${s.id}-${w.id}-en" data-i="${i}" data-f="en" value="${esc(w.en)}" placeholder="English"></td>
+             <td class="jp"><input type="text" id="w-${s.id}-${w.id}-kana" data-i="${i}" data-f="kana" value="${esc(w.kana)}" placeholder="Kana"></td>
+             <td class="jp"><input type="text" id="w-${s.id}-${w.id}-kanji" data-i="${i}" data-f="kanji" value="${esc(w.kanji)}" placeholder="Kanji"></td>
              <td class="c"><button class="rowdel" data-del="${i}" aria-label="Delete row">×</button></td></tr>`
         : `<tr><td>${esc(w.en)}</td><td class="jp">${esc(w.kana)}</td><td class="jp">${esc(w.kanji)}</td></tr>`; }).join("");
       const del = S.confirmDel === s.id, ev = canWrite && S.editSet === s.id && S.editVals;
