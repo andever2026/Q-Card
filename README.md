@@ -27,7 +27,9 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 
 | Path | What it is |
 | --- | --- |
-| `src/app.html` | The whole page (HTML, CSS and app code). Shared with a personal copy that runs as a claude.ai artifact; lines between `#if public` / `#if claude` markers go to one version only. |
+| `src/app.html` | The page's markup. It pulls in the stylesheet and the app code from `src/app/` with `#include` lines, and is shared with a personal copy that runs as a claude.ai artifact: lines between `#if public` / `#if claude` markers (in any of these files) go to one version only. |
+| `src/app/styles.css` | The page's styles, including the light and dark themes. |
+| `src/app/*.js` | The app code, one part per file in page order: `core` (state, storage, views), `pads` (the writing boxes), `data` (loading vocab), `verbs` (verb forms), `setup` (the practice page and set picker), `practice` (asking and checking), `answers` (what counts as a right answer: forms, furigana, kanji), `grading`, `results`, `history`, `table` (the vocab table), `export-import`, `public` (public site only: sample sets, built-in checker, sign-in), `boot`. They're parts of one function, so they share names and only work once the build puts them together. |
 | `src/platform/firebase.js` | Public-site platform: Google sign-in, the Firestore adapter, file downloads. |
 | `src/platform/local.js` | Guest use (no sign-in): the same database shape, kept in the browser's `localStorage`. |
 | `src/platform/config.js` | Firebase web config. These values are public by design; the rules above protect the data. |

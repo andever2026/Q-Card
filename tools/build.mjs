@@ -1,7 +1,11 @@
-// Builds both versions of the page from src/app.html:
+// Builds both versions of the page from src/app.html and the files it includes from src/app/:
 //   index.html, js/*.js           the public site (GitHub Pages): Google sign-in, Firestore, built-in checker
 //   build/claude-ai.html          the claude.ai artifact (Annie's own copy, using claude.ai's database and Claude)
-// Lines in src/app.html can be limited to one version:
+// src/app.html is the page's markup. A line that is only an include marker is replaced by that file from src/, as is:
+//   /*#include app/styles.css*/   //#include app/core.js
+// The app code is one function split over src/app/*.js in page order, so those files share their names and
+// aren't scripts of their own: the build puts them back together into the single page both versions need.
+// Lines can be limited to one version, in any of those files:
 //   <!--#if public-->  //#if claude  /*#if public*/   …   #else   …   #endif
 // Marker lines themselves never reach the output.
 // `node tools/build.mjs --check` fails if the committed public files are out of date.
@@ -16,6 +20,15 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const at = (p) => join(root, p);
 const check = process.argv.includes("--check");
 const beta = process.argv.includes("--beta");
+
+const INCLUDE = /^\s*(?:<!--|\/\/|\/\*)\s*#include\s+(\S+?)\s*(?:-->|\*\/)?\s*$/;
+export function expand(file, seen = []) {
+  if (seen.includes(file)) throw new Error(`#include loop: ${[...seen, file].join(" → ")}`);
+  if (!existsSync(at(file))) throw new Error(`${seen.at(-1) ?? file}: #include ${file} not found`);
+  const text = readFileSync(at(file), "utf8");
+  return (seen.length ? text.replace(/\n$/, "") : text).split("\n") // an included file's last newline ends the include line
+    .map((line) => { const m = line.match(INCLUDE); return m ? expand(join("src", m[1]), [...seen, file]) : line; }).join("\n");
+}
 
 const MARK = /^\s*(?:<!--|\/\/|\/\*)\s*#(if|else|endif)\b\s*(public|claude)?\s*(?:-->|\*\/)?\s*$/;
 export function preprocess(text, target) {
@@ -81,7 +94,7 @@ function toBeta(text, file) {
 }
 const variant = (text, file) => (beta ? toBeta(text, file) : text);
 
-const src = readFileSync(at("src/app.html"), "utf8");
+const src = expand("src/app.html");
 const page = variant(preprocess(src, "public"), "index.html");
 const files = {
   "index.html": page.replace("<!--CSP-->", () => `<meta http-equiv="Content-Security-Policy" content="${csp(page)}">`),
