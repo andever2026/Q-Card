@@ -7,6 +7,7 @@ Japanese Vocab Practice (this repository: Q-Card) is a flashcard site for Japane
 ## What it does
 
 - **Practice by hand.** English → 日本語, 日本語 → English, or both. Modes: Default, Force kanji (kanji you've learned must be kanji), Kana only, Katakana only, and Verb forms.
+- **Tags.** Give sets tags in their details (Verbs, Quiz 3…). The Show row above the sets lists every tag in use, most-used first, and tapping tags narrows the sets to those tags. When a table has Extras or Supp. sets, Main sets, Extras and Supp. are tags too.
 - **Your own vocab.** Everyone brings their own lists: import a vocab file someone shared with you, or type sets into the vocab table. Q-Card ships no textbook lists. New visitors start with a few sample sets (`data/samples.json`: greetings, people, food, katakana words, everyday verbs and time, with kanji lists for three chapters) so every mode can be tried right away; **Remove the sample sets** under the set picker takes them out for good.
 - **Private per person.** Sign in with Google and your sets, kanji lists and practice history live in your own space in the database, on any device. Or choose **Continue as a guest** and everything stays in your browser on that device.
 - **Two ways to check answers:**
@@ -85,7 +86,7 @@ Export and Import use one JSON file:
   "app": "jp-vocab-practice",
   "version": 1,
   "sets": [
-    { "id": "sample-ch1-a", "book": "Sample", "chapter": 1, "section": "A", "label": "Food and drink",
+    { "id": "sample-ch1-a", "book": "Sample", "chapter": 1, "section": "A", "label": "Food and drink", "tags": ["Verbs"],
       "words": [ { "id": "s1", "en": "to eat", "kana": "たべる", "kanji": "食べる" } ] }
   ],
   "kanji": [ { "id": "sample-ch1", "book": "Sample", "chapter": 1, "kanji": "食飲水" } ],
@@ -94,7 +95,7 @@ Export and Import use one JSON file:
 }
 ```
 
-Import adds new sets and replaces ones with the same `id`; it never deletes. `kana` and `kanji` may list alternatives with `／` and optional parts in `（）`, like `（お）てんき`. See `test/public/fixtures/sample-export.json`.
+Import adds new sets and replaces ones with the same `id`; it never deletes. `tags` is optional (up to 12 per set, matched without case). `kana` and `kanji` may list alternatives with `／` and optional parts in `（）`, like `（お）てんき`. See `test/public/fixtures/sample-export.json`.
 
 Please don't share files copied from copyrighted textbooks publicly.
 

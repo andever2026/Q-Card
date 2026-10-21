@@ -5,7 +5,7 @@
  "about": "Sample sets every new visitor starts with, so the page can be tried before adding any vocab. Written for this site (common beginner words with our own English), not taken from a textbook.",
  "sets": [
   {
-   "id": "samples-ch1-a", "book": "Sample sets", "chapter": 1, "section": "A", "label": "Greetings",
+   "id": "samples-ch1-a", "book": "Sample sets", "chapter": 1, "section": "A", "label": "Greetings", "tags": ["Phrases"],
    "words": [
     { "id": "g1", "en": "good morning", "kana": "おはよう（ございます）", "kanji": "" },
     { "id": "g2", "en": "hello, good afternoon", "kana": "こんにちは", "kanji": "" },
@@ -18,7 +18,7 @@
    ]
   },
   {
-   "id": "samples-ch1-b", "book": "Sample sets", "chapter": 1, "section": "B", "label": "People",
+   "id": "samples-ch1-b", "book": "Sample sets", "chapter": 1, "section": "B", "label": "People", "tags": ["Nouns"],
    "words": [
     { "id": "p1", "en": "I, me", "kana": "わたし", "kanji": "私" },
     { "id": "p2", "en": "person", "kana": "ひと", "kanji": "人" },
@@ -31,7 +31,7 @@
    ]
   },
   {
-   "id": "samples-ch2-a", "book": "Sample sets", "chapter": 2, "section": "A", "label": "Food and drink",
+   "id": "samples-ch2-a", "book": "Sample sets", "chapter": 2, "section": "A", "label": "Food and drink", "tags": ["Nouns"],
    "words": [
     { "id": "f1", "en": "water", "kana": "みず", "kanji": "水" },
     { "id": "f2", "en": "(green) tea", "kana": "（お）ちゃ", "kanji": "（お）茶" },
@@ -45,7 +45,7 @@
    ]
   },
   {
-   "id": "samples-ch2-b", "book": "Sample sets", "chapter": 2, "section": "B", "label": "Katakana words",
+   "id": "samples-ch2-b", "book": "Sample sets", "chapter": 2, "section": "B", "label": "Katakana words", "tags": ["Nouns", "Katakana"],
    "words": [
     { "id": "k1", "en": "television", "kana": "テレビ", "kanji": "" },
     { "id": "k2", "en": "computer (PC)", "kana": "パソコン", "kanji": "" },
@@ -59,7 +59,7 @@
    ]
   },
   {
-   "id": "samples-ch3-a", "book": "Sample sets", "chapter": 3, "section": "A", "label": "Everyday verbs",
+   "id": "samples-ch3-a", "book": "Sample sets", "chapter": 3, "section": "A", "label": "Everyday verbs", "tags": ["Verbs"],
    "words": [
     { "id": "v1", "en": "to eat", "kana": "たべる", "kanji": "食べる" },
     { "id": "v2", "en": "to drink", "kana": "のむ", "kanji": "飲む" },
@@ -76,7 +76,7 @@
    ]
   },
   {
-   "id": "samples-ch3-b", "book": "Sample sets", "chapter": 3, "section": "B", "label": "Time",
+   "id": "samples-ch3-b", "book": "Sample sets", "chapter": 3, "section": "B", "label": "Time", "tags": ["Nouns"],
    "words": [
     { "id": "t1", "en": "today", "kana": "きょう", "kanji": "今日" },
     { "id": "t2", "en": "tomorrow", "kana": "あした", "kanji": "明日" },
