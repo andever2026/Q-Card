@@ -42,7 +42,7 @@ async function newPage(ctx, { width = 900, init } = {}) {
   const page = await ctx.newPage();
   await page.setViewportSize({ width, height: 1000 });
   page.errors = [];
-  page.on("pageerror", (e) => { page.errors.push(e.message); console.log("PAGEERROR", e.message); });
+  page.on("pageerror", (e) => page.errors.push(e.message));
   page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) page.errors.push(m.text()); });
   page.on("request", (r) => allRequests.push({ url: r.url(), body: r.postData() || "", headers: r.headers() }));
   await page.addInitScript(() => {
@@ -94,6 +94,15 @@ ok((await page.$eval("#uptoSel", (s) => s.value)) === "auto", "samples: 'Kanji l
 const sampleDocs = (d) => Object.keys(d).filter((p) => /^users\/u1\/(sets|kanji)\/samples-/.test(p));
 let data = await fsData(page);
 ok(!!data["users/u1/meta/samples"] && sampleDocs(data).length === 9, "samples: 6 sets and 3 kanji lists saved, offer remembered", sampleDocs(data).join(", "));
+const tagChips = () => page.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent));
+ok(await vis(page, "#pickTagRow") && (await tagChips()).join("|") === "All|Nouns4|Katakana1|Phrases1|Verbs1", "tags: Show lists the tags in use, most-used first", (await tagChips()).join("|"));
+await page.click('#pickTags [data-tag="verbs"]');
+const shownSets = () => page.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","));
+ok((await shownSets()) === "samples-ch3-a", "tags: picking Verbs shows only the verb set", await shownSets());
+await page.click('#pickTags [data-tag="phrases"]');
+ok((await shownSets()) === "samples-ch1-a,samples-ch3-a", "tags: picking a second tag adds its sets", await shownSets());
+await page.click('#pickTags [data-tag=""]');
+ok((await shownSets()).split(",").length === 6 && await page.evaluate(() => localStorage.getItem("jpq:pickTags")) === "[]", "tags: All shows every set again");
 await page.click('[data-set="samples-ch3-a"]'); await page.click("#dir-ej"); await page.click("#mode-verb"); await page.click("#startBtn"); await page.waitForTimeout(300);
 ok(/^0 of 60 done/.test(await text(page, "#progLbl")), "samples: all 12 sample verbs get their five forms", await text(page, "#progLbl"));
 await page.click("#quitBtn"); await page.waitForTimeout(150);
@@ -247,11 +256,24 @@ await tab2.fill("#keyInput", KEY); await tab2.check("#keyRemember"); await tab2.
 ok((await tab2.evaluate(() => localStorage.getItem("qcard:apiKey"))) === KEY, "Remember without passcode: plain copy on this device (as the label says)");
 await tab2.click("#forgetKey"); await tab2.close();
 
-// ---------- 5. export ----------
+// ---------- 5. tags, export ----------
 await page.click("#toTable"); await page.waitForTimeout(200);
+const tset = '[data-sid="sample-ch1-a"]';
+await page.click(`${tset} [data-toggle]`); await page.click(`${tset} [data-editset]`);
+await page.fill(`${tset} [data-ef="tags"]`, " Quiz 1,quiz 1 、 Food  and drink, ");
+await page.click(`${tset} [data-editform] [type="submit"]`); await page.waitForTimeout(400);
+data = await fsData(page);
+ok(JSON.stringify(data["users/u1/sets/sample-ch1-a"]?.tags) === '["Quiz 1","Food and drink"]', "tags: saved from Edit details, tidied and without repeats", JSON.stringify(data["users/u1/sets/sample-ch1-a"]?.tags));
+ok((await page.$$eval(`${tset} .tag`, (xs) => xs.map((x) => x.textContent).join("|"))) === "Quiz 1|Food and drink", "tags: shown on the set in the vocab table");
+await page.click(`${tset} [data-editset]`); await page.locator(tset).screenshot({ path: join(out, "5-tags-table.png") }); await page.click(`${tset} [data-editcancel]`);
 const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#exportBtn")]);
 ok(/\.json$/.test(dl.suggestedFilename()), "export downloads a .json file", dl.suggestedFilename());
-await page.click("#backBtn");
+const exported = JSON.parse(readFileSync(await dl.path(), "utf8"));
+ok(JSON.stringify(exported.sets.find((x) => x.id === "sample-ch1-a")?.tags) === '["Quiz 1","Food and drink"]', "export keeps the tags");
+await page.click("#backBtn"); await page.waitForTimeout(200);
+await page.click('#pickTags [data-tag="quiz 1"]');
+ok((await page.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","))) === "sample-ch1-a", "tags: a new tag shows up in Show and filters");
+await page.click('#pickTags [data-tag=""]');
 
 // ---------- 6. the key never leaves for anywhere but Anthropic; no CSP violations ----------
 const leaks = allRequests.filter((r) => !r.url.startsWith("https://api.anthropic.com/") && (r.url.includes("T3stKey") || r.body.includes("T3stKey") || Object.values(r.headers).some((v) => String(v).includes("T3stKey"))));
@@ -322,6 +344,21 @@ await lp.click("#guestBtn"); await lp.waitForTimeout(400);
 ok(await vis(lp, '[data-set="sample-ch1-a"]'), "local data is still there after using an account");
 ok(lp.errors.length === 0, "local: no page errors", lp.errors.join(" | "));
 ok((await lp.evaluate(() => window.__csp)).length === 0, "local: no CSP violations");
+
+// ---------- 10. kinds of sets as tags; the old Show choice carries over ----------
+const kctx = await browser.newContext();
+const kp = await newPage(kctx, { init: () => {
+  if (localStorage.getItem("qcard:mode")) return;
+  const put = (k, v) => localStorage.setItem("qcard:local:" + k, JSON.stringify(v)), w = [{ id: "w1", en: "water", kana: "みず", kanji: "水" }];
+  localStorage.setItem("qcard:mode", "local"); put("meta/samples", { offeredAt: "x" });
+  put("sets/k-a", { book: "B", chapter: 1, section: "A", label: "", words: w }); put("sets/k-b", { book: "B", chapter: 1, section: "B", label: "", tags: ["Verbs"], words: w });
+  put("sets/k-x", { book: "B", chapter: 1, section: "Extras", label: "", words: w }); put("sets/k-s", { book: "B", chapter: 1, section: "Supp. 1", label: "", words: w });
+  localStorage.setItem("jpq:pickKinds", JSON.stringify(["main", "supp"]));
+} });
+await kp.waitForTimeout(500);
+ok((await kp.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent))).join("|") === "All|Main sets2|Extras1|Supp.1|Verbs1", "kinds: Main sets, Extras and Supp. are tags when there's more than one kind", (await kp.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent))).join("|"));
+ok((await kp.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","))) === "k-a,k-b,k-s" && (await kp.$$eval('#pickTags [aria-pressed="true"]', (bs) => bs.map((b) => b.dataset.tag).join(","))) === "main sets,supp.", "kinds: the old Show choice (Extras switched off) carries over as picked tags");
+ok(kp.errors.length === 0, "kinds: no page errors", kp.errors.join(" | "));
 
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");
