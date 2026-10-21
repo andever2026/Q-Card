@@ -109,11 +109,15 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .small { font-size: .85rem; }
 .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .head .jp { font-family: var(--font-jp); font-size: 1rem; color: var(--muted); }
-.palpick { display: inline-flex; gap: 6px; align-self: center; }
-.palpick button { border: 2px solid transparent; background: none; border-radius: 50%; padding: 3px; display: inline-flex; }
-.palpick button:hover { border-color: var(--line); }
-.palpick button[aria-pressed="true"] { border-color: var(--ink); }
-.palpick i { width: 18px; height: 18px; border-radius: 50%; display: inline-block; }
+.iconbtn { border: none; background: none; color: var(--muted); padding: 6px; border-radius: 8px; display: inline-flex; align-self: center; margin-left: auto; }
+.iconbtn:hover { color: var(--ink); background: var(--sunk); }
+#settings { border: none; border-radius: 14px; padding: 22px 24px 24px; width: min(32rem, calc(100vw - 32px)); background: var(--surface); color: var(--ink); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
+#settings::backdrop { background: rgba(17, 20, 26, .5); }
+.settings { display: grid; gap: 18px; }
+.settings .sethead { display: flex; justify-content: space-between; align-items: center; }
+.settings section { display: grid; gap: 8px; }
+.settings p { margin: 0; }
+.settings .seg i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: -1px; }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
 body:not(.ready) section, body:not(.ready) #banner { display: none !important; }
@@ -320,8 +324,6 @@ td.c { text-align: center; width: 4.5rem; }
 @media (prefers-reduced-motion: reduce) { .meter i { transition: none; } }
 /*#if public*/
 body { margin: 0; }
-.acct { display: flex; gap: 10px; align-items: baseline; margin-left: auto; min-width: 0; }
-.acct > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 16rem; }
 #welcome { border: none; border-radius: 14px; padding: 26px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--muted); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
 #welcome::backdrop { background: rgba(17, 20, 26, .5); }
 .welcome { display: grid; gap: 14px; text-align: center; }
@@ -345,6 +347,9 @@ body.writing .foot { display: none; }
 /*#endif*/
 </style>
 <script>try { if (JSON.parse(localStorage.getItem("jpq:palette")) === "claude") document.documentElement.dataset.palette = "claude"; } catch {}</script>
+<!--#if public-->
+<script>try { const t = JSON.parse(localStorage.getItem("jpq:theme")); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
+<!--#endif-->
 
 <!--#if public-->
 </head>
@@ -354,7 +359,6 @@ body.writing .foot { display: none; }
   <header class="head">
     <h1>Japanese Vocab Practice</h1>
 <!--#if public-->
-    <div class="acct" id="acct" hidden><span class="muted small" id="acctName"></span><button class="link" type="button" id="signOutBtn">Sign out</button></div>
     <dialog id="welcome" aria-label="Welcome to Japanese Vocab Practice">
       <div class="welcome">
         <p class="lead">This tool aims to improve written Japanese skills by combining traditional Q-Cards with handwriting recognition.</p>
@@ -364,10 +368,26 @@ body.writing .foot { display: none; }
       </div>
     </dialog>
 <!--#endif-->
-    <div class="palpick" id="palPick" role="group" aria-label="Colour palette">
-      <button type="button" data-pal="indigo" aria-label="Blue colours" title="Blue colours"><i style="background:#2c4a8f"></i></button>
-      <button type="button" data-pal="claude" aria-label="Warm colours" title="Warm colours"><i style="background:#c96442"></i></button>
-    </div>
+    <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
+    <dialog id="settings" aria-label="Settings"><div class="settings">
+      <div class="sethead"><h2>Settings</h2><button class="ghost" type="button" id="settingsClose" aria-label="Close settings">✕</button></div>
+      <section><h3>Colours</h3>
+        <div class="seg" id="palPick" role="group" aria-label="Colours"><button type="button" data-pal="indigo"><i style="background:#2c4a8f"></i>Blue</button><button type="button" data-pal="claude"><i style="background:#c96442"></i>Warm</button></div>
+      </section>
+<!--#if public-->
+      <section><h3>Light or dark</h3>
+        <div class="seg" id="themePick" role="group" aria-label="Light or dark"><button type="button" data-theme-pick="">Match device</button><button type="button" data-theme-pick="light">Light</button><button type="button" data-theme-pick="dark">Dark</button></div>
+      </section>
+      <section><h3>Account</h3>
+        <p id="acctName"></p>
+        <div class="tactions"><button class="btn" type="button" id="signOutBtn">Sign out</button></div>
+      </section>
+<!--#endif-->
+      <section><h3>Your vocab</h3><p class="muted" id="setStats"></p></section>
+<!--#if public-->
+      <section><h3>Delete</h3><div id="delAcct"></div></section>
+<!--#endif-->
+    </div></dialog>
   </header>
   <div class="banner" id="banner" hidden></div>
   <div class="gate" id="gate" role="status">Loading…</div>
@@ -700,6 +720,27 @@ body.writing .foot { display: none; }
     pads.forEach((p) => p.draw());
   }
   document.querySelectorAll("#palPick [data-pal]").forEach((b) => (b.onclick = () => setPalette(b.dataset.pal)));
+  // Settings pop-up (the gear in the header): colours, and on the public site light or dark, the account and deleting.
+  $("#settingsBtn").onclick = () => { renderSettings(); $("#settings").showModal(); };
+  $("#settingsClose").onclick = () => $("#settings").close();
+  $("#settings").addEventListener("click", (e) => { if (e.target === $("#settings")) $("#settings").close(); });
+  function renderSettings() {
+    const n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`, words = S.sets.reduce((a, s) => a + readyCount(s.words || []), 0);
+    $("#setStats").textContent = [n(S.sets.length, "set"), n(words, "word"), n(S.kanjiLists.length, "kanji list"), ...(S.history?.length ? [n(S.history.length, "practice session") + " saved"] : [])].join(" · ");
+    //#if public
+    renderAccount();
+    //#endif
+  }
+  //#if public
+  function setTheme(t) {
+    t = t === "light" || t === "dark" ? t : "";
+    if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+    document.querySelectorAll("#themePick [data-theme-pick]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.themePick === t));
+    store.set("theme", t);
+  }
+  document.querySelectorAll("#themePick [data-theme-pick]").forEach((b) => (b.onclick = () => setTheme(b.dataset.themePick)));
+  setTheme(store.get("theme", ""));
+  //#endif
   function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
   function banner(msg) { const b = $("#banner"); b.hidden = !msg; b.textContent = msg || ""; }
 
@@ -1105,11 +1146,11 @@ body.writing .foot { display: none; }
     return out;
   }
   const setTags = (s, kinds) => cleanTags([...(kinds ? [KIND_TAGS[setKind(s)]] : []), ...(Array.isArray(s.tags) ? s.tags : [])]);
-  // Every tag in use, most-used first: [{key, name, n}].
+  // Every tag in use: [{key, name, n}], n = sets with it. The Filter row puts the ones that hide the most sets first.
   function tagCounts() {
     const kinds = new Set(S.sets.map(setKind)).size > 1, m = new Map();
     for (const s of S.sets) for (const t of setTags(s, kinds)) { const k = tagKey(t); if (!m.has(k)) m.set(k, { key: k, name: t, n: 0 }); m.get(k).n++; }
-    return { kinds, list: [...m.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)) };
+    return { kinds, list: [...m.values()].sort((a, b) => a.n - b.n || a.name.localeCompare(b.name)) };
   }
   const setBooks = () => books().filter((b) => S.sets.some((s) => bookOf(s) === b));
   const chsOf = (book) => [...new Set(S.sets.filter((s) => bookOf(s) === book).map((s) => String(s.chapter)))];
@@ -1211,11 +1252,11 @@ body.writing .foot { display: none; }
     $("#pickSumRow").hidden = !n;
     $("#pickSum").textContent = `${n} set${n === 1 ? "" : "s"} picked${hidden ? `, ${hidden} not shown here` : ""}`;
   }
-  // The Filter row: every tag in use, most-used first, none picked to start (every set shows). It's left out when no
-  // tag would narrow anything.
+  // The Filter row: every tag in use, each with how many sets picking it hides (the sets without it), most hidden first.
+  // None is picked to start, so every set shows. It's left out when no tag would narrow anything.
   function renderTagRow(tags, on) {
     $("#pickTagRow").hidden = tags.every((t) => t.n === S.sets.length);
-    $("#pickTags").innerHTML = tags.map((t) => `<button class="chip" type="button" data-tag="${esc(t.key)}" aria-pressed="${on.includes(t.key)}">${esc(t.name)}<span class="n">${t.n}</span></button>`).join("")
+    $("#pickTags").innerHTML = tags.map((t) => `<button class="chip" type="button" data-tag="${esc(t.key)}" aria-pressed="${on.includes(t.key)}" title="Hides ${S.sets.length - t.n} of ${S.sets.length} sets">${esc(t.name)}<span class="n">${S.sets.length - t.n}</span></button>`).join("")
       + (on.length ? `<button class="link small" type="button" id="tagClear">Clear filter</button>` : "");
     const save = () => { store.set("pickTags", [...S.pickTags]); renderSetup(); };
     $("#pickTags").querySelectorAll("[data-tag]").forEach((b) => (b.onclick = () => {
@@ -2693,6 +2734,39 @@ CORRECT: <YES or NO, matching your REASON>`;
       welcome(e?.code === "auth/popup-blocked" ? "Your browser blocked the sign-in window. Allow pop-ups for this site, then try again." : "Sign-in didn't work. Try again.");
     }
   };
+  // Settings → Account and Delete. account is the signed-in person ({uid, email, name}), or null for a guest.
+  let account = null, delAsk = false;
+  $("#settings").addEventListener("close", () => { delAsk = false; });
+  function renderAccount() {
+    $("#acctName").innerHTML = account ? `Signed in with Google as <b>${esc(account.email || account.name || "")}</b>.`
+      : "Not signed in. As a guest, everything is kept in this browser on this device.";
+    $("#signOutBtn").textContent = account ? "Sign out" : "Sign in with Google";
+    $("#signOutBtn").onclick = account ? () => platform.signOut() : () => { $("#settings").close(); welcome(); };
+    const what = account ? "your account and its sets, kanji lists and practice history" : "the sets, kanji lists and practice history saved in this browser";
+    $("#delAcct").innerHTML = !delAsk
+      ? `<button class="btn danger" type="button" id="delStart">${account ? "Delete my account" : "Delete everything in this browser"}</button>`
+      : `<p class="small">This deletes ${what}, for good. Export your vocab first if you want a copy.</p>
+        <div class="tactions"><button class="btn danger" type="button" id="delYes">Delete everything</button><button class="btn" type="button" id="delNo">Cancel</button></div>
+        <p class="keyerr small" id="delErr" hidden></p>`;
+    if (!delAsk) { $("#delStart").onclick = () => { delAsk = true; renderAccount(); }; return; }
+    $("#delNo").onclick = () => { delAsk = false; renderAccount(); };
+    $("#delYes").onclick = async (e) => {
+      e.target.disabled = true; e.target.textContent = "Deleting…";
+      try {
+        const paths = [];
+        for (const c of ["sets", "kanji", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
+        for (const p of [...paths, "meta/books", "meta/courses", "meta/samples"]) await db.doc(p).delete();
+        try { localStorage.removeItem("qcard:mode"); } catch {}
+        if (account) await platform.deleteAccount(); // which signs out, and the page starts over (see boot)
+        else location.reload();
+      } catch (err) {
+        e.target.disabled = false; e.target.textContent = "Delete everything";
+        $("#delErr").hidden = false;
+        $("#delErr").textContent = err?.code === "auth/popup-blocked" ? "Your data is deleted. To delete the account itself, allow pop-ups for this site so Google can confirm it's you, then try again."
+          : "Something went wrong. Try again.";
+      }
+    };
+  }
   //#endif
   // ---------- boot ----------
   //#if claude
@@ -2728,7 +2802,6 @@ CORRECT: <YES or NO, matching your REASON>`;
     const start = (id, store) => {
       started = uid = id;
       db = store; user = platform.user(uid); owner = canWrite = true; downloads = platform.downloads;
-      $("#acct").hidden = false;
       document.body.classList.add("ready");
       renderPort();
       db.collection("kanji").onSnapshot(onKanji, () => {});
@@ -2741,10 +2814,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     // As a guest, everything is kept in this browser (src/platform/local.js); choosing it in the welcome pop-up is remembered.
     startLocal = () => {
       start("local", platform.localDb());
-      $("#acctName").textContent = "Guest: saved in this browser";
       $("#histWhere").textContent = "Saved only in this browser";
-      $("#signOutBtn").textContent = "Sign in";
-      $("#signOutBtn").onclick = () => welcome();
     };
     platform.onAuth((u) => {
       // Signing in or out (here or in another tab) or switching accounts starts the page over.
@@ -2758,9 +2828,8 @@ CORRECT: <YES or NO, matching your REASON>`;
       }
       // Signing in leaves this browser's own data where it is; it's there again after "Use without signing in".
       try { localStorage.removeItem("qcard:mode"); } catch {}
+      account = u;
       start(u.uid, platform.db(u.uid));
-      $("#acctName").textContent = u.email || u.name;
-      $("#signOutBtn").onclick = () => platform.signOut();
     });
   })();
   //#endif

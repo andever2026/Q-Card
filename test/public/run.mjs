@@ -88,14 +88,20 @@ ok(/blocked the sign-in window/.test(await text(page, "#welcomeErr")), "popup bl
 await page.evaluate(() => { window.__signInError = null; });
 await page.click("#signInBtn"); await page.waitForTimeout(500);
 ok(await vis(page, "#setup") && !(await vis(page, "#welcome")), "signed in: practice page shows, pop-up gone");
-ok((await text(page, "#acctName")) === "student@example.com", "signed in: account name in header");
+ok(!(await page.$("#acct")) && !(await page.$("#palPick:not(#settings *)")), "header: no account line or colour dots, just the settings gear");
+await page.click("#settingsBtn");
+const setOpen = (p) => p.evaluate(() => document.querySelector("#settings").open);
+ok(await setOpen(page) && /student@example\.com/.test(await text(page, "#acctName")) && (await text(page, "#signOutBtn")) === "Sign out" && (await text(page, "#delStart")) === "Delete my account", "settings: shows the signed-in account, Sign out and Delete my account", await text(page, "#acctName"));
+await page.click("#settingsClose");
+ok(!(await setOpen(page)), "settings: ✕ closes it");
 ok(await vis(page, '[data-set="samples-ch1-a"]') && await vis(page, "#sampleNote"), "new account: starts with the sample sets");
 ok((await page.$eval("#uptoSel", (s) => s.value)) === "auto", "samples: 'Kanji learned up to' starts at Highest picked chapter", await page.$eval("#uptoSel", (s) => s.value));
 const sampleDocs = (d) => Object.keys(d).filter((p) => /^users\/u1\/(sets|kanji)\/samples-/.test(p));
 let data = await fsData(page);
 ok(!!data["users/u1/meta/samples"] && sampleDocs(data).length === 9, "samples: 6 sets and 3 kanji lists saved, offer remembered", sampleDocs(data).join(", "));
 const tagChips = () => page.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent));
-ok(await vis(page, "#pickTagRow") && (await tagChips()).join("|") === "Nouns4|Katakana1|Phrases1|Verbs1" && /Filter/.test(await text(page, "#pickTagRow")) && !(await page.$("#pickTags [aria-pressed=\"true\"]")), "tags: Filter lists the tags in use, most-used first, none picked", (await tagChips()).join("|"));
+ok(await vis(page, "#pickTagRow") && (await tagChips()).join("|") === "Katakana5|Phrases5|Verbs5|Nouns2" && /Filter/.test(await text(page, "#pickTagRow")) && !(await page.$("#pickTags [aria-pressed=\"true\"]")), "tags: Filter counts the sets each tag hides, most hidden first, none picked", (await tagChips()).join("|"));
+ok((await page.$eval('#pickTags [data-tag="nouns"]', (b) => b.title)) === "Hides 2 of 6 sets", "tags: the count is explained on hover");
 await page.click('#pickTags [data-tag="verbs"]');
 const shownSets = () => page.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","));
 ok((await shownSets()) === "samples-ch3-a", "tags: picking Verbs shows only the verb set", await shownSets());
@@ -284,8 +290,8 @@ ok(!JSON.stringify(data).includes("T3stKey"), "the key is never written to the d
 ok(!(await page.evaluate(() => window.__csp)).length, "no Content-Security-Policy violations", (await page.evaluate(() => window.__csp)).join(", "));
 
 // ---------- 7. sign out, another person sees none of it ----------
-await page.click("#signOutBtn"); await page.waitForTimeout(800);
-ok(await vis(page, "#signInBtn"), "sign out: welcome pop-up again");
+await page.click("#settingsBtn"); await page.click("#signOutBtn"); await page.waitForTimeout(800);
+ok(await page.evaluate(() => document.querySelector("#welcome").open), "sign out from Settings: welcome pop-up again");
 await page.evaluate(() => { window.__nextUser = { uid: "u2", displayName: "Other", email: "other@example.com" }; });
 await page.click("#signInBtn"); await page.waitForTimeout(600);
 ok(await vis(page, '[data-set="samples-ch1-a"]') && !(await vis(page, '[data-set="sample-ch1-a"]')), "another account starts with only the sample sets");
@@ -298,6 +304,26 @@ await phone.waitForTimeout(300);
 const wide = await phone.evaluate(() => document.documentElement.scrollWidth);
 ok(wide <= 375, "phone: no sideways scrolling", String(wide));
 await phone.screenshot({ path: join(out, "8-phone.png"), fullPage: true });
+await phone.click("#settingsBtn");
+const sw = await phone.$eval("#settings", (d) => d.getBoundingClientRect().width);
+ok(sw <= 375 - 24 && (await phone.evaluate(() => document.documentElement.scrollWidth)) <= 375, "phone: the settings pop-up fits", String(sw));
+await phone.screenshot({ path: join(out, "8-settings-phone.png") });
+await phone.close();
+
+// ---------- 8b. delete an account: its data, then the Google account ----------
+await page.click('#histAsk [data-hist="on"]'); await page.waitForTimeout(300);
+ok(!!(await fsData(page))["users/u2/data/settings"], "delete: (history setting saved, so there's something under data/)");
+await page.click("#settingsBtn"); await page.click("#delStart");
+ok(/deletes your account/.test(await text(page, "#delAcct")) && await vis(page, "#delYes"), "delete: asks before deleting");
+await page.screenshot({ path: join(out, "8-delete.png") });
+await page.click("#delNo");
+ok(await vis(page, "#delStart") && !(await page.$("#delYes")), "delete: Cancel backs out");
+await page.evaluate(() => { window.__staleLogin = true; });
+await page.click("#delStart"); await page.click("#delYes"); await page.waitForTimeout(1500);
+data = await fsData(page);
+ok(!Object.keys(data).some((p) => p.startsWith("users/u2/")) && Object.keys(data).some((p) => p.startsWith("users/u1/")), "delete: everything of that account is gone, other accounts untouched", Object.keys(data).filter((p) => p.startsWith("users/u2/")).join(", "));
+ok((await page.evaluate(() => JSON.parse(localStorage.getItem("fake:deleted") || "[]"))).includes("u2"), "delete: the Google account is deleted too (signing in again first when Google asks)");
+ok(await page.evaluate(() => document.querySelector("#welcome").open), "delete: the page starts over at the welcome pop-up");
 
 // ---------- 9. use without signing in: everything in this browser ----------
 const lctx = await browser.newContext({ acceptDownloads: true });
@@ -308,7 +334,17 @@ ok((await lp.evaluate(() => document.documentElement.scrollWidth)) <= 375, "welc
 await lp.screenshot({ path: join(out, "9-signin-phone.png") });
 await lp.setViewportSize({ width: 900, height: 1000 });
 await lp.click("#guestBtn"); await lp.waitForTimeout(400);
-ok(await vis(lp, "#setup") && !(await vis(lp, "#welcome")) && /Guest/.test(await text(lp, "#acctName")) && (await text(lp, "#signOutBtn")) === "Sign in", "guest: pop-up closes, header says Guest, offers Sign in");
+ok(await vis(lp, "#setup") && !(await lp.evaluate(() => document.querySelector("#welcome").open)) && !(await lp.evaluate(() => document.body.textContent.includes("Guest: saved"))), "guest: pop-up closes, no guest line in the header");
+await lp.click("#settingsBtn");
+ok(/Not signed in/.test(await text(lp, "#acctName")) && (await text(lp, "#signOutBtn")) === "Sign in with Google" && (await text(lp, "#delStart")) === "Delete everything in this browser", "settings (guest): not signed in, offers Sign in and deleting this browser's data");
+ok((await text(lp, "#setStats")) === "6 sets · 55 words · 3 kanji lists", "settings: counts the sets, words and kanji lists", await text(lp, "#setStats"));
+await lp.click('#themePick [data-theme-pick="dark"]'); await lp.click('#palPick [data-pal="claude"]');
+ok(await lp.evaluate(() => document.documentElement.dataset.theme === "dark" && document.documentElement.dataset.palette === "claude" && localStorage.getItem("jpq:theme") === '"dark"'), "settings: Dark and Warm apply and are remembered");
+await lp.screenshot({ path: join(out, "9-settings-dark.png") });
+await lp.click('#themePick [data-theme-pick="light"]'); await lp.click('#palPick [data-pal="indigo"]');
+await lp.screenshot({ path: join(out, "9-settings.png") });
+await lp.mouse.click(8, 8);
+ok(!(await setOpen(lp)), "settings: clicking outside closes it");
 ok(await vis(lp, '[data-set="samples-ch1-a"]'), "guest: starts with the sample sets");
 await lp.click("#sampleRemove"); await lp.click("#sampleNo");
 ok(await vis(lp, '[data-set="samples-ch1-a"]'), "samples: 'Keep them' keeps them");
@@ -334,15 +370,24 @@ lp = await newPage(lctx);
 await lp.waitForTimeout(300);
 ok(await vis(lp, "#setup") && await vis(lp, '[data-set="sample-ch1-a"]') && !(await vis(lp, "#welcome")), "guest: coming back goes straight to the saved sets, no pop-up");
 ok(!(await vis(lp, '[data-set="samples-ch1-a"]')), "samples: removed ones don't come back");
+ok(await lp.evaluate(() => document.documentElement.dataset.theme === "light"), "settings: Light is still on after coming back");
+await lp.click("#settingsBtn"); await lp.click('#themePick [data-theme-pick=""]');
+ok(await lp.evaluate(() => !("theme" in document.documentElement.dataset)), "settings: Match device follows the device again");
 await lp.click("#signOutBtn"); await lp.waitForTimeout(200);
-ok(await vis(lp, "#signInBtn"), "guest: header Sign in opens the welcome pop-up");
+ok(!(await setOpen(lp)) && await lp.evaluate(() => document.querySelector("#welcome").open), "guest: Sign in with Google in Settings opens the welcome pop-up");
 await lp.click("#signInBtn"); await lp.waitForTimeout(1000);
-ok((await text(lp, "#acctName")) === "student@example.com" && await vis(lp, '[data-set="samples-ch1-a"]') && !(await vis(lp, '[data-set="sample-ch1-a"]')), "Sign in from local: switches to the new account, which starts with the samples");
+await lp.click("#settingsBtn");
+ok(/student@example\.com/.test(await text(lp, "#acctName")) && await vis(lp, '[data-set="samples-ch1-a"]') && !(await vis(lp, '[data-set="sample-ch1-a"]')), "Sign in from local: switches to the new account, which starts with the samples");
 ok(await lp.evaluate(() => localStorage.getItem("qcard:mode")) === null, "signed in: no longer remembered as local");
 await lp.click("#signOutBtn"); await lp.waitForTimeout(1000);
 ok(await vis(lp, "#guestBtn"), "signed out: welcome pop-up again");
 await lp.click("#guestBtn"); await lp.waitForTimeout(400);
 ok(await vis(lp, '[data-set="sample-ch1-a"]'), "local data is still there after using an account");
+await lp.click("#settingsBtn"); await lp.click("#delStart");
+ok(/saved in this browser/.test(await text(lp, "#delAcct")), "delete (guest): asks before deleting this browser's data");
+await lp.click("#delYes"); await lp.waitForTimeout(1200);
+ls = await lp.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("qcard:local:sets/sample-") || k.startsWith("qcard:local:data/") || k === "qcard:mode"));
+ok(!ls.length && await lp.evaluate(() => document.querySelector("#welcome").open), "delete (guest): this browser's sets and history are gone and the page starts over", ls.join(", "));
 ok(lp.errors.length === 0, "local: no page errors", lp.errors.join(" | "));
 ok((await lp.evaluate(() => window.__csp)).length === 0, "local: no CSP violations");
 
@@ -357,8 +402,8 @@ const kp = await newPage(kctx, { init: () => {
   localStorage.setItem("jpq:pickKinds", JSON.stringify(["main", "supp"]));
 } });
 await kp.waitForTimeout(500);
-ok((await kp.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent))).join("|") === "Main sets2|Extras1|Supp.1|Verbs1", "kinds: Main sets, Extras and Supp. are tags when there's more than one kind", (await kp.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent))).join("|"));
-ok((await kp.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","))) === "k-a,k-b,k-s" && (await kp.$$eval('#pickTags [aria-pressed="true"]', (bs) => bs.map((b) => b.dataset.tag).join(","))) === "main sets,supp.", "kinds: the old Show choice (Extras switched off) carries over as picked tags");
+ok((await kp.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent))).join("|") === "Extras3|Supp.3|Verbs3|Main sets2", "kinds: Main sets, Extras and Supp. are tags when there's more than one kind", (await kp.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent))).join("|"));
+ok((await kp.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","))) === "k-a,k-b,k-s" && (await kp.$$eval('#pickTags [aria-pressed="true"]', (bs) => bs.map((b) => b.dataset.tag).sort().join(","))) === "main sets,supp.", "kinds: the old Show choice (Extras switched off) carries over as picked tags", (await kp.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","))) + " / " + (await kp.$$eval('#pickTags [aria-pressed="true"]', (bs) => bs.map((b) => b.dataset.tag).join(","))));
 ok(kp.errors.length === 0, "kinds: no page errors", kp.errors.join(" | "));
 
 await browser.close(); server.close();
