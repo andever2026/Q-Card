@@ -1,5 +1,5 @@
 // Browser tests for the public site (index.html) with Firebase replaced by test/public/fake-firebase.js
-// and Anthropic's API mocked. Run: node test/public/run.mjs  (needs Playwright; PLAYWRIGHT_DIR overrides where it lives)
+// and any request to Anthropic's API recorded (there should be none). Run: node test/public/run.mjs  (needs Playwright; PLAYWRIGHT_DIR overrides where it lives)
 import { createRequire } from "node:module";
 import { createServer } from "node:http";
 import { readFileSync, existsSync, mkdirSync } from "node:fs";
@@ -34,9 +34,7 @@ const server = createServer((req, res) => {
 const base = `http://localhost:${server.address().port}/`;
 
 const browser = await chromium.launch();
-const KEY = "sk-ant-api03-" + "T3stKey".repeat(8);
 const apiCalls = [], allRequests = [];
-let apiReply = { status: 200, text: "MAIN: たべる\nFURIGANA: NONE\nREASON: Correct.\nCORRECT: YES" };
 
 async function newPage(ctx, { width = 900, init } = {}) {
   const page = await ctx.newPage();
@@ -51,15 +49,8 @@ async function newPage(ctx, { width = 900, init } = {}) {
   });
   if (init) await page.addInitScript(init);
   await page.route("**/js/platform.js", (r) => r.fulfill({ contentType: "text/javascript", body: platformJs }));
-  await page.route("https://api.anthropic.com/**", async (r) => {
-    const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST, OPTIONS" };
-    if (r.request().method() === "OPTIONS") return r.fulfill({ status: 204, headers: cors });
-    apiCalls.push({ url: r.request().url(), headers: r.request().headers(), body: JSON.parse(r.request().postData() || "{}") });
-    const body = apiReply.status === 200
-      ? { id: "msg_test", type: "message", role: "assistant", model: "x", content: [{ type: "text", text: apiReply.text }], stop_reason: apiReply.stop || "end_turn", usage: { input_tokens: 1, output_tokens: 1 } }
-      : { type: "error", error: { type: apiReply.type || "authentication_error", message: apiReply.message || "invalid x-api-key" } };
-    return r.fulfill({ status: apiReply.status, headers: cors, contentType: "application/json", body: JSON.stringify(body) });
-  });
+  // Checking with a visitor's own API key was taken out; nothing should call Anthropic any more.
+  await page.route("https://api.anthropic.com/**", (r) => { apiCalls.push(r.request().url()); return r.abort(); });
   await page.goto(base);
   await page.waitForTimeout(400);
   return page;
@@ -119,8 +110,6 @@ await page.click("#sampleRemove"); await page.click("#sampleYes"); await page.wa
 data = await fsData(page);
 ok(!sampleDocs(data).length && !!data["users/u1/meta/samples"] && await vis(page, "#emptyImport") && !(await vis(page, "#sampleNote")), "samples: removed, empty account shows Import");
 ok(!(await page.evaluate(() => JSON.parse(localStorage.getItem("jpq:selected") || "[]"))).some((id) => id.startsWith("samples-")), "samples: picks on removed sample sets are dropped", await page.evaluate(() => localStorage.getItem("jpq:selected")));
-ok(await vis(page, "#checkPanel"), "checking card shows");
-ok(/Built-in/.test(await text(page, '#checkerSeg [aria-pressed="true"]')), "built-in checker is the default");
 await page.screenshot({ path: join(out, "2-empty.png"), fullPage: true });
 
 // ---------- 2. import from the empty state ----------
@@ -199,69 +188,14 @@ if (entry.length > 1) {
   ok(await vis(page, "#results"), "built-in practice reaches the results page");
   ok(await page.evaluate(() => window.QCardChecker.verify({ strokes: [[[0, 0], [10, 10]]], candidates: ["龘"], box: { w: 100, h: 100 } }).ok === null),
     "built-in: a character without a template comes back unchecked (self-marked)");
-  // section 4 expects set B picked and the direction left at English → 日本語
 }
 
-// ---------- 4. own Claude key ----------
+// ---------- 4. no "How answers are checked" card; a key saved by the old option is cleared ----------
 await page.click("#newBtn"); await page.waitForTimeout(200);
-await page.click('[data-checker="claude"]');
-ok(await vis(page, "#keyForm"), "Claude: key form shows");
-await page.fill("#keyInput", "not-a-key"); await page.click('#keyForm button[type="submit"]'); await page.waitForTimeout(100);
-ok(/doesn't look like an Anthropic API key/.test(await text(page, "#keyMsg")), "rejects text that isn't a key");
-await page.fill("#keyInput", KEY); await page.click('#keyForm button[type="submit"]'); await page.waitForTimeout(150);
-let st = await page.evaluate(() => ({ s: sessionStorage.getItem("qcard:apiKey"), l: localStorage.getItem("qcard:apiKey"), lk: localStorage.getItem("qcard:apiKeyLocked") }));
-ok(st.s === KEY && !st.l && !st.lk, "default: key kept in sessionStorage only");
-ok(/this tab only/.test(await text(page, "#keyStatus")), "status says tab only");
-await page.screenshot({ path: join(out, "4-key.png"), fullPage: true });
-await page.click('[data-set="sample-ch1-b"]'); await page.click('[data-set="sample-ch1-a"]');
-await page.click("#dir-ej"); await page.click("#startBtn"); await page.waitForTimeout(300);
-await scribble(page); await page.click("#checkBtn"); await page.waitForTimeout(2500);
-const call = apiCalls.at(-1);
-ok(!!call, "Check sends one request to api.anthropic.com");
-if (call) {
-  ok(call.headers["x-api-key"] === KEY, "request: x-api-key is the visitor's key");
-  ok(call.headers["anthropic-dangerous-direct-browser-access"] === "true", "request: browser access header");
-  ok(call.headers["anthropic-beta"] === "server-side-fallback-2026-07-01" && call.body.fallbacks === "default", "request: Opus with server-side fallbacks");
-  ok(call.body.model === "claude-opus-5-5" && call.body.output_config?.effort === "medium", "request: model and effort", call.body.model);
-  ok(call.body.messages[0].content[0].type === "image" && call.body.messages[0].content.at(-1).type === "text", "request: image then prompt");
-}
-// An unknown verdict for this word is "wrong" unless the mocked reading matches; either way the flow must finish without errors.
-ok(!(await vis(page, "#checkErr")), "no error shown after a good reply");
-await page.click("#quitBtn"); await page.waitForTimeout(150);
-await page.selectOption("#modelSel", "claude-haiku-5-5");
-await page.click("#startBtn"); await page.waitForTimeout(300);
-apiReply = { status: 401, type: "authentication_error", message: "invalid x-api-key" };
-await scribble(page); await page.click("#checkBtn"); await page.waitForTimeout(2500);
-ok(/didn't accept your API key/.test(await text(page, "#checkErr")), "401: explains the key wasn't accepted", await text(page, "#checkErr"));
-const hcall = apiCalls.at(-1);
-ok(hcall?.body.model === "claude-haiku-5-5" && !("fallbacks" in hcall.body) && !hcall.headers["anthropic-beta"], "Haiku: no fallbacks");
-apiReply = { status: 400, type: "invalid_request_error", message: "Your credit balance is too low to access the Anthropic API." };
-await page.click("#checkBtn"); await page.waitForTimeout(2500);
-ok(/out of credit/.test(await text(page, "#checkErr")), "low credit: says so");
-apiReply = { status: 200, text: "MAIN: x\nFURIGANA: NONE\nREASON: r\nCORRECT: YES" };
-await page.click("#quitBtn"); await page.waitForTimeout(150);
-
-// remember with a passcode, then a new tab
-await page.click("#forgetKey"); await page.waitForTimeout(100);
-st = await page.evaluate(() => [sessionStorage.getItem("qcard:apiKey"), localStorage.getItem("qcard:apiKey"), localStorage.getItem("qcard:apiKeyLocked")]);
-ok(st.every((v) => v === null), "Forget my key clears every copy");
-await page.fill("#keyInput", KEY); await page.check("#keyRemember");
-ok(await vis(page, "#keyPassRow"), "Remember: passcode field appears");
-await page.fill("#keyPass", "pass1234"); await page.click('#keyForm button[type="submit"]'); await page.waitForTimeout(2500);
-st = await page.evaluate(() => ({ l: localStorage.getItem("qcard:apiKey"), lk: localStorage.getItem("qcard:apiKeyLocked") }));
-ok(!st.l && st.lk && !st.lk.includes("T3stKey") && JSON.parse(st.lk).ct, "passcode: only an encrypted copy is stored on the device");
-const tab2 = await newPage(ctx);
-await tab2.waitForTimeout(300);
-ok(/locked/.test(await text(tab2, "#keyStatus")) && await vis(tab2, "#unlockForm"), "new tab: key is locked, unlock form shows");
-await tab2.fill("#unlockPass", "wrong"); await tab2.click('#unlockForm button[type="submit"]'); await tab2.waitForTimeout(2500);
-ok(/didn't unlock/.test(await text(tab2, "#keyMsg")), "wrong passcode: refused");
-await tab2.fill("#unlockPass", "pass1234"); await tab2.click('#unlockForm button[type="submit"]'); await tab2.waitForTimeout(2500);
-ok(/unlocked in this tab/.test(await text(tab2, "#keyStatus")), "right passcode: unlocked");
-ok((await tab2.evaluate(() => sessionStorage.getItem("qcard:apiKey"))) === KEY, "unlocked key kept for this tab");
-await tab2.click("#forgetKey");
-await tab2.fill("#keyInput", KEY); await tab2.check("#keyRemember"); await tab2.click('#keyForm button[type="submit"]'); await tab2.waitForTimeout(200);
-ok((await tab2.evaluate(() => localStorage.getItem("qcard:apiKey"))) === KEY, "Remember without passcode: plain copy on this device (as the label says)");
-await tab2.click("#forgetKey"); await tab2.close();
+ok(!(await page.$("#checkPanel")) && !(await page.$("#keyForm")) && !/How answers are checked/.test(await page.content()), "no 'How answers are checked' card");
+await page.evaluate(() => { localStorage.setItem("qcard:apiKey", "sk-ant-old"); localStorage.setItem("qcard:apiKeyLocked", "{}"); sessionStorage.setItem("qcard:apiKey", "sk-ant-old"); localStorage.setItem("jpq:checker", '"claude"'); });
+await page.reload(); await page.waitForTimeout(800);
+ok(await page.evaluate(() => !localStorage.getItem("qcard:apiKey") && !localStorage.getItem("qcard:apiKeyLocked") && !sessionStorage.getItem("qcard:apiKey") && !localStorage.getItem("jpq:checker")), "an API key saved by the old option is removed from the browser");
 
 // ---------- 5. tags, export ----------
 await page.click("#toTable"); await page.waitForTimeout(200);
@@ -282,11 +216,26 @@ await page.click('#pickTags [data-tag="quiz 1"]');
 ok((await page.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","))) === "sample-ch1-a", "tags: a new tag shows up in Filter and filters");
 await page.click("#tagClear");
 
-// ---------- 6. the key never leaves for anywhere but Anthropic; no CSP violations ----------
-const leaks = allRequests.filter((r) => !r.url.startsWith("https://api.anthropic.com/") && (r.url.includes("T3stKey") || r.body.includes("T3stKey") || Object.values(r.headers).some((v) => String(v).includes("T3stKey"))));
-ok(!leaks.length, "the key is only ever sent to api.anthropic.com", leaks.map((r) => r.url).join(" "));
+// ---------- 6. choices follow the account to another device ----------
+// Another device = the same account with none of this browser's choices (jpq:…) saved.
+const pressed = (sel) => page.$eval(sel, (b) => b.getAttribute("aria-pressed") === "true");
+await page.click("#dir-je"); await page.click("#mode-kana");
+if (!(await pressed('[data-set="sample-ch1-a"]'))) await page.click('[data-set="sample-ch1-a"]');
+await page.click('#pickTags [data-tag="quiz 1"]');
+await page.click("#settingsBtn"); await page.click('#themePick [data-theme-pick="dark"]'); await page.click('#palPick [data-pal="claude"]'); await page.click("#settingsClose");
+await page.waitForTimeout(1300);
 data = await fsData(page);
-ok(!JSON.stringify(data).includes("T3stKey"), "the key is never written to the database");
+const prefs = data["users/u1/data/prefs"] || {};
+ok(prefs.dir === "je" && prefs.mode === "kana" && prefs.theme === "dark" && prefs.palette === "claude" && prefs.selected?.includes("sample-ch1-a") && prefs.pickTags?.includes("quiz 1"), "choices: saved to the account", JSON.stringify(prefs).slice(0, 200));
+await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:")) localStorage.removeItem(k); });
+await page.reload(); await page.waitForTimeout(1200);
+ok(await pressed("#dir-je") && await pressed("#mode-kana") && await pressed('[data-set="sample-ch1-a"]') && await pressed('#pickTags [data-tag="quiz 1"]'), "choices: direction, mode, picked set and filter come back on another device");
+ok(await page.evaluate(() => document.documentElement.dataset.theme === "dark" && document.documentElement.dataset.palette === "claude"), "choices: light or dark and colours come back too");
+await page.click("#tagClear"); await page.click("#dir-ej"); await page.click("#mode-default");
+await page.click("#settingsBtn"); await page.click('#themePick [data-theme-pick=""]'); await page.click('#palPick [data-pal="indigo"]'); await page.click("#settingsClose");
+await page.waitForTimeout(1300);
+ok((await fsData(page))["users/u1/data/prefs"]?.dir === "ej", "choices: later changes are saved again");
+ok(!apiCalls.length, "nothing is ever sent to Anthropic", apiCalls.join(" "));
 ok(!(await page.evaluate(() => window.__csp)).length, "no Content-Security-Policy violations", (await page.evaluate(() => window.__csp)).join(", "));
 
 // ---------- 7. sign out, another person sees none of it ----------
