@@ -262,6 +262,42 @@ const wide = await phone.evaluate(() => document.documentElement.scrollWidth);
 ok(wide <= 375, "phone: no sideways scrolling", String(wide));
 await phone.screenshot({ path: join(out, "8-phone.png"), fullPage: true });
 
+// ---------- 9. use without signing in: everything in this browser ----------
+const lctx = await browser.newContext({ acceptDownloads: true });
+let lp = await newPage(lctx, { width: 375 });
+ok(await vis(lp, "#localBtn"), "sign-in page: 'Use without signing in' shows");
+ok(/stays in this browser/.test(await text(lp, "#gate")), "sign-in page: explains where data is kept without an account");
+ok((await lp.evaluate(() => document.documentElement.scrollWidth)) <= 375, "sign-in page fits a phone");
+await lp.screenshot({ path: join(out, "9-signin-phone.png") });
+await lp.setViewportSize({ width: 900, height: 1000 });
+await lp.click("#localBtn"); await lp.waitForTimeout(400);
+ok(await vis(lp, "#setup") && /Not signed in/.test(await text(lp, "#acctName")) && (await text(lp, "#signOutBtn")) === "Sign in", "local: practice page, header says not signed in, offers Sign in");
+const [lchooser] = await Promise.all([lp.waitForEvent("filechooser"), lp.click("#emptyImport")]);
+await lchooser.setFiles(join(root, "test/public/fixtures/sample-export.json"));
+await lp.waitForTimeout(300); await lp.click("#importGo"); await lp.waitForTimeout(800);
+let ls = await lp.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("qcard:local:")));
+ok(ls.includes("qcard:local:sets/sample-ch1-a") && ls.includes("qcard:local:meta/books"), "local: imported sets saved in localStorage", ls.join(", "));
+ok(Object.keys(await fsData(lp)).length === 0, "local: nothing written to the database");
+await lp.click("#backBtn"); await lp.waitForTimeout(200);
+await lp.click('#histAsk [data-hist="on"]'); await lp.waitForTimeout(200);
+await lp.click('[data-set="sample-ch1-b"]'); await lp.click("#dir-je"); await lp.click("#startBtn"); await lp.waitForTimeout(300);
+for (let i = 0; i < 10 && await vis(lp, "#quiz"); i++) { await scribble(lp); await lp.click("#checkBtn"); await lp.waitForTimeout(150); await lp.click("#selfGot"); await lp.waitForTimeout(1400); }
+ls = await lp.evaluate(() => Object.keys(localStorage).filter((k) => /^qcard:local:data\/users\/local\/t\d/.test(k)));
+ok(ls.length === 1, "local: practice history saved in localStorage", String(ls.length));
+await lp.close();
+lp = await newPage(lctx);
+await lp.waitForTimeout(300);
+ok(await vis(lp, "#setup") && await vis(lp, '[data-set="sample-ch1-a"]'), "local: coming back goes straight to the saved sets");
+await lp.click("#signOutBtn"); await lp.waitForTimeout(1000);
+ok((await text(lp, "#acctName")) === "student@example.com" && await vis(lp, "#emptyImport"), "Sign in from local: switches to the (empty) account");
+ok(await lp.evaluate(() => localStorage.getItem("qcard:mode")) === null, "signed in: no longer remembered as local");
+await lp.click("#signOutBtn"); await lp.waitForTimeout(1000);
+ok(await vis(lp, "#localBtn"), "signed out: sign-in page again");
+await lp.click("#localBtn"); await lp.waitForTimeout(400);
+ok(await vis(lp, '[data-set="sample-ch1-a"]'), "local data is still there after using an account");
+ok(lp.errors.length === 0, "local: no page errors", lp.errors.join(" | "));
+ok((await lp.evaluate(() => window.__csp)).length === 0, "local: no CSP violations");
+
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");
 process.exit(failures ? 1 : 0);
