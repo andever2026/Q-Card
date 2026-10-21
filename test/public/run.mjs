@@ -575,24 +575,24 @@ ok(Array.isArray(rink) && rink.length > 4 && rink.every((n) => typeof n === "num
 await sp.click("#settingsBtn"); await sp.click("#shareToggle"); await sp.waitForTimeout(200);
 ok(await shareOpen() && !(await vis(sp, "#shareNeverRow")) && !(await text(sp, "#shareCount")), "share: Turn on… in Settings asks the same question, without the count or the checkbox");
 await sp.click("#shareNo");
-ok(!(await vis(sp, "#ownerSet")), "owner tools: hidden for everyone but the site's owner");
+ok(!(await vis(sp, "#devSet")), "dev tools: hidden for everyone who isn't a developer");
 await sp.click("#settingsClose");
 ok(sp.errors.length === 0, "share: no page errors", sp.errors.join(" | "));
-// the site's owner (owners/<uid>, made in the Firebase console) gets Owner tools in Settings to open the question themselves
-await sp.evaluate(() => { const fs = JSON.parse(localStorage.getItem("fake:fs")); fs["owners/t1"] = { role: "owner" }; localStorage.setItem("fake:fs", JSON.stringify(fs)); });
+// a developer (dev/<uid>, made in the Firebase console) gets Dev tools in Settings to open the question themselves
+await sp.evaluate(() => { const fs = JSON.parse(localStorage.getItem("fake:fs")); fs["dev/t1"] = { role: "dev" }; localStorage.setItem("fake:fs", JSON.stringify(fs)); });
 const op = await newPage(sctx);
 await op.waitForTimeout(600); await op.click("#settingsBtn"); await op.waitForTimeout(200);
-ok(await vis(op, "#ownerSet"), "owner tools: the site's owner sees them in Settings");
-await op.locator("#ownerSet").screenshot({ path: join(out, "14-owner-tools.png") });
+ok(await vis(op, "#devSet"), "dev tools: a developer sees them in Settings");
+await op.locator("#devSet").screenshot({ path: join(out, "14-dev-tools.png") });
 const asked = () => op.evaluate(() => JSON.parse(localStorage.getItem("jpq:share"))?.asked);
 const askedBefore = await asked();
-await op.click("#ownAsk1"); await op.waitForTimeout(200);
-ok(await op.evaluate(() => document.querySelector("#shareAsk").open) && !(await vis(op, "#shareNeverRow")) && /finished 10 practices/.test(await text(op, "#shareCount")), "owner tools: First time opens the question as first asked");
-await op.click("#shareNo"); await op.click("#ownAsk2"); await op.waitForTimeout(200);
-ok(await vis(op, "#shareNeverRow") && /finished 20 practices/.test(await text(op, "#shareCount")), "owner tools: Later times opens it with \"Don't ask me again\"");
+await op.click("#devAsk1"); await op.waitForTimeout(200);
+ok(await op.evaluate(() => document.querySelector("#shareAsk").open) && !(await vis(op, "#shareNeverRow")) && /finished 10 practices/.test(await text(op, "#shareCount")), "dev tools: First time opens the question as first asked");
+await op.click("#shareNo"); await op.click("#devAsk2"); await op.waitForTimeout(200);
+ok(await vis(op, "#shareNeverRow") && /finished 20 practices/.test(await text(op, "#shareCount")), "dev tools: Later times opens it with \"Don't ask me again\"");
 await op.click("#shareNo");
-ok((await asked()) === askedBefore, "owner tools: opening it doesn't count as being asked");
-ok(op.errors.length === 0, "owner tools: no page errors", op.errors.join(" | "));
+ok((await asked()) === askedBefore, "dev tools: opening it doesn't count as being asked");
+ok(op.errors.length === 0, "dev tools: no page errors", op.errors.join(" | "));
 // guests are never asked: their handwriting stays in the browser
 const gp = await newPage(await browser.newContext(), { init: () => {
   if (localStorage.getItem("qcard:mode")) return;

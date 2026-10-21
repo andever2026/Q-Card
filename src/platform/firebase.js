@@ -78,8 +78,8 @@ window.qcardPlatform = {
   db: makeDb,
   localDb: makeLocalDb,
   user: makeUser,
-  // Whether this account is the site's owner: owners/<uid> exists (see firestore.rules; only the Firebase console makes it).
-  isSiteOwner: async (uid) => { try { return (await getDoc(doc(fs, "owners/" + uid))).exists(); } catch { return false; } },
+  // Whether this account is a developer: dev/<uid> exists (see firestore.rules; only the Firebase console makes it).
+  isDev: async (uid) => { try { return (await getDoc(doc(fs, "dev/" + uid))).exists(); } catch { return false; } },
   downloads,
   _mapPath: mapPath,
 };
