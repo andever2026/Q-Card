@@ -11,6 +11,10 @@
       if (S.dir !== "je") items.push({ key: w.id + ":ej", dir: "ej", w });
       if (S.dir !== "ej") items.push({ key: w.id + ":je", dir: "je", w });
     }
+    // Word ids are only sure to be unique within a set (a hand-made file may number each set's words 1, 2, …): a question
+    // whose key is already taken gets its own, so tries and progress stay per question.
+    const keys = new Set();
+    for (const it of items) { let k = it.key, n = 2; while (keys.has(k)) k = `${it.key}#${n++}`; keys.add(k); it.key = k; }
     Object.assign(Q, { items, queue: order(items), wrong: [], round: 1, tries: {}, done: new Set(), total: items.length,
       meta: { dir: S.dir, mode: S.mode, sets: [...new Set(words.map((w) => w.set))] } });
     show("quiz");
@@ -30,10 +34,12 @@
   function saveResume() {
     clearTimeout(inkTimer);
     if (!Q.meta) return;
-    const pending = [...(Q.cur && !Q.answered ? [Q.cur] : []), ...Q.queue];
+    // The question on screen stays to do until it's marked right or wrong (the self-marking panel may still be waiting).
+    const open = Q.cur && !Q.done.has(Q.cur.key) && !Q.wrong.includes(Q.cur);
+    const pending = [...(open ? [Q.cur] : []), ...Q.queue];
     const r = { items: Q.items, pending: pending.map((it) => it.key), wrong: Q.wrong.map((it) => it.key), done: [...Q.done], tries: Q.tries, round: Q.round, meta: Q.meta, upto: quizUpto, savedAt: new Date().toISOString() };
     // What's written for the question still open comes back too.
-    if (Q.cur && !Q.answered && (!main.empty || !furi.empty)) r.ink = { key: Q.cur.key, main: inkOf(main), furi: inkOf(furi) };
+    if (open && (!main.empty || !furi.empty)) r.ink = { key: Q.cur.key, main: inkOf(main), furi: inkOf(furi) };
     // A very long practice (thousands of questions) isn't kept, so saving stays quick.
     store.set("resume", JSON.stringify(r).length < 400000 ? r : null);
   }
@@ -175,21 +181,25 @@ CORRECT: <YES or NO, matching your REASON>`;
     tpl_load: "Couldn't load the handwriting checker. Check your connection and press Check again.",
     //#endif
   };
+  // A check still running when the student quits (or a practice started or resumed meanwhile) belongs to a question that's
+  // no longer on screen: its answer stays unchecked, kept for Resume with what was written.
+  const gone = (cur) => Q.cur !== cur || $("#quiz").hidden;
   //#if claude
   async function check() {
     if (main.empty || Q.busy) return;
     if (!sample) { showErr("Checking needs a signed-in claude.ai account. Open this page inside claude.ai."); return; }
     Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true;
-    const { w, dir } = Q.cur;
+    const cur = Q.cur, { w, dir } = cur;
     const hasFuri = dir === "ej" && !furi.empty;
     try {
       const imgs = hasFuri ? [await sheetBlob(), await furi.toBlob(4)] : [await main.toBlob()];
       const { text } = await sample(buildPrompt(w, dir, hasFuri), { images: imgs, cache: false });
+      if (gone(cur)) return;
       const r = parseVerdict(text);
       const ok = dir === "ej" ? (r.correct || readMatches(w, r)) && !badFuri(w, r) && (S.mode !== "kata" || kataOk(w, r)) : r.correct;
       grade(ok, r);
     } catch (e) {
-      showErr(ERR[e?.code] || "Couldn't reach Claude. Press Check to try again.");
+      if (!gone(cur)) showErr(ERR[e?.code] || "Couldn't reach Claude. Press Check to try again.");
     } finally {
       Q.busy = false; $("#checking").hidden = $("#checkingFuri").hidden = true; syncCheck();
     }
@@ -199,16 +209,17 @@ CORRECT: <YES or NO, matching your REASON>`;
   // worded. Other English (a synonym, say) and words it has no strokes for are marked by the student (selfMark).
   async function check() {
     if (main.empty || Q.busy) return;
-    const { w, dir } = Q.cur;
+    const cur = Q.cur, { w, dir } = cur;
     Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true;
     $("#overrideBtn").textContent = "The checker misread my writing, count it as correct";
     let self = false;
     try {
       const res = dir === "je" ? await englishCheck(w) : await builtinCheck(w, dir === "ej" && !furi.empty);
+      if (gone(cur)) return;
       shareAnswer(!res ? "unread" : res.ok ? "right" : dir === "ej" ? "wrong" : "unmatched", res?.r);
       if (res && (res.ok || dir === "ej")) grade(res.ok, res.r); else self = res ? "unmatched" : "unread";
     } catch (e) {
-      showErr(ERR[e?.code] || "Something went wrong with the check. Press Check to try again.");
+      if (!gone(cur)) showErr(ERR[e?.code] || "Something went wrong with the check. Press Check to try again.");
     } finally {
       Q.busy = false; $("#checking").hidden = $("#checkingFuri").hidden = true; syncCheck();
     }

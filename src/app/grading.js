@@ -8,7 +8,8 @@
     main.c.classList.add("locked"); furi.c.classList.add("locked");
     // Force kanji hides the reading of 日本語 → English questions until the answer is checked.
     if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
-    if (ok) { Q.done.add(key); saveResume(); hanamaru().then(nextItem); return; }
+    // The next word comes after the 花丸, unless another practice was started or resumed meanwhile (Quit, then Start or Resume).
+    if (ok) { const cur = Q.cur; Q.done.add(key); saveResume(); hanamaru().then(() => Q.cur === cur && nextItem()); return; }
     Q.wrong.push(Q.cur); saveResume();
     $("#tools").hidden = true;
     $("#fbReason").textContent = r?.reason || "";
