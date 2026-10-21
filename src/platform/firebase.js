@@ -5,7 +5,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, deleteUser, reauthenticateWithPopup } from "firebase/auth";
 import { initializeFirestore, doc, collection, query, orderBy, limit, onSnapshot, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import config from "./config.js";
+import config, { owners } from "./config.js";
 import { makeLocalDb } from "./local.js";
 
 const app = initializeApp(config);
@@ -78,6 +78,7 @@ window.qcardPlatform = {
   db: makeDb,
   localDb: makeLocalDb,
   user: makeUser,
+  isSiteOwner: (uid) => owners.includes(uid),
   downloads,
   _mapPath: mapPath,
 };

@@ -40,14 +40,14 @@
   function afterPractice() {
     const done = (+store.get("practices", 0) || 0) + 1, s = shareState();
     store.set("practices", done);
-    if (account && !s.on && !s.never && done % SHARE_EVERY === 0) askShare(done);
+    if (account && !s.on && !s.never && done % SHARE_EVERY === 0) { askShare(done); setShare({ asked: (s.asked || 0) + 1 }); }
   }
-  function askShare(done) {
-    const asked = shareState().asked || 0;
+  // done = practices finished (0 when opened from Settings); again = offer "Don't ask me again", which it does from the
+  // second time it's asked after a practice.
+  function askShare(done, again = !!done && (shareState().asked || 0) > 0) {
     $("#shareCount").textContent = done ? `You've finished ${done} practices! ` : "";
-    $("#shareNeverRow").hidden = !done || asked < 1; // not the first time it's asked, and never when opened from Settings
+    $("#shareNeverRow").hidden = !again;
     $("#shareNever").checked = false;
-    if (done) setShare({ asked: asked + 1 });
     $("#shareAsk").showModal();
   }
   $("#shareYes").onclick = () => { setShare({ on: true, at: new Date().toISOString(), never: false }); $("#shareAsk").close(); renderShare(); };
@@ -57,6 +57,7 @@
   let shareDelAsk = false;
   $("#settings").addEventListener("close", () => { shareDelAsk = false; });
   function renderShare() {
+    $("#ownerSet").hidden = !siteOwner();
     $("#shareSet").hidden = !account;
     if (!account) return;
     const s = shareState(), n = s.n || 0, when = s.at && !isNaN(new Date(s.at)) ? new Date(s.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
@@ -68,6 +69,10 @@
     $("#shareDelAsk").hidden = !shareDelAsk;
   }
   $("#shareToggle").onclick = () => { if (shareState().on) { setShare({ on: false }); renderShare(); } else askShare(0); };
+  // Owner tools: only for the site's owner (owners in src/platform/config.js), to see the question as people get it.
+  const siteOwner = () => !!account && !!platform.isSiteOwner?.(account.uid);
+  $("#ownAsk1").onclick = () => askShare(SHARE_EVERY, false);
+  $("#ownAsk2").onclick = () => askShare(2 * SHARE_EVERY, true);
   $("#shareDel").onclick = () => { shareDelAsk = true; renderShare(); };
   $("#shareDelNo").onclick = () => { shareDelAsk = false; renderShare(); };
   $("#shareDelYes").onclick = async (e) => {

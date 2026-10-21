@@ -76,6 +76,7 @@ The beta page is built with `node tools/build.mjs --beta`: it carries a Beta tag
 2. In Authentication → Sign-in method, enable **Google**.
 3. In Authentication → Settings → Authorized domains, add the site's domain (for GitHub Pages, `<username>.github.io`).
 4. Put the project's web config in `src/platform/config.js` and `frame-src` in `tools/build.mjs`, then build.
+5. Optionally, put your own account's User UID (Authentication → Users) in `owners` in `src/platform/config.js` to get Owner tools in Settings.
 
 ## Vocab files
 
