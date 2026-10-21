@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-/+2fJd3QyNXZ+BORwRseY9XTlCieumlGdquNNJyy1wI=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-EHvVRfqbulQ7SMcutS2aPb8XMj36Yrgxqm/1stlpGec=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -470,7 +470,7 @@ body.writing .foot { display: none; }
       <button class="btn primary" id="checkBtn" disabled>Check</button>
     </div>
     <div class="fb self" id="selfCheck" hidden>
-      <div class="fbhead"><span class="stamp">自己採点</span><span>Compare what you wrote with the answer.</span></div>
+      <div class="fbhead"><span class="stamp">自己採点</span><span id="selfHead">Compare what you wrote with the answer.</span></div>
       <div class="answer" id="selfAnswer"></div>
       <div class="fbfoot"><button class="btn" type="button" id="selfMiss">I missed it</button><button class="btn primary" type="button" id="selfGot">I got it right</button></div>
     </div>
@@ -601,7 +601,7 @@ body.writing .foot { display: none; }
 </div>
 <footer class="foot">
   <p>Japanese Vocab Practice is free and open source under the AGPL-3.0: <a href="https://github.com/andever2026/Q-Card" rel="noopener">source code on GitHub</a>.</p>
-  <p>Handwriting templates from <a href="https://kanjivg.tagaini.net" rel="noopener">KanjiVG</a> (CC BY-SA 3.0). Kanji readings from <a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project" rel="noopener">KANJIDIC</a> (EDRDG, CC BY-SA 4.0).</p>
+  <p>Handwriting templates from <a href="https://kanjivg.tagaini.net" rel="noopener">KanjiVG</a> (CC BY-SA 3.0) and the Hershey fonts (Dr. A. V. Hershey, U. S. National Bureau of Standards). Kanji readings from <a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project" rel="noopener">KANJIDIC</a> (EDRDG, CC BY-SA 4.0).</p>
 </footer>
 <script src="js/platform.js"></script>
 
@@ -1495,24 +1495,23 @@ CORRECT: <YES or NO, matching your REASON>`;
     invalid_json: "Claude's answer came back in the wrong format. Press Check again.",
     tpl_load: "Couldn't load the handwriting checker. Check your connection and press Check again.",
   };
-  // The built-in checker reads English → 日本語 answers; 日本語 → English answers, and words it has no strokes for,
-  // are marked by the student (selfMark).
+  // The built-in checker reads English → 日本語 answers, and 日本語 → English answers written the way the meaning is
+  // worded. Other English (a synonym, say) and words it has no strokes for are marked by the student (selfMark).
   async function check() {
     if (main.empty || Q.busy) return;
     const { w, dir } = Q.cur;
-    if (dir === "je") { selfMark(); return; }
     Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true;
     $("#overrideBtn").textContent = "The checker misread my writing, count it as correct";
     let self = false;
     try {
-      const res = await builtinCheck(w, dir === "ej" && !furi.empty);
-      if (res) grade(res.ok, res.r); else self = true;
+      const res = dir === "je" ? await englishCheck(w) : await builtinCheck(w, dir === "ej" && !furi.empty);
+      if (res && (res.ok || dir === "ej")) grade(res.ok, res.r); else self = res ? "unmatched" : "unread";
     } catch (e) {
       showErr(ERR[e?.code] || "Something went wrong with the check. Press Check to try again.");
     } finally {
       Q.busy = false; $("#checking").hidden = $("#checkingFuri").hidden = true; syncCheck();
     }
-    if (self) selfMark();
+    if (self) selfMark(self === "unmatched");
   }
   // Claude's transcription is the reliable part: when what it read is exactly the expected answer, the answer is right.
   const norm = (s) => String(s || "").normalize("NFKC").replace(/[\s「」『』"'.,。、〜～・]/g, "");
@@ -2550,7 +2549,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   const platform = window.qcardPlatform;
 
   // ---------- public site: built-in checker ----------
-  // Compares the strokes with stroke templates from KanjiVG (src/checker.js) against every accepted way of writing
+  // Compares the strokes with stroke templates from KanjiVG and the Hershey fonts (src/checker.js) against every accepted way of writing
   // the answer, so it only has to decide "is this one of these?", never read arbitrary writing.
   let templates = null;
   function loadTemplates() {
@@ -2611,9 +2610,16 @@ CORRECT: <YES or NO, matching your REASON>`;
     if (!ok) r.reason = "Furigana goes only over kanji you wrote, as their reading.";
     return { ok, r };
   }
-  // 日本語 → English answers, and words the built-in checker can't read, are marked by the student.
-  function selfMark() {
+  // 日本語 → English: the meaning in any of the ways it may be written (englishAnswers). null when the checker can't read it.
+  async function englishCheck(w) {
+    await loadTemplates();
+    const res = window.QCardChecker.verify({ strokes: strokesOf(main), candidates: window.QCardChecker.englishAnswers(w.en), box: { w: main.w, h: main.h }, latin: true });
+    return res.ok === null ? null : { ok: res.ok, r: { main: res.text, furigana: "", reason: "" } };
+  }
+  // 日本語 → English answers the checker couldn't match (unmatched), and words it can't read, are marked by the student.
+  function selfMark(unmatched) {
     const { w, dir } = Q.cur;
+    $("#selfHead").textContent = unmatched ? "The checker couldn't match this to the wording below. Did you mean the same thing?" : "Compare what you wrote with the answer.";
     Q.answered = true; syncCheck();
     main.c.classList.add("locked"); furi.c.classList.add("locked");
     $("#tools").hidden = true; setErasing(false);
