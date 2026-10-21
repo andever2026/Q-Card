@@ -129,6 +129,7 @@ await page.click("#settingsClose"); await page.waitForTimeout(200);
 ok(await vis(page, '[data-set="sample-ch1-a"]'), "practice page lists the imported sets");
 
 // ---------- 3. 日本語 → English with the built-in checker: self-marking, history saved ----------
+ok(/from the server/.test(await text(page, "#histAsk")), "history question (account): says it can be deleted from the server");
 await page.click('#histAsk [data-hist="on"]'); await page.waitForTimeout(300);
 data = await fsData(page);
 ok(data["users/u1/data/settings"]?.history === true, "history on: settings doc at users/u1/data/settings");
@@ -358,6 +359,7 @@ await lp.waitForTimeout(300); await lp.click("#importGo"); await lp.waitForTimeo
 let ls = await lp.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("qcard:local:")));
 ok(ls.includes("qcard:local:sets/sample-ch1-a") && ls.includes("qcard:local:meta/books"), "local: imported sets saved in localStorage", ls.join(", "));
 ok(Object.keys(await fsData(lp)).length === 0, "local: nothing written to the database");
+ok(/saved only in this browser/.test(await text(lp, "#histAsk")) && !/from the server/.test(await text(lp, "#histAsk")), "local: the history question says it stays in this browser");
 await lp.click('#histAsk [data-hist="on"]'); await lp.waitForTimeout(200);
 await lp.click('[data-set="sample-ch1-b"]'); await lp.click("#dir-je"); await lp.click("#startBtn"); await lp.waitForTimeout(300);
 for (let i = 0; i < 10 && await vis(lp, "#quiz"); i++) { await scribble(lp); await lp.click("#checkBtn"); await lp.waitForTimeout(150); await lp.click("#selfGot"); await lp.waitForTimeout(1400); }
