@@ -116,7 +116,7 @@ await page.screenshot({ path: join(out, "2-empty.png"), fullPage: true });
 const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("#emptyImport")]);
 await chooser.setFiles(join(root, "test/public/fixtures/sample-export.json"));
 await page.waitForTimeout(300);
-ok(await vis(page, "#importPreview"), "import: preview shows");
+ok(await setOpen(page) && await vis(page, "#importPreview"), "import: the empty state's Import opens Settings with the preview");
 await page.click("#importGo"); await page.waitForTimeout(800);
 data = await fsData(page);
 ok(!!data["users/u1/sets/sample-ch1-a"] && !!data["users/u1/kanji/sample-ch1"] && !!data["users/u1/meta/books"], "import: sets, kanji list and book order saved under users/u1/");
@@ -124,7 +124,7 @@ ok(Object.keys(data).every((p) => p.startsWith("users/u1/")), "import: nothing w
 { const d = data["users/u1/sets/sample-ch1-a"], k = data["users/u1/kanji/sample-ch1"];
   ok(d?.collection === "Sample" && d?.unit === "Ch. 1" && d?.name === "A · Food and drink" && !("book" in d) && !("chapter" in d) && k?.unit === "Ch. 1",
     "import: an older file (book, chapter, section) is saved as collection, unit and set name", JSON.stringify({ ...d, words: undefined })); }
-await page.click("#backBtn"); await page.waitForTimeout(200);
+await page.click("#settingsClose"); await page.waitForTimeout(200);
 ok(await vis(page, '[data-set="sample-ch1-a"]'), "practice page lists the imported sets");
 
 // ---------- 3. 日本語 → English with the built-in checker: self-marking, history saved ----------
@@ -242,7 +242,10 @@ data = await fsData(page);
 ok(JSON.stringify(data["users/u1/sets/sample-ch1-a"]?.tags) === '["Quiz 1","Food and drink"]', "tags: saved from Edit details, tidied and without repeats", JSON.stringify(data["users/u1/sets/sample-ch1-a"]?.tags));
 ok((await page.$$eval(`${tset} .tag`, (xs) => xs.map((x) => x.textContent).join("|"))) === "Quiz 1|Food and drink", "tags: shown on the set in the vocab table");
 await page.click(`${tset} [data-editset]`); await page.locator(tset).screenshot({ path: join(out, "5-tags-table.png") }); await page.click(`${tset} [data-editcancel]`);
+ok(!(await page.$("#table #exportBtn")), "export / import: no longer in the vocab table");
+await page.click("#settingsBtn");
 const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#exportBtn")]);
+await page.click("#settingsClose");
 ok(/\.json$/.test(dl.suggestedFilename()), "export downloads a .json file", dl.suggestedFilename());
 const exported = JSON.parse(readFileSync(await dl.path(), "utf8"));
 ok(JSON.stringify(exported.sets.find((x) => x.id === "sample-ch1-a")?.tags) === '["Quiz 1","Food and drink"]', "export keeps the tags");
@@ -325,7 +328,9 @@ await lp.click("#welcomeClose"); await lp.waitForTimeout(400); // the X works li
 ok(await vis(lp, "#setup") && !(await lp.evaluate(() => document.querySelector("#welcome").open)) && !(await lp.evaluate(() => document.body.textContent.includes("Guest: saved"))), "guest: the X closes the pop-up as a guest, no guest line in the header");
 ok(await lp.evaluate(() => localStorage.getItem("qcard:mode")) === "local", "guest: closing with the X is remembered like Continue as a guest");
 await lp.click("#settingsBtn");
-ok(/Not signed in/.test(await text(lp, "#acctName")) && (await text(lp, "#signOutBtn")) === "Sign in with Google" && (await text(lp, "#delStart")) === "Delete everything in this browser", "settings (guest): not signed in, offers Sign in and deleting this browser's data");
+ok(/Not signed in/.test(await text(lp, "#acctName")) && (await text(lp, "#signOutBtn")) === "Sign in with Google" && (await text(lp, "#delStart")) === "Delete local storage", "settings (guest): not signed in, offers Sign in and Delete local storage");
+ok(!(await vis(lp, "#delTip")) && (await lp.hover("#delAcct .qtip"), await vis(lp, "#delTip")) && /treats you as a new user/.test(await text(lp, "#delTip")), "settings (guest): the ? beside Delete local storage explains it on hover");
+await lp.screenshot({ path: join(out, "9-settings-delete-tip.png") });
 ok((await text(lp, "#setStats")) === "6 sets · 55 words · 3 kanji lists", "settings: counts the sets, words and kanji lists", await text(lp, "#setStats"));
 await lp.click('#themePick [data-theme-pick="dark"]'); await lp.click('#palPick [data-pal="claude"]');
 ok(await lp.evaluate(() => document.documentElement.dataset.theme === "dark" && document.documentElement.dataset.palette === "claude" && localStorage.getItem("jpq:theme") === '"dark"'), "settings: Dark and Warm apply and are remembered");
@@ -344,11 +349,10 @@ ok(await vis(lp, '[data-set="samples-katakana"]'), "samples: added back from the
 await lp.click("#sampleRemove"); await lp.click("#sampleYes"); await lp.waitForTimeout(400);
 const [lchooser] = await Promise.all([lp.waitForEvent("filechooser"), lp.click("#emptyImport")]);
 await lchooser.setFiles(join(root, "test/public/fixtures/sample-export.json"));
-await lp.waitForTimeout(300); await lp.click("#importGo"); await lp.waitForTimeout(800);
+await lp.waitForTimeout(300); await lp.click("#importGo"); await lp.waitForTimeout(800); await lp.click("#settingsClose");
 let ls = await lp.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("qcard:local:")));
 ok(ls.includes("qcard:local:sets/sample-ch1-a") && ls.includes("qcard:local:meta/books"), "local: imported sets saved in localStorage", ls.join(", "));
 ok(Object.keys(await fsData(lp)).length === 0, "local: nothing written to the database");
-await lp.click("#backBtn"); await lp.waitForTimeout(200);
 await lp.click('#histAsk [data-hist="on"]'); await lp.waitForTimeout(200);
 await lp.click('[data-set="sample-ch1-b"]'); await lp.click("#dir-je"); await lp.click("#startBtn"); await lp.waitForTimeout(300);
 for (let i = 0; i < 10 && await vis(lp, "#quiz"); i++) { await scribble(lp); await lp.click("#checkBtn"); await lp.waitForTimeout(150); await lp.click("#selfGot"); await lp.waitForTimeout(1400); }
@@ -372,9 +376,10 @@ await lp.click("#signOutBtn"); await lp.waitForTimeout(1000);
 ok(await vis(lp, "#guestBtn"), "signed out: welcome pop-up again");
 await lp.click("#guestBtn"); await lp.waitForTimeout(400);
 ok(await vis(lp, '[data-set="sample-ch1-a"]'), "local data is still there after using an account");
-await lp.click("#settingsBtn"); await lp.click("#delStart");
+await lp.click("#settingsBtn"); await lp.click('#palPick [data-pal="claude"]'); await lp.click("#delStart");
 ok(/saved in this browser/.test(await text(lp, "#delAcct")), "delete (guest): asks before deleting this browser's data");
 await lp.click("#delYes"); await lp.waitForTimeout(1200);
+ok(await lp.evaluate(() => !("palette" in document.documentElement.dataset) && localStorage.getItem("jpq:palette") !== '"claude"'), "delete (guest): this browser's choices go too (back to Blue)");
 ls = await lp.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("qcard:local:sets/sample-") || k.startsWith("qcard:local:data/") || k === "qcard:mode"));
 ok(!ls.length && await lp.evaluate(() => document.querySelector("#welcome").open), "delete (guest): this browser's sets and history are gone and the page starts over", ls.join(", "));
 ok(lp.errors.length === 0, "local: no page errors", lp.errors.join(" | "));
