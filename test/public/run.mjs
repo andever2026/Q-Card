@@ -95,14 +95,15 @@ const sampleDocs = (d) => Object.keys(d).filter((p) => /^users\/u1\/(sets|kanji)
 let data = await fsData(page);
 ok(!!data["users/u1/meta/samples"] && sampleDocs(data).length === 9, "samples: 6 sets and 3 kanji lists saved, offer remembered", sampleDocs(data).join(", "));
 const tagChips = () => page.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent));
-ok(await vis(page, "#pickTagRow") && (await tagChips()).join("|") === "All|Nouns4|Katakana1|Phrases1|Verbs1", "tags: Show lists the tags in use, most-used first", (await tagChips()).join("|"));
+ok(await vis(page, "#pickTagRow") && (await tagChips()).join("|") === "Nouns4|Katakana1|Phrases1|Verbs1" && /Filter/.test(await text(page, "#pickTagRow")) && !(await page.$("#pickTags [aria-pressed=\"true\"]")), "tags: Filter lists the tags in use, most-used first, none picked", (await tagChips()).join("|"));
 await page.click('#pickTags [data-tag="verbs"]');
 const shownSets = () => page.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","));
 ok((await shownSets()) === "samples-ch3-a", "tags: picking Verbs shows only the verb set", await shownSets());
+await page.locator("#setup .panel").first().screenshot({ path: join(out, "2-filter.png") });
 await page.click('#pickTags [data-tag="phrases"]');
 ok((await shownSets()) === "samples-ch1-a,samples-ch3-a", "tags: picking a second tag adds its sets", await shownSets());
-await page.click('#pickTags [data-tag=""]');
-ok((await shownSets()).split(",").length === 6 && await page.evaluate(() => localStorage.getItem("jpq:pickTags")) === "[]", "tags: All shows every set again");
+await page.click("#tagClear");
+ok((await shownSets()).split(",").length === 6 && await page.evaluate(() => localStorage.getItem("jpq:pickTags")) === "[]", "tags: Clear filter shows every set again");
 await page.click('[data-set="samples-ch3-a"]'); await page.click("#dir-ej"); await page.click("#mode-verb"); await page.click("#startBtn"); await page.waitForTimeout(300);
 ok(/^0 of 60 done/.test(await text(page, "#progLbl")), "samples: all 12 sample verbs get their five forms", await text(page, "#progLbl"));
 await page.click("#quitBtn"); await page.waitForTimeout(150);
@@ -272,8 +273,8 @@ const exported = JSON.parse(readFileSync(await dl.path(), "utf8"));
 ok(JSON.stringify(exported.sets.find((x) => x.id === "sample-ch1-a")?.tags) === '["Quiz 1","Food and drink"]', "export keeps the tags");
 await page.click("#backBtn"); await page.waitForTimeout(200);
 await page.click('#pickTags [data-tag="quiz 1"]');
-ok((await page.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","))) === "sample-ch1-a", "tags: a new tag shows up in Show and filters");
-await page.click('#pickTags [data-tag=""]');
+ok((await page.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","))) === "sample-ch1-a", "tags: a new tag shows up in Filter and filters");
+await page.click("#tagClear");
 
 // ---------- 6. the key never leaves for anywhere but Anthropic; no CSP violations ----------
 const leaks = allRequests.filter((r) => !r.url.startsWith("https://api.anthropic.com/") && (r.url.includes("T3stKey") || r.body.includes("T3stKey") || Object.values(r.headers).some((v) => String(v).includes("T3stKey"))));
@@ -356,7 +357,7 @@ const kp = await newPage(kctx, { init: () => {
   localStorage.setItem("jpq:pickKinds", JSON.stringify(["main", "supp"]));
 } });
 await kp.waitForTimeout(500);
-ok((await kp.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent))).join("|") === "All|Main sets2|Extras1|Supp.1|Verbs1", "kinds: Main sets, Extras and Supp. are tags when there's more than one kind", (await kp.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent))).join("|"));
+ok((await kp.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent))).join("|") === "Main sets2|Extras1|Supp.1|Verbs1", "kinds: Main sets, Extras and Supp. are tags when there's more than one kind", (await kp.$$eval("#pickTags [data-tag]", (bs) => bs.map((b) => b.textContent))).join("|"));
 ok((await kp.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","))) === "k-a,k-b,k-s" && (await kp.$$eval('#pickTags [aria-pressed="true"]', (bs) => bs.map((b) => b.dataset.tag).join(","))) === "main sets,supp.", "kinds: the old Show choice (Extras switched off) carries over as picked tags");
 ok(kp.errors.length === 0, "kinds: no page errors", kp.errors.join(" | "));
 
