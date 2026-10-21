@@ -1,6 +1,6 @@
 # Q-Card: Japanese Vocab Practice
 
-Japanese Vocab Practice (this repository: Q-Card) is a flashcard site for Japanese vocabulary that checks your handwriting. You see a word, write the answer by hand (finger, Apple Pencil or mouse), and Q-Card tells you whether you got it right. Only Japanese is supported at the moment.
+Japanese Vocab Practice (this repository: Q-Card) is a flashcard site for Japanese vocabulary that checks your handwriting. You see a word, write the answer by hand (finger, Apple Pencil or mouse), and the site tells you whether you got it right. Only Japanese is supported at the moment.
 
 **Site:** https://andever2026.github.io/Q-Card/
 
