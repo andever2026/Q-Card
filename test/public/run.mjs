@@ -316,12 +316,14 @@ ok(await page.evaluate(() => document.querySelector("#welcome").open), "delete: 
 const lctx = await browser.newContext({ acceptDownloads: true });
 let lp = await newPage(lctx, { width: 375 });
 ok(await vis(lp, "#guestBtn"), "welcome: 'Continue as a guest' shows");
+ok(await vis(lp, "#welcomeClose"), "welcome: an X to close it");
 ok(/guest to keep it in this browser only/.test(await text(lp, "#welcome")), "welcome: explains where a guest's data is kept");
 ok((await lp.evaluate(() => document.documentElement.scrollWidth)) <= 375, "welcome pop-up fits a phone");
 await lp.screenshot({ path: join(out, "9-signin-phone.png") });
 await lp.setViewportSize({ width: 900, height: 1000 });
-await lp.click("#guestBtn"); await lp.waitForTimeout(400);
-ok(await vis(lp, "#setup") && !(await lp.evaluate(() => document.querySelector("#welcome").open)) && !(await lp.evaluate(() => document.body.textContent.includes("Guest: saved"))), "guest: pop-up closes, no guest line in the header");
+await lp.click("#welcomeClose"); await lp.waitForTimeout(400); // the X works like Continue as a guest
+ok(await vis(lp, "#setup") && !(await lp.evaluate(() => document.querySelector("#welcome").open)) && !(await lp.evaluate(() => document.body.textContent.includes("Guest: saved"))), "guest: the X closes the pop-up as a guest, no guest line in the header");
+ok(await lp.evaluate(() => localStorage.getItem("qcard:mode")) === "local", "guest: closing with the X is remembered like Continue as a guest");
 await lp.click("#settingsBtn");
 ok(/Not signed in/.test(await text(lp, "#acctName")) && (await text(lp, "#signOutBtn")) === "Sign in with Google" && (await text(lp, "#delStart")) === "Delete everything in this browser", "settings (guest): not signed in, offers Sign in and deleting this browser's data");
 ok((await text(lp, "#setStats")) === "6 sets · 55 words · 3 kanji lists", "settings: counts the sets, words and kanji lists", await text(lp, "#setStats"));
@@ -453,8 +455,11 @@ ok(!(await vis(rp, "#resumeBtn")), "resume: no Resume button before any practice
 await rp.click('[data-set="r-a"]'); await rp.click("#dir-je"); await rp.click("#startBtn"); await rp.waitForTimeout(300);
 ok(!(await vis(rp, "header h1")) && !(await vis(rp, "#settingsBtn")), "practice: the title and settings gear are hidden while writing");
 await rp.screenshot({ path: join(out, "12-practice-no-header.png") });
-await answer(true); await answer(false);
+await answer(true); await answer(false); await rp.click("#nextBtn"); await rp.waitForTimeout(200);
+// the next word is written on but not checked when quitting
+await scribble(rp); await scribble(rp);
 await rp.click("#quitBtn"); await rp.waitForTimeout(200);
+ok((await rp.evaluate(() => JSON.parse(localStorage.getItem("jpq:resume"))?.ink?.main?.s?.length)) === 2, "resume: what was written on the open question is saved with it");
 ok(await vis(rp, "header h1") && await vis(rp, "#settingsBtn"), "practice: the title and gear come back after quitting");
 ok(await vis(rp, "#resumeBtn") && /Resume last practice\s*2 left/.test(await text(rp, "#resumeBtn")), "resume: after quitting midway, Resume last practice shows with what's left", await text(rp, "#resumeBtn"));
 await rp.locator(".startrow").first().screenshot({ path: join(out, "12-resume.png") });
@@ -463,6 +468,9 @@ ok(await vis(rp, "#resumeBtn"), "resume: still there after reloading the page");
 await rp.click("#dir-ej"); await rp.click("#mode-kana");
 await rp.click("#resumeBtn"); await rp.waitForTimeout(300);
 ok(await vis(rp, "#quiz") && /^1 of 3 done/.test(await text(rp, "#progLbl")) && /jp/.test(await rp.$eval("#qText", (e) => e.className)), "resume: picks up where it was left, in its own direction", await text(rp, "#progLbl"));
+ok(!(await rp.$eval("#checkBtn", (b) => b.disabled)) && await rp.evaluate(() => { const c = document.querySelector("#mainPad"), d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data; for (let i = 3; i < d.length; i += 4) if (d[i]) return true; return false; }),
+  "resume: the writing comes back in the answer box");
+await rp.screenshot({ path: join(out, "12-resume-ink.png") });
 let rr = 0;
 while (await vis(rp, "#quiz") && rr++ < 6) await answer(true);
 ok(await vis(rp, "#results") && (await text(rp, "#rWords")) === "3", "resume: the resumed practice finishes with all its words", await text(rp, "#rWords"));
