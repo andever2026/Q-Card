@@ -51,13 +51,14 @@
       if (started) { if ((u?.uid || "local") !== started && (u || started !== "local")) location.reload(); return; }
       if (!u) {
         let guest = false;
-        try { guest = localStorage.getItem("qcard:mode") === "local"; } catch {}
+        try { guest = localStorage.getItem("qcard:mode") === "local" || localStorage.getItem("qcard:welcomed") === "1"; } catch {}
         startLocal();
         if (!guest) welcome();
         return;
       }
       // Signing in leaves this browser's own data where it is; it's there again after "Use without signing in".
       try { localStorage.removeItem("qcard:mode"); } catch {}
+      welcomed();
       account = u;
       start(u.uid, platform.db(u.uid));
     });

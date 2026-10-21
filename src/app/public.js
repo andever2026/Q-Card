@@ -126,23 +126,28 @@
   $("#selfMiss").onclick = () => { $("#selfCheck").hidden = true; grade(false, { reason: "You marked this one as missed." }); $("#overrideBtn").hidden = true; };
 
   // ---------- public site: welcome / sign-in ----------
-  // New visitors (and anyone who signed out) see a welcome pop-up over the page, which runs as a guest behind it.
+  // A first-time visitor sees a welcome pop-up over the page, which runs as a guest behind it. Once they've picked
+  // anything (guest, the tour, the X, or signing in) it's remembered (qcard:welcomed) and doesn't come back, signed out
+  // or not, until "Delete" starts the browser over (Annie). Signing in from Settings goes straight to Google.
   let startLocal = () => {};
+  const welcomed = () => { try { localStorage.setItem("qcard:welcomed", "1"); } catch {} };
   function welcome(err) {
     $("#welcomeErr").textContent = err || ""; $("#welcomeErr").hidden = !err;
     if (!$("#welcome").open) $("#welcome").showModal();
   }
   // Closing the pop-up (its X) is the same as continuing as a guest.
-  $("#guestBtn").onclick = $("#welcomeClose").onclick = () => { try { localStorage.setItem("qcard:mode", "local"); } catch {} $("#welcome").close(); };
-  $("#signInBtn").onclick = async () => {
-    $("#signInBtn").disabled = true;
-    try { await platform.signIn(); } // the page then reloads into the account (see boot)
+  $("#guestBtn").onclick = $("#welcomeClose").onclick = () => { try { localStorage.setItem("qcard:mode", "local"); } catch {} welcomed(); $("#welcome").close(); };
+  // Google's sign-in window; the page then reloads into the account (see boot). onErr says why it didn't work.
+  async function signIn(btn, onErr) {
+    btn.disabled = true;
+    try { await platform.signIn(); }
     catch (e) {
-      $("#signInBtn").disabled = false;
+      btn.disabled = false;
       if (/popup-closed-by-user|cancelled-popup-request/.test(e?.code)) return;
-      welcome(e?.code === "auth/popup-blocked" ? "Your browser blocked the sign-in window. Allow pop-ups for this site, then try again." : "Sign-in didn't work. Try again.");
+      onErr(e?.code === "auth/popup-blocked" ? "Your browser blocked the sign-in window. Allow pop-ups for this site, then try again." : "Sign-in didn't work. Try again.");
     }
-  };
+  }
+  $("#signInBtn").onclick = () => signIn($("#signInBtn"), welcome);
   // Settings → Account and Delete. account is the signed-in person ({uid, email, name}), or null for a guest.
   let account = null, delAsk = false, stopPrefs = () => {};
   $("#settings").addEventListener("close", () => { delAsk = false; });
@@ -150,7 +155,8 @@
     $("#acctName").innerHTML = account ? `Signed in with Google as <b>${esc(account.email || account.name || "")}</b>.`
       : "Not signed in. As a guest, everything is kept in this browser on this device.";
     $("#signOutBtn").textContent = account ? "Sign out" : "Sign in with Google";
-    $("#signOutBtn").onclick = account ? () => platform.signOut() : () => { $("#settings").close(); welcome(); };
+    $("#acctErr").hidden = true;
+    $("#signOutBtn").onclick = account ? () => platform.signOut() : () => signIn($("#signOutBtn"), (m) => { $("#acctErr").textContent = m; $("#acctErr").hidden = false; });
     const what = account ? "your account and its sets, kanji lists and practice history" : "the sets, kanji lists and practice history saved in this browser";
     $("#delAcct").innerHTML = !delAsk
       ? account ? `<button class="btn danger" type="button" id="delStart">Delete my account</button>`
@@ -174,7 +180,7 @@
         const paths = [];
         for (const c of ["sets", "kanji", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
         for (const p of [...paths, "meta/books", "meta/courses", "meta/samples"]) await db.doc(p).delete();
-        try { localStorage.removeItem("qcard:mode"); } catch {}
+        try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
         if (account) await platform.deleteAccount(); // which signs out, and the page starts over (see boot)
         else {
           // A guest starts over as a new visitor: every choice this site kept in this browser goes too (colours, picks, a practice to resume).

@@ -281,9 +281,9 @@ ok(!(await page.evaluate(() => window.__csp)).length, "no Content-Security-Polic
 
 // ---------- 7. sign out, another person sees none of it ----------
 await page.click("#settingsBtn"); await page.click("#signOutBtn"); await page.waitForTimeout(800);
-ok(await page.evaluate(() => document.querySelector("#welcome").open), "sign out from Settings: welcome pop-up again");
+ok(!(await page.evaluate(() => document.querySelector("#welcome").open)) && await vis(page, "#setup"), "sign out from Settings: no welcome pop-up after the first visit");
 await page.evaluate(() => { window.__nextUser = { uid: "u2", displayName: "Other", email: "other@example.com" }; });
-await page.click("#signInBtn"); await page.waitForTimeout(600);
+await page.click("#settingsBtn"); await page.click("#signOutBtn"); await page.waitForTimeout(600);
 ok(await vis(page, '[data-set="samples-greetings"]') && !(await vis(page, '[data-set="sample-ch1-a"]')), "another account starts with only the sample sets");
 ok(page.errors.length === 0, "no page errors", page.errors.join(" | "));
 ok(!allRequests.some((r) => /fonts\.(googleapis|gstatic)\.com/.test(r.url)), "fonts: nothing requested from Google Fonts");
@@ -366,15 +366,16 @@ ok(!(await vis(lp, '[data-set="samples-greetings"]')), "samples: removed ones do
 ok(await lp.evaluate(() => document.documentElement.dataset.theme === "light"), "settings: Light is still on after coming back");
 await lp.click("#settingsBtn"); await lp.click('#themePick [data-theme-pick=""]');
 ok(await lp.evaluate(() => !("theme" in document.documentElement.dataset)), "settings: Match device follows the device again");
+await lp.evaluate(() => { window.__signInError = "auth/popup-blocked"; });
 await lp.click("#signOutBtn"); await lp.waitForTimeout(200);
-ok(!(await setOpen(lp)) && await lp.evaluate(() => document.querySelector("#welcome").open), "guest: Sign in with Google in Settings opens the welcome pop-up");
-await lp.click("#signInBtn"); await lp.waitForTimeout(1000);
+ok(await setOpen(lp) && !(await lp.evaluate(() => document.querySelector("#welcome").open)) && /blocked the sign-in window/.test(await text(lp, "#acctErr")), "guest: Sign in with Google in Settings goes straight to Google (a blocked pop-up is explained there)");
+await lp.evaluate(() => { window.__signInError = null; });
+await lp.click("#signOutBtn"); await lp.waitForTimeout(1000);
 await lp.click("#settingsBtn");
 ok(/student@example\.com/.test(await text(lp, "#acctName")) && await vis(lp, '[data-set="samples-greetings"]') && !(await vis(lp, '[data-set="sample-ch1-a"]')), "Sign in from local: switches to the new account, which starts with the samples");
 ok(await lp.evaluate(() => localStorage.getItem("qcard:mode")) === null, "signed in: no longer remembered as local");
 await lp.click("#signOutBtn"); await lp.waitForTimeout(1000);
-ok(await vis(lp, "#guestBtn"), "signed out: welcome pop-up again");
-await lp.click("#guestBtn"); await lp.waitForTimeout(400);
+ok(!(await lp.evaluate(() => document.querySelector("#welcome").open)) && await vis(lp, "#setup"), "signed out: straight back to this browser's data, no pop-up");
 ok(await vis(lp, '[data-set="sample-ch1-a"]'), "local data is still there after using an account");
 await lp.click("#settingsBtn"); await lp.click('#palPick [data-pal="claude"]'); await lp.click("#delStart");
 ok(/saved in this browser/.test(await text(lp, "#delAcct")), "delete (guest): asks before deleting this browser's data");
@@ -484,6 +485,34 @@ ok(!(await vis(rp, "#resumeBtn")) && (await rp.evaluate(() => localStorage.getIt
 await rp.click("#startBtn"); await rp.waitForTimeout(300); await rp.click("#quitBtn"); await rp.waitForTimeout(200);
 ok(await vis(rp, "#resumeBtn") && /3 left/.test(await text(rp, "#resumeBtn")), "resume: starting a new practice replaces the one to resume", await text(rp, "#resumeBtn"));
 ok(rp.errors.length === 0, "resume: no page errors", rp.errors.join(" | "));
+
+// ---------- 13. the 5-minute tour from the welcome pop-up ----------
+for (const width of [900, 375]) {
+  const tctx = await browser.newContext();
+  const tp = await newPage(tctx, { width });
+  const tag = width < 500 ? "phone" : "wide";
+  ok(await vis(tp, "#tourBtn") && /5-minute tour/.test(await text(tp, "#tourBtn")), `tour (${tag}): the welcome pop-up offers the tour`);
+  if (width > 500) await tp.locator("#welcome").screenshot({ path: join(out, "13-welcome-tour.png") });
+  await tp.click("#tourBtn"); await tp.waitForTimeout(400);
+  ok(!(await tp.evaluate(() => document.querySelector("#welcome").open)) && await tp.evaluate(() => localStorage.getItem("qcard:mode")) === "local" && await vis(tp, ".tourcard"), `tour (${tag}): starts as a guest with the tour card`);
+  const titles = [];
+  for (let i = 0; i < 40 && await vis(tp, ".tourcard"); i++) {
+    const title = await text(tp, ".tourcard .tourtitle");
+    if (titles.at(-1) !== title) titles.push(title);
+    if (["Pick a set", "Your turn", "The result", "Kanji lists"].includes(title) || (width < 500 && ["The answer box", "Settings"].includes(title)))
+      await tp.screenshot({ path: join(out, `13-tour-${tag}-${title.toLowerCase().replace(/[^a-z]+/g, "-")}.png`) });
+    if (title === "That's the tour!") break;
+    if (title === "Your turn") { await scribble(tp); await tp.waitForTimeout(100); }
+    await tp.click('.tourcard [data-tour="next"]'); await tp.waitForTimeout(500);
+  }
+  const want = ["Welcome to the tour", "Pick a set", "Direction", "Modes", "Kanji learned up to", "Start practicing", "The question", "The answer box", "Furigana", "Writing tools", "Your turn", "The result", "Stop any time", "Pick up where you left off", "The vocab table", "Your sets", "Add your own sets", "Kanji lists", "Back to practice", "Settings", "That's the tour!"];
+  ok(want.every((t) => titles.includes(t)), `tour (${tag}): goes from the welcome step through practice, the vocab table and Settings to the end`, titles.join(" › "));
+  ok(await vis(tp, "#setup") && await vis(tp, "#resumeBtn"), `tour (${tag}): ends back on the practice page, with the practice left midway to resume`);
+  await tp.click('.tourcard [data-tour="close"]'); await tp.waitForTimeout(200);
+  ok(!(await vis(tp, ".tourcard")) && !(await vis(tp, ".tourspot")), `tour (${tag}): Keep going as a guest closes it`);
+  ok(tp.errors.length === 0, `tour (${tag}): no page errors`, tp.errors.join(" | "));
+  await tctx.close();
+}
 
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");
