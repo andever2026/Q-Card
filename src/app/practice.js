@@ -96,7 +96,7 @@
     }
     Q.cur = Q.queue.shift(); Q.answered = false; Q.busy = false;
     const { w, dir } = Q.cur;
-    $("#feedback").hidden = true; $("#tools").hidden = false; $("#checkErr").hidden = true; $("#maru").hidden = true;
+    $("#feedback").hidden = true; $("#tools").hidden = false; $("#checkErr").hidden = true; $("#maru").setAttribute("hidden", "");
     //#if public
     $("#selfCheck").hidden = true;
     //#endif
