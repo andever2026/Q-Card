@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-KfcBIsy1Em1MzKyi5sOT3DMTERmL5HFRLYKVUW3P6as=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://api.anthropic.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-lmpse50wrYPKGsSH8WmKHR52L4xzEhEbj/76/uwmMns=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -318,14 +318,6 @@ body { margin: 0; }
 .welcome p { margin: 0; text-wrap: pretty; }
 .welcome .lead { color: var(--ink); font-weight: 500; }
 .signbtns { display: grid; gap: 10px; margin: 4px 0; }
-#checkPanel { grid-template-columns: minmax(0, 1fr); }
-.keybox { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.keybox .sel { width: 100%; max-width: 26rem; }
-.keyform { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
-.keyform label { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); min-width: 0; max-width: 100%; }
-.keyform label.tick { display: flex; gap: 6px; align-items: center; font-size: .9rem; color: var(--ink); padding-bottom: 9px; }
-.keyform input[type="password"] { font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 100%; }
-.keyform label:not(.tick) { flex: 0 1 22rem; }
 .keyerr { color: var(--shu); }
 .fb.self { border-color: var(--ai); }
 .fb.self .stamp { color: var(--ai); border-color: var(--ai); }
@@ -415,33 +407,6 @@ body.writing .foot { display: none; }
       <div class="startrow">
         <span class="muted small" id="countLbl">Pick at least one set.</span>
         <button class="btn primary" id="startBtn" disabled>Start practice</button>
-      </div>
-    </div>
-    <div class="panel" id="checkPanel">
-      <div class="opt">
-        <h3>How answers are checked</h3>
-        <div class="seg" id="checkerSeg" role="group" aria-label="How answers are checked">
-          <button type="button" data-checker="builtin">Built-in checker</button>
-          <button type="button" data-checker="claude">Claude, with your API key</button>
-        </div>
-        <p class="muted small" id="checkerHint"></p>
-      </div>
-      <div class="keybox" id="keyBox" hidden>
-        <p class="small" id="keyStatus"></p>
-        <form class="keyform" id="keyForm" autocomplete="off">
-          <label>Anthropic API key<input type="password" id="keyInput" placeholder="sk-ant-…" spellcheck="false" autocomplete="off" required></label>
-          <label class="tick"><input type="checkbox" id="keyRemember"> Remember on this device</label>
-          <label id="keyPassRow" hidden>Lock it with a passcode (optional)<input type="password" id="keyPass" autocomplete="new-password"></label>
-          <button class="btn" type="submit">Use this key</button>
-        </form>
-        <form class="keyform" id="unlockForm" hidden>
-          <label>Passcode<input type="password" id="unlockPass" autocomplete="current-password" required></label>
-          <button class="btn" type="submit">Unlock</button>
-        </form>
-        <p class="small keyerr" id="keyMsg" role="status" hidden></p>
-        <div class="keyform"><label>Model<select class="sel" id="modelSel"></select></label></div>
-        <div class="tactions"><button type="button" class="btn" id="forgetKey" hidden>Forget my key</button></div>
-        <p class="muted small">Your key goes only from this browser to Anthropic. This site never saves it to its database or sends it anywhere else. To be safe, make a separate key just for this site in the Anthropic Console and give it a low monthly spending limit.</p>
       </div>
     </div>
     <div class="panel" id="histPanel" hidden>
@@ -623,9 +588,16 @@ body.writing .foot { display: none; }
 (() => {
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // Choices people make on the page. They're kept in this browser and, for someone signed in, in their account
+  // too (data/users/<id>/prefs, see syncPrefs), so they come along to other devices.
+  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "palette", "theme"];
+  let prefsChanged = () => {};
   const store = {
     get(k, d) { try { const v = localStorage.getItem("jpq:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-    set(k, v) { try { localStorage.setItem("jpq:" + k, JSON.stringify(v)); return true; } catch { return false; } },
+    set(k, v) {
+      if (PREF_KEYS.includes(k)) prefsChanged();
+      try { localStorage.setItem("jpq:" + k, JSON.stringify(v)); return true; } catch { return false; }
+    },
   };
   // Before tags, the Show row switched kinds of sets off; the kinds left on carry over as picked tags.
   function oldKindPicks() {
@@ -1449,40 +1421,20 @@ CORRECT: <YES or NO, matching your REASON>`;
     session_expired: "Your claude.ai session expired. Sign in again, then press Check.",
     images_unavailable: "This view can't send handwriting to Claude. Try opening the page in claude.ai in a browser.",
     invalid_json: "Claude's answer came back in the wrong format. Press Check again.",
-    key_invalid: "Anthropic didn't accept your API key. Check it under “How answers are checked”.",
-    key_denied: "Your API key isn't allowed to do this. Check its permissions in the Anthropic Console.",
-    key_rate: "Your API key hit a rate limit. Wait a moment and press Check again.",
-    key_credit: "Your Anthropic account is out of credit or over its spending limit.",
-    key_model: "That model isn't available to your key. Pick another one under “How answers are checked”.",
-    key_bad: "Anthropic couldn't process this check. Press Check to try again.",
-    key_network: "Couldn't reach Anthropic. Check your connection and press Check again.",
-    key_busy: "Anthropic is busy right now. Wait a moment and press Check again.",
-    key_refused: "Claude didn't check this one. Press Check to try again, or switch to the built-in checker.",
-    key_error: "Something went wrong with the check. Press Check to try again.",
     tpl_load: "Couldn't load the handwriting checker. Check your connection and press Check again.",
   };
+  // The built-in checker reads English → 日本語 answers; 日本語 → English answers, and words it has no strokes for,
+  // are marked by the student (selfMark).
   async function check() {
     if (main.empty || Q.busy) return;
-    const { w, dir } = Q.cur, useClaude = S.checker === "claude";
-    if (useClaude && !apiKey) { showErr(`${keyWhere() === "locked" ? "Unlock" : "Add"} your API key under “How answers are checked” first, or switch to the built-in checker.`); return; }
-    if (!useClaude && dir === "je") { selfMark(); return; }
+    const { w, dir } = Q.cur;
+    if (dir === "je") { selfMark(); return; }
     Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true;
-    const hasFuri = dir === "ej" && !furi.empty;
-    $("#overrideBtn").textContent = `${useClaude ? "Claude" : "The checker"} misread my writing, count it as correct`;
+    $("#overrideBtn").textContent = "The checker misread my writing, count it as correct";
     let self = false;
     try {
-      if (useClaude) {
-        S.readBy = "Claude read: ";
-        const imgs = hasFuri ? [await sheetBlob(), await furi.toBlob(4)] : [await main.toBlob()];
-        const { text } = await platform.askClaude({ apiKey, model: S.model, prompt: buildPrompt(w, dir, hasFuri), images: imgs });
-        const r = parseVerdict(text);
-        const ok = dir === "ej" ? (r.correct || readMatches(w, r)) && !badFuri(w, r) && (S.mode !== "kata" || kataOk(w, r)) : r.correct;
-        grade(ok, r);
-      } else {
-        S.readBy = "Read as: ";
-        const res = await builtinCheck(w, hasFuri);
-        if (res) grade(res.ok, res.r); else self = true;
-      }
+      const res = await builtinCheck(w, dir === "ej" && !furi.empty);
+      if (res) grade(res.ok, res.r); else self = true;
     } catch (e) {
       showErr(ERR[e?.code] || "Something went wrong with the check. Press Check to try again.");
     } finally {
@@ -1682,7 +1634,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     nb.hidden = !need.length || need.length === [...new Set([...w.kanji].filter((c) => KANJI.test(c)))].length;
     nb.innerHTML = nb.hidden ? "" : `Must be kanji here: <b>${esc(need.join("、"))}</b>. The rest can be kana.`;
     const read = [r?.furigana ? `furigana 「${r.furigana}」` : "", r?.main ? `「${r.main}」` : ""].filter(Boolean);
-    $("#fbRead").innerHTML = read.length ? esc(S.readBy) + read.map(esc).join(" over ") : "";
+    $("#fbRead").innerHTML = read.length ? "Read as: " + read.map(esc).join(" over ") : "";
     $("#feedback").hidden = false; $("#overrideBtn").hidden = false; setErasing(false);
     requestAnimationFrame(() => { scratch.resize(); $("#feedback").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); });
   }
@@ -1811,6 +1763,42 @@ CORRECT: <YES or NO, matching your REASON>`;
   const fmtWhen = (iso) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const fmtDay = (iso) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   const firstTry = (t) => { const ws = t.words || []; return { n: ws.length, first: ws.filter((w) => w.tries === 1).length }; };
+
+  // On load the account's copy of the choices replaces this browser's (a first sign-in saves this browser's instead),
+  // and each later change is saved back shortly after it's made. Returns a function that stops the saving.
+  function syncPrefs() {
+    const ref = db.doc(`data/users/${uid}/prefs`);
+    let first = true, timer = null, stopped = false;
+    const save = () => {
+      clearTimeout(timer); timer = null;
+      if (stopped) return;
+      const p = Object.fromEntries(PREF_KEYS.map((k) => [k, store.get(k, null)]).filter(([, v]) => v != null));
+      Promise.resolve().then(() => ref.set({ ...p, updatedAt: new Date().toISOString() })).catch(() => {});
+    };
+    const off = ref.onSnapshot((snap) => {
+      if (!first) return;
+      first = false; setTimeout(() => typeof off === "function" && off(), 0);
+      if (snap.exists) usePrefs(snap.data() || {}); else save();
+      prefsChanged = () => { clearTimeout(timer); timer = setTimeout(save, 800); };
+      const flush = () => { if (timer) save(); };
+      addEventListener("pagehide", flush);
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flush(); });
+    }, () => {});
+    return () => { stopped = true; clearTimeout(timer); prefsChanged = () => {}; };
+  }
+  function usePrefs(p) {
+    for (const k of PREF_KEYS) if (p[k] != null) store.set(k, p[k]);
+    S.selected = new Set(store.get("selected", []));
+    Object.assign(S.pick, { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", [])) });
+    Object.assign(S.tpick, { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) });
+    S.groupBy = store.get("groupBy", "book");
+    S.pickTags = new Set(store.get("pickTags", []));
+    S.dir = store.get("dir", "ej"); S.mode = store.get("mode", "default"); S.upto = store.get("uptoPick", "auto");
+    S.loveWin = String(store.get("loveWin", "all"));
+    setPalette(store.get("palette", "indigo"));
+    setTheme(store.get("theme", ""));
+    renderSetup(); renderTable();
+  }
 
   function watchHistory() {
     if (!db || !uid) return;
@@ -2478,87 +2466,9 @@ CORRECT: <YES or NO, matching your REASON>`;
     };
   }
 
-  // ---------- public site: how answers are checked ----------
-  // The built-in checker (default) or Claude with the visitor's own Anthropic API key. The key is used from this
-  // browser only and never written to the database: it stays in sessionStorage (gone when the tab closes) unless
-  // "Remember on this device" is ticked (localStorage), where a passcode can lock it (PBKDF2 + AES-GCM).
   const platform = window.qcardPlatform;
-  const MODELS = [
-    ["claude-opus-5-5", "Opus 5.5: most accurate, about 2 to 3¢ a check"],
-    ["claude-sonnet-5-5", "Sonnet 5.5: about 1¢ a check"],
-    ["claude-haiku-5-5", "Haiku 5.5: cheapest, well under 0.1¢ a check"],
-  ];
-  S.checker = store.get("checker", "builtin") === "claude" ? "claude" : "builtin";
-  S.model = MODELS.some(([id]) => id === store.get("model", "")) ? store.get("model", "") : MODELS[0][0];
-  S.readBy = "Read as: ";
-  const keep = (st) => ({
-    get: (k) => { try { return st().getItem(k); } catch { return null; } },
-    set: (k, v) => { try { st().setItem(k, v); return true; } catch { return false; } },
-    del: (k) => { try { st().removeItem(k); } catch {} },
-  });
-  const tabKeep = keep(() => sessionStorage), devKeep = keep(() => localStorage);
-  const K_KEY = "qcard:apiKey", K_LOCKED = "qcard:apiKeyLocked";
-  let apiKey = tabKeep.get(K_KEY) || devKeep.get(K_KEY) || "";
-  const keyWhere = () => (devKeep.get(K_LOCKED) ? (apiKey ? "unlocked" : "locked") : devKeep.get(K_KEY) ? "device" : apiKey ? "tab" : "none");
-  const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
-  const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-  async function passKey(pass, salt) {
-    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
-    return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 600000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
-  }
-  async function lockKey(key, pass) {
-    const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
-    const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await passKey(pass, salt), new TextEncoder().encode(key));
-    return JSON.stringify({ v: 1, salt: b64(salt), iv: b64(iv), ct: b64(ct) });
-  }
-  async function unlockKey(saved, pass) {
-    const o = JSON.parse(saved);
-    return new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(o.iv) }, await passKey(pass, unb64(o.salt)), unb64(o.ct)));
-  }
-  function forgetKey() { tabKeep.del(K_KEY); devKeep.del(K_KEY); devKeep.del(K_LOCKED); apiKey = ""; }
-
-  function renderChecker(msg) {
-    $("#checkerSeg").querySelectorAll("[data-checker]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.checker === S.checker));
-    $("#checkerHint").textContent = S.checker === "claude"
-      ? "Claude reads your writing the way a teacher would, furigana included. Each check is billed to your own Anthropic API key."
-      : "Free, and your writing never leaves this device. It's less accurate than Claude, so if it misreads your writing you can count the answer as correct. 日本語 → English answers are marked by you.";
-    $("#keyBox").hidden = S.checker !== "claude";
-    const where = keyWhere();
-    $("#keyStatus").textContent = {
-      none: "No key added yet.",
-      tab: "Using your key in this tab only. It's forgotten when you close the tab.",
-      device: "Your key is remembered on this device.",
-      unlocked: "Your key is remembered on this device, locked with your passcode, and unlocked in this tab.",
-      locked: "Your key is remembered on this device and locked. Enter your passcode to use it.",
-    }[where];
-    $("#keyForm").hidden = where !== "none";
-    $("#unlockForm").hidden = where !== "locked";
-    $("#forgetKey").hidden = where === "none";
-    $("#keyPassRow").hidden = !$("#keyRemember").checked;
-    $("#keyMsg").hidden = !msg; $("#keyMsg").textContent = msg || "";
-  }
-  $("#modelSel").innerHTML = MODELS.map(([id, label]) => `<option value="${id}"${id === S.model ? " selected" : ""}>${esc(label)}</option>`).join("");
-  $("#modelSel").onchange = (e) => { S.model = e.target.value; store.set("model", S.model); };
-  $("#checkerSeg").querySelectorAll("[data-checker]").forEach((b) => (b.onclick = () => { S.checker = b.dataset.checker; store.set("checker", S.checker); renderChecker(); }));
-  $("#keyRemember").onchange = () => renderChecker();
-  $("#keyForm").onsubmit = async (e) => {
-    e.preventDefault();
-    const k = $("#keyInput").value.trim(), pass = $("#keyPass").value, remember = $("#keyRemember").checked;
-    if (!/^sk-ant-\S{20,}$/.test(k)) { renderChecker("That doesn't look like an Anthropic API key. Keys start with sk-ant-."); return; }
-    forgetKey();
-    tabKeep.set(K_KEY, k);
-    if (remember && pass) devKeep.set(K_LOCKED, await lockKey(k, pass));
-    else if (remember) devKeep.set(K_KEY, k);
-    apiKey = k;
-    $("#keyInput").value = $("#keyPass").value = ""; $("#keyRemember").checked = false;
-    renderChecker();
-  };
-  $("#unlockForm").onsubmit = async (e) => {
-    e.preventDefault();
-    try { apiKey = await unlockKey(devKeep.get(K_LOCKED), $("#unlockPass").value); tabKeep.set(K_KEY, apiKey); $("#unlockPass").value = ""; renderChecker(); }
-    catch { renderChecker("That passcode didn't unlock the key. Try again, or forget the key and add it again."); }
-  };
-  $("#forgetKey").onclick = () => { forgetKey(); renderChecker("Done. This browser no longer has your key."); };
+  // Checking with a visitor's own Anthropic API key was taken out (2026-10). Clear any key or choice it left behind.
+  try { for (const k of ["qcard:apiKey", "qcard:apiKeyLocked"]) { localStorage.removeItem(k); sessionStorage.removeItem(k); } localStorage.removeItem("jpq:checker"); localStorage.removeItem("jpq:model"); } catch {}
 
   // ---------- public site: built-in checker ----------
   // Compares the strokes with stroke templates from KanjiVG (src/checker.js) against every accepted way of writing
@@ -2656,7 +2566,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     }
   };
   // Settings → Account and Delete. account is the signed-in person ({uid, email, name}), or null for a guest.
-  let account = null, delAsk = false;
+  let account = null, delAsk = false, stopPrefs = () => {};
   $("#settings").addEventListener("close", () => { delAsk = false; });
   function renderAccount() {
     $("#acctName").innerHTML = account ? `Signed in with Google as <b>${esc(account.email || account.name || "")}</b>.`
@@ -2673,6 +2583,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     $("#delNo").onclick = () => { delAsk = false; renderAccount(); };
     $("#delYes").onclick = async (e) => {
       e.target.disabled = true; e.target.textContent = "Deleting…";
+      stopPrefs();
       try {
         const paths = [];
         for (const c of ["sets", "kanji", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
@@ -2692,7 +2603,6 @@ CORRECT: <YES or NO, matching your REASON>`;
   renderSetup();
   (() => {
     if (!platform) { $("#gate").innerHTML = "<b>The page couldn't start</b>Reload it to try again."; return; }
-    renderChecker();
     let started = null;
     const start = (id, store) => {
       started = uid = id;
@@ -2704,6 +2614,7 @@ CORRECT: <YES or NO, matching your REASON>`;
       db.doc("meta/books").onSnapshot(onBookOrder, () => {});
       db.doc("meta/courses").onSnapshot(onCourses, () => {});
       watchHistory();
+      if (id !== "local") stopPrefs = syncPrefs();
       offerSamples();
     };
     // As a guest, everything is kept in this browser (src/platform/local.js); choosing it in the welcome pop-up is remembered.
