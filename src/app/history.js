@@ -115,7 +115,7 @@
     ask.innerHTML = S.histBlocked
       ? `<p class="muted">${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so practice history is off." : "Your access to this page doesn't allow saving practice history."} You can still practice as much as you like.</p>`
       : on === null
-      ? `<p>Turn on data collection? Each finished practice session would be saved so you can see fun stats about your practice, like graphs, streaks and the words that need more work. ${S.local
+      ? `<p>Turn on data collection? Each finished practice session would be saved so you can see fun stats about your practice, like graphs, streaks and the words that need more work. ${S.local || uid === "local"
           ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it here at any time."
           : "Only you and the site maintainers can see this data, and you can delete it from the server at any time."}</p>${earlier}
          <div class="tactions"><button class="btn primary" data-hist="on">Turn on data collection</button><button class="btn" data-hist="off">No thanks</button></div>`
