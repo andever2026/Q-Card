@@ -1,11 +1,11 @@
 {
  "app": "jp-vocab-practice",
- "version": 1,
+ "version": 2,
  "exportedAt": "2026-10-21T00:00:00Z",
  "about": "Sample sets every new visitor starts with, so the page can be tried before adding any vocab. Written for this site (common beginner words with our own English), not taken from a textbook.",
  "sets": [
   {
-   "id": "samples-ch1-a", "book": "Sample sets", "chapter": 1, "section": "A", "label": "Greetings", "tags": ["Phrases"],
+   "id": "samples-greetings", "collection": "Sample sets", "unit": "Week 1", "name": "Greetings", "tags": ["Phrases"],
    "words": [
     { "id": "g1", "en": "good morning", "kana": "おはよう（ございます）", "kanji": "" },
     { "id": "g2", "en": "hello, good afternoon", "kana": "こんにちは", "kanji": "" },
@@ -18,7 +18,7 @@
    ]
   },
   {
-   "id": "samples-ch1-b", "book": "Sample sets", "chapter": 1, "section": "B", "label": "People", "tags": ["Nouns"],
+   "id": "samples-people", "collection": "Sample sets", "unit": "Week 1", "name": "People", "tags": ["Nouns"],
    "words": [
     { "id": "p1", "en": "I, me", "kana": "わたし", "kanji": "私" },
     { "id": "p2", "en": "person", "kana": "ひと", "kanji": "人" },
@@ -31,7 +31,7 @@
    ]
   },
   {
-   "id": "samples-ch2-a", "book": "Sample sets", "chapter": 2, "section": "A", "label": "Food and drink", "tags": ["Nouns"],
+   "id": "samples-food", "collection": "Sample sets", "unit": "Week 2", "name": "Food and drink", "tags": ["Nouns"],
    "words": [
     { "id": "f1", "en": "water", "kana": "みず", "kanji": "水" },
     { "id": "f2", "en": "(green) tea", "kana": "（お）ちゃ", "kanji": "（お）茶" },
@@ -45,7 +45,7 @@
    ]
   },
   {
-   "id": "samples-ch2-b", "book": "Sample sets", "chapter": 2, "section": "B", "label": "Katakana words", "tags": ["Nouns", "Katakana"],
+   "id": "samples-katakana", "collection": "Sample sets", "unit": "Week 2", "name": "Katakana words", "tags": ["Nouns", "Katakana"],
    "words": [
     { "id": "k1", "en": "television", "kana": "テレビ", "kanji": "" },
     { "id": "k2", "en": "computer (PC)", "kana": "パソコン", "kanji": "" },
@@ -59,7 +59,7 @@
    ]
   },
   {
-   "id": "samples-ch3-a", "book": "Sample sets", "chapter": 3, "section": "A", "label": "Everyday verbs", "tags": ["Verbs"],
+   "id": "samples-verbs", "collection": "Sample sets", "unit": "Week 3", "name": "Everyday verbs", "tags": ["Verbs"],
    "words": [
     { "id": "v1", "en": "to eat", "kana": "たべる", "kanji": "食べる" },
     { "id": "v2", "en": "to drink", "kana": "のむ", "kanji": "飲む" },
@@ -76,7 +76,7 @@
    ]
   },
   {
-   "id": "samples-ch3-b", "book": "Sample sets", "chapter": 3, "section": "B", "label": "Time", "tags": ["Nouns"],
+   "id": "samples-time", "collection": "Sample sets", "unit": "Week 3", "name": "Time", "tags": ["Nouns"],
    "words": [
     { "id": "t1", "en": "today", "kana": "きょう", "kanji": "今日" },
     { "id": "t2", "en": "tomorrow", "kana": "あした", "kanji": "明日" },
@@ -91,8 +91,8 @@
   }
  ],
  "kanji": [
-  { "id": "samples-ch1", "book": "Sample sets", "chapter": 1, "kanji": "一人日本私先生学友名前" },
-  { "id": "samples-ch2", "book": "Sample sets", "chapter": 2, "kanji": "水茶飯肉魚野菜" },
-  { "id": "samples-ch3", "book": "Sample sets", "chapter": 3, "kanji": "食飲行来見読書買待話帰今明昨毎朝夜時何" }
+  { "id": "samples-week-1", "collection": "Sample sets", "unit": "Week 1", "kanji": "一人日本私先生学友名前" },
+  { "id": "samples-week-2", "collection": "Sample sets", "unit": "Week 2", "kanji": "水茶飯肉魚野菜" },
+  { "id": "samples-week-3", "collection": "Sample sets", "unit": "Week 3", "kanji": "食飲行来見読書買待話帰今明昨毎朝夜時何" }
  ]
 }
