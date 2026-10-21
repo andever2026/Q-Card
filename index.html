@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-XvL+Jj3NAJpnYEVPx0+ab6+uwe3bD2iAWjEht41h3+g=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-OtMq9bAMe8ZDUDiMBWCfKXwKv7uoZN26NS5YWjYEhiA=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -157,6 +157,11 @@ body.ready #gate { display: none; }
 .mode span { font-size: .82rem; color: var(--muted); }
 .mode[aria-pressed="true"] { border-color: var(--ai); background: var(--ai-soft); }
 .startrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.startbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+.startbtns .n { color: var(--muted); font-weight: 400; margin-left: 4px; }
+/* While writing, the page is just the practice: the title and the settings gear step aside. */
+body.writing > .wrap > header { display: contents; }
+body.writing > .wrap > header > :not(dialog) { display: none; }
 .hist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .hist li { display: flex; justify-content: space-between; gap: 12px; font-size: .9rem; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
 .hist li span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -406,7 +411,7 @@ body.writing .foot { display: none; }
       </div>
       <div class="startrow">
         <span class="muted small" id="countLbl">Pick at least one set.</span>
-        <button class="btn primary" id="startBtn" disabled>Start practice</button>
+        <span class="startbtns"><button class="btn" id="resumeBtn" hidden></button><button class="btn primary" id="startBtn" disabled>Start practice</button></span>
       </div>
     </div>
     <div class="panel" id="histPanel" hidden>
@@ -589,7 +594,7 @@ body.writing .foot { display: none; }
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   // Choices people make on the page. They're kept in this browser and, for someone signed in, in their account
   // too (data/users/<id>/prefs, see syncPrefs), so they come along to other devices.
-  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "palette", "theme"];
+  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "palette", "theme", "resume"];
   let prefsChanged = () => {};
   const store = {
     get(k, d) { try { const v = localStorage.getItem("jpq:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
@@ -1287,6 +1292,7 @@ body.writing .foot { display: none; }
       : n ? `${n} ${kata}word${n === 1 ? "" : "s"}${S.dir === "both" ? `, ${items} questions` : ""}`
       : kata && S.selected.size ? "No katakana words in the picked set(s)." : "Pick at least one set.";
     $("#startBtn").disabled = !n;
+    renderResume();
     renderUpto();
   }
   // "Kanji learned up to" picks one unit's kanji list (collection + unit); every list before it, earlier collections included, counts as learned.
@@ -1329,7 +1335,10 @@ body.writing .foot { display: none; }
 
   // ---------- quiz ----------
   const Q = { items: [], queue: [], wrong: [], round: 1, cur: null, tries: {}, busy: false, answered: false, total: 0, done: new Set(), meta: null };
-  function startTest(words) {
+  // The "Kanji learned up to" list the practice in progress counts, fixed when it starts (a resumed one keeps its own).
+  let quizUpto = null;
+  function startTest(words, upto = uptoKey()) {
+    quizUpto = upto;
     const items = [];
     for (const w of words) {
       // Verb forms: five questions per verb, or the one form a "practice again" word already is.
@@ -1350,7 +1359,36 @@ body.writing .foot { display: none; }
     return shuffle([...g.values()]).flat();
   }
   $("#startBtn").onclick = () => startTest(selectedWords());
-  $("#quitBtn").onclick = () => { show("setup"); };
+  $("#quitBtn").onclick = () => { show("setup"); renderSetup(); };
+  // The practice in progress is saved after every question (choice "resume", which follows the account like the others),
+  // so one left midway can be picked up again from the practice page. Finishing clears it; starting another replaces it.
+  function saveResume() {
+    if (!Q.meta) return;
+    const pending = [...(Q.cur && !Q.answered ? [Q.cur] : []), ...Q.queue];
+    const r = { items: Q.items, pending: pending.map((it) => it.key), wrong: Q.wrong.map((it) => it.key), done: [...Q.done], tries: Q.tries, round: Q.round, meta: Q.meta, upto: quizUpto, savedAt: new Date().toISOString() };
+    // A very long practice (thousands of questions) isn't kept, so saving stays quick.
+    store.set("resume", JSON.stringify(r).length < 400000 ? r : null);
+  }
+  const resumable = () => { const r = store.get("resume", null); return Array.isArray(r?.items) && r.items.length && Array.isArray(r.pending) ? r : null; };
+  function renderResume() {
+    const r = resumable(), b = $("#resumeBtn");
+    b.hidden = !r;
+    if (r) { b.innerHTML = `Resume last practice<span class="n">${r.items.length - (r.done || []).length} left</span>`; b.title = (r.meta?.sets || []).join(", "); }
+  }
+  $("#resumeBtn").onclick = () => {
+    const r = resumable();
+    if (!r) return renderResume();
+    const by = new Map(r.items.map((it) => [it.key, it])), pick = (ks) => (ks || []).map((k) => by.get(k)).filter(Boolean);
+    // It goes on in its own direction and mode.
+    if (DIRS[r.meta?.dir]) S.dir = r.meta.dir;
+    if (MODES[r.meta?.mode]) S.mode = r.meta.mode;
+    saveSetup();
+    quizUpto = r.upto ?? uptoKey();
+    Object.assign(Q, { items: r.items, queue: pick(r.pending), wrong: pick(r.wrong), round: r.round || 1, tries: r.tries || {}, done: new Set(r.done || []), total: r.items.length,
+      meta: r.meta || { dir: S.dir, mode: S.mode, sets: [] } });
+    show("quiz");
+    nextItem();
+  };
 
   function nextItem() {
     if (!Q.queue.length) {
@@ -1378,6 +1416,7 @@ body.writing .foot { display: none; }
     $("#progLbl").textContent = `${Q.done.size} of ${Q.total} done` + (Q.round > 1 ? ` · round ${Q.round}, ${Q.queue.length + 1} left to fix` : "");
     $("#meterFill").style.width = (Q.done.size / Q.total) * 100 + "%";
     syncCheck();
+    saveResume();
     requestAnimationFrame(() => pads.forEach((p) => p.resize()));
   }
 
@@ -1515,7 +1554,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   function badFuri(w, r) { const f = hira(r.furigana); return !!f && !forms(w).some((p) => inOrder(f, hira(p.kana))); }
   // Learned kanji: everything in the kanji lists up to the chosen one (lists are sorted by collection, then unit). null = treat every kanji as learned.
   function learnedSet() {
-    const key = uptoKey();
+    const key = !$("#quiz").hidden && quizUpto ? quizUpto : uptoKey();
     if (!S.kanjiLists.length || key === "all") return null;
     if (key === "none") return new Set();
     const end = S.kanjiLists.findIndex((k) => unitKey(k) === key);
@@ -1639,8 +1678,8 @@ CORRECT: <YES or NO, matching your REASON>`;
     main.c.classList.add("locked"); furi.c.classList.add("locked");
     // Force kanji hides the reading of 日本語 → English questions until the answer is checked.
     if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
-    if (ok) { Q.done.add(key); hanamaru().then(nextItem); return; }
-    Q.wrong.push(Q.cur);
+    if (ok) { Q.done.add(key); saveResume(); hanamaru().then(nextItem); return; }
+    Q.wrong.push(Q.cur); saveResume();
     $("#tools").hidden = true;
     $("#fbReason").textContent = r?.reason || "";
     const a = $("#fbAnswer");
@@ -1658,6 +1697,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   $("#overrideBtn").onclick = () => {
     Q.wrong = Q.wrong.filter((it) => it !== Q.cur);
     Q.done.add(Q.cur.key);
+    saveResume();
     nextItem();
   };
 
@@ -1680,6 +1720,7 @@ CORRECT: <YES or NO, matching your REASON>`;
 
   // ---------- results ----------
   function finish() {
+    store.set("resume", null);
     const rows = Q.items.map((it) => ({ it, n: Q.tries[it.key] || 1 }));
     $("#rWords").textContent = rows.length;
     $("#rFirst").textContent = rows.filter((r) => r.n === 1).length;
@@ -1717,8 +1758,8 @@ CORRECT: <YES or NO, matching your REASON>`;
   }
   $("#loveList").addEventListener("click", (e) => { const b = e.target.closest(".skipw"); if (b) { const k = b.closest("li").dataset.key; setSkip([k], !Q.skip.has(k)); } });
   $("#skipAll").onclick = () => { const ks = [...document.querySelectorAll("#loveList li")].map((li) => li.dataset.key); setSkip(ks, !ks.every((k) => Q.skip.has(k))); };
-  $("#againBtn").onclick = () => { const seen = new Set(); startTest(Q.love.filter((w) => !seen.has(w.id) && seen.add(w.id))); };
-  $("#newBtn").onclick = () => show("setup");
+  $("#againBtn").onclick = () => { const seen = new Set(); startTest(Q.love.filter((w) => !seen.has(w.id) && seen.add(w.id)), quizUpto); };
+  $("#newBtn").onclick = () => { show("setup"); renderSetup(); };
 
   // Saves the finished session; called again with its id when the skip choices change afterwards.
   async function saveResult(rows, again) {
@@ -1803,7 +1844,8 @@ CORRECT: <YES or NO, matching your REASON>`;
     return () => { stopped = true; clearTimeout(timer); prefsChanged = () => {}; };
   }
   function usePrefs(p) {
-    for (const k of PREF_KEYS) if (p[k] != null) store.set(k, p[k]);
+    // A practice to resume is the account's, or none: one left in this browser may be from another account or already finished elsewhere.
+    for (const k of PREF_KEYS) if (p[k] != null || k === "resume") store.set(k, p[k] ?? null);
     S.selected = new Set(store.get("selected", []));
     Object.assign(S.pick, { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", [])) });
     Object.assign(S.tpick, { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) });

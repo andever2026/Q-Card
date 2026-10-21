@@ -405,6 +405,38 @@ await up.click("#backBtn"); await up.waitForTimeout(200);
 await up.screenshot({ path: join(out, "11-units.png"), fullPage: true });
 ok(up.errors.length === 0, "units: no page errors", up.errors.join(" | "));
 
+// ---------- 12. resume a practice left midway; the title and gear step aside while writing ----------
+const rctx = await browser.newContext();
+let rp = await newPage(rctx, { init: () => {
+  if (localStorage.getItem("qcard:mode")) return;
+  const put = (k, v) => localStorage.setItem("qcard:local:" + k, JSON.stringify(v));
+  localStorage.setItem("qcard:mode", "local"); put("meta/samples", { offeredAt: "x" });
+  put("sets/r-a", { collection: "R", unit: "Week 1", name: "Three", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }, { id: "b", en: "tea", kana: "おちゃ", kanji: "お茶" }, { id: "c", en: "rice", kana: "ごはん", kanji: "" }] });
+} });
+const answer = async (got) => { await scribble(rp); await rp.click("#checkBtn"); await rp.waitForTimeout(150); if (got) { await rp.click("#selfGot"); await rp.waitForTimeout(1300); } else { await rp.click("#selfMiss"); await rp.waitForTimeout(150); } };
+ok(!(await vis(rp, "#resumeBtn")), "resume: no Resume button before any practice");
+await rp.click('[data-set="r-a"]'); await rp.click("#dir-je"); await rp.click("#startBtn"); await rp.waitForTimeout(300);
+ok(!(await vis(rp, "header h1")) && !(await vis(rp, "#settingsBtn")), "practice: the title and settings gear are hidden while writing");
+await rp.screenshot({ path: join(out, "12-practice-no-header.png") });
+await answer(true); await answer(false);
+await rp.click("#quitBtn"); await rp.waitForTimeout(200);
+ok(await vis(rp, "header h1") && await vis(rp, "#settingsBtn"), "practice: the title and gear come back after quitting");
+ok(await vis(rp, "#resumeBtn") && /Resume last practice\s*2 left/.test(await text(rp, "#resumeBtn")), "resume: after quitting midway, Resume last practice shows with what's left", await text(rp, "#resumeBtn"));
+await rp.locator(".startrow").first().screenshot({ path: join(out, "12-resume.png") });
+await rp.reload(); await rp.waitForTimeout(600);
+ok(await vis(rp, "#resumeBtn"), "resume: still there after reloading the page");
+await rp.click("#dir-ej"); await rp.click("#mode-kana");
+await rp.click("#resumeBtn"); await rp.waitForTimeout(300);
+ok(await vis(rp, "#quiz") && /^1 of 3 done/.test(await text(rp, "#progLbl")) && /jp/.test(await rp.$eval("#qText", (e) => e.className)), "resume: picks up where it was left, in its own direction", await text(rp, "#progLbl"));
+let rr = 0;
+while (await vis(rp, "#quiz") && rr++ < 6) await answer(true);
+ok(await vis(rp, "#results") && (await text(rp, "#rWords")) === "3", "resume: the resumed practice finishes with all its words", await text(rp, "#rWords"));
+await rp.click("#newBtn"); await rp.waitForTimeout(200);
+ok(!(await vis(rp, "#resumeBtn")) && (await rp.evaluate(() => localStorage.getItem("jpq:resume"))) === "null", "resume: finishing clears it");
+await rp.click("#startBtn"); await rp.waitForTimeout(300); await rp.click("#quitBtn"); await rp.waitForTimeout(200);
+ok(await vis(rp, "#resumeBtn") && /3 left/.test(await text(rp, "#resumeBtn")), "resume: starting a new practice replaces the one to resume", await text(rp, "#resumeBtn"));
+ok(rp.errors.length === 0, "resume: no page errors", rp.errors.join(" | "));
+
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");
 process.exit(failures ? 1 : 0);
