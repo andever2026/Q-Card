@@ -7,9 +7,9 @@
 <!--CSP-->
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
-<title>Q-Card</title>
+<title>Japanese Vocab Practice</title>
 <!--#else-->
-<title>JP Vocab Practice</title>
+<title>Japanese Vocab Practice</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <!--#endif-->
 <!--#if public-->
@@ -321,9 +321,12 @@ td.c { text-align: center; width: 4.5rem; }
 body { margin: 0; }
 .acct { display: flex; gap: 10px; align-items: baseline; margin-left: auto; min-width: 0; }
 .acct > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 16rem; }
-.signin { display: grid; gap: 14px; justify-items: center; max-width: 30rem; margin: 0 auto; }
-.signin p { text-wrap: pretty; }
-.signbtns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+#welcome { border: none; border-radius: 14px; padding: 26px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--muted); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
+#welcome::backdrop { background: rgba(17, 20, 26, .5); }
+.welcome { display: grid; gap: 14px; text-align: center; }
+.welcome p { margin: 0; text-wrap: pretty; }
+.welcome .lead { color: var(--ink); }
+.signbtns { display: grid; gap: 10px; margin: 4px 0; }
 #checkPanel { grid-template-columns: minmax(0, 1fr); }
 .keybox { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .keybox .sel { width: 100%; max-width: 26rem; }
@@ -348,11 +351,19 @@ body.writing .foot { display: none; }
 <!--#endif-->
 <div class="wrap">
   <header class="head">
+    <h1>Japanese Vocab Practice</h1>
 <!--#if public-->
-    <h1>Q-Card</h1>
     <div class="acct" id="acct" hidden><span class="muted small" id="acctName"></span><button class="link" type="button" id="signOutBtn">Sign out</button></div>
-<!--#else-->
-    <h1>JP Vocab Practice</h1>
+    <dialog id="welcome" aria-label="Welcome to Japanese Vocab Practice">
+      <div class="welcome">
+        <p class="lead">This tool aims to improve written Japanese skills by combining traditional Q-Cards with handwriting recognition.</p>
+        <p>To start, sign in with Google to sync your data across devices, or continue as a guest to keep it in this browser only.</p>
+        <div class="signbtns"><button class="btn primary" type="button" id="signInBtn">Sign in with Google</button><button class="btn primary" type="button" id="guestBtn">Continue as a guest</button></div>
+        <p class="keyerr small" id="welcomeErr" hidden></p>
+        <p class="small">Signed in, your sets and practice history are saved to your account, so you see them on any device. Other visitors can't see them. As with any website's database, the site owner can see what's stored.</p>
+        <p class="small">As a guest, everything stays in this browser on this device and nobody else can see it. Clearing this site's data in your browser deletes it, so use Export now and then to keep a copy.</p>
+      </div>
+    </dialog>
 <!--#endif-->
     <div class="palpick" id="palPick" role="group" aria-label="Colour palette">
       <button type="button" data-pal="indigo" aria-label="Blue colours" title="Blue colours"><i style="background:#2c4a8f"></i></button>
@@ -438,7 +449,7 @@ body.writing .foot { display: none; }
         <p class="small keyerr" id="keyMsg" role="status" hidden></p>
         <div class="keyform"><label>Model<select class="sel" id="modelSel"></select></label></div>
         <div class="tactions"><button type="button" class="btn" id="forgetKey" hidden>Forget my key</button></div>
-        <p class="muted small">Your key goes only from this browser to Anthropic. Q-Card never saves it to its database or sends it anywhere else. To be safe, make a separate key just for Q-Card in the Anthropic Console and give it a low monthly spending limit.</p>
+        <p class="muted small">Your key goes only from this browser to Anthropic. This site never saves it to its database or sends it anywhere else. To be safe, make a separate key just for this site in the Anthropic Console and give it a low monthly spending limit.</p>
       </div>
     </div>
 <!--#endif-->
@@ -618,7 +629,7 @@ body.writing .foot { display: none; }
 </div>
 <!--#if public-->
 <footer class="foot">
-  <p>Q-Card is free and open source under the AGPL-3.0: <a href="https://github.com/andever2026/Q-Card" rel="noopener">source code on GitHub</a>.</p>
+  <p>Japanese Vocab Practice is free and open source under the AGPL-3.0: <a href="https://github.com/andever2026/Q-Card" rel="noopener">source code on GitHub</a>.</p>
   <p>Handwriting templates from <a href="https://kanjivg.tagaini.net" rel="noopener">KanjiVG</a> (CC BY-SA 3.0). Kanji readings from <a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project" rel="noopener">KANJIDIC</a> (EDRDG, CC BY-SA 4.0).</p>
 </footer>
 <script src="js/platform.js"></script>
@@ -2344,7 +2355,7 @@ CORRECT: <YES or NO, matching your REASON>`;
       sets: S.sets.map((x) => setById.get(x.id)).filter(Boolean), kanji: S.kanjiLists.map((k) => kById.get(k.id)).filter(Boolean),
       books: raw.books, courses: raw.courses };
     //#if public
-    const name = `q-card-vocab-${new Date().toLocaleDateString("en-CA")}.json`;
+    const name = `japanese-vocab-${new Date().toLocaleDateString("en-CA")}.json`;
     //#else
     const name = `jp-vocab-${new Date().toLocaleDateString("en-CA")}.json`;
     //#endif
@@ -2355,11 +2366,7 @@ CORRECT: <YES or NO, matching your REASON>`;
 
   // Compares the file with what's here and lists what an import would add or change; nothing is written yet.
   function planImport(file, name) {
-    //#if public
-    if (!file || typeof file !== "object" || file.app !== APP || !Array.isArray(file.sets)) throw "This file isn't a vocab export from Q-Card or JP Vocab Practice.";
-    //#else
-    if (!file || typeof file !== "object" || file.app !== APP || !Array.isArray(file.sets)) throw "This file isn't a JP Vocab Practice export.";
-    //#endif
+    if (!file || typeof file !== "object" || file.app !== APP || !Array.isArray(file.sets)) throw "This file isn't a Japanese Vocab Practice export.";
     let skipped = 0;
     const walk = (list, here, clean, title) => {
       const have = new Map(here.map((d) => [d.id, clean(d)])), seen = new Map();
@@ -2588,27 +2595,23 @@ CORRECT: <YES or NO, matching your REASON>`;
   $("#selfGot").onclick = () => { $("#selfCheck").hidden = true; grade(true, null); };
   $("#selfMiss").onclick = () => { $("#selfCheck").hidden = true; grade(false, { reason: "You marked this one as missed." }); $("#overrideBtn").hidden = true; };
 
-  // ---------- public site: sign-in ----------
+  // ---------- public site: welcome / sign-in ----------
+  // New visitors (and anyone who signed out) see a welcome pop-up over the page, which runs as a guest behind it.
   let startLocal = () => {};
-  function signInGate(err) {
-    $("#gate").innerHTML = `<div class="signin">
-      <b>Practice Japanese vocab by hand</b>
-      <p>Write each word with your finger, a pen or the mouse, and Q-Card checks it. Bring your own vocab lists: import a file someone shared with you, or type your sets in.</p>
-      <div class="signbtns"><button class="btn primary" type="button" id="signInBtn">Sign in with Google</button><button class="btn" type="button" id="localBtn">Use without signing in</button></div>
-      ${err ? `<p class="keyerr small">${esc(err)}</p>` : ""}
-      <p class="muted small">Signed in, your sets and practice history are saved to your account, so you see them on any device. Other visitors can't see them. As with any website's database, the site owner can see what's stored.</p>
-      <p class="muted small">Without signing in, everything stays in this browser on this device and nobody else can see it. Clearing this site's data in your browser deletes it, so use Export now and then to keep a copy.</p>
-    </div>`;
-    $("#localBtn").onclick = () => { try { localStorage.setItem("qcard:mode", "local"); } catch {} startLocal(); };
-    $("#signInBtn").onclick = async () => {
-      $("#signInBtn").disabled = true;
-      try { await platform.signIn(); }
-      catch (e) {
-        if (/popup-closed-by-user|cancelled-popup-request/.test(e?.code)) { $("#signInBtn").disabled = false; return; }
-        signInGate(e?.code === "auth/popup-blocked" ? "Your browser blocked the sign-in window. Allow pop-ups for this site, then try again." : "Sign-in didn't work. Try again.");
-      }
-    };
+  function welcome(err) {
+    $("#welcomeErr").textContent = err || ""; $("#welcomeErr").hidden = !err;
+    if (!$("#welcome").open) $("#welcome").showModal();
   }
+  $("#guestBtn").onclick = () => { try { localStorage.setItem("qcard:mode", "local"); } catch {} $("#welcome").close(); };
+  $("#signInBtn").onclick = async () => {
+    $("#signInBtn").disabled = true;
+    try { await platform.signIn(); } // the page then reloads into the account (see boot)
+    catch (e) {
+      $("#signInBtn").disabled = false;
+      if (/popup-closed-by-user|cancelled-popup-request/.test(e?.code)) return;
+      welcome(e?.code === "auth/popup-blocked" ? "Your browser blocked the sign-in window. Allow pop-ups for this site, then try again." : "Sign-in didn't work. Try again.");
+    }
+  };
   //#endif
   // ---------- boot ----------
   //#if claude
@@ -2638,7 +2641,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   //#else
   renderSetup();
   (() => {
-    if (!platform) { $("#gate").innerHTML = "<b>Q-Card couldn't start</b>Reload the page to try again."; return; }
+    if (!platform) { $("#gate").innerHTML = "<b>The page couldn't start</b>Reload it to try again."; return; }
     renderChecker();
     let started = null;
     const start = (id, store) => {
@@ -2653,24 +2656,22 @@ CORRECT: <YES or NO, matching your REASON>`;
       db.doc("meta/courses").onSnapshot(onCourses, () => {});
       watchHistory();
     };
-    // Without signing in, everything is kept in this browser (src/platform/local.js); the choice is remembered.
+    // As a guest, everything is kept in this browser (src/platform/local.js); choosing it in the welcome pop-up is remembered.
     startLocal = () => {
       start("local", platform.localDb());
-      $("#acctName").textContent = "Not signed in: saved in this browser";
+      $("#acctName").textContent = "Guest: saved in this browser";
       $("#histWhere").textContent = "Saved only in this browser";
       $("#signOutBtn").textContent = "Sign in";
-      $("#signOutBtn").onclick = async () => {
-        try { await platform.signIn(); }
-        catch (e) { if (!/popup-closed-by-user|cancelled-popup-request/.test(e?.code)) banner(e?.code === "auth/popup-blocked" ? "Your browser blocked the sign-in window. Allow pop-ups for this site, then try again." : "Sign-in didn't work. Try again."); }
-      };
+      $("#signOutBtn").onclick = () => welcome();
     };
     platform.onAuth((u) => {
       // Signing in or out (here or in another tab) or switching accounts starts the page over.
       if (started) { if ((u?.uid || "local") !== started && (u || started !== "local")) location.reload(); return; }
       if (!u) {
-        let local = false;
-        try { local = localStorage.getItem("qcard:mode") === "local"; } catch {}
-        if (local) startLocal(); else signInGate();
+        let guest = false;
+        try { guest = localStorage.getItem("qcard:mode") === "local"; } catch {}
+        startLocal();
+        if (!guest) welcome();
         return;
       }
       // Signing in leaves this browser's own data where it is; it's there again after "Use without signing in".
