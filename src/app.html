@@ -150,6 +150,7 @@ body.ready #gate { display: none; }
 .pbar .chips { gap: 6px; }
 .chip.soft[aria-pressed="true"] { background: var(--ai-soft); border-color: var(--ai); color: var(--ai); }
 .chip.soft[aria-pressed="true"]::before { content: "✓"; }
+.tag { display: inline-block; padding: 0 8px; text-transform: none; letter-spacing: normal; border: 1px solid var(--line); border-radius: 999px; background: var(--sunk); color: var(--muted); font-size: .72rem; font-weight: 500; line-height: 1.6; vertical-align: 1px; }
 .chip:disabled { opacity: .5; cursor: not-allowed; }
 .seg { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; width: fit-content; max-width: 100%; }
 .seg button { border: none; background: var(--surface); padding: 8px 14px; border-right: 1px solid var(--line); }
@@ -303,7 +304,7 @@ td.c { text-align: center; width: 4.5rem; }
 .setedit { background: var(--sunk); border-radius: 8px; padding: 10px 12px; }
 .setedit input { background: var(--surface); }
 .setedit [data-ef="chapter"], .setedit [data-ef="section"], .setedit [data-kch] { width: 6rem; }
-.setedit [data-ef="label"] { width: 14rem; max-width: 100%; }
+.setedit [data-ef="label"], .setedit [data-ef="tags"] { width: 14rem; max-width: 100%; }
 .setedit .btn.primary { padding: 8px 14px; }
 .editerr { color: var(--shu); font-size: .85rem; align-self: center; }
 .bookorder { display: grid; gap: 10px; }
@@ -383,12 +384,8 @@ body.writing .foot { display: none; }
       </div>
       <div class="pbar" id="pickBar" hidden>
         <div class="pchs" id="pickChs" role="group" aria-label="Chapter"></div>
-        <div class="pkinds"><span class="muted small">Show</span>
-          <div class="chips" id="pickKinds" role="group" aria-label="Kinds of sets">
-            <button class="chip soft" type="button" data-kind="main">Main sets</button>
-            <button class="chip soft" type="button" data-kind="extras">Extras</button>
-            <button class="chip soft" type="button" data-kind="supp">Supp.</button>
-          </div>
+        <div class="pkinds" id="pickTagRow" hidden><span class="muted small">Show</span>
+          <div class="chips" id="pickTags" role="group" aria-label="Show sets tagged"></div>
         </div>
         <div class="tsum" id="pickSumRow" hidden><span class="muted small" id="pickSum"></span><button class="link" type="button" id="pickClear">Clear all picks</button></div>
       </div>
@@ -603,6 +600,7 @@ body.writing .foot { display: none; }
         <label>Chapter<input id="nsChapter" placeholder="11" required></label>
         <label>Section<input id="nsSection" placeholder="A" required></label>
         <label>Name (optional)<input id="nsLabel" placeholder="Body & health"></label>
+        <label>Tags (optional)<input id="nsTags" placeholder="Verbs, Quiz 3"></label>
         <button class="btn" type="submit">Add set</button>
       </form>
     </div>
@@ -644,6 +642,12 @@ body.writing .foot { display: none; }
     get(k, d) { try { const v = localStorage.getItem("jpq:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
     set(k, v) { try { localStorage.setItem("jpq:" + k, JSON.stringify(v)); return true; } catch { return false; } },
   };
+  // Before tags, the Show row switched kinds of sets off; the kinds left on carry over as picked tags.
+  function oldKindPicks() {
+    const k = store.get("pickKinds", null);
+    if (!Array.isArray(k) || !k.length || k.length >= 3) return [];
+    return k.map((x) => ({ main: "main sets", extras: "extras", supp: "supp." })[x]).filter(Boolean);
+  }
   const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const rid = () => Math.random().toString(36).slice(2, 9);
 
@@ -663,7 +667,7 @@ body.writing .foot { display: none; }
     courses: [],                           // meta/courses: [{name, parts: [{book, from, to}]}], in course order; a line break in a name breaks its label
     oldBooks: store.get("pickBooks", null) ?? (store.get("pickBook", null) != null ? [store.get("pickBook", null)] : null),
     tableBook: store.get("tableBook", null), // book shown in the vocab table
-    pickKinds: new Set(store.get("pickKinds", ["main", "extras", "supp"])),
+    pickTags: new Set(store.get("pickTags", null) ?? oldKindPicks()), // tags picked in the Show row (lowercase); none = All
     dir: store.get("dir", "ej"),
     mode: store.get("mode", "default"),
     kanjiLists: [],      // [{id, chapter, kanji}]
@@ -1086,9 +1090,27 @@ body.writing .foot { display: none; }
       verb: "Only for English → 日本語.",
     },
   };
-  // Sets are filtered by chapter and by kind; picks in hidden sets stay picked.
+  // Sets are filtered by chapter and by tag; picks in hidden sets stay picked.
   const setKind = (s) => (/^supp/i.test(s.section) ? "supp" : /^extra/i.test(s.section) ? "extras" : "main");
-  const KIND_NAMES = { main: "main sets", extras: "Extras", supp: "Supp. sets" };
+  // A set's tags are its own (sets/<id>.tags, from its details) plus its kind from the section name, when the table has
+  // more than one kind. Tags match without case; a comma (or 、) separates them when typed.
+  const KIND_TAGS = { main: "Main sets", extras: "Extras", supp: "Supp." };
+  const tagKey = (t) => t.toLowerCase();
+  function cleanTags(v) {
+    const out = [], seen = new Set();
+    for (const t of Array.isArray(v) ? v : String(v ?? "").split(/[,、，]/)) {
+      const x = String(t ?? "").replace(/\s+/g, " ").trim().slice(0, 30);
+      if (x && !seen.has(tagKey(x)) && out.length < 12) { seen.add(tagKey(x)); out.push(x); }
+    }
+    return out;
+  }
+  const setTags = (s, kinds) => cleanTags([...(kinds ? [KIND_TAGS[setKind(s)]] : []), ...(Array.isArray(s.tags) ? s.tags : [])]);
+  // Every tag in use, most-used first: [{key, name, n}].
+  function tagCounts() {
+    const kinds = new Set(S.sets.map(setKind)).size > 1, m = new Map();
+    for (const s of S.sets) for (const t of setTags(s, kinds)) { const k = tagKey(t); if (!m.has(k)) m.set(k, { key: k, name: t, n: 0 }); m.get(k).n++; }
+    return { kinds, list: [...m.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)) };
+  }
   const setBooks = () => books().filter((b) => S.sets.some((s) => bookOf(s) === b));
   const chsOf = (book) => [...new Set(S.sets.filter((s) => bookOf(s) === book).map((s) => String(s.chapter)))];
   const bookKeys = (book) => chsOf(book).map((c) => `${book}\u0001${c}`);
@@ -1185,16 +1207,22 @@ body.writing .foot { display: none; }
   document.querySelectorAll("[data-group]").forEach((b) => (b.onclick = () => { S.groupBy = b.dataset.group; store.set("groupBy", S.groupBy); renderSetup(); renderTable(); }));
   function renderPickBar(shown) {
     PP.render(); syncGroupSegs();
-    document.querySelectorAll("#pickKinds [data-kind]").forEach((b) => b.setAttribute("aria-pressed", S.pickKinds.has(b.dataset.kind)));
     const n = S.selected.size, hidden = [...S.selected].filter((id) => !shown.some((s) => s.id === id)).length;
     $("#pickSumRow").hidden = !n;
     $("#pickSum").textContent = `${n} set${n === 1 ? "" : "s"} picked${hidden ? `, ${hidden} not shown here` : ""}`;
   }
-  document.querySelectorAll("#pickKinds [data-kind]").forEach((b) => (b.onclick = () => {
-    const k = b.dataset.kind;
-    S.pickKinds.has(k) ? S.pickKinds.delete(k) : S.pickKinds.add(k);
-    store.set("pickKinds", [...S.pickKinds]); renderSetup();
-  }));
+  // The Show row: All, then every tag in use, most-used first. It's left out when no tag would narrow anything.
+  function renderTagRow(tags, on) {
+    $("#pickTagRow").hidden = tags.every((t) => t.n === S.sets.length);
+    $("#pickTags").innerHTML = `<button class="chip" type="button" data-tag="" aria-pressed="${!on.length}">All</button>`
+      + tags.map((t) => `<button class="chip" type="button" data-tag="${esc(t.key)}" aria-pressed="${on.includes(t.key)}">${esc(t.name)}<span class="n">${t.n}</span></button>`).join("");
+    $("#pickTags").querySelectorAll("[data-tag]").forEach((b) => (b.onclick = () => {
+      const k = b.dataset.tag;
+      if (!k) S.pickTags.clear();
+      else { for (const x of [...S.pickTags]) if (!tags.some((t) => t.key === x)) S.pickTags.delete(x); S.pickTags.has(k) ? S.pickTags.delete(k) : S.pickTags.add(k); }
+      store.set("pickTags", [...S.pickTags]); renderSetup();
+    }));
+  }
   $("#pickClear").onclick = () => { S.selected.clear(); saveSetup(); renderSetup(); };
   function renderSetup() {
     const box = $("#setPicker");
@@ -1235,17 +1263,20 @@ body.writing .foot { display: none; }
         PP.replace(show, S.pick.picks);
       }
       const multi = setBooks().length > 1, states = setBooks().map(PP.state);
-      const chs = new Set(S.sets.filter(chShown).map(chKey)), shown = S.sets.filter((s) => chShown(s) && S.pickKinds.has(setKind(s)));
+      // Picked tags that no set has any more are ignored, so they can't hide everything.
+      const tags = tagCounts(), on = [...S.pickTags].filter((k) => tags.list.some((t) => t.key === k));
+      const tagged = (s) => !on.length || setTags(s, tags.kinds).some((t) => on.includes(tagKey(t)));
+      const chs = new Set(S.sets.filter(chShown).map(chKey)), shown = S.sets.filter((s) => chShown(s) && tagged(s));
+      renderTagRow(tags.list, on);
       renderPickBar(shown);
       const byCh = new Map();
       for (const s of shown) { if (!byCh.has(chKey(s))) byCh.set(chKey(s), []); byCh.get(chKey(s)).push(s); }
       const groups = [...byCh.values()];
-      const off = ["main", "extras", "supp"].filter((k) => !S.pickKinds.has(k)).map((k) => KIND_NAMES[k]);
+      const onNames = tags.list.filter((t) => on.includes(t.key)).map((t) => `“${esc(t.name)}”`);
       const who = chs.size === 1 ? esc(chLabel([...chs][0].split("\u0001")[1])) + " has" : states.every((x) => x === "all") ? "There are" : "These chapters have";
       box.innerHTML = !shown.length
         ? !chs.size ? `<div class="empty"><span>No chapters picked. Tap All or a chapter above to see its sets.</span></div>`
-        : `<div class="empty"><b>No sets to show.</b><span>${!S.pickKinds.size ? "Turn on at least one kind of set above."
-          : `${who} no ${[...S.pickKinds].map((k) => KIND_NAMES[k]).join(" or ")}.${off.length ? ` Turn on ${off.join(" or ")} above to see the rest.` : ""}`}</span></div>`
+        : `<div class="empty"><b>No sets to show.</b><span>${who} no sets tagged ${onNames.join(" or ")}. Tap All above to see the rest.</span></div>`
         : groups.map((sets, i) => {
         const ch = String(sets[0].chapter), name = /^\d/.test(ch) ? "Chapter " + esc(ch) : esc(ch);
         const usable = sets.filter((s) => readyCount(s.words)), all = usable.length && usable.every((s) => S.selected.has(s.id));
@@ -2229,7 +2260,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     const manyBooks = new Set(shown.map(({ s }) => bookOf(s))).size > 1;
     box.innerHTML = shown.map(({ s, words, idx, open }) => {
       const dirty = S.drafts.has(s.id);
-      const head = `<h3 class="tseth"><button class="tsethead" type="button" data-toggle aria-expanded="${open}"><span class="t"><span class="car" aria-hidden="true">›</span>${esc(q || manyBooks ? setName(s) : `${chLabel(s.chapter)} ${s.section}`)}${s.label ? ` <span class="muted small">${esc(s.label)}</span>` : ""}</span>
+      const head = `<h3 class="tseth"><button class="tsethead" type="button" data-toggle aria-expanded="${open}"><span class="t"><span class="car" aria-hidden="true">›</span>${esc(q || manyBooks ? setName(s) : `${chLabel(s.chapter)} ${s.section}`)}${s.label ? ` <span class="muted small">${esc(s.label)}</span>` : ""}${cleanTags(s.tags).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</span>
         <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> ` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button></h3>`;
       if (!open) return `<div class="tset" data-sid="${esc(s.id)}">${head}</div>`;
       const rows = idx.map((i) => { const w = words[i]; return canWrite
@@ -2244,6 +2275,7 @@ CORRECT: <YES or NO, matching your REASON>`;
           <label>Chapter<input data-ef="chapter" value="${esc(ev.chapter)}" required></label>
           <label>Section<input data-ef="section" value="${esc(ev.section)}" required></label>
           <label>Name (optional)<input data-ef="label" value="${esc(ev.label)}"></label>
+          <label>Tags (optional)<input data-ef="tags" value="${esc(ev.tags)}" placeholder="Verbs, Quiz 3"></label>
           <button class="btn primary" type="submit">Save details</button><button class="btn" type="button" data-editcancel>Cancel</button><span class="editerr" data-editerr></span>
         </form>` : "";
       return `<div class="tset" data-sid="${esc(s.id)}">
@@ -2289,7 +2321,7 @@ CORRECT: <YES or NO, matching your REASON>`;
       const dn = el.querySelector("[data-delset-no]"); if (dn) dn.onclick = () => { S.confirmDel = null; renderTable(); };
       const dy = el.querySelector("[data-delset-yes]"); if (dy) dy.onclick = async () => { S.confirmDel = null; S.drafts.delete(sid); try { await db.doc("sets/" + sid).delete(); } catch {} };
       const es = el.querySelector("[data-editset]");
-      if (es) es.onclick = () => { S.editSet = sid; S.editVals = { book: bookOf(s), chapter: String(s.chapter), section: s.section || "", label: s.label || "" }; renderTable(); document.querySelector(`[data-sid="${CSS.escape(sid)}"] [data-ef="book"]`)?.focus(); };
+      if (es) es.onclick = () => { S.editSet = sid; S.editVals = { book: bookOf(s), chapter: String(s.chapter), section: s.section || "", label: s.label || "", tags: cleanTags(s.tags).join(", ") }; renderTable(); document.querySelector(`[data-sid="${CSS.escape(sid)}"] [data-ef="book"]`)?.focus(); };
       const ef = el.querySelector("[data-editform]");
       if (ef) {
         const err = (m) => { ef.querySelector("[data-editerr]").textContent = m; };
@@ -2297,11 +2329,11 @@ CORRECT: <YES or NO, matching your REASON>`;
         ef.querySelector("[data-editcancel]").onclick = () => { S.editSet = null; renderTable(); };
         ef.onsubmit = async (e) => {
           e.preventDefault();
-          const book = canonBook(S.editVals.book), ch = cleanCh(S.editVals.chapter), sec = S.editVals.section.trim(), label = S.editVals.label.trim();
+          const book = canonBook(S.editVals.book), ch = cleanCh(S.editVals.chapter), sec = S.editVals.section.trim(), label = S.editVals.label.trim(), tags = cleanTags(S.editVals.tags);
           if (!book || ch === "" || !sec) return err("Book, chapter and section can't be empty.");
           if (S.sets.some((x) => x.id !== sid && sameBook(bookOf(x), book) && sameCh(x.chapter, ch) && sameCh(x.section, sec))) return err(`${book} ${chLabel(ch)} ${sec} already exists.`);
           const b = ef.querySelector("[type=submit]"); b.disabled = true; b.textContent = "Saving…";
-          try { await db.doc("sets/" + sid).update({ book, chapter: ch, section: sec, label, updatedAt: new Date().toISOString() }); }
+          try { await db.doc("sets/" + sid).update({ book, chapter: ch, section: sec, label, tags, updatedAt: new Date().toISOString() }); }
           catch { b.disabled = false; b.textContent = "Save details"; return err("Couldn't save. Try again."); }
           S.editSet = null; S.openSets.add(sid); pickCh(ch, book);
           renderTable();
@@ -2316,7 +2348,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   }
   $("#newSetForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const book = canonBook($("#nsBook").value), ch = cleanCh($("#nsChapter").value), sec = $("#nsSection").value.trim(), label = $("#nsLabel").value.trim();
+    const book = canonBook($("#nsBook").value), ch = cleanCh($("#nsChapter").value), sec = $("#nsSection").value.trim(), label = $("#nsLabel").value.trim(), tags = cleanTags($("#nsTags").value);
     if (!book || ch === "" || !sec) return;
     if (S.sets.some((s) => sameBook(bookOf(s), book) && sameCh(s.chapter, ch) && sameCh(s.section, sec))) { $("#nsSection").setCustomValidity("That set already exists"); $("#nsSection").reportValidity(); $("#nsSection").setCustomValidity(""); return; }
     const id = freeId(slug(`${book}-ch${ch}-${sec}`), new Set(S.sets.map((s) => s.id)));
@@ -2324,7 +2356,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     S.openSets.add(id);
     clearSearch();
     try {
-      await db.doc("sets/" + id).set({ book, chapter: ch, section: sec, label, words: [{ id: rid(), en: "", kana: "", kanji: "" }], updatedAt: new Date().toISOString() });
+      await db.doc("sets/" + id).set({ book, chapter: ch, section: sec, label, ...(tags.length ? { tags } : {}), words: [{ id: rid(), en: "", kana: "", kanji: "" }], updatedAt: new Date().toISOString() });
       e.target.reset(); $("#nsBook").value = book;
     } catch { banner("Couldn't add the set. Only the owner and editors can change the table."); }
   });
@@ -2336,7 +2368,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   const chap = (v) => (typeof v === "number" && Number.isFinite(v) ? v : str(v, 40));
   // Each cleaner returns the document to store, or null when the file's entry isn't usable. File contents are untrusted.
   const cleanSet = (d) => !d || typeof d !== "object" || !ID_RE.test(String(d.id ?? "")) || !Array.isArray(d.words) ? null : {
-    book: str(d.book, 100), chapter: chap(d.chapter), section: str(d.section, 40), label: str(d.label, 200),
+    book: str(d.book, 100), chapter: chap(d.chapter), section: str(d.section, 40), label: str(d.label, 200), ...(cleanTags(d.tags).length ? { tags: cleanTags(d.tags) } : {}),
     words: d.words.slice(0, 3000).filter((w) => w && typeof w === "object").map((w) => ({ id: ID_RE.test(String(w.id ?? "")) ? String(w.id) : rid(), en: str(w.en), kana: str(w.kana), kanji: str(w.kanji) })) };
   const cleanKanji = (d) => !d || typeof d !== "object" || !ID_RE.test(String(d.id ?? "")) ? null : { book: str(d.book, 100), chapter: chap(d.chapter), kanji: str(d.kanji, 20000) };
   const cleanBooks = (d) => Array.isArray(d?.order) ? { order: d.order.slice(0, 50).map((b) => str(b, 100)) } : null;
