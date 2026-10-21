@@ -1,0 +1,98 @@
+{
+ "app": "jp-vocab-practice",
+ "version": 1,
+ "exportedAt": "2026-10-21T00:00:00Z",
+ "about": "Sample sets every new visitor starts with, so the page can be tried before adding any vocab. Written for this site (common beginner words with our own English), not taken from a textbook.",
+ "sets": [
+  {
+   "id": "samples-ch1-a", "book": "Sample sets", "chapter": 1, "section": "A", "label": "Greetings",
+   "words": [
+    { "id": "g1", "en": "good morning", "kana": "おはよう（ございます）", "kanji": "" },
+    { "id": "g2", "en": "hello, good afternoon", "kana": "こんにちは", "kanji": "" },
+    { "id": "g3", "en": "good evening", "kana": "こんばんは", "kanji": "" },
+    { "id": "g4", "en": "thank you", "kana": "ありがとう（ございます）", "kanji": "" },
+    { "id": "g5", "en": "excuse me, I'm sorry", "kana": "すみません", "kanji": "" },
+    { "id": "g6", "en": "goodbye", "kana": "さようなら", "kanji": "" },
+    { "id": "g7", "en": "nice to meet you", "kana": "はじめまして", "kanji": "" },
+    { "id": "g8", "en": "here you are, go ahead", "kana": "どうぞ", "kanji": "" }
+   ]
+  },
+  {
+   "id": "samples-ch1-b", "book": "Sample sets", "chapter": 1, "section": "B", "label": "People",
+   "words": [
+    { "id": "p1", "en": "I, me", "kana": "わたし", "kanji": "私" },
+    { "id": "p2", "en": "person", "kana": "ひと", "kanji": "人" },
+    { "id": "p3", "en": "teacher", "kana": "せんせい", "kanji": "先生" },
+    { "id": "p4", "en": "student", "kana": "がくせい", "kanji": "学生" },
+    { "id": "p5", "en": "friend", "kana": "ともだち", "kanji": "友だち" },
+    { "id": "p6", "en": "Japanese person", "kana": "にほんじん", "kanji": "日本人" },
+    { "id": "p7", "en": "name", "kana": "なまえ", "kanji": "名前" },
+    { "id": "p8", "en": "one person, alone", "kana": "ひとり", "kanji": "一人" }
+   ]
+  },
+  {
+   "id": "samples-ch2-a", "book": "Sample sets", "chapter": 2, "section": "A", "label": "Food and drink",
+   "words": [
+    { "id": "f1", "en": "water", "kana": "みず", "kanji": "水" },
+    { "id": "f2", "en": "(green) tea", "kana": "（お）ちゃ", "kanji": "（お）茶" },
+    { "id": "f3", "en": "cooked rice, meal", "kana": "ごはん", "kanji": "ご飯" },
+    { "id": "f4", "en": "meat", "kana": "にく", "kanji": "肉" },
+    { "id": "f5", "en": "fish", "kana": "さかな", "kanji": "魚" },
+    { "id": "f6", "en": "vegetables", "kana": "やさい", "kanji": "野菜" },
+    { "id": "f7", "en": "delicious", "kana": "おいしい", "kanji": "" },
+    { "id": "f8", "en": "coffee", "kana": "コーヒー", "kanji": "" },
+    { "id": "f9", "en": "bread", "kana": "パン", "kanji": "" }
+   ]
+  },
+  {
+   "id": "samples-ch2-b", "book": "Sample sets", "chapter": 2, "section": "B", "label": "Katakana words",
+   "words": [
+    { "id": "k1", "en": "television", "kana": "テレビ", "kanji": "" },
+    { "id": "k2", "en": "computer (PC)", "kana": "パソコン", "kanji": "" },
+    { "id": "k3", "en": "camera", "kana": "カメラ", "kanji": "" },
+    { "id": "k4", "en": "restaurant", "kana": "レストラン", "kanji": "" },
+    { "id": "k5", "en": "hotel", "kana": "ホテル", "kanji": "" },
+    { "id": "k6", "en": "taxi", "kana": "タクシー", "kanji": "" },
+    { "id": "k7", "en": "ice cream", "kana": "アイスクリーム", "kanji": "" },
+    { "id": "k8", "en": "juice", "kana": "ジュース", "kanji": "" },
+    { "id": "k9", "en": "America", "kana": "アメリカ", "kanji": "" }
+   ]
+  },
+  {
+   "id": "samples-ch3-a", "book": "Sample sets", "chapter": 3, "section": "A", "label": "Everyday verbs",
+   "words": [
+    { "id": "v1", "en": "to eat", "kana": "たべる", "kanji": "食べる" },
+    { "id": "v2", "en": "to drink", "kana": "のむ", "kanji": "飲む" },
+    { "id": "v3", "en": "to go", "kana": "いく", "kanji": "行く" },
+    { "id": "v4", "en": "to come", "kana": "くる", "kanji": "来る" },
+    { "id": "v5", "en": "to see, to watch", "kana": "みる", "kanji": "見る" },
+    { "id": "v6", "en": "to read", "kana": "よむ", "kanji": "読む" },
+    { "id": "v7", "en": "to write", "kana": "かく", "kanji": "書く" },
+    { "id": "v8", "en": "to buy", "kana": "かう", "kanji": "買う" },
+    { "id": "v9", "en": "to wait", "kana": "まつ", "kanji": "待つ" },
+    { "id": "v10", "en": "to speak, to talk", "kana": "はなす", "kanji": "話す" },
+    { "id": "v11", "en": "to go home, to return", "kana": "かえる", "kanji": "帰る" },
+    { "id": "v12", "en": "to do", "kana": "する", "kanji": "" }
+   ]
+  },
+  {
+   "id": "samples-ch3-b", "book": "Sample sets", "chapter": 3, "section": "B", "label": "Time",
+   "words": [
+    { "id": "t1", "en": "today", "kana": "きょう", "kanji": "今日" },
+    { "id": "t2", "en": "tomorrow", "kana": "あした", "kanji": "明日" },
+    { "id": "t3", "en": "yesterday", "kana": "きのう", "kanji": "昨日" },
+    { "id": "t4", "en": "now", "kana": "いま", "kanji": "今" },
+    { "id": "t5", "en": "every day", "kana": "まいにち", "kanji": "毎日" },
+    { "id": "t6", "en": "morning", "kana": "あさ", "kanji": "朝" },
+    { "id": "t7", "en": "night", "kana": "よる", "kanji": "夜" },
+    { "id": "t8", "en": "~ o'clock", "kana": "〜じ", "kanji": "〜時" },
+    { "id": "t9", "en": "what time", "kana": "なんじ", "kanji": "何時" }
+   ]
+  }
+ ],
+ "kanji": [
+  { "id": "samples-ch1", "book": "Sample sets", "chapter": 1, "kanji": "一人日本私先生学友名前" },
+  { "id": "samples-ch2", "book": "Sample sets", "chapter": 2, "kanji": "水茶飯肉魚野菜" },
+  { "id": "samples-ch3", "book": "Sample sets", "chapter": 3, "kanji": "食飲行来見読書買待話帰今明昨毎朝夜時何" }
+ ]
+}
