@@ -1,6 +1,6 @@
 /* Layout: one centred practice sheet (練習帳). Teacher's red pen for corrections, indigo ink for the UI. */
 :root {
-  --bg: #eceff3;
+  --bg: #fdfdfd;
   --surface: #ffffff;
   --sunk: #f5f7fa;
   --ink: #1b2130;
@@ -95,9 +95,11 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 #settings::backdrop { background: rgba(17, 20, 26, .5); }
 .settings { display: grid; gap: 18px; }
 .settings .sethead { display: flex; justify-content: space-between; align-items: center; }
+.settings .sethead .ghost { padding: 6px 12px; margin-right: -10px; } /* a ✕ wide enough to tap, in the same place */
 .settings section { display: grid; gap: 8px; }
-.settings p { margin: 0; }
+.settings p { margin: 0; overflow-wrap: anywhere; } /* a long email address wraps instead of widening the pop-up */
 .settings .setrow { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+@media (max-width: 480px) { #themePick button { padding-inline: 10px; } } /* Match device, Light and Dark stay on one line on a small phone */
 .palpick { display: inline-flex; gap: 6px; }
 .palpick button { border: 2px solid transparent; background: none; border-radius: 50%; padding: 3px; display: inline-flex; }
 .palpick button:hover { border-color: var(--line); }
@@ -108,6 +110,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .qtip:hover, .qtip:focus-visible, .qtip.open { color: var(--ink); }
 .qtipbody { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(250px, 60vw); background: var(--ink); color: var(--surface); padding: 6px 9px; border-radius: 6px; font-size: .82rem; line-height: 1.4; z-index: 2; }
 .qtip:hover .qtipbody, .qtip:focus-visible .qtipbody, .qtip.open .qtipbody { display: block; }
+/* On a phone the tip opens above the whole row from its left edge, so the pop-up's right side doesn't cut it off. */
+@media (max-width: 480px) { .delrow { position: relative; } .delrow .qtip { position: static; } .delrow .qtipbody { left: 0; transform: none; } }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
 body:not(.ready) section, body:not(.ready) #banner { display: none !important; }
@@ -117,8 +121,10 @@ body.ready #gate { display: none; }
 
 /* Setup */
 .chapter { display: grid; gap: 8px; }
+#setPicker { display: grid; gap: 12px; } /* space above each unit's dashed line as well as below it */
 .chapter + .chapter { border-top: 1px dashed var(--line); padding-top: 12px; }
 .chrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.chrow .unit { font-size: .9rem; font-weight: 500; color: color-mix(in srgb, var(--ink) 80%, var(--muted)); } /* between the bold title it was and the Filter label (the owner) */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { border: 1px solid var(--line); background: var(--sunk); border-radius: 999px; padding: 6px 14px; font-weight: 500; display: inline-flex; gap: 6px; align-items: baseline; }
 .chip .n { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -128,8 +134,9 @@ body.ready #gate { display: none; }
 .pkinds { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .pchs { display: grid; gap: 6px; }
 .pchs:empty { display: none; }
-/* With 2+ collections, the collection names and "Show" share one label column, as wide as the longest label. */
-.pbar.labeled { grid-template-columns: minmax(var(--labw, 0px), max-content) minmax(0, 1fr); column-gap: 12px; }
+/* With 2+ collections, the collection names and "Show" share one label column, as wide as the longest label
+   (on a narrow phone a long name wraps instead, so the chips keep at least 9rem). */
+.pbar.labeled { grid-template-columns: minmax(min(var(--labw, 0px), 100% - 9rem - 12px), max-content) minmax(9rem, 1fr); column-gap: 12px; }
 .pbar.labeled > * { grid-column: 1 / -1; }
 .pbar.labeled :is(.pchs, .pchrow, .pkinds) { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; column-gap: 12px; }
 .pbar.labeled :is(.pchrow, .pkinds) > .chips { align-self: start; }
@@ -167,12 +174,30 @@ body.ready #gate { display: none; }
 .startrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .startbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 .startbtns .n { color: var(--muted); font-weight: 400; margin-left: 4px; }
+/* On a phone the setup is slimmer so there's less to scroll (the owner): tighter panels, smaller chips and buttons, and a
+   mode's description shows only once it's picked. */
+@media (max-width: 480px) {
+  #setup { gap: 12px; }
+  #setup .panel { padding: 14px; gap: 12px; }
+  .chapter { gap: 6px; }
+  #setPicker { gap: 10px; }
+  .chapter + .chapter { padding-top: 10px; }
+  #setPicker .chip { padding: 4px 12px; font-size: .9rem; }
+  #setPicker .chips { gap: 6px; }
+  #setup .seg button, #dirSeg button { padding-block: 6px; }
+  .modes { gap: 6px; }
+  .mode { padding: 7px 12px; }
+  .mode:not([aria-pressed="true"]) span { display: none; }
+  #setup .sel { padding-block: 6px; }
+}
 /* While writing, the page is just the practice: the title and the settings gear step aside. */
 body.writing > .wrap > header { display: contents; }
 body.writing > .wrap > header > :not(dialog) { display: none; }
 .hist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .hist li { display: flex; justify-content: space-between; gap: 12px; font-size: .9rem; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
 .hist li span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* On a phone the date and score go under the set names when they don't fit beside them. */
+@media (max-width: 480px) { .hist li { flex-wrap: wrap; row-gap: 2px; } }
 .histask { display: grid; gap: 10px; }
 .histask p { margin: 0; font-size: .92rem; }
 
@@ -186,7 +211,7 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .qtext { font-size: clamp(1.6rem, 6vw, 2.3rem); font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 .qtext.jp { font-family: var(--font-jp); font-weight: 600; }
 .qsub { font-family: var(--font-jp); color: var(--muted); font-size: 1rem; min-height: 1.4em; }
-.toclear { color: var(--ai); white-space: nowrap; }
+.toclear { color: var(--ai); display: inline-block; } /* kept whole on its line; wraps only on a phone too narrow for it */
 .qsub.vform { font-family: inherit; color: var(--ai); font-weight: 700; font-size: 1.1rem; }
 .mode:disabled { opacity: .45; cursor: not-allowed; }
 .zlabel { font-size: .72rem; letter-spacing: .1em; color: var(--muted); display: flex; justify-content: space-between; }
@@ -222,7 +247,7 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 /* Results */
 .big { font-size: 2.2rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.stats div { display: grid; gap: 6px; }
+.stats div { display: grid; gap: 6px; align-content: start; } /* labels stay under their numbers when a neighbour's wraps */
 .love { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .love li { display: grid; grid-template-columns: 3rem 1fr; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 8px; background: var(--sunk); }
 .love li:has(.skipw) { grid-template-columns: 3rem 1fr auto; }
@@ -338,6 +363,7 @@ td.c { text-align: center; width: 4.5rem; }
 body { margin: 0; }
 #welcome { border: none; border-radius: 14px; padding: 26px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--muted); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
 #welcome::backdrop { background: rgba(17, 20, 26, .5); }
+@media (max-width: 480px) { #welcome { padding-top: 44px; } } /* on a phone the intro's first line would run under the ✕ */
 .welcome { display: grid; gap: 14px; text-align: center; }
 .dlgx { position: absolute; top: 10px; right: 10px; border: none; background: none; color: var(--muted); padding: 6px; border-radius: 8px; display: inline-flex; }
 .dlgx:hover { color: var(--ink); background: var(--sunk); }

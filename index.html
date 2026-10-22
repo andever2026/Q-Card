@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-/XTdWKDzWDXHNNFA3yzCVGK6w+ka1DhcERR6zgVsQsY=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-zVVELnEA66vinZZXLPTymXWSi8Fp7aj80638My8xLDU=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -11,7 +11,7 @@
 <style>
 /* Layout: one centred practice sheet (練習帳). Teacher's red pen for corrections, indigo ink for the UI. */
 :root {
-  --bg: #eceff3;
+  --bg: #fdfdfd;
   --surface: #ffffff;
   --sunk: #f5f7fa;
   --ink: #1b2130;
@@ -106,9 +106,11 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 #settings::backdrop { background: rgba(17, 20, 26, .5); }
 .settings { display: grid; gap: 18px; }
 .settings .sethead { display: flex; justify-content: space-between; align-items: center; }
+.settings .sethead .ghost { padding: 6px 12px; margin-right: -10px; } /* a ✕ wide enough to tap, in the same place */
 .settings section { display: grid; gap: 8px; }
-.settings p { margin: 0; }
+.settings p { margin: 0; overflow-wrap: anywhere; } /* a long email address wraps instead of widening the pop-up */
 .settings .setrow { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+@media (max-width: 480px) { #themePick button { padding-inline: 10px; } } /* Match device, Light and Dark stay on one line on a small phone */
 .palpick { display: inline-flex; gap: 6px; }
 .palpick button { border: 2px solid transparent; background: none; border-radius: 50%; padding: 3px; display: inline-flex; }
 .palpick button:hover { border-color: var(--line); }
@@ -119,6 +121,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .qtip:hover, .qtip:focus-visible, .qtip.open { color: var(--ink); }
 .qtipbody { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(250px, 60vw); background: var(--ink); color: var(--surface); padding: 6px 9px; border-radius: 6px; font-size: .82rem; line-height: 1.4; z-index: 2; }
 .qtip:hover .qtipbody, .qtip:focus-visible .qtipbody, .qtip.open .qtipbody { display: block; }
+/* On a phone the tip opens above the whole row from its left edge, so the pop-up's right side doesn't cut it off. */
+@media (max-width: 480px) { .delrow { position: relative; } .delrow .qtip { position: static; } .delrow .qtipbody { left: 0; transform: none; } }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
 body:not(.ready) section, body:not(.ready) #banner { display: none !important; }
@@ -128,8 +132,10 @@ body.ready #gate { display: none; }
 
 /* Setup */
 .chapter { display: grid; gap: 8px; }
+#setPicker { display: grid; gap: 12px; } /* space above each unit's dashed line as well as below it */
 .chapter + .chapter { border-top: 1px dashed var(--line); padding-top: 12px; }
 .chrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.chrow .unit { font-size: .9rem; font-weight: 500; color: color-mix(in srgb, var(--ink) 80%, var(--muted)); } /* between the bold title it was and the Filter label (the owner) */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { border: 1px solid var(--line); background: var(--sunk); border-radius: 999px; padding: 6px 14px; font-weight: 500; display: inline-flex; gap: 6px; align-items: baseline; }
 .chip .n { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -139,8 +145,9 @@ body.ready #gate { display: none; }
 .pkinds { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .pchs { display: grid; gap: 6px; }
 .pchs:empty { display: none; }
-/* With 2+ collections, the collection names and "Show" share one label column, as wide as the longest label. */
-.pbar.labeled { grid-template-columns: minmax(var(--labw, 0px), max-content) minmax(0, 1fr); column-gap: 12px; }
+/* With 2+ collections, the collection names and "Show" share one label column, as wide as the longest label
+   (on a narrow phone a long name wraps instead, so the chips keep at least 9rem). */
+.pbar.labeled { grid-template-columns: minmax(min(var(--labw, 0px), 100% - 9rem - 12px), max-content) minmax(9rem, 1fr); column-gap: 12px; }
 .pbar.labeled > * { grid-column: 1 / -1; }
 .pbar.labeled :is(.pchs, .pchrow, .pkinds) { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; column-gap: 12px; }
 .pbar.labeled :is(.pchrow, .pkinds) > .chips { align-self: start; }
@@ -178,12 +185,30 @@ body.ready #gate { display: none; }
 .startrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .startbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 .startbtns .n { color: var(--muted); font-weight: 400; margin-left: 4px; }
+/* On a phone the setup is slimmer so there's less to scroll (the owner): tighter panels, smaller chips and buttons, and a
+   mode's description shows only once it's picked. */
+@media (max-width: 480px) {
+  #setup { gap: 12px; }
+  #setup .panel { padding: 14px; gap: 12px; }
+  .chapter { gap: 6px; }
+  #setPicker { gap: 10px; }
+  .chapter + .chapter { padding-top: 10px; }
+  #setPicker .chip { padding: 4px 12px; font-size: .9rem; }
+  #setPicker .chips { gap: 6px; }
+  #setup .seg button, #dirSeg button { padding-block: 6px; }
+  .modes { gap: 6px; }
+  .mode { padding: 7px 12px; }
+  .mode:not([aria-pressed="true"]) span { display: none; }
+  #setup .sel { padding-block: 6px; }
+}
 /* While writing, the page is just the practice: the title and the settings gear step aside. */
 body.writing > .wrap > header { display: contents; }
 body.writing > .wrap > header > :not(dialog) { display: none; }
 .hist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .hist li { display: flex; justify-content: space-between; gap: 12px; font-size: .9rem; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
 .hist li span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* On a phone the date and score go under the set names when they don't fit beside them. */
+@media (max-width: 480px) { .hist li { flex-wrap: wrap; row-gap: 2px; } }
 .histask { display: grid; gap: 10px; }
 .histask p { margin: 0; font-size: .92rem; }
 
@@ -197,7 +222,7 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .qtext { font-size: clamp(1.6rem, 6vw, 2.3rem); font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 .qtext.jp { font-family: var(--font-jp); font-weight: 600; }
 .qsub { font-family: var(--font-jp); color: var(--muted); font-size: 1rem; min-height: 1.4em; }
-.toclear { color: var(--ai); white-space: nowrap; }
+.toclear { color: var(--ai); display: inline-block; } /* kept whole on its line; wraps only on a phone too narrow for it */
 .qsub.vform { font-family: inherit; color: var(--ai); font-weight: 700; font-size: 1.1rem; }
 .mode:disabled { opacity: .45; cursor: not-allowed; }
 .zlabel { font-size: .72rem; letter-spacing: .1em; color: var(--muted); display: flex; justify-content: space-between; }
@@ -233,7 +258,7 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 /* Results */
 .big { font-size: 2.2rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.stats div { display: grid; gap: 6px; }
+.stats div { display: grid; gap: 6px; align-content: start; } /* labels stay under their numbers when a neighbour's wraps */
 .love { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .love li { display: grid; grid-template-columns: 3rem 1fr; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 8px; background: var(--sunk); }
 .love li:has(.skipw) { grid-template-columns: 3rem 1fr auto; }
@@ -348,6 +373,7 @@ td.c { text-align: center; width: 4.5rem; }
 body { margin: 0; }
 #welcome { border: none; border-radius: 14px; padding: 26px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--muted); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
 #welcome::backdrop { background: rgba(17, 20, 26, .5); }
+@media (max-width: 480px) { #welcome { padding-top: 44px; } } /* on a phone the intro's first line would run under the ✕ */
 .welcome { display: grid; gap: 14px; text-align: center; }
 .dlgx { position: absolute; top: 10px; right: 10px; border: none; background: none; color: var(--muted); padding: 6px; border-radius: 8px; display: inline-flex; }
 .dlgx:hover { color: var(--ink); background: var(--sunk); }
@@ -406,7 +432,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       <h2 id="shareTitle">Help train a better handwriting checker?</h2>
       <p><span id="shareCount"></span>The checker that reads your writing learns best from real handwriting like yours. If you say yes, each answer you write from now on is saved to your account with:</p>
       <ul><li>the strokes you drew: their shape, timing and pen pressure</li><li>the word you were answering, and how the checker and you marked it</li><li>whether you wrote with a pen, a finger or a mouse</li></ul>
-      <p>Only the site's owner uses it, to tune and train the checker. It's never sold or shown to anyone else. You can turn it off or delete what you've shared any time in Settings. Only say yes if you're 16 or older.</p>
+      <p>It's used to build better handwriting recognition, for this site and for products made from it, which may be offered to schools or other companies. If the site becomes or joins a company, your shared handwriting goes with it. You can turn sharing off or delete what you've shared any time in Settings; models already trained on it stay as they are. Only say yes if you're 16 or older.</p>
       <label class="checkrow" id="shareNeverRow" hidden><input type="checkbox" id="shareNever"> Don't ask me again</label>
       <div class="tactions shareact"><button class="btn" type="button" id="shareNo">Not now</button><button class="btn primary" type="button" id="shareYes">Yes, share my handwriting</button></div>
     </div></dialog>
@@ -426,7 +452,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       </section>
       <section id="shareSet" hidden><h3>Help train the checker</h3>
         <p class="muted small" id="shareInfo"></p>
-        <div class="tactions"><button class="btn" type="button" id="shareToggle">Turn on…</button><button class="link" type="button" id="shareDel" hidden>Delete what I've shared</button></div>
+        <div class="tactions"><button class="btn" type="button" id="shareToggle">Turn on…</button><button class="link" type="button" id="shareDl" hidden>Download what I've shared</button><button class="link" type="button" id="shareDel" hidden>Delete what I've shared</button></div>
         <div class="tactions" id="shareDelAsk" hidden><span class="small">Delete every answer you've shared, for good?</span><button class="btn danger" type="button" id="shareDelYes">Delete</button><button class="btn" type="button" id="shareDelNo">Cancel</button></div>
       </section>
       <section id="devSet" hidden><h3>Dev tools</h3>
@@ -447,7 +473,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
   <div class="gate" id="gate" role="status">Loading…</div>
 
   <!-- SETUP -->
-  <section id="setup" class="wrap" style="gap:18px">
+  <section id="setup" class="wrap">
     <div class="panel">
       <div class="head"><h3>Sets</h3>
         <div class="headr"><button class="link" id="toTable">vocab table</button>
@@ -1353,7 +1379,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
         : groups.map((sets, i) => {
         const name = esc(sets[0].unit);
         const usable = sets.filter((s) => readyCount(s.words)), all = usable.length && usable.every((s) => S.selected.has(s.id));
-        return `<div class="chapter"><div class="chrow"><b>${multi ? `${esc(colLabel(colOf(sets[0])))} › ${name}` : name}</b>${usable.length ? `<button class="link" data-all="${i}">${all ? "Clear" : "Select all"}</button>` : ""}</div>
+        return `<div class="chapter"><div class="chrow"><span class="unit">${multi ? `${esc(colLabel(colOf(sets[0])))} › ${name}` : name}</span>${usable.length ? `<button class="link" data-all="${i}">${all ? "Clear" : "Select all"}</button>` : ""}</div>
           <div class="chips">${sets.map((s) => { const n = readyCount(s.words); return `<button class="chip" data-set="${esc(s.id)}" aria-pressed="${!!n && S.selected.has(s.id)}"${n ? "" : ` disabled title="No words yet"`}>${esc(s.name)}<span class="n">${n}</span></button>`; }).join("")}</div></div>`;
       }).join("");
       box.querySelectorAll("[data-set]").forEach((b) => (b.onclick = () => { const id = b.dataset.set; S.selected.has(id) ? S.selected.delete(id) : S.selected.add(id); saveSetup(); renderSetup(); }));
@@ -1430,6 +1456,10 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       if (S.dir !== "je") items.push({ key: w.id + ":ej", dir: "ej", w });
       if (S.dir !== "ej") items.push({ key: w.id + ":je", dir: "je", w });
     }
+    // Word ids are only sure to be unique within a set (a hand-made file may number each set's words 1, 2, …): a question
+    // whose key is already taken gets its own, so tries and progress stay per question.
+    const keys = new Set();
+    for (const it of items) { let k = it.key, n = 2; while (keys.has(k)) k = `${it.key}#${n++}`; keys.add(k); it.key = k; }
     Object.assign(Q, { items, queue: order(items), wrong: [], round: 1, tries: {}, done: new Set(), total: items.length,
       meta: { dir: S.dir, mode: S.mode, sets: [...new Set(words.map((w) => w.set))] } });
     show("quiz");
@@ -1449,10 +1479,12 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
   function saveResume() {
     clearTimeout(inkTimer);
     if (!Q.meta) return;
-    const pending = [...(Q.cur && !Q.answered ? [Q.cur] : []), ...Q.queue];
+    // The question on screen stays to do until it's marked right or wrong (the self-marking panel may still be waiting).
+    const open = Q.cur && !Q.done.has(Q.cur.key) && !Q.wrong.includes(Q.cur);
+    const pending = [...(open ? [Q.cur] : []), ...Q.queue];
     const r = { items: Q.items, pending: pending.map((it) => it.key), wrong: Q.wrong.map((it) => it.key), done: [...Q.done], tries: Q.tries, round: Q.round, meta: Q.meta, upto: quizUpto, savedAt: new Date().toISOString() };
     // What's written for the question still open comes back too.
-    if (Q.cur && !Q.answered && (!main.empty || !furi.empty)) r.ink = { key: Q.cur.key, main: inkOf(main), furi: inkOf(furi) };
+    if (open && (!main.empty || !furi.empty)) r.ink = { key: Q.cur.key, main: inkOf(main), furi: inkOf(furi) };
     // A very long practice (thousands of questions) isn't kept, so saving stays quick.
     store.set("resume", JSON.stringify(r).length < 400000 ? r : null);
   }
@@ -1509,7 +1541,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
     }
     Q.cur = Q.queue.shift(); Q.answered = false; Q.busy = false;
     const { w, dir } = Q.cur;
-    $("#feedback").hidden = true; $("#tools").hidden = false; $("#checkErr").hidden = true; $("#maru").hidden = true;
+    $("#feedback").hidden = true; $("#tools").hidden = false; $("#checkErr").hidden = true; $("#maru").setAttribute("hidden", "");
     $("#selfCheck").hidden = true;
     main.c.classList.remove("locked"); furi.c.classList.remove("locked");
     furi.clear(); main.clear(); scratch.clear(); history.length = 0; setErasing(false);
@@ -1590,20 +1622,24 @@ CORRECT: <YES or NO, matching your REASON>`;
     invalid_json: "Claude's answer came back in the wrong format. Press Check again.",
     tpl_load: "Couldn't load the handwriting checker. Check your connection and press Check again.",
   };
+  // A check still running when the student quits (or a practice started or resumed meanwhile) belongs to a question that's
+  // no longer on screen: its answer stays unchecked, kept for Resume with what was written.
+  const gone = (cur) => Q.cur !== cur || $("#quiz").hidden;
   // The built-in checker reads English → 日本語 answers, and 日本語 → English answers written the way the meaning is
   // worded. Other English (a synonym, say) and words it has no strokes for are marked by the student (selfMark).
   async function check() {
     if (main.empty || Q.busy) return;
-    const { w, dir } = Q.cur;
+    const cur = Q.cur, { w, dir } = cur;
     Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true;
     $("#overrideBtn").textContent = "The checker misread my writing, count it as correct";
     let self = false;
     try {
       const res = dir === "je" ? await englishCheck(w) : await builtinCheck(w, dir === "ej" && !furi.empty);
+      if (gone(cur)) return;
       shareAnswer(!res ? "unread" : res.ok ? "right" : dir === "ej" ? "wrong" : "unmatched", res?.r);
       if (res && (res.ok || dir === "ej")) grade(res.ok, res.r); else self = res ? "unmatched" : "unread";
     } catch (e) {
-      showErr(ERR[e?.code] || "Something went wrong with the check. Press Check to try again.");
+      if (!gone(cur)) showErr(ERR[e?.code] || "Something went wrong with the check. Press Check to try again.");
     } finally {
       Q.busy = false; $("#checking").hidden = $("#checkingFuri").hidden = true; syncCheck();
     }
@@ -1790,7 +1826,8 @@ CORRECT: <YES or NO, matching your REASON>`;
     main.c.classList.add("locked"); furi.c.classList.add("locked");
     // Force kanji hides the reading of 日本語 → English questions until the answer is checked.
     if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
-    if (ok) { Q.done.add(key); saveResume(); hanamaru().then(nextItem); return; }
+    // The next word comes after the 花丸, unless another practice was started or resumed meanwhile (Quit, then Start or Resume).
+    if (ok) { const cur = Q.cur; Q.done.add(key); saveResume(); hanamaru().then(() => Q.cur === cur && nextItem()); return; }
     Q.wrong.push(Q.cur); saveResume();
     $("#tools").hidden = true;
     $("#fbReason").textContent = r?.reason || "";
@@ -1823,7 +1860,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   })();
   function hanamaru() {
     const svg = $("#maru"), p = $("#maruPath");
-    svg.hidden = false;
+    svg.removeAttribute("hidden"); // an <svg> has no .hidden property, so the attribute itself goes
     const len = p.getTotalLength(), reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
     p.style.strokeDasharray = len; p.style.strokeDashoffset = reduce ? 0 : len;
     if (!reduce) p.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 750, easing: "ease-out", fill: "forwards" });
@@ -1871,7 +1908,8 @@ CORRECT: <YES or NO, matching your REASON>`;
   }
   $("#loveList").addEventListener("click", (e) => { const b = e.target.closest(".skipw"); if (b) { const k = b.closest("li").dataset.key; setSkip([k], !Q.skip.has(k)); } });
   $("#skipAll").onclick = () => { const ks = [...document.querySelectorAll("#loveList li")].map((li) => li.dataset.key); setSkip(ks, !ks.every((k) => Q.skip.has(k))); };
-  $("#againBtn").onclick = () => { const seen = new Set(); startTest(Q.love.filter((w) => !seen.has(w.id) && seen.add(w.id)), quizUpto); };
+  // Each word once (Both asks it twice); words of different sets can share an id.
+  $("#againBtn").onclick = () => { const seen = new Set(), k = (w) => w.set + "\u0001" + w.id; startTest(Q.love.filter((w) => !seen.has(k(w)) && seen.add(k(w))), quizUpto); };
   $("#newBtn").onclick = () => { show("setup"); renderSetup(); };
 
   // Saves the finished session; called again with its id when the skip choices change afterwards.
@@ -1939,16 +1977,20 @@ CORRECT: <YES or NO, matching your REASON>`;
   function syncPrefs() {
     const ref = db.doc(`data/users/${uid}/prefs`);
     let first = true, timer = null, stopped = false;
+    // Firestore refuses a whole document with an empty field name, and sets with no collection are under "" in bookShow and tShow:
+    // that one row's choice stays in this browser.
+    const named = (v) => (v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).filter(([k]) => k)) : v);
     const save = () => {
       clearTimeout(timer); timer = null;
       if (stopped) return;
-      const p = Object.fromEntries(PREF_KEYS.map((k) => [k, store.get(k, null)]).filter(([, v]) => v != null));
+      const p = Object.fromEntries(PREF_KEYS.map((k) => [k, named(store.get(k, null))]).filter(([, v]) => v != null));
       Promise.resolve().then(() => ref.set({ ...p, updatedAt: new Date().toISOString() })).catch(() => {});
     };
     const off = ref.onSnapshot((snap) => {
       if (!first) return;
       first = false; setTimeout(() => typeof off === "function" && off(), 0);
-      if (snap.exists) usePrefs(snap.data() || {}); else save();
+      // A yes to sharing handwriting left in this browser is another account's, so a first sign-in doesn't take it along.
+      if (snap.exists) usePrefs(snap.data() || {}); else { store.set("share", null); save(); }
       prefsChanged = () => { clearTimeout(timer); timer = setTimeout(save, 800); };
       const flush = () => { if (timer) save(); };
       addEventListener("pagehide", flush);
@@ -1958,7 +2000,8 @@ CORRECT: <YES or NO, matching your REASON>`;
   }
   function usePrefs(p) {
     // A practice to resume is the account's, or none: one left in this browser may be from another account or already finished elsewhere.
-    for (const k of PREF_KEYS) if (p[k] != null || k === "resume") store.set(k, p[k] ?? null);
+    // So is the answer to sharing handwriting: only the account's own yes counts.
+    for (const k of PREF_KEYS) if (p[k] != null || k === "resume" || k === "share") store.set(k, p[k] ?? null);
     S.selected = new Set(store.get("selected", []));
     Object.assign(S.pick, { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", [])) });
     Object.assign(S.tpick, { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) });
@@ -1997,7 +2040,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     ask.innerHTML = S.histBlocked
       ? `<p class="muted">${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so practice history is off." : "Your access to this page doesn't allow saving practice history."} You can still practice as much as you like.</p>`
       : on === null
-      ? `<p>Turn on data collection? Each finished practice session would be saved so you can see fun stats about your practice, like graphs, streaks and the words that need more work. ${S.local
+      ? `<p>Turn on data collection? Each finished practice session would be saved so you can see fun stats about your practice, like graphs, streaks and the words that need more work. ${S.local || uid === "local"
           ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it here at any time."
           : "Only you and the site maintainers can see this data, and you can delete it from the server at any time."}</p>${earlier}
          <div class="tactions"><button class="btn primary" data-hist="on">Turn on data collection</button><button class="btn" data-hist="off">No thanks</button></div>`
@@ -2128,7 +2171,10 @@ CORRECT: <YES or NO, matching your REASON>`;
   $("#hPractise").onclick = () => {
     const ids = new Set(S.toughIds), words = [];
     for (const s of S.sets) for (const w of s.words) if (ids.has(w.id) && (w.en || "").trim() && (w.kana || w.kanji)) words.push({ ...w, set: setName(s) });
-    if (words.length) startTest(words);
+    if (!words.length) return;
+    // These are whole words (verb forms never come back here), so Verb forms, which would have nothing to ask, gives way to Default.
+    if (S.mode === "verb") { S.mode = "default"; saveSetup(); }
+    startTest(words);
   };
 
   function renderTests() {
@@ -2748,8 +2794,9 @@ CORRECT: <YES or NO, matching your REASON>`;
     $("#welcomeErr").textContent = err || ""; $("#welcomeErr").hidden = !err;
     if (!$("#welcome").open) $("#welcome").showModal();
   }
-  // Closing the pop-up (its X) is the same as continuing as a guest.
+  // Closing the pop-up (its X, or Escape) is the same as continuing as a guest.
   $("#guestBtn").onclick = $("#welcomeClose").onclick = () => { try { localStorage.setItem("qcard:mode", "local"); } catch {} welcomed(); $("#welcome").close(); };
+  $("#welcome").addEventListener("cancel", () => $("#welcomeClose").click());
   // Google's sign-in window; the page then reloads into the account (see boot). onErr says why it didn't work.
   async function signIn(btn, onErr) {
     btn.disabled = true;
@@ -2794,12 +2841,11 @@ CORRECT: <YES or NO, matching your REASON>`;
         for (const c of ["sets", "kanji", "training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
         for (const p of [...paths, "meta/books", "meta/courses", "meta/samples"]) await db.doc(p).delete();
         try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
+        // Every choice this site kept in this browser goes too (colours, picks, a practice to resume with its writing): signed in,
+        // they're the account's copy. A guest's own sets and history (qcard:local:…) stay unless it's the guest being deleted.
+        try { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:") || (!account && k.startsWith("qcard:"))) localStorage.removeItem(k); } catch {}
         if (account) await platform.deleteAccount(); // which signs out, and the page starts over (see boot)
-        else {
-          // A guest starts over as a new visitor: every choice this site kept in this browser goes too (colours, picks, a practice to resume).
-          try { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:") || k.startsWith("qcard:")) localStorage.removeItem(k); } catch {}
-          location.reload();
-        }
+        else location.reload(); // a guest starts over as a new visitor
       } catch (err) {
         e.target.disabled = false; e.target.textContent = "Delete everything";
         $("#delErr").hidden = false;
@@ -2896,8 +2942,12 @@ CORRECT: <YES or NO, matching your REASON>`;
     // A step that's already done when it starts (a set was picked before) just explains; it doesn't race on.
     tour.doneAtStart = !!TOUR[i].done?.();
     renderTourCard();
-    const el = tourEls(TOUR[i])[0];
-    if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
+    const els = tourEls(TOUR[i]);
+    if (!els.length) return;
+    // Centred, unless that leaves no room above or below it for the card (a short phone screen): then near the top, card under it.
+    const rs = els.map((e) => e.getBoundingClientRect()), top = Math.min(...rs.map((r) => r.top)), h = Math.max(...rs.map((r) => r.bottom)) - top;
+    if ((innerHeight - h) / 2 >= tour.card.offsetHeight + 26) els[0].scrollIntoView({ block: "center", behavior: "smooth" });
+    else scrollBy({ top: top - 16, behavior: "smooth" });
   }
   const stepIndex = (id) => TOUR.findIndex((s) => s.id === id);
   // The steps Back can return to: earlier ones on the same page that don't wait for anything.
@@ -2967,17 +3017,24 @@ CORRECT: <YES or NO, matching your REASON>`;
   document.addEventListener("keydown", (e) => { if (tour.on && e.key === "Escape" && !document.querySelector("dialog[open]")) endTour(); });
   $("#tourBtn").onclick = () => { $("#guestBtn").click(); startTour(); };
   // ---------- public site: sharing handwriting to train the checker ----------
+  // For dev accounts only for now (the owner, 2026-10-22: no "give us your data" while the site is a demo with few users; the
+  // tool comes first). Everyone else gets no question and no Settings section, and an earlier yes saves nothing. To offer
+  // it to everyone again, set SHARE_FOR_ALL to true.
   // Opt-in (the owner): after every 10th finished practice, a signed-in person who hasn't said yes is asked whether their
   // handwriting may be kept to tune and train the checker. The first time there's no "Don't ask me again"; from the
   // second time there is. With sharing on, each checked answer is saved to users/<uid>/training/<id>: its strokes
   // (points, timing, pressure, pointer kind), the word and direction, the checker's verdict and the student's own call.
-  // Only the account itself (and the site's owner, through Firebase) can read it. Settings turns sharing off and deletes
-  // what was shared; deleting the account deletes it too. The choice and counts live in the synced choices:
+  // Only the account itself (and the site's owner, through Firebase) can read it. The pop-up says it may go into products
+  // offered to others and goes with the site if it becomes or joins a company (the owner's plans, 2026-10-21). Settings turns
+  // sharing off and deletes what was shared (models already trained on it stay); deleting the account deletes it too. The choice and counts live in the synced choices:
   // share = { on, at, asked, never, n }, practices = finished practices.
-  const SHARE_EVERY = 10;
+  const SHARE_EVERY = 10, SHARE_FOR_ALL = false;
+  // Dev tools and (for now) sharing: only for developers (dev/<uid> in Firestore, see firestore.rules).
+  let isDev = false;
+  const offered = () => !!account && (SHARE_FOR_ALL || isDev);
   const shareState = () => store.get("share", null) || {};
   const setShare = (o) => store.set("share", { ...shareState(), ...o });
-  const sharing = () => !!account && shareState().on === true;
+  const sharing = () => offered() && shareState().on === true;
   let shareId = null; // the saved record of the answer on screen, which the student's own marking updates
 
   // A box's strokes as Firestore can store them (flat lists only): xy = x, y, x, y…; t = ms from the stroke's start;
@@ -3004,11 +3061,11 @@ CORRECT: <YES or NO, matching your REASON>`;
   $("#selfMiss").addEventListener("click", () => shareMark("missed"));
   $("#overrideBtn").addEventListener("click", () => shareMark("misread"));
 
-  // After each finished practice: count it, and on every 10th ask (signed in, not sharing, not "don't ask again").
+  // After each finished practice: count it, and on every 10th ask (offered, not sharing, not "don't ask again").
   function afterPractice() {
     const done = (+store.get("practices", 0) || 0) + 1, s = shareState();
     store.set("practices", done);
-    if (account && !s.on && !s.never && done % SHARE_EVERY === 0) { askShare(done); setShare({ asked: (s.asked || 0) + 1 }); }
+    if (offered() && !s.on && !s.never && done % SHARE_EVERY === 0) { askShare(done); setShare({ asked: (s.asked || 0) + 1 }); }
   }
   // done = practices finished (0 when opened from Settings); again = offer "Don't ask me again", which it does from the
   // second time it's asked after a practice.
@@ -3021,27 +3078,41 @@ CORRECT: <YES or NO, matching your REASON>`;
   $("#shareYes").onclick = () => { setShare({ on: true, at: new Date().toISOString(), never: false }); $("#shareAsk").close(); renderShare(); };
   $("#shareNo").onclick = () => { if (!$("#shareNeverRow").hidden && $("#shareNever").checked) setShare({ never: true }); $("#shareAsk").close(); };
 
-  // Settings → Help train the checker (signed in only).
+  // Settings → Help train the checker (wherever it's offered).
   let shareDelAsk = false;
   $("#settings").addEventListener("close", () => { shareDelAsk = false; });
   function renderShare() {
     $("#devSet").hidden = !isDev;
-    $("#shareSet").hidden = !account;
-    if (!account) return;
+    $("#shareSet").hidden = !offered();
+    if (!offered()) return;
     const s = shareState(), n = s.n || 0, when = s.at && !isNaN(new Date(s.at)) ? new Date(s.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
     $("#shareInfo").textContent = s.on
-      ? `On${when ? " since " + when : ""}. ${n} ${n === 1 ? "answer" : "answers"} shared: the strokes, the word and how it was marked, kept to tune and train the checker.`
+      ? `On${when ? " since " + when : ""}. ${n} ${n === 1 ? "answer" : "answers"} shared: the strokes, the word and how it was marked, kept to build better handwriting recognition.`
       : `Off. Turn it on to let your handwriting help train the checker.${n ? ` ${n} ${n === 1 ? "answer is" : "answers are"} still kept from before.` : ""}`;
     $("#shareToggle").textContent = s.on ? "Turn off" : "Turn on…";
+    $("#shareDl").hidden = !n || shareDelAsk;
     $("#shareDel").hidden = !n || shareDelAsk;
     $("#shareDelAsk").hidden = !shareDelAsk;
   }
   $("#shareToggle").onclick = () => { if (shareState().on) { setShare({ on: false }); renderShare(); } else askShare(0); };
-  // Dev tools: only for developers (dev/<uid> in Firestore, see firestore.rules), to see the question as people get it.
-  let isDev = false;
-  const checkDev = async () => { isDev = !!account && (await platform.isDev(account.uid)); renderShare(); };
+  // Dev tools: to see the question as people get it.
+  const checkDev = async () => {
+    const uid = account?.uid; isDev = false; renderShare(); // nothing carried over from the last account while it asks
+    isDev = !!uid && (await platform.isDev(uid)) && account?.uid === uid; renderShare();
+  };
   $("#devAsk1").onclick = () => askShare(SHARE_EVERY, false);
   $("#devAsk2").onclick = () => askShare(2 * SHARE_EVERY, true);
+  // Everything shared, as one JSON file, oldest answer first: each with its strokes and their timing, so writing can be
+  // replayed at its real speed (for the promo video).
+  $("#shareDl").onclick = async (e) => {
+    e.target.disabled = true;
+    try {
+      const answers = (await db.collection("training").get()).docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+      await downloads.save({ filename: `japanese-vocab-handwriting-${new Date().toLocaleDateString("en-CA")}.json`,
+        data: JSON.stringify({ app: APP, kind: "handwriting", version: 1, exportedAt: new Date().toISOString(), answers }) });
+    } catch (err) { if (err?.code !== "declined") banner("Your shared answers couldn't be downloaded. Try again."); }
+    e.target.disabled = false;
+  };
   $("#shareDel").onclick = () => { shareDelAsk = true; renderShare(); };
   $("#shareDelNo").onclick = () => { shareDelAsk = false; renderShare(); };
   $("#shareDelYes").onclick = async (e) => {

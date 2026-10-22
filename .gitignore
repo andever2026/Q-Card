@@ -1,2 +1,5 @@
 node_modules/
 build/
+# Logs the Firebase emulators write while test/emulator runs
+firebase-debug.log
+firestore-debug.log
