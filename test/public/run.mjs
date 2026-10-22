@@ -569,6 +569,10 @@ ok(rec?.main?.s?.length === 2 && st.xy.every((n) => typeof n === "number") && st
 await sp.click("#settingsBtn"); await sp.waitForTimeout(200);
 ok(await vis(sp, "#shareSet") && /^On since .*1 answer shared/.test(await text(sp, "#shareInfo")), "share: Settings shows it's on and how many answers were shared", await text(sp, "#shareInfo"));
 await sp.locator("#shareSet").screenshot({ path: join(out, "14-share-settings.png") });
+const [hdl] = await Promise.all([sp.waitForEvent("download"), sp.click("#shareDl")]);
+const hfile = JSON.parse(readFileSync(await hdl.path(), "utf8")), ha = hfile.answers?.[0];
+ok(/^japanese-vocab-handwriting-.*\.json$/.test(hdl.suggestedFilename()) && hfile.answers.length === 1 && ha.word.kanji === "水" && ha.main.s[0].t.length > 1 && typeof ha.main.s[1].at === "number",
+  "share: Download what I've shared saves every shared answer with its strokes and their timing", hdl.suggestedFilename());
 await sp.click("#shareDel"); await sp.click("#shareDelYes"); await sp.waitForTimeout(300);
 ok(!(await training()).length && /0 answers shared/.test(await text(sp, "#shareInfo")) && !(await vis(sp, "#shareDel")), "share: Delete what I've shared removes every saved answer", await text(sp, "#shareInfo"));
 await sp.click("#shareToggle"); await sp.waitForTimeout(200);
