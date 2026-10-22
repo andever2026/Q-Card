@@ -124,6 +124,7 @@ body.ready #gate { display: none; }
 #setPicker { display: grid; gap: 12px; } /* space above each unit's dashed line as well as below it */
 .chapter + .chapter { border-top: 1px dashed var(--line); padding-top: 12px; }
 .chrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.chrow .unit { font-size: .9rem; font-weight: 500; color: color-mix(in srgb, var(--ink) 80%, var(--muted)); } /* between the bold title it was and the Filter label (Annie) */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { border: 1px solid var(--line); background: var(--sunk); border-radius: 999px; padding: 6px 14px; font-weight: 500; display: inline-flex; gap: 6px; align-items: baseline; }
 .chip .n { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
