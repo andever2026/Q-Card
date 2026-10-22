@@ -86,8 +86,12 @@
     // A step that's already done when it starts (a set was picked before) just explains; it doesn't race on.
     tour.doneAtStart = !!TOUR[i].done?.();
     renderTourCard();
-    const el = tourEls(TOUR[i])[0];
-    if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
+    const els = tourEls(TOUR[i]);
+    if (!els.length) return;
+    // Centred, unless that leaves no room above or below it for the card (a short phone screen): then near the top, card under it.
+    const rs = els.map((e) => e.getBoundingClientRect()), top = Math.min(...rs.map((r) => r.top)), h = Math.max(...rs.map((r) => r.bottom)) - top;
+    if ((innerHeight - h) / 2 >= tour.card.offsetHeight + 26) els[0].scrollIntoView({ block: "center", behavior: "smooth" });
+    else scrollBy({ top: top - 16, behavior: "smooth" });
   }
   const stepIndex = (id) => TOUR.findIndex((s) => s.id === id);
   // The steps Back can return to: earlier ones on the same page that don't wait for anything.

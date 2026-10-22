@@ -49,7 +49,7 @@
       <h2 id="shareTitle">Help train a better handwriting checker?</h2>
       <p><span id="shareCount"></span>The checker that reads your writing learns best from real handwriting like yours. If you say yes, each answer you write from now on is saved to your account with:</p>
       <ul><li>the strokes you drew: their shape, timing and pen pressure</li><li>the word you were answering, and how the checker and you marked it</li><li>whether you wrote with a pen, a finger or a mouse</li></ul>
-      <p>Only the site's owner uses it, to tune and train the checker. It's never sold or shown to anyone else. You can turn it off or delete what you've shared any time in Settings. Only say yes if you're 16 or older.</p>
+      <p>It's used to build better handwriting recognition, for this site and for products made from it, which may be offered to schools or other companies. If the site becomes or joins a company, your shared handwriting goes with it. You can turn sharing off or delete what you've shared any time in Settings; models already trained on it stay as they are. Only say yes if you're 16 or older.</p>
       <label class="checkrow" id="shareNeverRow" hidden><input type="checkbox" id="shareNever"> Don't ask me again</label>
       <div class="tactions shareact"><button class="btn" type="button" id="shareNo">Not now</button><button class="btn primary" type="button" id="shareYes">Yes, share my handwriting</button></div>
     </div></dialog>
@@ -71,7 +71,7 @@
       </section>
       <section id="shareSet" hidden><h3>Help train the checker</h3>
         <p class="muted small" id="shareInfo"></p>
-        <div class="tactions"><button class="btn" type="button" id="shareToggle">Turn on…</button><button class="link" type="button" id="shareDel" hidden>Delete what I've shared</button></div>
+        <div class="tactions"><button class="btn" type="button" id="shareToggle">Turn on…</button><button class="link" type="button" id="shareDl" hidden>Download what I've shared</button><button class="link" type="button" id="shareDel" hidden>Delete what I've shared</button></div>
         <div class="tactions" id="shareDelAsk" hidden><span class="small">Delete every answer you've shared, for good?</span><button class="btn danger" type="button" id="shareDelYes">Delete</button><button class="btn" type="button" id="shareDelNo">Cancel</button></div>
       </section>
       <section id="devSet" hidden><h3>Dev tools</h3>
@@ -95,7 +95,7 @@
   <div class="gate" id="gate" role="status">Loading…</div>
 
   <!-- SETUP -->
-  <section id="setup" class="wrap" style="gap:18px">
+  <section id="setup" class="wrap">
     <div class="panel">
       <div class="head"><h3>Sets</h3>
         <div class="headr"><button class="link" id="toTable">vocab table</button>

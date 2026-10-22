@@ -8,7 +8,8 @@
     main.c.classList.add("locked"); furi.c.classList.add("locked");
     // Force kanji hides the reading of 日本語 → English questions until the answer is checked.
     if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
-    if (ok) { Q.done.add(key); saveResume(); hanamaru().then(nextItem); return; }
+    // The next word comes after the 花丸, unless another practice was started or resumed meanwhile (Quit, then Start or Resume).
+    if (ok) { const cur = Q.cur; Q.done.add(key); saveResume(); hanamaru().then(() => Q.cur === cur && nextItem()); return; }
     Q.wrong.push(Q.cur); saveResume();
     $("#tools").hidden = true;
     $("#fbReason").textContent = r?.reason || "";
@@ -45,7 +46,7 @@
   })();
   function hanamaru() {
     const svg = $("#maru"), p = $("#maruPath");
-    svg.hidden = false;
+    svg.removeAttribute("hidden"); // an <svg> has no .hidden property, so the attribute itself goes
     const len = p.getTotalLength(), reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
     p.style.strokeDasharray = len; p.style.strokeDashoffset = reduce ? 0 : len;
     if (!reduce) p.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 750, easing: "ease-out", fill: "forwards" });

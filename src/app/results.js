@@ -41,7 +41,8 @@
   }
   $("#loveList").addEventListener("click", (e) => { const b = e.target.closest(".skipw"); if (b) { const k = b.closest("li").dataset.key; setSkip([k], !Q.skip.has(k)); } });
   $("#skipAll").onclick = () => { const ks = [...document.querySelectorAll("#loveList li")].map((li) => li.dataset.key); setSkip(ks, !ks.every((k) => Q.skip.has(k))); };
-  $("#againBtn").onclick = () => { const seen = new Set(); startTest(Q.love.filter((w) => !seen.has(w.id) && seen.add(w.id)), quizUpto); };
+  // Each word once (Both asks it twice); words of different sets can share an id.
+  $("#againBtn").onclick = () => { const seen = new Set(), k = (w) => w.set + "\u0001" + w.id; startTest(Q.love.filter((w) => !seen.has(k(w)) && seen.add(k(w))), quizUpto); };
   $("#newBtn").onclick = () => { show("setup"); renderSetup(); };
 
   // Saves the finished session; called again with its id when the skip choices change afterwards.

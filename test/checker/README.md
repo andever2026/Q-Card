@@ -95,12 +95,17 @@ testing only and not shipped:
    below a ceiling and no competitor beats it by more than a margin: 0.012 for a character of the same kind, 0.008
    for a variant, 0.03 for the same kana in the other script, 0.05 for a kanji against kana or the reverse. For
    competitors whose template is itself close to the expected one, the margin shrinks to 0.45 of the distance
-   between the two templates, so 未/末 or 土/士 are decided between the two shapes. A group fails if much of its ink
-   matches no stroke, or if it is far wider than the character (an extra character merged in).
+   between the two templates, so 未/末 or 土/士 are decided between the two shapes. Templates that close with the
+   same stroke count and strokes of the same shapes (only lengths and places differ: 未/末, 士/土, 午/牛, 失/矢,
+   天/夫) are also compared by the stroke ends in which they differ: when the other template is at least as close
+   and the writing's ends sit more than 0.6 of the way towards it, the position fails. A group fails if much of its
+   ink matches no stroke, or if it is far wider than the character (an extra character merged in).
 5. **Small kana.** っ/つ, ゃ/や etc. share a shape, so size decides: each other character gives an implied em size
-   for the line (median), and the position's size and vertical offset relative to its neighbours give evidence for
-   small (written at about 0.65 of full size, on the bottom line). Thresholds loosen when there are fewer than three
-   reference characters; a one-character answer is not size-checked.
+   for the line (mean of the logs with a quarter cut off at each end), and the position's size (width and height
+   ratios averaged) and vertical offset relative to its neighbours give evidence for small (written at about 0.65 of
+   full size, on the bottom line). A full-size kana written for a small one fails on fairly weak evidence; a small
+   one written for a full-size one needs stronger evidence, more so with fewer than three reference characters. A
+   one-character answer is not size-checked.
 
 ## Measured
 
@@ -112,43 +117,45 @@ strokes, cursive joins and late dakuten. "real" words are composed only from han
 
 | category | synth n | synth | real n | real | target |
 | --- | ---: | ---: | ---: | ---: | --- |
-| correct writing accepted | 400 | 97.8% | 324 | 95.4% | accept |
-| other kana script accepted with anyKana | 397 | 97.2% | 33 | 100% | accept |
-| cross-script look-alike swapped in (力 for カ ...) accepted | 89 | 92.1% | 1 | 100% | accept |
-| furigana strip (78 px, small writing) accepted | 266 | 96.6% | | | accept |
-| wrong: dakuten/handakuten added, removed or swapped | 270 | 98.9% | 202 | 98.5% | reject |
-| wrong: small/large kana swapped | 80 | 83.8% | 58 | 86.2% | reject |
-| wrong: confusable swapped (シツ ソン ねれわ ぬめ ...) | 175 | 100% | 151 | 80.1% * | reject |
-| wrong: ー or っ left out | 55 | 98.2% | 12 | 100% | reject |
-| wrong: one extra character | 400 | 98.3% | 323 | 98.8% | reject |
-| wrong: another kanji of similar stroke count | 148 | 100% | 134 | 100% | reject |
-| wrong: kana written when only the kanji form is accepted | 288 | 100% | 279 | 99.6% | reject |
-| wrong: whole word in the other script, no anyKana | 397 | 99.7% | 33 | 100% | reject |
-| furigana strip, wrong answer | 172 | 99.4% | | | reject |
-| **all near misses** | 1985 | **98.7%** | | | ≥ 90% |
+| correct writing accepted | 400 | 99.3% | 339 | 90.3% | accept |
+| other kana script accepted with anyKana | 394 | 96.4% | 30 | 93.3% | accept |
+| cross-script look-alike swapped in (力 for カ ...) accepted | 73 | 93.2% | 1 | 100% | accept |
+| furigana strip (78 px, small writing) accepted | 230 | 98.3% | | | accept |
+| wrong: dakuten/handakuten added, removed or swapped | 295 | 98.0% | 240 | 98.8% | reject |
+| wrong: small/large kana swapped | 108 | 97.2% | 87 | 98.9% | reject |
+| wrong: confusable swapped (シツ ソン ねれわ ぬめ ...) | 242 | 99.2% | 206 | 84.0% * | reject |
+| wrong: ー or っ left out | 47 | 93.6% | 16 | 100% | reject |
+| wrong: one extra character | 400 | 99.5% | 337 | 99.7% | reject |
+| wrong: another kanji of similar stroke count | 133 | 99.2% | 121 | 99.2% | reject |
+| wrong: kana written when only the kanji form is accepted | 274 | 100% | 268 | 99.3% | reject |
+| wrong: whole word in the other script, no anyKana | 394 | 99.7% | 30 | 100% | reject |
+| furigana strip, wrong answer | 150 | 99.3% | | | reject |
+| **all near misses** | 2043 | **99.1%** | | | ≥ 90% |
 
-\* Nearly all of the 30 real misses are one Tomoe ら drawing, accepted as う (う is common, so that swap recurs).
+\* Most of the 33 real misses are one Tomoe ら drawing, accepted as う (う is common, so that swap recurs).
 Per distinct drawing, the pair test below rejects 70 of 71.
 
 Single characters, written as A and checked against A and against its confusable partner B (47 pairs plus 28
 dakuten pairs, both directions; 12 synthetic writings each and every hand-drawn one): synthetic accepted 99.1%,
-rejected as B 97.7%; hand-drawn (71) accepted 100%, rejected as B 98.6%. The weakest synthetic pairs are 午/牛
-(67-75% rejected), 未/末, 士/土 (83%).
+rejected as B 98.6%; hand-drawn (71) accepted 100%, rejected as B 98.6%. The weakest synthetic pairs are 午/牛
+(83-92% rejected), 未/末 and 土/士 (92%).
 
 Every hand-drawn character on its own: KanjiCanvas kanji 99.3% of 2,137 (several misses are mislabelled
 patterns, e.g. the 析 pattern is 林), Tomoe kanji 98.7% of 2,346, Tomoe kana 96.3% of 54.
 
-Speed (Node 22, this container, shared CPU): init 103 ms; verify median 16 ms, p95 86 ms, 6-character words
-median 26 ms (max 480 ms), 12+ characters median 97 ms. The slowest calls are wrong answers with 15-21-stroke
+Speed (Node 22, this container, shared CPU, two evaluations running at once): init 150 ms; verify median 22 ms,
+p95 106 ms, 6-character words median 26 ms (max 470 ms), 12+ characters median 94 ms. The slowest calls are wrong answers with 15-21-stroke
 kanji checked against two candidates (お邪魔します, 天麩羅): 250-480 ms. Phones will be slower by 2-4x.
 
 ## Known weak spots
 
 - **Small/large kana** (っ/つ, ゃ/や): only size and height relative to the rest of the line tell them apart, so
-  about 15% of swaps pass. One-character answers are never size-checked. Writing kana much smaller than kanji in
-  the same word loosens the check further.
+  1-5% of swaps pass, more in short words (a small kana written for a full-size one next to only one or two other
+  characters is judged loosely). One-character answers are never size-checked. Writing kana much smaller than kanji
+  in the same word loosens the check further.
 - **Shapes that differ only in stroke length** (未/末, 士/土, 午/牛) depend on the writer making the difference
-  clear; 17-33% of synthetic swaps pass.
+  clear; 8-17% of synthetic swaps pass. The stroke-end comparison can also turn down a sloppy correct writing that
+  is nearer the look-alike (one Tomoe 推, read as 堆).
 - **Crude kana**: the Tomoe drawings are reduced to corner points, and angular や/ゃ, き, と sometimes lose to
   ヤ/ャ, キ, て; most real-composite misses are of this kind. Writing ら like a う (as one Tomoe drawing does)
   passes as う.

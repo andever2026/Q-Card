@@ -31,6 +31,10 @@
   const KNEIGH = 12;        // competitors taken from the expected template's own coarse neighbours
   const KFINE = 6;          // closest competitors re-scored with the finer distance
   let KAPPA = 0.45;         // decision point between two close templates (0.5 = halfway)
+  const TCLOSE = 0.09;      // templates closer than this (未/末, 士/土, 午/牛) are also told apart by their stroke ends...
+  let XSHIFT = 0.6;         // ...the writing fails when its ends sit past this point towards the other one
+  const XEND = 0.05;        // ... (only the stroke ends at least this far apart in the two templates count)
+  const XSHAPE = 0.05;      // ... (and only when every stroke has a partner of the same shape: mean distance at unit length)
   let LMARGIN = 0.03, LMARGIN_X = 0.1, LKAPPA = 5, LCEIL = 0.25; // English: as MARGIN, MARGIN_X (letter vs digit), KAPPA (5: off), CEIL
   const LMAXLEN = 32;       // English: longer answers (letters and digits) aren't checked
   let LOOPPEN = 0.04;       // English: a closed loop matched to an open stroke, or the reverse
@@ -626,6 +630,45 @@
     }
     return d;
   }
+  // The stroke ends in which close templates e and c differ (strokes paired by matching c to e): each end of e at
+  // least XEND from its partner in c, with the step from e to c. Empty unless every stroke of e pairs with one of c
+  // of the same shape (only the lengths and places differ, as in 未/末, not 材/村). Cached.
+  const XD = new Map();
+  function endDiff(e, c) {
+    const key = e + c;
+    let D = XD.get(key);
+    if (D === undefined) {
+      D = [];
+      const te = getT(e), tc = getT(c), sel = match({ st: tc.s, ch: [] }, te, true, JUDGE_DTW).sel;
+      for (const s of sel) {
+        if (s.ub >= 0 || s.ta !== s.tb) { D = []; break; }
+        const pe = te.s[s.ta].p, pc = tc.s[s.ua].p, qe = te.s[s.ta].q, qc = tc.s[s.ua].q;
+        let dq = 0;
+        for (let k = 0; k < NP; k++) { const kc = s.rev ? NP - 1 - k : k; dq += Math.hypot(qe[2 * k] - qc[2 * kc], qe[2 * k + 1] - qc[2 * kc + 1]); }
+        if (dq / NP > XSHAPE) { D = []; break; }
+        for (const k of [0, NP - 1]) {
+          const kc = s.rev ? NP - 1 - k : k, dx = pc[2 * kc] - pe[2 * k], dy = pc[2 * kc + 1] - pe[2 * k + 1];
+          if (dx * dx + dy * dy > XEND * XEND) D.push({ j: s.ta, k, x: pe[2 * k], y: pe[2 * k + 1], dx, dy });
+        }
+      }
+      if (sel.length !== te.n) D = [];
+      XD.set(key, D);
+    }
+    return D;
+  }
+  // Where the writing's stroke ends sit between e and c (0 = as in e, 1 = as in c), over the ends in which they
+  // differ, taking the strokes paired with e's in det; null when there are none.
+  function endShift(G, det, e, c) {
+    let num = 0, den = 0;
+    for (const f of endDiff(e, c)) {
+      const s = det.sel.find((s) => s.ub < 0 && s.ta === f.j && s.tb === f.j);
+      if (!s) continue;
+      const p = G.st[s.ua].p, k = s.rev ? NP - 1 - f.k : f.k;
+      num += (p[2 * k] - f.x) * f.dx + (p[2 * k + 1] - f.y) * f.dy;
+      den += f.dx * f.dx + f.dy * f.dy;
+    }
+    return den > 0 ? num / den : null;
+  }
   // Is the writing in G the expected char (any of expSet), rather than some other char?
   function judge(S, G, expSet, latin, line) {
     const pool = latin ? LPOOL : JPOOL;
@@ -670,7 +713,16 @@
         if (v + m < bar) { bar = v + m; co = v; other = c; }
       }
     });
-    return { ok: ce <= (latin ? LCEIL : CEIL) && (SQ ? ce * ce : ce) <= bar, ch: bestE, cost: ce, other, otherCost: co };
+    const ok = ce <= (latin ? LCEIL : CEIL) && (SQ ? ce * ce : ce) <= bar;
+    // a close look-alike of the same kind and stroke count that is at least as near as the expected char wins when
+    // the stroke ends in which the two differ are also nearer to it (the top stroke of 末 longer than the second)
+    if (ok && !latin) for (const c of others.slice(0, KFINE)) {
+      const v = fc(c);
+      if (v >= ce || vars.has(c) || scriptTwin(bestE, c) || kindOf(c) !== kind || getT(c).n !== getT(bestE).n || tdist(bestE, c) >= TCLOSE) continue;
+      const x = endShift(G, det, bestE, c);
+      if (x !== null && x > XSHIFT) return { ok: false, ch: bestE, cost: ce, other: c, otherCost: v };
+    }
+    return { ok, ch: bestE, cost: ce, other, otherCost: co };
   }
 
   // ---------------------------------------------------------------- segmentation
@@ -781,6 +833,14 @@
     const t = getT(ch);
     return [t.size, t.cy];
   }
+  // Log of how large group G is against a template box w x h (longer side s): the mean of the width and height
+  // ratios, two measurements of one size (a dimension that is thin in the template is left out).
+  function logSize(G, w, h, s) {
+    let v = 0, n = 0;
+    if (w >= 0.25 * s) { v += Math.log(Math.max(G.f.w, 0.02 * G.f.s) / w); n++; }
+    if (h >= 0.25 * s) { v += Math.log(Math.max(G.f.h, 0.02 * G.f.s) / h); n++; }
+    return n ? v / n : Math.log(G.f.s / s);
+  }
   // Evidence (about 0 = full size, 1 = small) that position i was written as a small kana,
   // from its size and height relative to the other characters of the line.
   function sizeEvidence(views, P, i, ch) {
@@ -796,11 +856,15 @@
     const kind = kindOf(ch);
     const sameKind = anchors.filter((a) => a.kind === kind);
     const use = sameKind.length >= 2 ? sameKind : anchors;
-    const ems = use.map((a) => a.em).sort((a, b) => a - b);
-    const em = ems.length % 2 ? ems[ems.length >> 1] : (ems[ems.length / 2 - 1] + ems[ems.length / 2]) / 2;
+    // line em: mean of the implied ems (log), a quarter cut off at each end
+    const lems = use.map((a) => Math.log(a.em)).sort((a, b) => a - b), cut = lems.length >> 2;
+    let lem = 0;
+    for (let k = cut; k < lems.length - cut; k++) lem += lems[k];
+    lem /= lems.length - 2 * cut;
+    const em = Math.exp(lem);
     const tl = getT(SMALL2LARGE.get(ch) || ch);
     const G = views[i];
-    const q = G.f.s / (em * tl.size);
+    const q = Math.exp(logSize(G, tl.w, tl.h, tl.size) - lem);
     const eq = Math.log(Math.max(q, 0.05)) / Math.log(SMALLF);
     const near = use.slice().sort((a, b) => Math.abs(a.k - i) - Math.abs(b.k - i)).slice(0, 3);
     let cl = 0, ws = 0;
@@ -900,9 +964,10 @@
       if (j.ok && (SMALL2LARGE.has(ch) || LARGE2SMALL.has(ch))) {
         const ev = sizeEvidence(views, P, i, ch);
         if (ev) {
-          const loose = ev.n >= 3 ? 0 : ev.n === 2 ? 0.1 : 0.2;
-          if (SMALL2LARGE.has(ch) && ev.e < 0.32 - loose) why = "large";
-          if (LARGE2SMALL.has(ch) && ev.e > 0.75 + loose) why = "small";
+          // (a full-size kana written for a small one stands out even next to one or two characters; a small one
+          // written for a full-size one is judged more loosely when there are fewer than three)
+          if (SMALL2LARGE.has(ch) && ev.e < 0.45) why = "large";
+          if (LARGE2SMALL.has(ch) && ev.e > 0.75 + (ev.n >= 3 ? 0 : 0.1)) why = "small";
           if (dbg) sizes.push([ch, +ev.e.toFixed(2), +ev.q.toFixed(2), +ev.dy.toFixed(2), ev.n]);
         }
       }
@@ -1053,7 +1118,7 @@
 
   const api = {
     init, has, verify, top, englishAnswers,
-    _: { set: (o) => { if ("SQ" in o) SQ = o.SQ; if ("KAPPA" in o) KAPPA = o.KAPPA; if ("CEIL" in o) CEIL = o.CEIL; if ("LPLACE" in o) LPLACE = o.LPLACE; if ("LMARGIN" in o) LMARGIN = o.LMARGIN; if ("LMARGIN_X" in o) LMARGIN_X = o.LMARGIN_X; if ("LKAPPA" in o) LKAPPA = o.LKAPPA; if ("LCEIL" in o) LCEIL = o.LCEIL; if ("LOOPPEN" in o) LOOPPEN = o.LOOPPEN; if ("INKW" in o) INKW = o.INKW; if ("LWIDE" in o) LWIDE = o.LWIDE; if ("WSLACK" in o) WSLACK = o.WSLACK; if ("PSLACK" in o) PSLACK = o.PSLACK; if ("INKGATE" in o) INKGATE = o.INKGATE; TD.clear(); }, tdist, setDTW: (v, j) => { USE_DTW = v; if (j !== undefined) JUDGE_DTW = j; }, sdist, assign, prepInput, groupView, match, getT, coarseFeat, coarseRank, judge, segment, orders, lineEm, variantsOf, SAMEMAP, SMALL2LARGE },
+    _: { set: (o) => { if ("SQ" in o) SQ = o.SQ; if ("KAPPA" in o) KAPPA = o.KAPPA; if ("CEIL" in o) CEIL = o.CEIL; if ("LPLACE" in o) LPLACE = o.LPLACE; if ("LMARGIN" in o) LMARGIN = o.LMARGIN; if ("LMARGIN_X" in o) LMARGIN_X = o.LMARGIN_X; if ("LKAPPA" in o) LKAPPA = o.LKAPPA; if ("LCEIL" in o) LCEIL = o.LCEIL; if ("LOOPPEN" in o) LOOPPEN = o.LOOPPEN; if ("INKW" in o) INKW = o.INKW; if ("LWIDE" in o) LWIDE = o.LWIDE; if ("WSLACK" in o) WSLACK = o.WSLACK; if ("PSLACK" in o) PSLACK = o.PSLACK; if ("INKGATE" in o) INKGATE = o.INKGATE; if ("XSHIFT" in o) XSHIFT = o.XSHIFT; TD.clear(); }, tdist, endDiff, setDTW: (v, j) => { USE_DTW = v; if (j !== undefined) JUDGE_DTW = j; }, sdist, assign, prepInput, groupView, match, getT, coarseFeat, coarseRank, judge, segment, orders, lineEm, variantsOf, SAMEMAP, SMALL2LARGE },
   };
   root.QCardChecker = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
