@@ -3,8 +3,9 @@
   // handwriting may be kept to tune and train the checker. The first time there's no "Don't ask me again"; from the
   // second time there is. With sharing on, each checked answer is saved to users/<uid>/training/<id>: its strokes
   // (points, timing, pressure, pointer kind), the word and direction, the checker's verdict and the student's own call.
-  // Only the account itself (and the site's owner, through Firebase) can read it. Settings turns sharing off and deletes
-  // what was shared; deleting the account deletes it too. The choice and counts live in the synced choices:
+  // Only the account itself (and the site's owner, through Firebase) can read it. The pop-up says it may go into products
+  // offered to others and goes with the site if it becomes or joins a company (Annie's plans, 2026-10-21). Settings turns
+  // sharing off and deletes what was shared (models already trained on it stay); deleting the account deletes it too. The choice and counts live in the synced choices:
   // share = { on, at, asked, never, n }, practices = finished practices.
   const SHARE_EVERY = 10;
   const shareState = () => store.get("share", null) || {};
@@ -62,7 +63,7 @@
     if (!account) return;
     const s = shareState(), n = s.n || 0, when = s.at && !isNaN(new Date(s.at)) ? new Date(s.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
     $("#shareInfo").textContent = s.on
-      ? `On${when ? " since " + when : ""}. ${n} ${n === 1 ? "answer" : "answers"} shared: the strokes, the word and how it was marked, kept to tune and train the checker.`
+      ? `On${when ? " since " + when : ""}. ${n} ${n === 1 ? "answer" : "answers"} shared: the strokes, the word and how it was marked, kept to build better handwriting recognition.`
       : `Off. Turn it on to let your handwriting help train the checker.${n ? ` ${n} ${n === 1 ? "answer is" : "answers are"} still kept from before.` : ""}`;
     $("#shareToggle").textContent = s.on ? "Turn off" : "Turn on…";
     $("#shareDel").hidden = !n || shareDelAsk;
