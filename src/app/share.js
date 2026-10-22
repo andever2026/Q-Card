@@ -72,6 +72,7 @@
       ? `On${when ? " since " + when : ""}. ${n} ${n === 1 ? "answer" : "answers"} shared: the strokes, the word and how it was marked, kept to build better handwriting recognition.`
       : `Off. Turn it on to let your handwriting help train the checker.${n ? ` ${n} ${n === 1 ? "answer is" : "answers are"} still kept from before.` : ""}`;
     $("#shareToggle").textContent = s.on ? "Turn off" : "Turn on…";
+    $("#shareDl").hidden = !n || shareDelAsk;
     $("#shareDel").hidden = !n || shareDelAsk;
     $("#shareDelAsk").hidden = !shareDelAsk;
   }
@@ -83,6 +84,17 @@
   };
   $("#devAsk1").onclick = () => askShare(SHARE_EVERY, false);
   $("#devAsk2").onclick = () => askShare(2 * SHARE_EVERY, true);
+  // Everything shared, as one JSON file, oldest answer first: each with its strokes and their timing, so writing can be
+  // replayed at its real speed (Annie wants her own in the promo video).
+  $("#shareDl").onclick = async (e) => {
+    e.target.disabled = true;
+    try {
+      const answers = (await db.collection("training").get()).docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+      await downloads.save({ filename: `japanese-vocab-handwriting-${new Date().toLocaleDateString("en-CA")}.json`,
+        data: JSON.stringify({ app: APP, kind: "handwriting", version: 1, exportedAt: new Date().toISOString(), answers }) });
+    } catch (err) { if (err?.code !== "declined") banner("Your shared answers couldn't be downloaded. Try again."); }
+    e.target.disabled = false;
+  };
   $("#shareDel").onclick = () => { shareDelAsk = true; renderShare(); };
   $("#shareDelNo").onclick = () => { shareDelAsk = false; renderShare(); };
   $("#shareDelYes").onclick = async (e) => {

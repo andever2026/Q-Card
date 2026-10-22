@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-Tg79ssr167s1E4jmmGDGSj0FsdZhJ2mjw7QToDY5rEs=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-bLomM75byyD5CgxenfsKtiEvdvyY5GC0wg/gkLBPBcw=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -434,7 +434,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       </section>
       <section id="shareSet" hidden><h3>Help train the checker</h3>
         <p class="muted small" id="shareInfo"></p>
-        <div class="tactions"><button class="btn" type="button" id="shareToggle">Turn on…</button><button class="link" type="button" id="shareDel" hidden>Delete what I've shared</button></div>
+        <div class="tactions"><button class="btn" type="button" id="shareToggle">Turn on…</button><button class="link" type="button" id="shareDl" hidden>Download what I've shared</button><button class="link" type="button" id="shareDel" hidden>Delete what I've shared</button></div>
         <div class="tactions" id="shareDelAsk" hidden><span class="small">Delete every answer you've shared, for good?</span><button class="btn danger" type="button" id="shareDelYes">Delete</button><button class="btn" type="button" id="shareDelNo">Cancel</button></div>
       </section>
       <section id="devSet" hidden><h3>Dev tools</h3>
@@ -3072,6 +3072,7 @@ CORRECT: <YES or NO, matching your REASON>`;
       ? `On${when ? " since " + when : ""}. ${n} ${n === 1 ? "answer" : "answers"} shared: the strokes, the word and how it was marked, kept to build better handwriting recognition.`
       : `Off. Turn it on to let your handwriting help train the checker.${n ? ` ${n} ${n === 1 ? "answer is" : "answers are"} still kept from before.` : ""}`;
     $("#shareToggle").textContent = s.on ? "Turn off" : "Turn on…";
+    $("#shareDl").hidden = !n || shareDelAsk;
     $("#shareDel").hidden = !n || shareDelAsk;
     $("#shareDelAsk").hidden = !shareDelAsk;
   }
@@ -3083,6 +3084,17 @@ CORRECT: <YES or NO, matching your REASON>`;
   };
   $("#devAsk1").onclick = () => askShare(SHARE_EVERY, false);
   $("#devAsk2").onclick = () => askShare(2 * SHARE_EVERY, true);
+  // Everything shared, as one JSON file, oldest answer first: each with its strokes and their timing, so writing can be
+  // replayed at its real speed (Annie wants her own in the promo video).
+  $("#shareDl").onclick = async (e) => {
+    e.target.disabled = true;
+    try {
+      const answers = (await db.collection("training").get()).docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+      await downloads.save({ filename: `japanese-vocab-handwriting-${new Date().toLocaleDateString("en-CA")}.json`,
+        data: JSON.stringify({ app: APP, kind: "handwriting", version: 1, exportedAt: new Date().toISOString(), answers }) });
+    } catch (err) { if (err?.code !== "declined") banner("Your shared answers couldn't be downloaded. Try again."); }
+    e.target.disabled = false;
+  };
   $("#shareDel").onclick = () => { shareDelAsk = true; renderShare(); };
   $("#shareDelNo").onclick = () => { shareDelAsk = false; renderShare(); };
   $("#shareDelYes").onclick = async (e) => {
