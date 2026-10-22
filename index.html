@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-pn+9F7206McS0RnHEOVLI+lcazoAilFFZc9wI//K/T8=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-Tg79ssr167s1E4jmmGDGSj0FsdZhJ2mjw7QToDY5rEs=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -2999,6 +2999,9 @@ CORRECT: <YES or NO, matching your REASON>`;
   document.addEventListener("keydown", (e) => { if (tour.on && e.key === "Escape" && !document.querySelector("dialog[open]")) endTour(); });
   $("#tourBtn").onclick = () => { $("#guestBtn").click(); startTour(); };
   // ---------- public site: sharing handwriting to train the checker ----------
+  // For dev accounts only for now (the owner, 2026-10-22: no "give us your data" while the site is a demo with few users; the
+  // tool comes first). Everyone else gets no question and no Settings section, and an earlier yes saves nothing. To offer
+  // it to everyone again, set SHARE_FOR_ALL to true.
   // Opt-in (the owner): after every 10th finished practice, a signed-in person who hasn't said yes is asked whether their
   // handwriting may be kept to tune and train the checker. The first time there's no "Don't ask me again"; from the
   // second time there is. With sharing on, each checked answer is saved to users/<uid>/training/<id>: its strokes
@@ -3007,10 +3010,13 @@ CORRECT: <YES or NO, matching your REASON>`;
   // offered to others and goes with the site if it becomes or joins a company (the owner's plans, 2026-10-21). Settings turns
   // sharing off and deletes what was shared (models already trained on it stay); deleting the account deletes it too. The choice and counts live in the synced choices:
   // share = { on, at, asked, never, n }, practices = finished practices.
-  const SHARE_EVERY = 10;
+  const SHARE_EVERY = 10, SHARE_FOR_ALL = false;
+  // Dev tools and (for now) sharing: only for developers (dev/<uid> in Firestore, see firestore.rules).
+  let isDev = false;
+  const offered = () => !!account && (SHARE_FOR_ALL || isDev);
   const shareState = () => store.get("share", null) || {};
   const setShare = (o) => store.set("share", { ...shareState(), ...o });
-  const sharing = () => !!account && shareState().on === true;
+  const sharing = () => offered() && shareState().on === true;
   let shareId = null; // the saved record of the answer on screen, which the student's own marking updates
 
   // A box's strokes as Firestore can store them (flat lists only): xy = x, y, x, y…; t = ms from the stroke's start;
@@ -3037,11 +3043,11 @@ CORRECT: <YES or NO, matching your REASON>`;
   $("#selfMiss").addEventListener("click", () => shareMark("missed"));
   $("#overrideBtn").addEventListener("click", () => shareMark("misread"));
 
-  // After each finished practice: count it, and on every 10th ask (signed in, not sharing, not "don't ask again").
+  // After each finished practice: count it, and on every 10th ask (offered, not sharing, not "don't ask again").
   function afterPractice() {
     const done = (+store.get("practices", 0) || 0) + 1, s = shareState();
     store.set("practices", done);
-    if (account && !s.on && !s.never && done % SHARE_EVERY === 0) { askShare(done); setShare({ asked: (s.asked || 0) + 1 }); }
+    if (offered() && !s.on && !s.never && done % SHARE_EVERY === 0) { askShare(done); setShare({ asked: (s.asked || 0) + 1 }); }
   }
   // done = practices finished (0 when opened from Settings); again = offer "Don't ask me again", which it does from the
   // second time it's asked after a practice.
@@ -3054,13 +3060,13 @@ CORRECT: <YES or NO, matching your REASON>`;
   $("#shareYes").onclick = () => { setShare({ on: true, at: new Date().toISOString(), never: false }); $("#shareAsk").close(); renderShare(); };
   $("#shareNo").onclick = () => { if (!$("#shareNeverRow").hidden && $("#shareNever").checked) setShare({ never: true }); $("#shareAsk").close(); };
 
-  // Settings → Help train the checker (signed in only).
+  // Settings → Help train the checker (wherever it's offered).
   let shareDelAsk = false;
   $("#settings").addEventListener("close", () => { shareDelAsk = false; });
   function renderShare() {
     $("#devSet").hidden = !isDev;
-    $("#shareSet").hidden = !account;
-    if (!account) return;
+    $("#shareSet").hidden = !offered();
+    if (!offered()) return;
     const s = shareState(), n = s.n || 0, when = s.at && !isNaN(new Date(s.at)) ? new Date(s.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
     $("#shareInfo").textContent = s.on
       ? `On${when ? " since " + when : ""}. ${n} ${n === 1 ? "answer" : "answers"} shared: the strokes, the word and how it was marked, kept to build better handwriting recognition.`
@@ -3070,9 +3076,11 @@ CORRECT: <YES or NO, matching your REASON>`;
     $("#shareDelAsk").hidden = !shareDelAsk;
   }
   $("#shareToggle").onclick = () => { if (shareState().on) { setShare({ on: false }); renderShare(); } else askShare(0); };
-  // Dev tools: only for developers (dev/<uid> in Firestore, see firestore.rules), to see the question as people get it.
-  let isDev = false;
-  const checkDev = async () => { isDev = !!account && (await platform.isDev(account.uid)); renderShare(); };
+  // Dev tools: to see the question as people get it.
+  const checkDev = async () => {
+    const uid = account?.uid; isDev = false; renderShare(); // nothing carried over from the last account while it asks
+    isDev = !!uid && (await platform.isDev(uid)) && account?.uid === uid; renderShare();
+  };
   $("#devAsk1").onclick = () => askShare(SHARE_EVERY, false);
   $("#devAsk2").onclick = () => askShare(2 * SHARE_EVERY, true);
   $("#shareDel").onclick = () => { shareDelAsk = true; renderShare(); };
