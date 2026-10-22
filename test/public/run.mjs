@@ -542,6 +542,7 @@ const practiceOnce = async (how = "#selfGot") => {
 const shareOpen = () => sp.evaluate(() => document.querySelector("#shareAsk").open);
 await practiceOnce();
 ok(await vis(sp, "#results") && await shareOpen(), "share: the 10th finished practice asks to share handwriting");
+ok(/schools or other companies/.test(await text(sp, "#shareAsk")) && /models already trained on it stay/.test(await text(sp, "#shareAsk")) && /16 or older/.test(await text(sp, "#shareAsk")), "share: the question says where shared handwriting can go, what deleting can't undo, and the age");
 ok(!(await vis(sp, "#shareNeverRow")) && /finished 10 practices/.test(await text(sp, "#shareCount")), "share: the first time there's no \"Don't ask me again\"", await text(sp, "#shareCount"));
 await sp.locator("#shareAsk").screenshot({ path: join(out, "14-share-ask.png") });
 await sp.click("#shareNo"); await sp.waitForTimeout(200);
