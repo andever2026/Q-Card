@@ -218,7 +218,7 @@
         : groups.map((sets, i) => {
         const name = esc(sets[0].unit);
         const usable = sets.filter((s) => readyCount(s.words)), all = usable.length && usable.every((s) => S.selected.has(s.id));
-        return `<div class="chapter"><div class="chrow"><span class="muted small">${multi ? `${esc(colLabel(colOf(sets[0])))} › ${name}` : name}</span>${usable.length ? `<button class="link" data-all="${i}">${all ? "Clear" : "Select all"}</button>` : ""}</div>
+        return `<div class="chapter"><div class="chrow"><span class="unit">${multi ? `${esc(colLabel(colOf(sets[0])))} › ${name}` : name}</span>${usable.length ? `<button class="link" data-all="${i}">${all ? "Clear" : "Select all"}</button>` : ""}</div>
           <div class="chips">${sets.map((s) => { const n = readyCount(s.words); return `<button class="chip" data-set="${esc(s.id)}" aria-pressed="${!!n && S.selected.has(s.id)}"${n ? "" : ` disabled title="No words yet"`}>${esc(s.name)}<span class="n">${n}</span></button>`; }).join("")}</div></div>`;
       }).join("");
       box.querySelectorAll("[data-set]").forEach((b) => (b.onclick = () => { const id = b.dataset.set; S.selected.has(id) ? S.selected.delete(id) : S.selected.add(id); saveSetup(); renderSetup(); }));
