@@ -160,6 +160,14 @@ async function newAccount(name) {
   await until(async () => (await getDoc(`users/${uid}/meta/samples`)) && vis(page, '[data-set="samples-greetings"]'));
   return { page, uid };
 }
+// Make the account a developer: dev/<uid>, made by hand in the Firebase console, which the emulator's admin access stands in
+// for. The page reads it when it loads, so it reloads.
+async function makeDev(page, uid) {
+  const r = await fetch(`${FS}/dev/${uid}`, { method: "PATCH", headers: OWNER, body: JSON.stringify({ fields: { role: { stringValue: "dev" } } }) });
+  await page.reload();
+  await until(() => page.evaluate(() => document.body.classList.contains("ready") && !!window.__testAuth?.currentUser));
+  return r.ok;
+}
 // "Another device": the same account, with none of this browser's choices (jpq:…) left.
 async function asAnotherDevice(page) {
   await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:")) localStorage.removeItem(k); });
@@ -226,11 +234,16 @@ await part("2. Resume with writing", async () => {
   await page.context().close();
 });
 
-// ---------- 3. sharing handwriting: each checked answer saved to training/, Settings deletes them ----------
+// ---------- 3. sharing handwriting (developers only for now): each checked answer saved to training/, Settings deletes them ----------
 await part("3. Sharing handwriting", async () => {
   const { page, uid } = await newAccount("share");
   await page.click("#settingsBtn");
-  ok(/^Off\./.test(await text(page, "#shareInfo")), "share: off for a new account", await text(page, "#shareInfo"));
+  await page.waitForTimeout(1000); // the page has asked about dev/<uid> by now
+  ok(!(await vis(page, "#shareSet")), "share: not offered to an account that isn't a developer");
+  await page.click("#settingsClose");
+  ok(await makeDev(page, uid), "share: (dev/<uid> made with admin access)");
+  await page.click("#settingsBtn");
+  ok(await until(() => vis(page, "#shareSet")) && /^Off\./.test(await text(page, "#shareInfo")), "share: offered to a developer, off to begin with", await text(page, "#shareInfo"));
   await page.click("#shareToggle");
   await until(() => page.evaluate(() => document.querySelector("#shareAsk").open));
   await page.click("#shareYes");
@@ -265,11 +278,8 @@ await part("4. Dev tools", async () => {
   await page.click("#settingsBtn");
   await page.waitForTimeout(1000); // the page has asked about dev/<uid> by now
   ok(!(await vis(page, "#devSet")), "dev tools: hidden for a normal account");
-  // Made by hand in the Firebase console, which the emulator's admin access stands in for.
-  const r = await fetch(`${FS}/dev/${uid}`, { method: "PATCH", headers: OWNER, body: JSON.stringify({ fields: { role: { stringValue: "dev" } } }) });
-  ok(r.ok, "dev tools: (dev/<uid> made with admin access)", String(r.status));
-  await page.reload();
-  await until(() => page.evaluate(() => document.body.classList.contains("ready") && !!window.__testAuth?.currentUser));
+  await page.click("#settingsClose");
+  ok(await makeDev(page, uid), "dev tools: (dev/<uid> made with admin access)");
   await page.click("#settingsBtn");
   ok(await until(() => vis(page, "#devSet")), "dev tools: shown once dev/<uid> exists (read under the real rules)");
   await clean(page, "dev tools");
@@ -279,7 +289,9 @@ await part("4. Dev tools", async () => {
 // ---------- 5. Delete my account ----------
 await part("5. Delete my account", async () => {
   const { page, uid } = await newAccount("delete");
-  // Something in every place an account keeps things: history on (data/settings), sharing on and one shared answer (training).
+  // Something in every place an account keeps things: history on (data/settings), sharing on and one shared answer (training,
+  // which only developers can turn on for now).
+  await makeDev(page, uid);
   await until(() => vis(page, '#histAsk [data-hist="on"]'));
   await page.click('#histAsk [data-hist="on"]');
   await page.click("#settingsBtn"); await page.click("#shareToggle");

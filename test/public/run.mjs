@@ -522,6 +522,7 @@ for (const width of [900, 375]) {
 }
 
 // ---------- 14. asking to share handwriting after every 10th practice; what's saved; Settings ----------
+// Sharing is offered to developers only for now (Annie, 2026-10-22), so this account is one; everyone else is checked below.
 const sctx = await browser.newContext();
 const sp = await newPage(sctx, { init: () => {
   if (localStorage.getItem("fake:user")) return;
@@ -530,6 +531,7 @@ const sp = await newPage(sctx, { init: () => {
     "users/t1/meta/samples": { offeredAt: "x" },
     "users/t1/sets/one": { collection: "S", unit: "U", name: "One", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }] },
     "users/t1/data/prefs": { practices: 9, dir: "je", selected: ["one"] },
+    "dev/t1": { role: "dev" },
   }));
 } });
 await sp.waitForTimeout(600);
@@ -582,11 +584,9 @@ ok(Array.isArray(rink) && rink.length > 4 && rink.every((n) => typeof n === "num
 await sp.click("#settingsBtn"); await sp.click("#shareToggle"); await sp.waitForTimeout(200);
 ok(await shareOpen() && !(await vis(sp, "#shareNeverRow")) && !(await text(sp, "#shareCount")), "share: Turn on… in Settings asks the same question, without the count or the checkbox");
 await sp.click("#shareNo");
-ok(!(await vis(sp, "#devSet")), "dev tools: hidden for everyone who isn't a developer");
 await sp.click("#settingsClose");
 ok(sp.errors.length === 0, "share: no page errors", sp.errors.join(" | "));
 // a developer (dev/<uid>, made in the Firebase console) gets Dev tools in Settings to open the question themselves
-await sp.evaluate(() => { const fs = JSON.parse(localStorage.getItem("fake:fs")); fs["dev/t1"] = { role: "dev" }; localStorage.setItem("fake:fs", JSON.stringify(fs)); });
 const op = await newPage(sctx);
 await op.waitForTimeout(600); await op.click("#settingsBtn"); await op.waitForTimeout(200);
 ok(await vis(op, "#devSet"), "dev tools: a developer sees them in Settings");
@@ -610,6 +610,27 @@ const gp = await newPage(await browser.newContext(), { init: () => {
 } });
 await gp.click("#startBtn"); await gp.waitForTimeout(300); await scribble(gp); await gp.click("#checkBtn"); await gp.waitForTimeout(200); await gp.click("#selfGot"); await gp.waitForTimeout(1500);
 ok(await vis(gp, "#results") && !(await gp.evaluate(() => document.querySelector("#shareAsk").open)) && !(await vis(gp, "#shareSet")), "share: a guest's 10th practice doesn't ask, and Settings has no sharing section");
+// for now, a signed-in account that isn't a developer isn't asked either, and a yes from before saves nothing
+const np = await newPage(await browser.newContext(), { init: () => {
+  if (localStorage.getItem("fake:user")) return;
+  localStorage.setItem("fake:user", JSON.stringify({ uid: "n1", displayName: "Not Dev", email: "n@example.com" }));
+  localStorage.setItem("fake:fs", JSON.stringify({
+    "users/n1/meta/samples": { offeredAt: "x" },
+    "users/n1/sets/one": { collection: "S", unit: "U", name: "One", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }] },
+    "users/n1/data/prefs": { practices: 9, dir: "je", selected: ["one"] },
+  }));
+} });
+await np.waitForTimeout(600);
+const npPractice = async () => { await np.click("#startBtn"); await np.waitForTimeout(300); await scribble(np); await np.click("#checkBtn"); await np.waitForTimeout(200); await np.click("#selfGot"); await np.waitForTimeout(1500); };
+await npPractice();
+ok(await vis(np, "#results") && !(await np.evaluate(() => document.querySelector("#shareAsk").open)), "share: an account that isn't a developer isn't asked on its 10th practice (developers only for now)");
+await np.click("#settingsBtn"); await np.waitForTimeout(200);
+ok(!(await vis(np, "#shareSet")) && !(await vis(np, "#devSet")), "share: its Settings has no sharing section and no Dev tools");
+await np.click("#settingsClose"); await np.click("#newBtn"); await np.waitForTimeout(200);
+await np.evaluate(() => localStorage.setItem("jpq:share", JSON.stringify({ on: true, at: "2026-10-01T00:00:00Z" })));
+await npPractice();
+ok(!Object.keys(await fsData(np)).some((k) => k.startsWith("users/n1/training/")), "share: a yes from before saves nothing for an account that isn't a developer");
+ok(np.errors.length === 0, "share (not a developer): no page errors", np.errors.join(" | "));
 
 // ---------- 15. sample sets: an offer cut short is finished next time; an account with its own sets gets none ----------
 for (const [label, seed, want] of [
@@ -705,6 +726,7 @@ const ap = await newPage(actx, { init: () => {
   localStorage.setItem("fake:seeded", "1");
   localStorage.setItem("fake:user", JSON.stringify({ uid: "a1", displayName: "A", email: "a@example.com" }));
   localStorage.setItem("fake:fs", JSON.stringify({
+    "dev/a1": { role: "dev" }, "dev/b1": { role: "dev" }, "dev/c1": { role: "dev" }, // sharing is for developers only for now
     "users/a1/meta/samples": { offeredAt: "x" }, "users/a1/data/prefs": { share: { on: true, at: "2026-10-01T00:00:00Z" } },
     "users/b1/meta/samples": { offeredAt: "x" }, "users/b1/data/prefs": { dir: "je", selected: ["one"] }, "users/c1/meta/samples": { offeredAt: "x" },
     // saved without a collection (a hand-made file can leave it out): shown under "No collection"
