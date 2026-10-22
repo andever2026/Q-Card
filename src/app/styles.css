@@ -121,6 +121,7 @@ body.ready #gate { display: none; }
 
 /* Setup */
 .chapter { display: grid; gap: 8px; }
+#setPicker { display: grid; gap: 12px; } /* space above each unit's dashed line as well as below it */
 .chapter + .chapter { border-top: 1px dashed var(--line); padding-top: 12px; }
 .chrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -172,6 +173,22 @@ body.ready #gate { display: none; }
 .startrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .startbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 .startbtns .n { color: var(--muted); font-weight: 400; margin-left: 4px; }
+/* On a phone the setup is slimmer so there's less to scroll (the owner): tighter panels, smaller chips and buttons, and a
+   mode's description shows only once it's picked. */
+@media (max-width: 480px) {
+  #setup { gap: 12px; }
+  #setup .panel { padding: 14px; gap: 12px; }
+  .chapter { gap: 6px; }
+  #setPicker { gap: 10px; }
+  .chapter + .chapter { padding-top: 10px; }
+  #setPicker .chip { padding: 4px 12px; font-size: .9rem; }
+  #setPicker .chips { gap: 6px; }
+  #setup .seg button, #dirSeg button { padding-block: 6px; }
+  .modes { gap: 6px; }
+  .mode { padding: 7px 12px; }
+  .mode:not([aria-pressed="true"]) span { display: none; }
+  #setup .sel { padding-block: 6px; }
+}
 /* While writing, the page is just the practice: the title and the settings gear step aside. */
 body.writing > .wrap > header { display: contents; }
 body.writing > .wrap > header > :not(dialog) { display: none; }
