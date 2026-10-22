@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-zVVELnEA66vinZZXLPTymXWSi8Fp7aj80638My8xLDU=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-1LmHRMy6x2I2CmTit8163AQ2xaQMan4CJiDf5qUzm5Q=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -80,6 +80,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ai); outlin
 .btn:hover { border-color: var(--ai); }
 .btn.primary { background: var(--ai); border-color: var(--ai); color: var(--surface); font-weight: 700; padding: 10px 20px; }
 .btn.primary:disabled { opacity: .45; cursor: not-allowed; }
+/* A primary button beside a plain one takes the plain one's size, so the row lines up. */
+.btn:not(.primary) ~ .btn.primary, .btn.primary:has(~ .btn:not(.primary)) { padding: 8px 14px; }
 .btn.danger { color: var(--shu); }
 /* Icon tools under a writing box: Undo and Clear, then the pen / stroke eraser switch. */
 .itools { display: flex; gap: 8px; align-items: center; }
@@ -284,6 +286,7 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .chip[aria-pressed="true"] .dot.pick { color: inherit; }
 .tset { display: grid; gap: 10px; }
 .tset + .tset { border-top: 1px solid var(--line); padding-top: 10px; }
+.tset.open:not(:last-child) { padding-bottom: 14px; } /* room between an open set's buttons and the line under them */
 .tseth { margin: 0; font-size: inherit; }
 .tsethead { width: 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; background: none; border: none; padding: 4px 0; text-align: left; }
 .tsethead .t { font-size: 1.15rem; font-weight: 700; display: inline-flex; gap: 8px; align-items: baseline; flex-wrap: wrap; min-width: 0; }
@@ -357,7 +360,6 @@ td.c { text-align: center; width: 4.5rem; }
 .setedit input { background: var(--surface); }
 .setedit [data-ef="unit"], .setedit [data-kunit] { width: 8rem; }
 .setedit [data-ef="label"], .setedit [data-ef="tags"] { width: 14rem; max-width: 100%; }
-.setedit .btn.primary { padding: 8px 14px; }
 .editerr { color: var(--shu); font-size: .85rem; align-self: center; }
 .bookorder { display: grid; gap: 10px; }
 .bookorder ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
@@ -2454,7 +2456,7 @@ CORRECT: <YES or NO, matching your REASON>`;
           <label>Tags (optional)<input data-ef="tags" value="${esc(ev.tags)}" placeholder="Verbs, Quiz 3"></label>
           <button class="btn primary" type="submit">Save details</button><button class="btn" type="button" data-editcancel>Cancel</button><span class="editerr" data-editerr></span>
         </form>` : "";
-      return `<div class="tset" data-sid="${esc(s.id)}">
+      return `<div class="tset open" data-sid="${esc(s.id)}">
         ${head}${edit}
         <div class="tscroll"><table><thead><tr><th>English</th><th>Kana</th><th>Kanji</th>${canWrite ? "<th></th>" : ""}</tr></thead><tbody>${rows}</tbody></table></div>
         ${canWrite ? `<div class="tactions"><button class="btn" data-add>Add word</button><button class="btn primary" data-save ${dirty ? "" : "disabled"}>Save</button>${dirty ? `<button class="link" data-discard>Discard</button>` : ""}

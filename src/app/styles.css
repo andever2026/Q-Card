@@ -69,6 +69,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ai); outlin
 .btn:hover { border-color: var(--ai); }
 .btn.primary { background: var(--ai); border-color: var(--ai); color: var(--surface); font-weight: 700; padding: 10px 20px; }
 .btn.primary:disabled { opacity: .45; cursor: not-allowed; }
+/* A primary button beside a plain one takes the plain one's size, so the row lines up. */
+.btn:not(.primary) ~ .btn.primary, .btn.primary:has(~ .btn:not(.primary)) { padding: 8px 14px; }
 .btn.danger { color: var(--shu); }
 /* Icon tools under a writing box: Undo and Clear, then the pen / stroke eraser switch. */
 .itools { display: flex; gap: 8px; align-items: center; }
@@ -273,6 +275,7 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .chip[aria-pressed="true"] .dot.pick { color: inherit; }
 .tset { display: grid; gap: 10px; }
 .tset + .tset { border-top: 1px solid var(--line); padding-top: 10px; }
+.tset.open:not(:last-child) { padding-bottom: 14px; } /* room between an open set's buttons and the line under them */
 .tseth { margin: 0; font-size: inherit; }
 .tsethead { width: 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; background: none; border: none; padding: 4px 0; text-align: left; }
 .tsethead .t { font-size: 1.15rem; font-weight: 700; display: inline-flex; gap: 8px; align-items: baseline; flex-wrap: wrap; min-width: 0; }
@@ -346,7 +349,6 @@ td.c { text-align: center; width: 4.5rem; }
 .setedit input { background: var(--surface); }
 .setedit [data-ef="unit"], .setedit [data-kunit] { width: 8rem; }
 .setedit [data-ef="label"], .setedit [data-ef="tags"] { width: 14rem; max-width: 100%; }
-.setedit .btn.primary { padding: 8px 14px; }
 .editerr { color: var(--shu); font-size: .85rem; align-self: center; }
 .bookorder { display: grid; gap: 10px; }
 .bookorder ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
