@@ -8,8 +8,8 @@
     main.c.classList.add("locked"); furi.c.classList.add("locked");
     // Force kanji hides the reading of 日本語 → English questions until the answer is checked.
     if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
-    // The next word comes after the 花丸, unless another practice was started or resumed meanwhile (Quit, then Start or Resume).
-    if (ok) { const cur = Q.cur; Q.done.add(key); saveResume(); hanamaru().then(() => Q.cur === cur && nextItem()); return; }
+    // A right answer goes straight on to the next word (the 花丸 that used to be drawn first was taken out, Annie 2026-10-23).
+    if (ok) { Q.done.add(key); saveResume(); nextItem(); return; }
     Q.wrong.push(Q.cur); saveResume();
     $("#tools").hidden = true;
     $("#fbReason").textContent = r?.reason || "";
@@ -35,20 +35,3 @@
     saveResume();
     nextItem();
   };
-
-  // 花丸: a spiral with a ring of petals, drawn in red pen.
-  (function buildMaru() {
-    let d = "", turns = 2.6, steps = 120;
-    for (let i = 0; i <= steps; i++) { const t = i / steps, a = t * turns * Math.PI * 2 - Math.PI / 2, r = 6 + t * 26; d += (i ? "L" : "M") + (r * Math.cos(a)).toFixed(1) + " " + (r * Math.sin(a)).toFixed(1); }
-    const petals = 7;
-    for (let i = 0; i <= petals * 24; i++) { const a = (i / (petals * 24)) * Math.PI * 2 - Math.PI / 2, r = 40 + 9 * Math.abs(Math.sin((a + Math.PI / 2) * petals / 2)); d += "L" + (r * Math.cos(a)).toFixed(1) + " " + (r * Math.sin(a)).toFixed(1); }
-    $("#maruPath").setAttribute("d", d);
-  })();
-  function hanamaru() {
-    const svg = $("#maru"), p = $("#maruPath");
-    svg.removeAttribute("hidden"); // an <svg> has no .hidden property, so the attribute itself goes
-    const len = p.getTotalLength(), reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    p.style.strokeDasharray = len; p.style.strokeDashoffset = reduce ? 0 : len;
-    if (!reduce) p.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 750, easing: "ease-out", fill: "forwards" });
-    return new Promise((res) => setTimeout(res, reduce ? 600 : 1050));
-  }

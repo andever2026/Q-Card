@@ -677,10 +677,11 @@ ok((await text(qp, "#qText")) === q1 && /^0 of 3 done/.test(await text(qp, "#pro
   "quit while self-marking: Resume asks that question again, with what was written", `${q1} → ${await text(qp, "#qText")}, ${await text(qp, "#progLbl")}`);
 if (await qp.$eval("#checkBtn", (b) => b.disabled)) await scribble(qp);
 await qp.click("#checkBtn"); await qp.waitForTimeout(150); await qp.click("#selfGot"); await qp.waitForTimeout(200);
+ok(/^1 of 3 done/.test(await text(qp, "#progLbl")) && !(await qp.$("#maru")), "a right answer goes straight on to the next word, with no 花丸", await text(qp, "#progLbl"));
 await qp.click("#quitBtn"); await qp.click("#resumeBtn"); await qp.waitForTimeout(100);
 const q2 = await text(qp, "#qText");
 await qp.waitForTimeout(1400);
-ok(await vis(qp, "#quiz") && (await text(qp, "#qText")) === q2 && /^1 of 3 done/.test(await text(qp, "#progLbl")), "Quit and Resume during the 花丸: the word resumed on stays, none is skipped", `${q2} → ${await text(qp, "#qText")}`);
+ok(await vis(qp, "#quiz") && (await text(qp, "#qText")) === q2 && /^1 of 3 done/.test(await text(qp, "#progLbl")), "Quit and Resume right after a right answer: the word resumed on stays, none is skipped", `${q2} → ${await text(qp, "#qText")}`);
 await qGot();
 await qp.click("#newBtn"); await qp.waitForTimeout(200);
 await qp.click('[data-set="q-c"]'); await qp.click('[data-set="q-a"]'); await qp.click('[data-set="q-b"]'); await qp.click("#startBtn"); await qp.waitForTimeout(300);
