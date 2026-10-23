@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-1LmHRMy6x2I2CmTit8163AQ2xaQMan4CJiDf5qUzm5Q=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-A9UEVIaFiPLCjG6A3wx1G9Ncwm8ucjiDqTp4u2ZOFpY=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -240,8 +240,6 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .mainwrap { position: relative; }
 /* A small name in the corner of a writing box; strokes draw straight through it and it never reaches the grader. */
 .padtag { position: absolute; top: 5px; left: 9px; font-size: .68rem; letter-spacing: .08em; color: var(--muted); opacity: .75; pointer-events: none; user-select: none; -webkit-user-select: none; }
-#maru { position: absolute; inset: 0; margin: auto; width: min(46%, 190px); height: auto; pointer-events: none; overflow: visible; }
-#maru path { fill: none; stroke: var(--shu); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
 .checking { position: absolute; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--surface) 70%, transparent); border-radius: 8px; font-weight: 500; color: var(--ai); }
 .checking[hidden] { display: none !important; }
 .tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -552,7 +550,6 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       <div class="mainwrap">
         <canvas id="mainPad" class="pad main" aria-label="Answer box"></canvas>
         <span class="padtag" id="mainTag">答え (answer)</span>
-        <svg id="maru" viewBox="-60 -60 120 120" hidden><path id="maruPath"></path></svg>
         <div class="checking" id="checking" hidden>Reading your handwriting…</div>
       </div>
     </div>
@@ -1545,7 +1542,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
     }
     Q.cur = Q.queue.shift(); Q.answered = false; Q.busy = false;
     const { w, dir } = Q.cur;
-    $("#feedback").hidden = true; $("#tools").hidden = false; $("#checkErr").hidden = true; $("#maru").setAttribute("hidden", "");
+    $("#feedback").hidden = true; $("#tools").hidden = false; $("#checkErr").hidden = true;
     $("#selfCheck").hidden = true;
     main.c.classList.remove("locked"); furi.c.classList.remove("locked");
     furi.clear(); main.clear(); scratch.clear(); history.length = 0; setErasing(false);
@@ -1830,8 +1827,8 @@ CORRECT: <YES or NO, matching your REASON>`;
     main.c.classList.add("locked"); furi.c.classList.add("locked");
     // Force kanji hides the reading of 日本語 → English questions until the answer is checked.
     if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
-    // The next word comes after the 花丸, unless another practice was started or resumed meanwhile (Quit, then Start or Resume).
-    if (ok) { const cur = Q.cur; Q.done.add(key); saveResume(); hanamaru().then(() => Q.cur === cur && nextItem()); return; }
+    // A right answer goes straight on to the next word (the 花丸 that used to be drawn first was taken out, Annie 2026-10-23).
+    if (ok) { Q.done.add(key); saveResume(); nextItem(); return; }
     Q.wrong.push(Q.cur); saveResume();
     $("#tools").hidden = true;
     $("#fbReason").textContent = r?.reason || "";
@@ -1853,23 +1850,6 @@ CORRECT: <YES or NO, matching your REASON>`;
     saveResume();
     nextItem();
   };
-
-  // 花丸: a spiral with a ring of petals, drawn in red pen.
-  (function buildMaru() {
-    let d = "", turns = 2.6, steps = 120;
-    for (let i = 0; i <= steps; i++) { const t = i / steps, a = t * turns * Math.PI * 2 - Math.PI / 2, r = 6 + t * 26; d += (i ? "L" : "M") + (r * Math.cos(a)).toFixed(1) + " " + (r * Math.sin(a)).toFixed(1); }
-    const petals = 7;
-    for (let i = 0; i <= petals * 24; i++) { const a = (i / (petals * 24)) * Math.PI * 2 - Math.PI / 2, r = 40 + 9 * Math.abs(Math.sin((a + Math.PI / 2) * petals / 2)); d += "L" + (r * Math.cos(a)).toFixed(1) + " " + (r * Math.sin(a)).toFixed(1); }
-    $("#maruPath").setAttribute("d", d);
-  })();
-  function hanamaru() {
-    const svg = $("#maru"), p = $("#maruPath");
-    svg.removeAttribute("hidden"); // an <svg> has no .hidden property, so the attribute itself goes
-    const len = p.getTotalLength(), reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    p.style.strokeDasharray = len; p.style.strokeDashoffset = reduce ? 0 : len;
-    if (!reduce) p.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 750, easing: "ease-out", fill: "forwards" });
-    return new Promise((res) => setTimeout(res, reduce ? 600 : 1050));
-  }
 
   // ---------- results ----------
   function finish() {
@@ -2895,7 +2875,7 @@ CORRECT: <YES or NO, matching your REASON>`;
       text: "Write the answer, then tap Check. Not sure? Write your best guess: you'll see the answer either way.",
       done: () => tour.checked && !vis($("#checking")), ready: () => !$("#checkBtn").disabled, act: () => $("#checkBtn").click(), skip: "quit" },
     { view: "quiz", at: () => firstVis("#selfCheck", "#feedback", "#quiz .prompt"), title: "The result",
-      text: "A right answer gets a 花丸 and the next word comes up by itself. Otherwise you see the answer and a scratch pad to practice it. When the checker can't read your writing you mark it yourself, and if it misreads a right answer you can count it as correct." },
+      text: "A right answer moves on to the next word by itself. Otherwise you see the answer and a scratch pad to practice it. When the checker can't read your writing you mark it yourself, and if it misreads a right answer you can count it as correct." },
     { view: "quiz", at: () => firstVis("#scratchPad"), title: "Scratch pad",
       text: "Practice the right answer here as many times as you like. It isn't marked." },
     { view: "quiz", id: "quit", at: () => $("#quitBtn"), title: "Stop any time",

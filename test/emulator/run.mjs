@@ -261,7 +261,7 @@ await part("3. Sharing handwriting", async () => {
     "share: checking an answer writes users/<uid>/training/<id> with the word, the checker's verdict and the student's own call", JSON.stringify(rec && { ...rec, main: undefined, furi: undefined })?.slice(0, 200));
   ok(rec?.main?.s?.length === 2 && st.xy.length > 4 && st.xy.every((n) => typeof n === "number") && st.xy.length === 2 * st.t.length && st.t.length === st.f.length,
     "share: its strokes are stored as flat lists (points, timing, pressure)", JSON.stringify(st)?.slice(0, 120));
-  await page.waitForTimeout(1500); // the 花丸 for a right answer, then the next question
+  await page.waitForTimeout(1500); // a right answer, then the next question
   await page.click("#quitBtn");
   await page.click("#settingsBtn");
   ok(await until(async () => /1 answer shared/.test(await text(page, "#shareInfo")) && vis(page, "#shareDel")), "share: Settings counts the shared answer", await text(page, "#shareInfo"));
