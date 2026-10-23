@@ -316,6 +316,7 @@ td.c { text-align: center; width: 4.5rem; }
 .rowdel { background: none; border: none; color: var(--muted); font-size: 1.1rem; padding: 2px 8px; }
 .rowdel:hover { color: var(--shu); }
 .tactions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+#aiHelp a { color: var(--ai); text-underline-offset: 3px; }
 .impprev { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 8px; background: var(--sunk); }
 .impprev ul { margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
 .impprev .names { font-size: .85rem; color: var(--muted); }
@@ -465,6 +466,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       <section id="portPanel" hidden><h3>Export / import</h3>
         <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and courses, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
         <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
+        <p class="muted small" id="aiHelp">Have a vocab list on paper, in a photo or in a PDF? <a href="ai/" target="_blank" rel="noopener">Let your AI make the file</a>.</p>
         <p class="muted small" id="portMsg" hidden></p>
         <div class="impprev" id="importPreview" hidden></div>
       </section>

@@ -305,6 +305,7 @@ td.c { text-align: center; width: 4.5rem; }
 .rowdel { background: none; border: none; color: var(--muted); font-size: 1.1rem; padding: 2px 8px; }
 .rowdel:hover { color: var(--shu); }
 .tactions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+#aiHelp a { color: var(--ai); text-underline-offset: 3px; }
 .impprev { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 8px; background: var(--sunk); }
 .impprev ul { margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
 .impprev .names { font-size: .85rem; color: var(--muted); }

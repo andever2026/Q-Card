@@ -83,6 +83,9 @@
       <section id="portPanel" hidden><h3>Export / import</h3>
         <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and courses, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
         <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
+<!--#if public-->
+        <p class="muted small" id="aiHelp">Have a vocab list on paper, in a photo or in a PDF? <a href="ai/" target="_blank" rel="noopener">Let your AI make the file</a>.</p>
+<!--#endif-->
         <p class="muted small" id="portMsg" hidden></p>
         <div class="impprev" id="importPreview" hidden></div>
       </section>
