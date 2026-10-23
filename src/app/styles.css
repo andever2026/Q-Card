@@ -229,8 +229,6 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .mainwrap { position: relative; }
 /* A small name in the corner of a writing box; strokes draw straight through it and it never reaches the grader. */
 .padtag { position: absolute; top: 5px; left: 9px; font-size: .68rem; letter-spacing: .08em; color: var(--muted); opacity: .75; pointer-events: none; user-select: none; -webkit-user-select: none; }
-#maru { position: absolute; inset: 0; margin: auto; width: min(46%, 190px); height: auto; pointer-events: none; overflow: visible; }
-#maru path { fill: none; stroke: var(--shu); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
 .checking { position: absolute; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--surface) 70%, transparent); border-radius: 8px; font-weight: 500; color: var(--ai); }
 .checking[hidden] { display: none !important; }
 .tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }

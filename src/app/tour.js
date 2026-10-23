@@ -35,7 +35,7 @@
       text: "Write the answer, then tap Check. Not sure? Write your best guess: you'll see the answer either way.",
       done: () => tour.checked && !vis($("#checking")), ready: () => !$("#checkBtn").disabled, act: () => $("#checkBtn").click(), skip: "quit" },
     { view: "quiz", at: () => firstVis("#selfCheck", "#feedback", "#quiz .prompt"), title: "The result",
-      text: "A right answer gets a 花丸 and the next word comes up by itself. Otherwise you see the answer and a scratch pad to practice it. When the checker can't read your writing you mark it yourself, and if it misreads a right answer you can count it as correct." },
+      text: "A right answer moves on to the next word by itself. Otherwise you see the answer and a scratch pad to practice it. When the checker can't read your writing you mark it yourself, and if it misreads a right answer you can count it as correct." },
     { view: "quiz", at: () => firstVis("#scratchPad"), title: "Scratch pad",
       text: "Practice the right answer here as many times as you like. It isn't marked." },
     { view: "quiz", id: "quit", at: () => $("#quitBtn"), title: "Stop any time",
