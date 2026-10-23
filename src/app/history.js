@@ -83,9 +83,7 @@
     S.dir = store.get("dir", "ej"); S.mode = store.get("mode", "default"); S.upto = store.get("uptoPick", "auto");
     S.loveWin = String(store.get("loveWin", "all"));
     setPalette(store.get("palette", "indigo"));
-    //#if public
     setTheme(store.get("theme", ""));
-    //#endif
     renderSetup(); renderTable();
   }
 

@@ -23,9 +23,7 @@
 /*#include app/styles.css*/
 </style>
 <script>try { if (JSON.parse(localStorage.getItem("jpq:palette")) === "claude") document.documentElement.dataset.palette = "claude"; } catch {}</script>
-<!--#if public-->
 <script>try { const t = JSON.parse(localStorage.getItem("jpq:theme")); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
-<!--#endif-->
 
 <!--#if public-->
 </head>
@@ -60,10 +58,10 @@
       <section class="setrow"><h3>Colours</h3>
         <div class="palpick" id="palPick" role="group" aria-label="Colours"><button type="button" data-pal="indigo" aria-label="Blue" title="Blue"><i style="background:#2c4a8f"></i></button><button type="button" data-pal="claude" aria-label="Warm" title="Warm"><i style="background:#c96442"></i></button></div>
       </section>
-<!--#if public-->
       <section class="setrow"><h3>Light or dark</h3>
         <div class="seg" id="themePick" role="group" aria-label="Light or dark"><button type="button" data-theme-pick="">Match device</button><button type="button" data-theme-pick="light">Light</button><button type="button" data-theme-pick="dark">Dark</button></div>
       </section>
+<!--#if public-->
       <section><h3>Account</h3>
         <p id="acctName"></p>
         <div class="tactions"><button class="btn" type="button" id="signOutBtn">Sign out</button></div>
