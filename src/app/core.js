@@ -83,7 +83,6 @@
     renderAccount(); renderShare();
     //#endif
   }
-  //#if public
   function setTheme(t) {
     t = t === "light" || t === "dark" ? t : "";
     if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
@@ -92,6 +91,5 @@
   }
   document.querySelectorAll("#themePick [data-theme-pick]").forEach((b) => (b.onclick = () => setTheme(b.dataset.themePick)));
   setTheme(store.get("theme", ""));
-  //#endif
   function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
   function banner(msg) { const b = $("#banner"); b.hidden = !msg; b.textContent = msg || ""; }
