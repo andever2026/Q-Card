@@ -2,7 +2,7 @@
 // and any request to Anthropic's API recorded (there should be none). Run: node test/public/run.mjs  (needs Playwright; PLAYWRIGHT_DIR overrides where it lives)
 import { createRequire } from "node:module";
 import { createServer } from "node:http";
-import { readFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
@@ -26,7 +26,7 @@ const bundle = async (plugins = []) => (await esbuild.build({
 })).outputFiles[0].text;
 const platformJs = await bundle();
 
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".css": "text/css", ".woff2": "font/woff2" };
+const TYPES = { ".txt": "text/plain", ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".css": "text/css", ".woff2": "font/woff2" };
 const server = createServer((req, res) => {
   const p = join(root, decodeURIComponent(new URL(req.url, "http://x").pathname).replace(/\/$/, "/index.html"));
   if (!p.startsWith(root) || !existsSync(p)) { res.writeHead(404); return res.end(); }
@@ -760,6 +760,45 @@ await ap.click("#settingsBtn");
 ok(/c@example\.com/.test(await text(ap, "#acctName")) && /^Off\./.test(await text(ap, "#shareInfo")) && !(await fsData(ap))["users/c1/data/prefs"]?.share,
   "share, another account: a first sign-in doesn't take this browser's yes along", await text(ap, "#shareInfo"));
 ok(ap.errors.length === 0, "another account: no page errors", ap.errors.join(" | "));
+
+// ---------- 18. the page people give to their AI assistant, and llms.txt ----------
+// AI tools usually fetch a page without running scripts, so the page has none and everything is in its HTML.
+const aipctx = await browser.newContext({ javaScriptEnabled: false });
+const aip = await aipctx.newPage(); await aip.setViewportSize({ width: 375, height: 900 });
+const aiErrors = []; aip.on("console", (m) => { if (m.type() === "error") aiErrors.push(m.text()); });
+await aip.goto(base + "ai/"); await aip.waitForTimeout(300);
+const aiHtml = await (await fetch(base + "ai/")).text();
+ok(!/<script/i.test(aiHtml) && /For AI assistants/.test(aiHtml) && /"app": "jp-vocab-practice"/.test(aiHtml), "AI page: no scripts, and the instructions for AI assistants are in its HTML");
+ok(await aip.evaluate(() => !document.querySelector("#for-ai").open && /Give the link to this page to your AI/.test(document.body.textContent)), "AI page: people see one short explanation, the AI part starts folded");
+ok((await aip.evaluate(() => document.documentElement.scrollWidth)) <= 375, "AI page: fits a phone");
+await aip.screenshot({ path: join(out, "18-ai-page-phone.png"), fullPage: true });
+await aip.click("#for-ai summary");
+ok(await aip.evaluate(() => document.querySelector("#for-ai").open), "AI page: the AI part opens");
+await aip.screenshot({ path: join(out, "18-ai-page-open.png"), fullPage: true });
+ok(aiErrors.length === 0, "AI page: no errors (fonts load, nothing blocked)", aiErrors.join(" | "));
+const example = await aip.evaluate(() => document.querySelector("#example").textContent);
+let exampleFile = null;
+try { exampleFile = JSON.parse(example); } catch {}
+ok(exampleFile?.app === "jp-vocab-practice" && exampleFile.version === 2 && exampleFile.sets.length === 2, "AI page: the example is valid JSON in the import format");
+const llms = await fetch(base + "llms.txt");
+ok(llms.ok && /^# Japanese Vocab Practice/.test(await llms.text()), "llms.txt: served, and points AI tools to the page");
+await aipctx.close();
+// The example imports as it stands, and Settings links to the page beside Import.
+const ictx = await browser.newContext();
+const ip = await newPage(ictx);
+await ip.click("#guestBtn"); await ip.waitForTimeout(400);
+await ip.click("#settingsBtn");
+ok(await ip.evaluate(() => { const a = document.querySelector("#aiHelp a"); return !!a && a.getAttribute("href") === "ai/" && a.target === "_blank"; }) && await vis(ip, "#aiHelp"), "settings: links to the AI page beside Import, in a new tab");
+const exPath = join(out, "18-ai-example.json"); writeFileSync(exPath, example);
+const [ichooser] = await Promise.all([ip.waitForEvent("filechooser"), ip.click("#importBtn")]);
+await ichooser.setFiles(exPath); await ip.waitForTimeout(300);
+ok(/Vocab sets: 2 new/.test(await text(ip, "#importPreview")) && /Kanji lists: 1 new/.test(await text(ip, "#importPreview")) && !/valid/.test(await text(ip, "#importPreview")),
+  "AI page: its example imports with nothing skipped", await text(ip, "#importPreview"));
+await ip.click("#importGo"); await ip.waitForTimeout(800);
+const imported = await ip.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:sets/my-japanese-week-1-weather") || "null"));
+ok(imported?.unit === "Week 1" && imported.words.length === 4 && imported.words[0].kanji === "（お）天気", "AI page: the example's sets are saved as written");
+ok(ip.errors.length === 0, "AI page import: no page errors", ip.errors.join(" | "));
+await ictx.close();
 
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");
