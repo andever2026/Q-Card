@@ -11,11 +11,11 @@
 <!-- A plain page with no scripts. The wording is Annie's (drafted in Notion); changes to it are listed in this file's git history. -->
 <style>
 :root {
-  --bg: #fdfdfd; --surface: #ffffff; --ink: #1b2130; --muted: #5d6578; --line: #d3d9e2; --ai: #2c4a8f;
+  --bg: #fdfdfd; --ink: #1b2130; --muted: #5d6578; --ai: #2c4a8f;
   --font-ui: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #181818; --surface: #222222; --ink: #ececec; --muted: #a3a3a3; --line: #363636; --ai: #93acec; color-scheme: dark; }
+  :root { --bg: #181818; --ink: #ececec; --muted: #a3a3a3; --ai: #93acec; color-scheme: dark; }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); line-height: 1.6; }
@@ -28,7 +28,6 @@ ul { padding-left: 1.3em; display: grid; gap: 4px; }
 .muted { color: var(--muted); }
 .small { font-size: .9rem; }
 .back { font-size: .9rem; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; }
 </style>
 </head>
 <body>
@@ -39,17 +38,15 @@ ul { padding-left: 1.3em; display: grid; gap: 4px; }
 <p>This privacy policy applies to <a href="https://andever2026.github.io/Q-Card/">https://andever2026.github.io/Q-Card/</a>.<br>
 Repo on GitHub: <a href="https://github.com/andever2026/Q-Card" rel="noopener">https://github.com/andever2026/Q-Card</a>.</p>
 
-<div class="card" id="short">
-  <p>Your privacy is important. Here’s the short summary of our policy:</p>
-  <ul>
-    <li>When using this site as a guest, no data is stored in our database. It would be the same as if a user downloaded the page and used it offline.<br>
-      This may change if we add advertisements in the future.</li>
-    <li>When you sign in with a Google account, we store the Google account name, email address, profile picture, IP address and some browser details. We also store your practice sets and some preferences in our Firebase database.<br>
-      More information may be stored to our database as required when enabling additional features, but those are optional and we will ask for permission before storing.</li>
-    <li>All personal information that we collect fulfils a purpose. Consenting to permissions works incrementally and is reversible.</li>
-    <li>You can delete your data and your account at any time in Settings.</li>
-  </ul>
-</div>
+<p>Your privacy is important. Here’s the short summary of our policy:</p>
+<ul id="short">
+  <li>When using this site as a guest, no data is stored in our database. It would be the same as if a user downloaded the page and used it offline.<br>
+    This may change if we add advertisements in the future.</li>
+  <li>When you sign in with a Google account, we store the Google account name, email address, profile picture, IP address and some browser details. We also store your practice sets and some preferences in our Firebase database.<br>
+    More information may be stored to our database as required when enabling additional features, but those are optional and we will ask for permission before storing.</li>
+  <li>All personal information that we collect fulfils a purpose. Consenting to permissions works incrementally and is reversible.</li>
+  <li>You can delete your data and your account at any time in Settings.</li>
+</ul>
 <p class="muted small">Last updated: October 24, 2026.</p>
 
 <h2 id="guest">Using the site as a guest</h2>
