@@ -193,6 +193,17 @@ if (entry.length > 1) {
   ok(await vis(page, "#results"), "built-in practice reaches the results page");
   ok(await page.evaluate(() => window.QCardChecker.verify({ strokes: [[[0, 0], [10, 10]]], candidates: ["龘"], box: { w: 100, h: 100 } }).ok === null),
     "built-in: a character without a template comes back unchecked (self-marked)");
+  // 〜 marks a slot (〜さん): it may be written or left out where the answer has one, and is extra writing elsewhere
+  {
+    const w = writeWord("さん", 11, { boxW: 400, boxH: 120, level: 0.3, mouse: false, swap: 0, reverse: 0, join: 0, lateDakuten: 0 });
+    const xs = w.strokes.flat().map(([x]) => x), ys = w.strokes.flat().map(([, y]) => y);
+    const x0 = Math.min(...xs), em = (Math.max(...xs) - x0) / 2, mid = (Math.min(...ys) + Math.max(...ys)) / 2;
+    const wave = Array.from({ length: 24 }, (_, i) => [x0 + (em * 0.85 * i) / 23, mid - Math.sin((i / 23) * 2 * Math.PI) * em * 0.12]);
+    const withWave = [wave, ...w.strokes.map((s) => s.map(([x, y]) => [x + em * 1.1, y]))];
+    const v = (strokes, cand) => page.evaluate(([s, c, b]) => window.QCardChecker.verify({ strokes: s, candidates: [c], box: b }).ok, [strokes, cand, { w: w.box.w + em * 1.2, h: w.box.h }]);
+    ok(await v(withWave, "〜さん") === true && await v(w.strokes, "〜さん") === true, "built-in: a 〜 may be written or left out where the answer has one");
+    ok(await v(withWave, "さん") === false, "built-in: a 〜 where the answer has none is extra writing");
+  }
 
   // 日本語 → English: the meaning as worded is accepted; other English is self-marked (synthetic print from test/checker/synth-en.mjs)
   const { writeEnglish, defaultFont } = await import("../checker/synth-en.mjs");
