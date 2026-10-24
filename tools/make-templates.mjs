@@ -29,6 +29,9 @@ const ALPHABET = (() => { let s = ""; for (let c = 0x21; c <= 0x7e; c++) if (c !
 const Q = 92, UNIT = 109, TOL = 0.7;
 // Hershey glyphs go into the 109 box with the baseline at 78% and capitals 66% tall (Hershey: baseline 22, capitals 21 high).
 const H_BASE = 0.78, H_CAP = 0.66;
+// KanjiVG has no 〜 (the wave dash a set uses to mark a slot, as in 〜さん): one wavy stroke drawn here, left to right,
+// about as wide as a kana, rising to a crest, down through a trough and up again at the right.
+const WAVE = "M14,60C22,48 32,43 44,49C56,55 64,66 76,64C86,62 91,55 95,49";
 
 function args() {
   const a = process.argv.slice(2), o = { out: path.join(ROOT, "data/templates.json") };
@@ -243,6 +246,7 @@ async function main() {
     if (!strokes.length) { missing.push(ch); continue; }
     out[ch] = strokes.map((s) => encodeStroke(s, false)).join(" ");
   }
+  out["〜"] = encodeStroke(parsePath(WAVE), false);
   const alt = latinExtras(out);
   const json = {
     version: 1,
@@ -250,7 +254,8 @@ async function main() {
       "licensed under the Creative Commons Attribution-Share Alike 3.0 licence (https://creativecommons.org/licenses/by-sa/3.0/). " +
       "This derived file (resampled, simplified, quantized strokes) is distributed under the same licence. " +
       "Latin letters in \"alt\" and ASCII punctuation: the Hershey Fonts, originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of Standards; " +
-      "font data format originally created by James Hurt, Cognition, Inc.; via hersheytext, Copyright (c) 2014 James T, MIT License. Built by tools/make-templates.mjs.",
+      "font data format originally created by James Hurt, Cognition, Inc.; via hersheytext, Copyright (c) 2014 James T, MIT License. " +
+      "The 〜 stroke is drawn in tools/make-templates.mjs. Built by tools/make-templates.mjs.",
     unit: UNIT,
     q: Q,
     alphabet: ALPHABET,

@@ -63,9 +63,10 @@
   }
   const strokesOf = (pad) => pad.strokes.filter((s) => s.length).map((s) => s.map(([x, y]) => [x, y]));
   // Main-box answers the page would accept with no furigana (Force kanji and Katakana only rules included).
+  // A 〜 the set shows stays in, and the checker lets it be written or left out (〜さん: 〜さん or さん).
   function mainCands(w) {
     const out = new Set();
-    for (const p of forms(w)) {
+    for (const p of forms(w, true)) {
       out.add(p.kana);
       if (KANJI.test(p.kanji)) for (const m of [p.kanji, learnedForm(p), ...kanjiMixes(p)]) if (m) out.add(m);
     }
