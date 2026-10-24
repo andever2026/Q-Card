@@ -139,7 +139,7 @@
   function notation(w) {
     const t = (w.kana || "") + (w.kanji || ""), out = [];
     if (/[（(]/.test(t)) out.push("Parentheses mark an optional part: （お）てんき accepts おてんき or てんき, and きれい（な） accepts きれい or きれいな.");
-    if (/[／/]/.test(t)) out.push("／ separates alternatives: writing any one of them is correct, and the student should write only one.");
+    if (/[／/]/.test(t)) out.push("／ separates alternatives: writing any one of them is correct, and so is writing several or all of them separated by ／ the way the expected answer lists them (in the main box or in the furigana), as long as each one is an allowed alternative.");
     if (/[〜～]/.test(t)) out.push("〜 marks a slot for another word: the student may write 〜, leave it out, or fill it with a suitable word. A handwritten 〜 is a single wavy stroke and is easy to mistake for い, ー, へ or ~. When a mark like that sits where the expected answer has 〜, it IS the 〜: write it as 〜 in MAIN and do not count it as an extra character.");
     return out.length ? "\nNotation in the expected answer: " + out.join(" ") : "";
   }
