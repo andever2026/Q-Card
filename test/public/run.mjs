@@ -711,7 +711,7 @@ const cp = await newPage(cctx, { init: () => {
   put("data/users/local/t1", { finishedAt: "2026-10-20T10:00:00Z", dir: "ej", mode: "default", sets: ["U › C"], words: [{ id: "a", en: "water", jp: "水", dir: "ej", tries: 3 }] });
   localStorage.setItem("jpq:selected", '["c"]');
 } });
-await cp.route("**/data/templates.json", async (r) => { await new Promise((res) => setTimeout(res, 1500)); await r.continue(); });
+await cp.route("**/js/templates.js", async (r) => { await new Promise((res) => setTimeout(res, 1500)); await r.continue(); });
 await cp.click("#startBtn"); await cp.waitForTimeout(300);
 await scribble(cp); await cp.click("#checkBtn"); await cp.waitForTimeout(150);
 ok(await vis(cp, "#checking"), "quit while checking: (still checking)");
@@ -811,6 +811,40 @@ const imported = await ip.evaluate(() => JSON.parse(localStorage.getItem("qcard:
 ok(imported?.unit === "Week 1" && imported.words.length === 4 && imported.words[0].kanji === "（お）天気", "AI page: the example's sets are saved as written");
 ok(ip.errors.length === 0, "AI page import: no page errors", ip.errors.join(" | "));
 await ictx.close();
+
+// ---------- 19. a downloaded copy opened straight from disk, with no internet ----------
+// The data files come as scripts (js/templates.js, js/samples.js), which a page opened from disk may load.
+{
+  const fctx = await browser.newContext();
+  const outside = [];
+  await fctx.route("**/*", (r) => { const u = r.request().url(); if (u.startsWith("file:") || u.startsWith("data:") || u.startsWith("blob:")) return r.continue(); outside.push(u); return r.abort("internetdisconnected"); });
+  const fp = await fctx.newPage();
+  await fp.setViewportSize({ width: 900, height: 1000 });
+  const ferr = [];
+  fp.on("pageerror", (e) => ferr.push(e.message));
+  fp.on("console", (m) => { if (m.type() === "error") ferr.push(m.text()); });
+  await fp.goto("file://" + join(root, "index.html")); await fp.waitForTimeout(800);
+  await fp.click("#guestBtn"); await fp.waitForTimeout(800);
+  ok(await vis(fp, '[data-set="samples-greetings"]'), "from disk: the page starts as a guest with the sample sets");
+  await fp.click('[data-set="samples-greetings"]'); await fp.click("#dir-ej"); await fp.click("#startBtn"); await fp.waitForTimeout(300);
+  const { writeWord } = await import("../checker/synth.mjs");
+  const samples = JSON.parse(readFileSync(join(root, "data/samples.json"), "utf8"));
+  const prompt = await text(fp, "#qText"), sw = samples.sets.flatMap((x) => x.words).find((x) => x.en === prompt);
+  const kana = (sw?.kana || "").replace(/（[^）]*）/g, "").split("／")[0];
+  const b = await (await fp.$("#mainPad")).boundingBox();
+  const { strokes, box } = writeWord(kana || "ねこ", 5, { boxW: b.width, boxH: b.height, level: 0.3, mouse: false, swap: 0, reverse: 0, join: 0, lateDakuten: 0 });
+  const k = Math.min(1, b.width / box.w, b.height / box.h);
+  for (const st of strokes) {
+    await fp.mouse.move(b.x + st[0][0] * k, b.y + st[0][1] * k); await fp.mouse.down();
+    for (const [x, y] of st.slice(1)) await fp.mouse.move(b.x + x * k, b.y + y * k);
+    await fp.mouse.up();
+  }
+  await fp.click("#checkBtn"); await fp.waitForTimeout(1500);
+  ok(!!sw && !(await vis(fp, "#feedback")) && !(await vis(fp, "#selfCheck")), "from disk: the built-in checker accepts a right answer", `${kana}${await vis(fp, "#feedback") ? " → " + await text(fp, "#fbReason") : ""}`);
+  ok(!outside.length, "from disk: nothing is fetched from the internet", outside.join(" "));
+  ok(!ferr.length, "from disk: no page errors", ferr.join(" | "));
+  await fctx.close();
+}
 
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");

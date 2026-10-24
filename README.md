@@ -40,7 +40,7 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 | `fonts/` | The page's fonts, served from the site itself so visitors never contact Google Fonts. `tools/fetch-fonts.mjs` refreshes them. |
 | `tools/build.mjs` | Builds `index.html` and `js/*.js` (the site) and `build/claude-ai.html` (the claude.ai copy). |
 | `ai/index.html`, `llms.txt` | The page people give to their AI assistant to make an import file (see Vocab files), written by hand with no scripts, and a short pointer to it for AI tools. |
-| `index.html`, `js/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus a beta build of the `beta` branch. |
+| `index.html`, `js/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus a beta build of the `beta` branch. `js/templates.js` and `js/samples.js` are the two data files above as scripts, which a page opened straight from disk may load (it can't fetch files), so a downloaded copy works offline as a guest by opening `index.html`. |
 | `test/` | Browser tests for the public site (`test/public` with a fake Firebase, `test/emulator` with the real one on the Firebase emulators) and the checker's accuracy tests (`test/checker`). |
 
 ### Building
