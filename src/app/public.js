@@ -1,9 +1,22 @@
+  // ---------- public site: data files ----------
+  // data/<name>.json comes as the script js/<name>.js (made by tools/build.mjs), which leaves it in window.QCardData:
+  // a page opened straight from disk may load scripts, though not fetch files, so the site works offline that way too.
+  function dataFile(name) {
+    return new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = `js/${name}.js`;
+      s.onload = () => { const d = window.QCardData?.[name]; if (d) delete window.QCardData[name]; s.remove(); d ? res(d) : rej(new Error(name)); };
+      s.onerror = () => { s.remove(); rej(new Error(name)); };
+      document.head.append(s);
+    });
+  }
+
   // ---------- public site: sample sets ----------
   // A new visitor starts with the sets in data/samples.json (written for this site, not from a textbook), so there's
   // something to practice before learning the vocab table. They're ordinary sets in their own collection. meta/samples
   // records that they were offered, so they never come back on their own once removed.
   const SAMPLE_COL = "Sample sets", isSample = (x) => colOf(x) === SAMPLE_COL;
-  const sampleFile = async () => { const res = await fetch("data/samples.json"); if (!res.ok) throw new Error("samples " + res.status); return res.json(); };
+  const sampleFile = () => dataFile("samples");
   // All at once: over a slow connection, one write after another kept a new account empty for several seconds.
   async function addSamples(file) {
     file = await (file || sampleFile());
@@ -55,8 +68,7 @@
   // the answer, so it only has to decide "is this one of these?", never read arbitrary writing.
   let templates = null;
   function loadTemplates() {
-    templates ||= fetch("data/templates.json")
-      .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    templates ||= dataFile("templates")
       .then((j) => window.QCardChecker.init(j))
       .catch(() => { templates = null; throw { code: "tpl_load" }; });
     return templates;

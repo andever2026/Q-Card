@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-INvlz6l4cYxQaXdwYRa716rUFUtFY0M1TVzvu0vhcdg=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-PiaFMxZQbTL2ebT+TNZTBlrz+CSh60WUGhwRPz6ZajQ=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -2640,12 +2640,25 @@ CORRECT: <YES or NO, matching your REASON>`;
     renderImport();
   };
 
+  // ---------- public site: data files ----------
+  // data/<name>.json comes as the script js/<name>.js (made by tools/build.mjs), which leaves it in window.QCardData:
+  // a page opened straight from disk may load scripts, though not fetch files, so the site works offline that way too.
+  function dataFile(name) {
+    return new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = `js/${name}.js`;
+      s.onload = () => { const d = window.QCardData?.[name]; if (d) delete window.QCardData[name]; s.remove(); d ? res(d) : rej(new Error(name)); };
+      s.onerror = () => { s.remove(); rej(new Error(name)); };
+      document.head.append(s);
+    });
+  }
+
   // ---------- public site: sample sets ----------
   // A new visitor starts with the sets in data/samples.json (written for this site, not from a textbook), so there's
   // something to practice before learning the vocab table. They're ordinary sets in their own collection. meta/samples
   // records that they were offered, so they never come back on their own once removed.
   const SAMPLE_COL = "Sample sets", isSample = (x) => colOf(x) === SAMPLE_COL;
-  const sampleFile = async () => { const res = await fetch("data/samples.json"); if (!res.ok) throw new Error("samples " + res.status); return res.json(); };
+  const sampleFile = () => dataFile("samples");
   // All at once: over a slow connection, one write after another kept a new account empty for several seconds.
   async function addSamples(file) {
     file = await (file || sampleFile());
@@ -2697,8 +2710,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   // the answer, so it only has to decide "is this one of these?", never read arbitrary writing.
   let templates = null;
   function loadTemplates() {
-    templates ||= fetch("data/templates.json")
-      .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    templates ||= dataFile("templates")
       .then((j) => window.QCardChecker.init(j))
       .catch(() => { templates = null; throw { code: "tpl_load" }; });
     return templates;
