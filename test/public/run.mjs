@@ -812,6 +812,33 @@ ok(imported?.unit === "Week 1" && imported.words.length === 4 && imported.words[
 ok(ip.errors.length === 0, "AI page import: no page errors", ip.errors.join(" | "));
 await ictx.close();
 
+// The privacy page: plain like the AI page, linked from the footer and from Settings.
+{
+  const pctx = await browser.newContext({ javaScriptEnabled: false });
+  const pp = await pctx.newPage(); await pp.setViewportSize({ width: 375, height: 900 });
+  const perr = []; pp.on("console", (m) => { if (m.type() === "error") perr.push(m.text()); });
+  const pres = await pp.goto(base + "privacy/"); await pp.waitForTimeout(300);
+  const phtml = await pres.text();
+  ok(pres.ok() && !/<script/i.test(phtml) && /<h1>Privacy Policy<\/h1>/.test(phtml) && /mailto:andever2026@gmail\.com/.test(phtml) && !/\[date/.test(phtml),
+    "privacy page: served with no scripts, a contact and a date");
+  ok((await pp.evaluate(() => document.documentElement.scrollWidth)) <= 375, "privacy page: fits a phone");
+  ok(perr.length === 0, "privacy page: no errors (fonts load, nothing blocked)", perr.join(" | "));
+  await pp.screenshot({ path: join(out, "18-privacy-phone.png"), fullPage: true });
+  await pctx.close();
+  const lctx = await browser.newContext();
+  const lp = await newPage(lctx);
+  await lp.click("#guestBtn"); await lp.waitForTimeout(400);
+  await lp.click("#settingsBtn");
+  ok(await lp.evaluate(() => { const a = document.querySelector("#privacyLink a"); return !!a && a.getAttribute("href") === "privacy/" && a.target === "_blank"; }) && await vis(lp, "#privacyLink"),
+    "settings: links to the privacy page, in a new tab");
+  await lp.click("#settingsClose");
+  ok(await vis(lp, '.foot a[href="privacy/"]'), "footer: links to the privacy page");
+  await Promise.all([lp.waitForURL("**/privacy/"), lp.click('.foot a[href="privacy/"]')]);
+  ok(/^Privacy Policy/.test(await lp.title()), "footer: the link opens the privacy page");
+  ok(lp.errors.length === 0, "privacy links: no page errors", lp.errors.join(" | "));
+  await lctx.close();
+}
+
 // ---------- 19. a downloaded copy opened straight from disk, with no internet ----------
 // The data files come as scripts (js/templates.js, js/samples.js), which a page opened from disk may load.
 {
