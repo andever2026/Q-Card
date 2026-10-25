@@ -9,7 +9,7 @@ these strings?") rather than recognising free text.
 | file | what |
 | --- | --- |
 | `src/checker.js` | the checker (plain JS, no dependencies; classic script, CommonJS, or bundled) |
-| `data/templates.json` | stroke templates for 2,406 characters plus 62 letter variants (212 KB), generated |
+| `data/templates.json` | stroke templates for 2,407 characters plus 62 letter variants (212 KB), generated |
 | `tools/make-templates.mjs` | builds the templates from KanjiVG and `tools/checker/hershey-latin.json` |
 | `tools/checker/hershey-latin.json` | Hershey "futural" letters, digits and punctuation (SVG path data) |
 | `tools/checker/charset.txt` | the kanji that get templates (the 2,148 kanji the page knows readings for) |
@@ -30,7 +30,8 @@ QCardChecker.englishAnswers(meaning) // -> the candidates for an English meaning
 ```
 
 - `strokes`: `[[[x, y], ...], ...]` in drawing order, CSS px, y down.
-- `candidates`: acceptable answers (NFKC). Punctuation (、。・ etc.) may be left out by the writer.
+- `candidates`: acceptable answers (NFKC). Punctuation (、。・ etc.) may be left out by the writer, and so may a 〜
+  (the mark a set uses for a slot: 〜さん passes as 〜さん or さん; a mark written almost flat, like ー, counts as the 〜).
 - `latin`: the candidates are English (see [English](#english)).
 - `anyKana`: every kana position also accepts the same kana in the other script; `text` then gives what was written.
 - `ok: true`: the writing matches a candidate; `text` is that candidate as written.
@@ -38,7 +39,7 @@ QCardChecker.englishAnswers(meaning) // -> the candidates for an English meaning
   position names the expected character in `ch`, with `why` = `shape`, `small` (should be small), `large`
   (should be full size), `missing`, or `extra` (`ch: ""`, extra writing). `got`, when present, is the character the
   writing looked more like.
-- `ok: null`: every candidate has a character without a template (listed in `unsupported`, e.g. 〜); the page
+- `ok: null`: every candidate has a character without a template (listed in `unsupported`, e.g. 龘); the page
   falls back to self-marking.
 
 Look-alikes across scripts count as the same character: カ力, チ千, エ工, ロ口, タ夕, ニ二, ハ八, ト卜, ー一,
@@ -57,7 +58,9 @@ Kana (with small and voiced forms, ゔ, ヴ), ー, 々, 、。・, digits, Latin
 are built in; kanji come from `tools/checker/charset.txt`. Each stroke keeps KanjiVG's order and direction, is
 simplified (Douglas-Peucker, 0.7 units) and quantised to 92 levels in the 109-unit box, two printable characters
 per point. The Hershey letters, digits and ASCII punctuation in `tools/checker/hershey-latin.json` are added the
-same way (closed loops kept), with each letter's pen-down form in `alt` (see [English](#english)).
+same way (closed loops kept), with each letter's pen-down form in `alt` (see [English](#english)). KanjiVG has no 〜, so
+its one wavy stroke is drawn in `make-templates.mjs` itself; it is only matched where an answer has a 〜, never as a
+competitor for another character.
 
 ## Running the evaluation
 

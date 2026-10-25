@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="description" content="Give this page's link to your AI assistant along with your vocab list, and it makes a file you can import into Japanese Vocab Practice. Instructions for AI assistants are on the page.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
+<title>Make your vocab sets with AI · Japanese Vocab Practice</title>
+<link rel="stylesheet" href="../fonts/fonts.css">
+<!-- A plain page with no scripts: AI assistants that fetch it get all of it, the folded part included. -->
+<style>
+:root {
+  --bg: #fdfdfd; --surface: #ffffff; --sunk: #f5f7fa; --ink: #1b2130; --muted: #5d6578; --line: #d3d9e2; --ai: #2c4a8f; --ai-soft: #e3e9f6;
+  --font-ui: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  --font-jp: "Klee One", "Hiragino Mincho ProN", "Yu Mincho", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #181818; --surface: #222222; --sunk: #1c1c1c; --ink: #ececec; --muted: #a3a3a3; --line: #363636; --ai: #93acec; --ai-soft: #272c38; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); line-height: 1.6; }
+main { max-width: 720px; margin: 0 auto; padding: 28px 16px 48px; display: grid; gap: 20px; }
+a { color: var(--ai); text-underline-offset: 3px; }
+h1 { margin: 0; font-size: 1.7rem; line-height: 1.3; }
+h2 { margin: 8px 0 0; font-size: 1.15rem; }
+h3 { margin: 4px 0 0; font-size: 1rem; }
+p, ol, ul { margin: 0; }
+ol, ul { padding-left: 1.3em; display: grid; gap: 4px; }
+.lead { font-size: 1.1rem; }
+.muted { color: var(--muted); }
+.small { font-size: .9rem; }
+.back { font-size: .9rem; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; }
+.say { background: var(--ai-soft); border-radius: 8px; padding: 10px 14px; }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+summary { cursor: pointer; padding: 14px 18px; font-weight: 700; }
+details[open] summary { border-bottom: 1px solid var(--line); }
+.ai { padding: 16px 18px; display: grid; gap: 12px; }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .86rem; }
+:not(pre) > code { background: var(--sunk); border-radius: 4px; padding: 1px 5px; }
+pre { margin: 0; background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; line-height: 1.45; }
+dl { margin: 0; display: grid; gap: 8px; }
+dt { font-weight: 700; }
+dt code { font-weight: 400; }
+dd { margin: 0 0 0 1.2em; }
+</style>
+</head>
+<body>
+<main>
+<p class="back"><a href="../">← Japanese Vocab Practice</a></p>
+
+<h1>Make your vocab sets with AI</h1>
+<p class="lead">Give the link to this page to your AI assistant (Claude, ChatGPT, Gemini or another), along with your vocab material: a photo of the list, a PDF page, or text you paste in. It will make a file you can import.</p>
+
+<div class="card">
+  <ol>
+    <li>Send your AI this page's link and your vocab list. You could say:
+      <p class="say">Read this page and make me a Japanese Vocab Practice import file from my vocab list: [this page's link]</p></li>
+    <li>It gives you a file ending in <code>.json</code>.</li>
+    <li>In Japanese Vocab Practice, open Settings (the gear), choose <b>Import a file…</b>, pick that file, check the preview and import it.</li>
+  </ol>
+  <p class="muted small">AI can misread a blurry photo, so look over the words before you practice. You can fix any word later in the vocab table. Please don't share files copied from textbooks publicly.</p>
+</div>
+
+<details id="for-ai">
+<summary>For AI assistants: how to make the import file</summary>
+<div class="ai">
+
+<p>The person who gave you this link wants their Japanese vocab material turned into a file they can import into Japanese Vocab Practice, a site where they write each word by hand and get it checked. This section describes that file. It asks nothing of you beyond making it.</p>
+
+<h2>What to do</h2>
+<ol>
+  <li>Read the material the person gave you. Use only the words in it: don't add, drop or reorder words, and keep the wording, readings and spellings as the material prints them. If part of it is unreadable or unclear, ask the person instead of guessing.</li>
+  <li>If the material has sections (lettered word lists, a kanji list, extra phrases), make each section its own set. If it has no English meanings, write short common ones and tell the person you added them.</li>
+  <li>Build one JSON file in the format below.</li>
+  <li>Give the person the file. If you can create files, make a downloadable file named something like <code>my-vocab.json</code>. If you can't, put the whole JSON in one code block and tell them to save it as a plain text file ending in <code>.json</code>.</li>
+  <li>Tell them how to import it: open Settings (the gear) in Japanese Vocab Practice, choose <b>Import a file…</b>, pick the file, check the preview, then import.</li>
+</ol>
+
+<h2>Privacy</h2>
+<ul>
+  <li>The file is for this person's own study. Give it only to them, and don't post it, publish it or suggest sharing it, especially when the material comes from a textbook or other copyrighted source.</li>
+  <li>Don't put the person's name or other personal details in the file.</li>
+</ul>
+
+<h2>The file format</h2>
+<p>One JSON object, UTF-8:</p>
+<dl>
+  <dt><code>app</code></dt><dd>Always <code>"jp-vocab-practice"</code>. A file without it is refused.</dd>
+  <dt><code>version</code></dt><dd>Always <code>2</code>.</dd>
+  <dt><code>sets</code></dt><dd>The vocab sets, each one an object with the fields below. Required.</dd>
+  <dt><code>kanji</code></dt><dd>Optional. Kanji lists, one per unit, for the site's "Kanji learned up to" setting. Add them only when the material lists the kanji a unit teaches.</dd>
+  <dt><code>collections</code></dt><dd>Optional. <code>{ "order": ["Collection name", …] }</code>: the order the collections are studied in.</dd>
+</dl>
+<p>Leave out <code>courses</code> and <code>exportedAt</code>: a file made for import doesn't need them.</p>
+
+<h3>Each set</h3>
+<dl>
+  <dt><code>id</code></dt><dd>Unique in the file. Letters, digits, <code>-</code>, <code>_</code> and <code>.</code> only, starting with a letter or digit, at most 100 characters. Build it from the names, like <code>genki-1-lesson-3-food</code>. Importing replaces any set the person already has with the same id, so make ids specific.</dd>
+  <dt><code>collection</code></dt><dd>The textbook or course, like <code>"Genki 1"</code> or <code>"Japanese 101"</code>. Up to 100 characters.</dd>
+  <dt><code>unit</code></dt><dd>The chapter, lesson or week, like <code>"Lesson 3"</code> or <code>"Week 2"</code>. Up to 60 characters. Units sort with their numbers in order.</dd>
+  <dt><code>name</code></dt><dd>The set's name within its unit, like <code>"Food and drink"</code> or <code>"A · Greetings"</code>. Up to 200 characters. Names starting with "Kanji", "Extras" or "Supp" sort after the others in their unit.</dd>
+  <dt><code>tags</code></dt><dd>Optional. Up to 12 short labels, like <code>["Verbs", "Quiz 3"]</code>.</dd>
+  <dt><code>words</code></dt><dd>The words, in the material's order, each <code>{ "id", "en", "kana", "kanji" }</code>. Up to 3,000 per set.</dd>
+</dl>
+
+<h3>Each word</h3>
+<dl>
+  <dt><code>id</code></dt><dd>Unique within its set, like <code>"w1"</code>, <code>"w2"</code>.</dd>
+  <dt><code>en</code></dt><dd>The English meaning, as the learner will write it. Separate alternative meanings with commas (<code>"many, much"</code>). Start verbs with "to" (<code>"to eat"</code>) so the site's verb practice finds them. Short notes can go in parentheses (<code>"hot (weather)"</code>).</dd>
+  <dt><code>kana</code></dt><dd>The reading in hiragana, or katakana for katakana words, as the material gives it.</dd>
+  <dt><code>kanji</code></dt><dd>The word written with kanji as the material gives it, or <code>""</code> when it's written in kana only. No readings or furigana in brackets here.</dd>
+</dl>
+<p>Notation inside <code>kana</code> and <code>kanji</code> (use the full-width characters):</p>
+<ul>
+  <li><code>／</code> between accepted alternatives: <code>"なに／なん"</code>. When <code>kana</code> and <code>kanji</code> both list alternatives, list them in the same order.</li>
+  <li><code>（ ）</code> around an optional part: <code>"（お）てんき"</code> with <code>"（お）天気"</code>. Na-adjectives: <code>"しずか（な）"</code> with <code>"静か（な）"</code>.</li>
+  <li><code>〜</code> for the blank in a pattern: <code>"〜さん"</code>.</li>
+  <li>Phrases and short sentences are fine as words, with their punctuation: <code>"いま、なんどですか。"</code> with <code>"今、何度ですか。"</code>.</li>
+</ul>
+
+<h3>Each kanji list (optional)</h3>
+<p><code>{ "id", "collection", "unit", "kanji" }</code>: the same id rules as sets, the collection and unit it belongs to, and the unit's new kanji as one string, like <code>"食飲水"</code>.</p>
+
+<h2>Example</h2>
+<p>A made-up list, to show the shape:</p>
+<pre id="example"><code>{
+  "app": "jp-vocab-practice",
+  "version": 2,
+  "sets": [
+    { "id": "my-japanese-week-1-food", "collection": "My Japanese", "unit": "Week 1", "name": "Food and drink", "tags": ["Verbs"],
+      "words": [
+        { "id": "w1", "en": "to eat", "kana": "たべる", "kanji": "食べる" },
+        { "id": "w2", "en": "to drink", "kana": "のむ", "kanji": "飲む" },
+        { "id": "w3", "en": "water", "kana": "みず", "kanji": "水" },
+        { "id": "w4", "en": "coffee", "kana": "コーヒー", "kanji": "" },
+        { "id": "w5", "en": "tasty, delicious", "kana": "おいしい", "kanji": "" }
+      ] },
+    { "id": "my-japanese-week-1-weather", "collection": "My Japanese", "unit": "Week 1", "name": "Weather",
+      "words": [
+        { "id": "w1", "en": "weather", "kana": "（お）てんき", "kanji": "（お）天気" },
+        { "id": "w2", "en": "quiet", "kana": "しずか（な）", "kanji": "静か（な）" },
+        { "id": "w3", "en": "what", "kana": "なに／なん", "kanji": "何" },
+        { "id": "w4", "en": "What's the temperature now?", "kana": "いま、なんどですか。", "kanji": "今、何度ですか。" }
+      ] }
+  ],
+  "kanji": [
+    { "id": "my-japanese-week-1", "collection": "My Japanese", "unit": "Week 1", "kanji": "食飲水天気静何今度" }
+  ],
+  "collections": { "order": ["My Japanese"] }
+}</code></pre>
+
+<h2>Before you hand it over</h2>
+<ul>
+  <li>It's valid JSON, with <code>"app": "jp-vocab-practice"</code> and <code>"version": 2</code>.</li>
+  <li>Every set id is unique and specific, and word ids are unique within each set.</li>
+  <li>Every word has <code>kana</code>, and every word from the material is there, in order.</li>
+</ul>
+<p class="muted small">Importing adds new sets and replaces ones with the same id. It never deletes anything, and the person sees a preview before anything is saved.</p>
+
+</div>
+</details>
+
+<p class="muted small">Japanese Vocab Practice is open source under the AGPL-3.0: <a href="https://github.com/andever2026/Q-Card" rel="noopener">source code on GitHub</a>. A short summary for AI tools is in <a href="../llms.txt">llms.txt</a>.</p>
+</main>
+</body>
+</html>

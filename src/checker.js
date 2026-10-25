@@ -69,8 +69,10 @@
   const SAMEMAP = new Map();
   const link = (g) => { for (const c of g) { const s = SAMEMAP.get(c) || new Set([c]); for (const d of g) s.add(d); SAMEMAP.set(c, s); } };
   for (const g of SAME) link(g);
-  // Punctuation may be left out.
-  const OPTIONAL = new Set(["、", "。", "・", ",", ".", "!", "?", "！", "？"]);
+  // Punctuation may be left out, and so may the 〜 a set uses to mark a slot (〜さん: さん or 〜さん).
+  const OPTIONAL = new Set(["、", "。", "・", ",", ".", "!", "?", "！", "？", "〜"]);
+  // Templates only matched where the answer has them, never a competitor for other characters (a wavy ー is no 〜).
+  const ASKED = new Set(["〜"]);
   // In English writing, ASCII punctuation is optional too.
   const LPUNCT = new Set([".", ",", "'", "-", "!", "?", ":", ";", "\"", "(", ")"]);
   const LONLY = new Set([...LPUNCT, "&"]); // templates (from the Hershey fonts) that only English writing uses
@@ -1004,7 +1006,7 @@
     // English writing is judged against Latin letters and digits only; Japanese against the rest
     // (KanjiVG's own letters and digits included, as before the extra Latin templates existed)
     LPOOL = Int32Array.from(CHARS.map((k, i) => (/^[0-9A-Za-z]$/.test(letterOf(k)) && getT(k).size > 0.05 ? i : -1)).filter((i) => i >= 0));
-    JPOOL = Int32Array.from(CHARS.map((k, i) => (letterOf(k) === k && !LONLY.has(k) ? i : -1)).filter((i) => i >= 0));
+    JPOOL = Int32Array.from(CHARS.map((k, i) => (letterOf(k) === k && !LONLY.has(k) && !ASKED.has(k) ? i : -1)).filter((i) => i >= 0));
     return { chars: CHARS.length, ms: now() - t0 };
   }
   function has(ch) { return !!(RAW && RAW[ch]); }
@@ -1037,6 +1039,8 @@
         // letter is too easy to mistake for one letter otherwise). Letters whose capital looks the same (o, s, v...)
         // are linked in SAMEMAP and so always take both.
         if (latin && /[A-Za-z]/.test(p.ch)) { o.add(p.ch.toLowerCase()); if (p.initial) o.add(p.ch.toUpperCase()); }
+        // a 〜 written almost flat is still the slot's mark
+        if (!latin && p.ch === "〜") o.add("ー");
         for (const c of [...o]) if (SAMEMAP.has(c)) for (const d of SAMEMAP.get(c)) if (RAW[d]) o.add(d);
         // (KanjiVG's own O is a closed loop that came out as a single point, so English leaves it out)
         const opts2 = latin ? [...o].filter((c) => getT(c).size > 0.05) : [...o];

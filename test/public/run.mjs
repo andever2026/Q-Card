@@ -2,7 +2,7 @@
 // and any request to Anthropic's API recorded (there should be none). Run: node test/public/run.mjs  (needs Playwright; PLAYWRIGHT_DIR overrides where it lives)
 import { createRequire } from "node:module";
 import { createServer } from "node:http";
-import { readFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
@@ -26,7 +26,7 @@ const bundle = async (plugins = []) => (await esbuild.build({
 })).outputFiles[0].text;
 const platformJs = await bundle();
 
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".css": "text/css", ".woff2": "font/woff2" };
+const TYPES = { ".txt": "text/plain", ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".css": "text/css", ".woff2": "font/woff2" };
 const server = createServer((req, res) => {
   const p = join(root, decodeURIComponent(new URL(req.url, "http://x").pathname).replace(/\/$/, "/index.html"));
   if (!p.startsWith(root) || !existsSync(p)) { res.writeHead(404); return res.end(); }
@@ -193,6 +193,17 @@ if (entry.length > 1) {
   ok(await vis(page, "#results"), "built-in practice reaches the results page");
   ok(await page.evaluate(() => window.QCardChecker.verify({ strokes: [[[0, 0], [10, 10]]], candidates: ["龘"], box: { w: 100, h: 100 } }).ok === null),
     "built-in: a character without a template comes back unchecked (self-marked)");
+  // 〜 marks a slot (〜さん): it may be written or left out where the answer has one, and is extra writing elsewhere
+  {
+    const w = writeWord("さん", 11, { boxW: 400, boxH: 120, level: 0.3, mouse: false, swap: 0, reverse: 0, join: 0, lateDakuten: 0 });
+    const xs = w.strokes.flat().map(([x]) => x), ys = w.strokes.flat().map(([, y]) => y);
+    const x0 = Math.min(...xs), em = (Math.max(...xs) - x0) / 2, mid = (Math.min(...ys) + Math.max(...ys)) / 2;
+    const wave = Array.from({ length: 24 }, (_, i) => [x0 + (em * 0.85 * i) / 23, mid - Math.sin((i / 23) * 2 * Math.PI) * em * 0.12]);
+    const withWave = [wave, ...w.strokes.map((s) => s.map(([x, y]) => [x + em * 1.1, y]))];
+    const v = (strokes, cand) => page.evaluate(([s, c, b]) => window.QCardChecker.verify({ strokes: s, candidates: [c], box: b }).ok, [strokes, cand, { w: w.box.w + em * 1.2, h: w.box.h }]);
+    ok(await v(withWave, "〜さん") === true && await v(w.strokes, "〜さん") === true, "built-in: a 〜 may be written or left out where the answer has one");
+    ok(await v(withWave, "さん") === false, "built-in: a 〜 where the answer has none is extra writing");
+  }
 
   // 日本語 → English: the meaning as worded is accepted; other English is self-marked (synthetic print from test/checker/synth-en.mjs)
   const { writeEnglish, defaultFont } = await import("../checker/synth-en.mjs");
@@ -700,7 +711,7 @@ const cp = await newPage(cctx, { init: () => {
   put("data/users/local/t1", { finishedAt: "2026-10-20T10:00:00Z", dir: "ej", mode: "default", sets: ["U › C"], words: [{ id: "a", en: "water", jp: "水", dir: "ej", tries: 3 }] });
   localStorage.setItem("jpq:selected", '["c"]');
 } });
-await cp.route("**/data/templates.json", async (r) => { await new Promise((res) => setTimeout(res, 1500)); await r.continue(); });
+await cp.route("**/js/templates.js", async (r) => { await new Promise((res) => setTimeout(res, 1500)); await r.continue(); });
 await cp.click("#startBtn"); await cp.waitForTimeout(300);
 await scribble(cp); await cp.click("#checkBtn"); await cp.waitForTimeout(150);
 ok(await vis(cp, "#checking"), "quit while checking: (still checking)");
@@ -761,6 +772,106 @@ await ap.click("#settingsBtn");
 ok(/c@example\.com/.test(await text(ap, "#acctName")) && /^Off\./.test(await text(ap, "#shareInfo")) && !(await fsData(ap))["users/c1/data/prefs"]?.share,
   "share, another account: a first sign-in doesn't take this browser's yes along", await text(ap, "#shareInfo"));
 ok(ap.errors.length === 0, "another account: no page errors", ap.errors.join(" | "));
+
+// ---------- 18. the page people give to their AI assistant, and llms.txt ----------
+// AI tools usually fetch a page without running scripts, so the page has none and everything is in its HTML.
+const aipctx = await browser.newContext({ javaScriptEnabled: false });
+const aip = await aipctx.newPage(); await aip.setViewportSize({ width: 375, height: 900 });
+const aiErrors = []; aip.on("console", (m) => { if (m.type() === "error") aiErrors.push(m.text()); });
+await aip.goto(base + "ai/"); await aip.waitForTimeout(300);
+const aiHtml = await (await fetch(base + "ai/")).text();
+ok(!/<script/i.test(aiHtml) && /For AI assistants/.test(aiHtml) && /"app": "jp-vocab-practice"/.test(aiHtml), "AI page: no scripts, and the instructions for AI assistants are in its HTML");
+ok(await aip.evaluate(() => !document.querySelector("#for-ai").open && /Give the link to this page to your AI/.test(document.body.textContent)), "AI page: people see one short explanation, the AI part starts folded");
+ok((await aip.evaluate(() => document.documentElement.scrollWidth)) <= 375, "AI page: fits a phone");
+await aip.screenshot({ path: join(out, "18-ai-page-phone.png"), fullPage: true });
+await aip.click("#for-ai summary");
+ok(await aip.evaluate(() => document.querySelector("#for-ai").open), "AI page: the AI part opens");
+await aip.screenshot({ path: join(out, "18-ai-page-open.png"), fullPage: true });
+ok(aiErrors.length === 0, "AI page: no errors (fonts load, nothing blocked)", aiErrors.join(" | "));
+const example = await aip.evaluate(() => document.querySelector("#example").textContent);
+let exampleFile = null;
+try { exampleFile = JSON.parse(example); } catch {}
+ok(exampleFile?.app === "jp-vocab-practice" && exampleFile.version === 2 && exampleFile.sets.length === 2, "AI page: the example is valid JSON in the import format");
+const llms = await fetch(base + "llms.txt");
+ok(llms.ok && /^# Japanese Vocab Practice/.test(await llms.text()), "llms.txt: served, and points AI tools to the page");
+await aipctx.close();
+// The example imports as it stands, and Settings links to the page beside Import.
+const ictx = await browser.newContext();
+const ip = await newPage(ictx);
+await ip.click("#guestBtn"); await ip.waitForTimeout(400);
+await ip.click("#settingsBtn");
+ok(await ip.evaluate(() => { const a = document.querySelector("#aiHelp a"); return !!a && a.getAttribute("href") === "ai/" && a.target === "_blank"; }) && await vis(ip, "#aiHelp"), "settings: links to the AI page beside Import, in a new tab");
+const exPath = join(out, "18-ai-example.json"); writeFileSync(exPath, example);
+const [ichooser] = await Promise.all([ip.waitForEvent("filechooser"), ip.click("#importBtn")]);
+await ichooser.setFiles(exPath); await ip.waitForTimeout(300);
+ok(/Vocab sets: 2 new/.test(await text(ip, "#importPreview")) && /Kanji lists: 1 new/.test(await text(ip, "#importPreview")) && !/valid/.test(await text(ip, "#importPreview")),
+  "AI page: its example imports with nothing skipped", await text(ip, "#importPreview"));
+await ip.click("#importGo"); await ip.waitForTimeout(800);
+const imported = await ip.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:sets/my-japanese-week-1-weather") || "null"));
+ok(imported?.unit === "Week 1" && imported.words.length === 4 && imported.words[0].kanji === "（お）天気", "AI page: the example's sets are saved as written");
+ok(ip.errors.length === 0, "AI page import: no page errors", ip.errors.join(" | "));
+await ictx.close();
+
+// The privacy page: plain like the AI page, linked from the footer and from Settings.
+{
+  const pctx = await browser.newContext({ javaScriptEnabled: false });
+  const pp = await pctx.newPage(); await pp.setViewportSize({ width: 375, height: 900 });
+  const perr = []; pp.on("console", (m) => { if (m.type() === "error") perr.push(m.text()); });
+  const pres = await pp.goto(base + "privacy/"); await pp.waitForTimeout(300);
+  const phtml = await pres.text();
+  ok(pres.ok() && !/<script/i.test(phtml) && /<h1>Privacy Policy<\/h1>/.test(phtml) && /mailto:andever2026@gmail\.com/.test(phtml) && !/\[date/.test(phtml),
+    "privacy page: served with no scripts, a contact and a date");
+  ok((await pp.evaluate(() => document.documentElement.scrollWidth)) <= 375, "privacy page: fits a phone");
+  ok(perr.length === 0, "privacy page: no errors (fonts load, nothing blocked)", perr.join(" | "));
+  await pp.screenshot({ path: join(out, "18-privacy-phone.png"), fullPage: true });
+  await pctx.close();
+  const lctx = await browser.newContext();
+  const lp = await newPage(lctx);
+  await lp.click("#guestBtn"); await lp.waitForTimeout(400);
+  await lp.click("#settingsBtn");
+  ok(await lp.evaluate(() => { const a = document.querySelector("#privacyLink a"); return !!a && a.getAttribute("href") === "privacy/" && a.target === "_blank"; }) && await vis(lp, "#privacyLink"),
+    "settings: links to the privacy page, in a new tab");
+  await lp.click("#settingsClose");
+  ok(await vis(lp, '.foot a[href="privacy/"]'), "footer: links to the privacy page");
+  await Promise.all([lp.waitForURL("**/privacy/"), lp.click('.foot a[href="privacy/"]')]);
+  ok(/^Privacy Policy/.test(await lp.title()), "footer: the link opens the privacy page");
+  ok(lp.errors.length === 0, "privacy links: no page errors", lp.errors.join(" | "));
+  await lctx.close();
+}
+
+// ---------- 19. a downloaded copy opened straight from disk, with no internet ----------
+// The data files come as scripts (js/templates.js, js/samples.js), which a page opened from disk may load.
+{
+  const fctx = await browser.newContext();
+  const outside = [];
+  await fctx.route("**/*", (r) => { const u = r.request().url(); if (u.startsWith("file:") || u.startsWith("data:") || u.startsWith("blob:")) return r.continue(); outside.push(u); return r.abort("internetdisconnected"); });
+  const fp = await fctx.newPage();
+  await fp.setViewportSize({ width: 900, height: 1000 });
+  const ferr = [];
+  fp.on("pageerror", (e) => ferr.push(e.message));
+  fp.on("console", (m) => { if (m.type() === "error") ferr.push(m.text()); });
+  await fp.goto("file://" + join(root, "index.html")); await fp.waitForTimeout(800);
+  await fp.click("#guestBtn"); await fp.waitForTimeout(800);
+  ok(await vis(fp, '[data-set="samples-greetings"]'), "from disk: the page starts as a guest with the sample sets");
+  await fp.click('[data-set="samples-greetings"]'); await fp.click("#dir-ej"); await fp.click("#startBtn"); await fp.waitForTimeout(300);
+  const { writeWord } = await import("../checker/synth.mjs");
+  const samples = JSON.parse(readFileSync(join(root, "data/samples.json"), "utf8"));
+  const prompt = await text(fp, "#qText"), sw = samples.sets.flatMap((x) => x.words).find((x) => x.en === prompt);
+  const kana = (sw?.kana || "").replace(/（[^）]*）/g, "").split("／")[0];
+  const b = await (await fp.$("#mainPad")).boundingBox();
+  const { strokes, box } = writeWord(kana || "ねこ", 5, { boxW: b.width, boxH: b.height, level: 0.3, mouse: false, swap: 0, reverse: 0, join: 0, lateDakuten: 0 });
+  const k = Math.min(1, b.width / box.w, b.height / box.h);
+  for (const st of strokes) {
+    await fp.mouse.move(b.x + st[0][0] * k, b.y + st[0][1] * k); await fp.mouse.down();
+    for (const [x, y] of st.slice(1)) await fp.mouse.move(b.x + x * k, b.y + y * k);
+    await fp.mouse.up();
+  }
+  await fp.click("#checkBtn"); await fp.waitForTimeout(1500);
+  ok(!!sw && !(await vis(fp, "#feedback")) && !(await vis(fp, "#selfCheck")), "from disk: the built-in checker accepts a right answer", `${kana}${await vis(fp, "#feedback") ? " → " + await text(fp, "#fbReason") : ""}`);
+  ok(!outside.length, "from disk: nothing is fetched from the internet", outside.join(" "));
+  ok(!ferr.length, "from disk: no page errors", ferr.join(" | "));
+  await fctx.close();
+}
 
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");

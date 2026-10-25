@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-q82sgF3c9PTx8irrKtjq9lix5jbFp7zZvCYo3Mv5zqw=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-PiaFMxZQbTL2ebT+TNZTBlrz+CSh60WUGhwRPz6ZajQ=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -80,6 +80,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ai); outlin
 .btn:hover { border-color: var(--ai); }
 .btn.primary { background: var(--ai); border-color: var(--ai); color: var(--surface); font-weight: 700; padding: 10px 20px; }
 .btn.primary:disabled { opacity: .45; cursor: not-allowed; }
+/* A primary button beside a plain one takes the plain one's size, so the row lines up. */
+.btn:not(.primary) ~ .btn.primary, .btn.primary:has(~ .btn:not(.primary)) { padding: 8px 14px; }
 .btn.danger { color: var(--shu); }
 /* Icon tools under a writing box: Undo and Clear, then the pen / stroke eraser switch. */
 .itools { display: flex; gap: 8px; align-items: center; }
@@ -282,6 +284,7 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .chip[aria-pressed="true"] .dot.pick { color: inherit; }
 .tset { display: grid; gap: 10px; }
 .tset + .tset { border-top: 1px solid var(--line); padding-top: 10px; }
+.tset.open:not(:last-child) { padding-bottom: 14px; } /* room between an open set's buttons and the line under them */
 .tseth { margin: 0; font-size: inherit; }
 .tsethead { width: 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; background: none; border: none; padding: 4px 0; text-align: left; }
 .tsethead .t { font-size: 1.15rem; font-weight: 700; display: inline-flex; gap: 8px; align-items: baseline; flex-wrap: wrap; min-width: 0; }
@@ -311,6 +314,7 @@ td.c { text-align: center; width: 4.5rem; }
 .rowdel { background: none; border: none; color: var(--muted); font-size: 1.1rem; padding: 2px 8px; }
 .rowdel:hover { color: var(--shu); }
 .tactions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+#aiHelp a { color: var(--ai); text-underline-offset: 3px; }
 .impprev { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 8px; background: var(--sunk); }
 .impprev ul { margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
 .impprev .names { font-size: .85rem; color: var(--muted); }
@@ -355,7 +359,6 @@ td.c { text-align: center; width: 4.5rem; }
 .setedit input { background: var(--surface); }
 .setedit [data-ef="unit"], .setedit [data-kunit] { width: 8rem; }
 .setedit [data-ef="label"], .setedit [data-ef="tags"] { width: 14rem; max-width: 100%; }
-.setedit .btn.primary { padding: 8px 14px; }
 .editerr { color: var(--shu); font-size: .85rem; align-self: center; }
 .bookorder { display: grid; gap: 10px; }
 .bookorder ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
@@ -447,6 +450,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
         <p id="acctName"></p>
         <div class="tactions"><button class="btn" type="button" id="signOutBtn">Sign out</button></div>
         <p class="keyerr small" id="acctErr" hidden></p>
+        <p class="muted small" id="privacyLink"><a href="privacy/" target="_blank" rel="noopener">Privacy Policy</a></p>
       </section>
       <section id="shareSet" hidden><h3>Help train the checker</h3>
         <p class="muted small" id="shareInfo"></p>
@@ -461,6 +465,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       <section id="portPanel" hidden><h3>Export / import</h3>
         <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and courses, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
         <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
+        <p class="muted small" id="aiHelp">Have a vocab list on paper, in a photo or in a PDF? <a href="ai/" target="_blank" rel="noopener">Let your AI make the file</a>.</p>
         <p class="muted small" id="portMsg" hidden></p>
         <div class="impprev" id="importPreview" hidden></div>
       </section>
@@ -681,6 +686,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
 <footer class="foot">
   <p>Japanese Vocab Practice is free and open source under the AGPL-3.0: <a href="https://github.com/andever2026/Q-Card" rel="noopener">source code on GitHub</a>.</p>
   <p>Handwriting templates from <a href="https://kanjivg.tagaini.net" rel="noopener">KanjiVG</a> (CC BY-SA 3.0) and the Hershey fonts (Dr. A. V. Hershey, U. S. National Bureau of Standards). Kanji readings from <a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project" rel="noopener">KANJIDIC</a> (EDRDG, CC BY-SA 4.0).</p>
+  <p><a href="privacy/">Privacy Policy</a></p>
 </footer>
 <script src="js/platform.js"></script>
 
@@ -1643,20 +1649,22 @@ CORRECT: <YES or NO, matching your REASON>`;
     if (self) selfMark(self === "unmatched");
   }
   // Claude's transcription is the reliable part: when what it read is exactly the expected answer, the answer is right.
-  const norm = (s) => String(s || "").normalize("NFKC").replace(/[\s「」『』"'.,。、〜～・]/g, "");
+  // (wave: keep the 〜, for the forms the built-in checker is given)
+  const norm = (s, wave) => { const t = String(s || "").normalize("NFKC").replace(/[\s「」『』"'.,。、・]/g, ""); return wave ? t : t.replace(/[〜～]/g, ""); };
   // What each run of kanji in the class form reads as: 食べる → [た], 申し込む → [もう, こ], よう食 → [しょく].
   const KANJI = /[一-鿿々〆]/;
-  // Every way of writing the word the textbook allows: （お）てんき → おてんき, てんき; なに／なん → なに, なん; 〜さん → さん.
+  // Every way of writing the word the textbook allows: （お）てんき → おてんき, てんき; なに／なん → なに, なん; 〜さん → さん
+  // (wave: 〜さん stays 〜さん, for the built-in checker, which lets the 〜 be written or left out).
   // Kana and kanji alternatives pair up by position when their counts match (きょうし／きょういん ↔ 教師／教員), otherwise every mix counts.
-  function expand(s) {
+  function expand(s, wave) {
     return String(s || "").split(/[／/]/).filter(Boolean).map((a) => {
       const n = (a.match(/[（(][^）)]*[）)]/g) || []).length, out = [];
-      for (let m = 0; m < 1 << n; m++) { let i = 0; out.push({ m, s: a.replace(/[（(]([^）)]*)[）)]/g, (_, t) => ((m >> i++) & 1 ? t : "")).replace(/[〜～]/g, "") }); }
+      for (let m = 0; m < 1 << n; m++) { let i = 0; out.push({ m, s: a.replace(/[（(]([^）)]*)[）)]/g, (_, t) => ((m >> i++) & 1 ? t : "")).replace(/[〜～]/g, wave ? "〜" : "") }); }
       return out;
     });
   }
-  function forms(w) {
-    const ka = expand(w.kana), kj = expand(w.kanji);
+  function forms(w, wave) {
+    const ka = expand(w.kana, wave), kj = expand(w.kanji, wave);
     if (!kj.length) return ka.flat().map((k) => ({ kana: k.s, kanji: "" }));
     const alts = ka.length === kj.length ? ka.map((k, i) => [k, kj[i]]) : ka.flatMap((k) => kj.map((j) => [k, j]));
     const out = [];
@@ -1685,7 +1693,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     return { main: clean(get("MAIN")), furigana: clean(get("FURIGANA")), correct: /^(yes|true)/.test(c), reason: get("REASON") };
   }
   // Furigana that isn't part of the word's reading at all (あ over おいしい) is always wrong.
-  const hira = (s) => norm(s).replace(/[ァ-ヶ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+  const hira = (s, wave) => norm(s, wave).replace(/[ァ-ヶ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
   // Katakana only: every katakana run of one allowed form must show up as katakana in what Claude read (コーヒー, not こーひー).
   // ヘ/へ and リ/り look alike by hand, and a long ー is easily read as - or 一.
   const kataRuns = (s) => String(s || "").normalize("NFKC").match(/[ァ-ヺー]+/g) || [];
@@ -1709,7 +1717,8 @@ CORRECT: <YES or NO, matching your REASON>`;
   const isLearned = (c, set = learnedSet()) => !set || set.has(c) || c === "々" || c === "〆";
   function requiredKanji(w) { const set = learnedSet(); return [...new Set([...(w.kanji || "")].filter((c) => KANJI.test(c) && isLearned(c, set)))]; }
   // The word with every not-yet-learned kanji swapped for its reading: お茶 → おちゃ, 洋食 → よう食 when only 食 is learned. "" when it can't be worked out.
-  function learnedForm(w) { const set = learnedSet(); return mixForm(hira(w.kanji), hira(w.kana), (c) => isLearned(c, set)) || ""; }
+  // (A 〜 the form has is kept: 〜時 → 〜じ.)
+  function learnedForm(w) { const set = learnedSet(); return mixForm(hira(w.kanji, true), hira(w.kana, true), (c) => isLearned(c, set)) || ""; }
   // What a 日本語 → English question shows, following the kanji rule: kana only, only the learned kanji, or the textbook form.
   function shownJp(w) {
     if (S.mode === "kana") return w.kana || w.kanji;
@@ -1814,7 +1823,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     const ks = [...new Set([...p.kanji].filter((c) => KANJI.test(c) && c !== "々" && c !== "〆"))], out = new Set();
     if (ks.length > 8) return [];
     for (let m = 1; m < (1 << ks.length) - 1; m++) {
-      const f = mixForm(hira(p.kanji), hira(p.kana), (c) => ks.some((k, i) => k === c && (m >> i) & 1));
+      const f = mixForm(hira(p.kanji, true), hira(p.kana, true), (c) => ks.some((k, i) => k === c && (m >> i) & 1));
       if (f) out.add(f);
     }
     return [...out];
@@ -2440,7 +2449,7 @@ CORRECT: <YES or NO, matching your REASON>`;
           <label>Tags (optional)<input data-ef="tags" value="${esc(ev.tags)}" placeholder="Verbs, Quiz 3"></label>
           <button class="btn primary" type="submit">Save details</button><button class="btn" type="button" data-editcancel>Cancel</button><span class="editerr" data-editerr></span>
         </form>` : "";
-      return `<div class="tset" data-sid="${esc(s.id)}">
+      return `<div class="tset open" data-sid="${esc(s.id)}">
         ${head}${edit}
         <div class="tscroll"><table><thead><tr><th>English</th><th>Kana</th><th>Kanji</th>${canWrite ? "<th></th>" : ""}</tr></thead><tbody>${rows}</tbody></table></div>
         ${canWrite ? `<div class="tactions"><button class="btn" data-add>Add word</button><button class="btn primary" data-save ${dirty ? "" : "disabled"}>Save</button>${dirty ? `<button class="link" data-discard>Discard</button>` : ""}
@@ -2633,12 +2642,25 @@ CORRECT: <YES or NO, matching your REASON>`;
     renderImport();
   };
 
+  // ---------- public site: data files ----------
+  // data/<name>.json comes as the script js/<name>.js (made by tools/build.mjs), which leaves it in window.QCardData:
+  // a page opened straight from disk may load scripts, though not fetch files, so the site works offline that way too.
+  function dataFile(name) {
+    return new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = `js/${name}.js`;
+      s.onload = () => { const d = window.QCardData?.[name]; if (d) delete window.QCardData[name]; s.remove(); d ? res(d) : rej(new Error(name)); };
+      s.onerror = () => { s.remove(); rej(new Error(name)); };
+      document.head.append(s);
+    });
+  }
+
   // ---------- public site: sample sets ----------
   // A new visitor starts with the sets in data/samples.json (written for this site, not from a textbook), so there's
   // something to practice before learning the vocab table. They're ordinary sets in their own collection. meta/samples
   // records that they were offered, so they never come back on their own once removed.
   const SAMPLE_COL = "Sample sets", isSample = (x) => colOf(x) === SAMPLE_COL;
-  const sampleFile = async () => { const res = await fetch("data/samples.json"); if (!res.ok) throw new Error("samples " + res.status); return res.json(); };
+  const sampleFile = () => dataFile("samples");
   // All at once: over a slow connection, one write after another kept a new account empty for several seconds.
   async function addSamples(file) {
     file = await (file || sampleFile());
@@ -2690,17 +2712,17 @@ CORRECT: <YES or NO, matching your REASON>`;
   // the answer, so it only has to decide "is this one of these?", never read arbitrary writing.
   let templates = null;
   function loadTemplates() {
-    templates ||= fetch("data/templates.json")
-      .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    templates ||= dataFile("templates")
       .then((j) => window.QCardChecker.init(j))
       .catch(() => { templates = null; throw { code: "tpl_load" }; });
     return templates;
   }
   const strokesOf = (pad) => pad.strokes.filter((s) => s.length).map((s) => s.map(([x, y]) => [x, y]));
   // Main-box answers the page would accept with no furigana (Force kanji and Katakana only rules included).
+  // A 〜 the set shows stays in, and the checker lets it be written or left out (〜さん: 〜さん or さん).
   function mainCands(w) {
     const out = new Set();
-    for (const p of forms(w)) {
+    for (const p of forms(w, true)) {
       out.add(p.kana);
       if (KANJI.test(p.kanji)) for (const m of [p.kanji, learnedForm(p), ...kanjiMixes(p)]) if (m) out.add(m);
     }
