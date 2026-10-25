@@ -1,3 +1,6 @@
+Apologizes for the readme -- I have not modified anything here yet. Will do at a later date. 
+I doubt there's any one pulling this stuff to use atm. If you do, Claude's Building instruction should do ok for now. 
+
 # Q-Card: Japanese Vocab Practice
 
 Japanese Vocab Practice (this repository: Q-Card) is a flashcard site for Japanese vocabulary that checks your handwriting. You see a word, write the answer by hand (finger, Apple Pencil or mouse), and the site tells you whether you got it right. Only Japanese is supported at the moment.
