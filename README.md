@@ -42,7 +42,9 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 | `data/templates.json` | Stroke templates for the checker, generated from KanjiVG and the Hershey fonts (`tools/checker/hershey-latin.json`) by `tools/make-templates.mjs`. |
 | `fonts/` | The page's fonts, served from the site itself so visitors never contact Google Fonts. `tools/fetch-fonts.mjs` refreshes them. |
 | `tools/build.mjs` | Builds `index.html` and `js/*.js` (the site) and `build/claude-ai.html` (the claude.ai copy). |
-| `index.html`, `js/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus a beta build of the `beta` branch. |
+| `ai/index.html`, `llms.txt` | The page people give to their AI assistant to make an import file (see Vocab files), written by hand with no scripts, and a short pointer to it for AI tools. |
+| `privacy/index.html` | The privacy policy, a plain page with no scripts, linked from the footer and from Settings. Its git history is the list of changes to it. |
+| `index.html`, `js/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus a beta build of the `beta` branch. `js/templates.js` and `js/samples.js` are the two data files above as scripts, which a page opened straight from disk may load (it can't fetch files), so a downloaded copy works offline as a guest by opening `index.html`. |
 | `test/` | Browser tests for the public site (`test/public` with a fake Firebase, `test/emulator` with the real one on the Firebase emulators) and the checker's accuracy tests (`test/checker`). |
 
 ### Building
@@ -111,6 +113,8 @@ Export and Import use one JSON file:
 Import adds new sets and replaces ones with the same `id`; it never deletes. `collections.order` is the order collections are studied in, and `courses` (optional) gather ranges of units into rows of their own. Files exported before units existed (`book`, a numbered `chapter`, `section` and `label`) still import: chapter 3 becomes unit "Ch. 3" and section A with label Greetings becomes the set name "A · Greetings". `tags` is optional (up to 12 per set, matched without case). `kana` and `kanji` may list alternatives with `／` and optional parts in `（）`, like `（お）てんき`. See `test/public/fixtures/sample-export.json`.
 
 Please don't share files copied from copyrighted textbooks publicly.
+
+[`ai/`](https://andever2026.github.io/Q-Card/ai/) is a plain page people can give to their AI assistant along with their vocab list: it explains this format to the assistant (in a folded "For AI assistants" section) so it can make the file for them. `llms.txt` points AI tools to it. Settings links to it beside Import.
 
 ## Credits and licenses
 

@@ -1,18 +1,20 @@
   // Claude's transcription is the reliable part: when what it read is exactly the expected answer, the answer is right.
-  const norm = (s) => String(s || "").normalize("NFKC").replace(/[\s「」『』"'.,。、〜～・]/g, "");
+  // (wave: keep the 〜, for the forms the built-in checker is given)
+  const norm = (s, wave) => { const t = String(s || "").normalize("NFKC").replace(/[\s「」『』"'.,。、・]/g, ""); return wave ? t : t.replace(/[〜～]/g, ""); };
   // What each run of kanji in the class form reads as: 食べる → [た], 申し込む → [もう, こ], よう食 → [しょく].
   const KANJI = /[一-鿿々〆]/;
-  // Every way of writing the word the textbook allows: （お）てんき → おてんき, てんき; なに／なん → なに, なん; 〜さん → さん.
+  // Every way of writing the word the textbook allows: （お）てんき → おてんき, てんき; なに／なん → なに, なん; 〜さん → さん
+  // (wave: 〜さん stays 〜さん, for the built-in checker, which lets the 〜 be written or left out).
   // Kana and kanji alternatives pair up by position when their counts match (きょうし／きょういん ↔ 教師／教員), otherwise every mix counts.
-  function expand(s) {
+  function expand(s, wave) {
     return String(s || "").split(/[／/]/).filter(Boolean).map((a) => {
       const n = (a.match(/[（(][^）)]*[）)]/g) || []).length, out = [];
-      for (let m = 0; m < 1 << n; m++) { let i = 0; out.push({ m, s: a.replace(/[（(]([^）)]*)[）)]/g, (_, t) => ((m >> i++) & 1 ? t : "")).replace(/[〜～]/g, "") }); }
+      for (let m = 0; m < 1 << n; m++) { let i = 0; out.push({ m, s: a.replace(/[（(]([^）)]*)[）)]/g, (_, t) => ((m >> i++) & 1 ? t : "")).replace(/[〜～]/g, wave ? "〜" : "") }); }
       return out;
     });
   }
-  function forms(w) {
-    const ka = expand(w.kana), kj = expand(w.kanji);
+  function forms(w, wave) {
+    const ka = expand(w.kana, wave), kj = expand(w.kanji, wave);
     if (!kj.length) return ka.flat().map((k) => ({ kana: k.s, kanji: "" }));
     const alts = ka.length === kj.length ? ka.map((k, i) => [k, kj[i]]) : ka.flatMap((k) => kj.map((j) => [k, j]));
     const out = [];
@@ -41,7 +43,7 @@
     return { main: clean(get("MAIN")), furigana: clean(get("FURIGANA")), correct: /^(yes|true)/.test(c), reason: get("REASON") };
   }
   // Furigana that isn't part of the word's reading at all (あ over おいしい) is always wrong.
-  const hira = (s) => norm(s).replace(/[ァ-ヶ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+  const hira = (s, wave) => norm(s, wave).replace(/[ァ-ヶ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
   // Katakana only: every katakana run of one allowed form must show up as katakana in what Claude read (コーヒー, not こーひー).
   // ヘ/へ and リ/り look alike by hand, and a long ー is easily read as - or 一.
   const kataRuns = (s) => String(s || "").normalize("NFKC").match(/[ァ-ヺー]+/g) || [];
@@ -65,7 +67,8 @@
   const isLearned = (c, set = learnedSet()) => !set || set.has(c) || c === "々" || c === "〆";
   function requiredKanji(w) { const set = learnedSet(); return [...new Set([...(w.kanji || "")].filter((c) => KANJI.test(c) && isLearned(c, set)))]; }
   // The word with every not-yet-learned kanji swapped for its reading: お茶 → おちゃ, 洋食 → よう食 when only 食 is learned. "" when it can't be worked out.
-  function learnedForm(w) { const set = learnedSet(); return mixForm(hira(w.kanji), hira(w.kana), (c) => isLearned(c, set)) || ""; }
+  // (A 〜 the form has is kept: 〜時 → 〜じ.)
+  function learnedForm(w) { const set = learnedSet(); return mixForm(hira(w.kanji, true), hira(w.kana, true), (c) => isLearned(c, set)) || ""; }
   // What a 日本語 → English question shows, following the kanji rule: kana only, only the learned kanji, or the textbook form.
   function shownJp(w) {
     if (S.mode === "kana") return w.kana || w.kanji;
@@ -170,7 +173,7 @@
     const ks = [...new Set([...p.kanji].filter((c) => KANJI.test(c) && c !== "々" && c !== "〆"))], out = new Set();
     if (ks.length > 8) return [];
     for (let m = 1; m < (1 << ks.length) - 1; m++) {
-      const f = mixForm(hira(p.kanji), hira(p.kana), (c) => ks.some((k, i) => k === c && (m >> i) & 1));
+      const f = mixForm(hira(p.kanji, true), hira(p.kana, true), (c) => ks.some((k, i) => k === c && (m >> i) & 1));
       if (f) out.add(f);
     }
     return [...out];

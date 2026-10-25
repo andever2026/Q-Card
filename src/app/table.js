@@ -225,7 +225,7 @@
           <label>Tags (optional)<input data-ef="tags" value="${esc(ev.tags)}" placeholder="Verbs, Quiz 3"></label>
           <button class="btn primary" type="submit">Save details</button><button class="btn" type="button" data-editcancel>Cancel</button><span class="editerr" data-editerr></span>
         </form>` : "";
-      return `<div class="tset" data-sid="${esc(s.id)}">
+      return `<div class="tset open" data-sid="${esc(s.id)}">
         ${head}${edit}
         <div class="tscroll"><table><thead><tr><th>English</th><th>Kana</th><th>Kanji</th>${canWrite ? "<th></th>" : ""}</tr></thead><tbody>${rows}</tbody></table></div>
         ${canWrite ? `<div class="tactions"><button class="btn" data-add>Add word</button><button class="btn primary" data-save ${dirty ? "" : "disabled"}>Save</button>${dirty ? `<button class="link" data-discard>Discard</button>` : ""}

@@ -1,5 +1,7 @@
 // Builds both versions of the page from src/app.html and the files it includes from src/app/:
 //   index.html, js/*.js           the public site (GitHub Pages): Google sign-in, Firestore, built-in checker
+//                                 (js/templates.js and js/samples.js are data/*.json as scripts: a page opened straight
+//                                 from disk may load scripts, though not fetch files, so the site works offline that way too)
 //   build/claude-ai.html          the claude.ai artifact (Annie's own copy, using claude.ai's database and Claude)
 // src/app.html is the page's markup. A line that is only an include marker is replaced by that file from src/, as is:
 //   /*#include app/styles.css*/   //#include app/core.js
@@ -93,12 +95,19 @@ function toBeta(text, file) {
   return page;
 }
 const variant = (text, file) => (beta ? toBeta(text, file) : text);
+// data/<name>.json as js/<name>.js, which leaves it in window.QCardData[name] for the page to pick up (see dataFile in public.js).
+const dataScript = (name) => ({
+  [`js/${name}.js`]: `// Made by tools/build.mjs from data/${name}.json; edit that file instead.\n` +
+    `(window.QCardData = window.QCardData || {})[${JSON.stringify(name)}] = ${JSON.stringify(JSON.parse(readFileSync(at(`data/${name}.json`), "utf8")))};\n`,
+});
 
 const src = expand("src/app.html");
 const page = variant(preprocess(src, "public"), "index.html");
 const files = {
   "index.html": page.replace("<!--CSP-->", () => `<meta http-equiv="Content-Security-Policy" content="${csp(page)}">`),
   "js/platform.js": variant(await bundle(["src/platform/firebase.js", ...(existsSync(at("src/checker.js")) ? ["src/checker.js"] : [])]), "js/platform.js"),
+  ...dataScript("templates"),
+  ...dataScript("samples"),
 };
 
 if (check && beta) throw new Error("--check is for the committed files; the beta build is never committed");
