@@ -873,6 +873,52 @@ await ictx.close();
   await fctx.close();
 }
 
+// ---------- 20. the scratch pad takes a pencil's strokes whole ----------
+// Pen strokes dispatched as the page sees them from an Apple Pencil: many points per stroke, and a pointerup that
+// goes astray. Nothing may be dropped, and a stroke left open must not shut the box for the strokes after it.
+{
+  const sctx = await browser.newContext();
+  const sp = await newPage(sctx);
+  await sp.click("#guestBtn"); await sp.waitForTimeout(400);
+  await sp.click('[data-set="samples-greetings"]'); await sp.click("#dir-je"); await sp.click("#startBtn"); await sp.waitForTimeout(300);
+  await scribble(sp); await sp.click("#checkBtn"); await sp.waitForTimeout(400);
+  await sp.click("#selfMiss"); await sp.waitForTimeout(400);
+  ok(await vis(sp, "#scratchPad"), "scratch pad: shows after marking a word missed");
+  // Draws one horizontal pen stroke across the pad at the given height, in `pts` moves; `drop` leaves the pointerup out.
+  const penStroke = (id, atY, { drop = false } = {}) => sp.evaluate(([id, atY, drop]) => {
+    const c = document.querySelector("#scratchPad"), r = c.getBoundingClientRect();
+    const send = (type, x, y, buttons) => c.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: id, pointerType: "pen", isPrimary: true, buttons, pressure: buttons ? 0.5 : 0, clientX: r.left + x, clientY: r.top + y }));
+    const y = r.height * atY, x0 = r.width * 0.1, x1 = r.width * 0.9;
+    send("pointerdown", x0, y, 1);
+    for (let i = 1; i <= 40; i++) send("pointermove", x0 + ((x1 - x0) * i) / 40, y, 1);
+    if (!drop) send("pointerup", x1, y, 0);
+    return { x0, x1 };
+  }, [id, atY, drop]);
+  // Ink in a horizontal band of the pad: how many pixels, and how far across they run.
+  const ink = (atY) => sp.evaluate((atY) => {
+    const c = document.querySelector("#scratchPad"), d = window.devicePixelRatio || 1;
+    const y = Math.round(c.height * atY), h = Math.round(12 * d);
+    const px = c.getContext("2d").getImageData(0, Math.max(0, y - h), c.width, h * 2).data;
+    let n = 0, x0 = c.width, x1 = 0;
+    for (let i = 3; i < px.length; i += 4) if (px[i] > 10) { const x = ((i - 3) / 4) % c.width; n++; if (x < x0) x0 = x; if (x > x1) x1 = x; }
+    return { n, span: (x1 - x0) / c.width };
+  }, atY);
+  const one = await penStroke(7, 0.25);
+  const firstInk = await ink(0.25);
+  ok(firstInk.n > 0 && firstInk.span > 0.7, "scratch pad: a pencil stroke is drawn the whole way across", JSON.stringify(firstInk));
+  await penStroke(8, 0.5, { drop: true }); // this one's pointerup never arrives
+  await penStroke(9, 0.75);
+  const afterInk = await ink(0.75);
+  ok(afterInk.n > 0 && afterInk.span > 0.7, "scratch pad: a stroke whose pointerup is lost doesn't stop the next one", JSON.stringify(afterInk));
+  await sp.click("#scratchUndo"); await sp.waitForTimeout(150);
+  ok((await ink(0.75)).n === 0 && (await ink(0.25)).n > 0, "scratch pad: Undo removes the last stroke and keeps the rest");
+  await sp.click("#scratchClear"); await sp.waitForTimeout(150);
+  ok((await ink(0.25)).n === 0, "scratch pad: Clear empties it");
+  ok(sp.errors.length === 0, "scratch pad: no page errors", sp.errors.join(" | "));
+  await sp.screenshot({ path: join(out, "20-scratch-pad.png") });
+  await sctx.close();
+}
+
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");
 process.exit(failures ? 1 : 0);

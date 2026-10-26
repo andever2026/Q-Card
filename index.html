@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-PiaFMxZQbTL2ebT+TNZTBlrz+CSh60WUGhwRPz6ZajQ=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-tAeST52VBBNJRF5sgryUvW/KaN9Ok+3IIRtP0dcqNQk=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -800,6 +800,9 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
   // of pointer. Only shared handwriting (see share.js) uses them.
   const stamp = (st, ev) => { st.ts.push(Math.round(ev.timeStamp - st.t0)); st.fs.push(Math.round((ev.pressure || 0) * 100) / 100); };
   const startStroke = (st, t0, dev) => Object.assign(st, { t0, dev, ts: [], fs: [] });
+  // Every point the pointer passed through since the last event. Safari sometimes hands back an empty list, which would
+  // drop the whole move, so the event itself stands in for it then.
+  const coalesced = (e) => { const c = e.getCoalescedEvents ? e.getCoalescedEvents() : []; return c.length ? c : [e]; };
   class Pad {
     constructor(canvas, kind) {
       this.c = canvas; this.kind = kind; this.strokes = []; this.cur = null; this.onChange = () => {};
@@ -809,6 +812,9 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       ["pointerup", "pointercancel"].forEach((t) => canvas.addEventListener(t, (e) => (active.get(e.pointerId) || this).up(e)));
       // Leaving the box a stroke has already moved out of doesn't end it.
       canvas.addEventListener("pointerleave", (e) => { if (!active.has(e.pointerId) || active.get(e.pointerId) === this) this.up(e); });
+      // The box keeps the pointer until the stroke ends; losing it any other way ends the stroke, so a pointerup
+      // that never arrives can't leave the box refusing every stroke after it.
+      canvas.addEventListener("lostpointercapture", (e) => { if (this.cur && e.pointerId === this.curId) this.endCur(); });
       // iOS Safari still starts text selection and the loupe from touches (Apple Pencil included) unless the touch events themselves are cancelled.
       ["touchstart", "touchmove"].forEach((t) => canvas.addEventListener(t, (e) => e.preventDefault(), { passive: false }));
       new ResizeObserver(() => this.resize()).observe(canvas);
@@ -820,26 +826,33 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
         // A palm that landed just before the pencil already started a stroke: drop it.
         for (const p of pads) if (p.cur && p.curType === "touch") p.dropCur();
       } else if (e.pointerType === "touch" && (penDown || performance.now() - penAt < PALM_MS)) return;
+      // There is only ever one pencil, so a pen stroke still open when another starts never got its pointerup
+      // (iPadOS loses one now and then): end it rather than turn the new stroke away.
+      if (this.cur && e.pointerType === "pen" && this.curType === "pen" && e.pointerId !== this.curId) this.endCur();
       if (this.cur || eraseG) return; // one stroke at a time per box
       e.preventDefault();
-      this.c.setPointerCapture(e.pointerId);
+      try { this.c.setPointerCapture(e.pointerId); } catch {} // a pointer already gone would throw and lose the stroke
       // Eraser mode, or a stylus's own eraser end (buttons bit 32), removes whole strokes instead of drawing.
       if (erasing || (e.pointerType === "pen" && e.buttons & 32)) { eraseG = { id: e.pointerId, erased: [] }; eraseAt(e); return; }
       this.curType = e.pointerType; this.curId = e.pointerId; active.set(e.pointerId, this);
+      this.ink = cssVar("--ink"); // read once a stroke, not once a point
       this.cur = [this.pt(e)]; this.cur.gid = ++gidSeq;
       startStroke(this.cur, e.timeStamp, e.pointerType); stamp(this.cur, e);
       this.strokes.push(this.cur);
       history.push({ gid: this.cur.gid });
-      this.draw();
+      this.tail(0);
     }
     move(e) {
       if (e.pointerType === "pen") penAt = performance.now();
-      if (eraseG && e.pointerId === eraseG.id) { for (const ev of e.getCoalescedEvents ? e.getCoalescedEvents() : [e]) eraseAt(ev); return; }
+      if (eraseG && e.pointerId === eraseG.id) { for (const ev of coalesced(e)) eraseAt(ev); return; }
       if (!this.cur || e.pointerId !== this.curId) return;
-      const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
-      let pad = this;
-      for (const ev of evs) { pad = pad.handoff(ev); pad.cur.push(pad.pt(ev)); stamp(pad.cur, ev); }
-      pad.draw();
+      let pad = this, from = pad.cur.length;
+      for (const ev of coalesced(e)) {
+        const to = pad.handoff(ev);
+        if (to !== pad) { pad = to; from = 0; }
+        pad.cur.push(pad.pt(ev)); stamp(pad.cur, ev);
+      }
+      pad.tail(from);
     }
     // A stroke that crosses into the other box (furigana ↔ answer) carries on there as a new stroke in that box.
     handoff(ev) {
@@ -850,7 +863,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       const id = this.curId, type = this.curType, gid = this.cur.gid, t0 = this.cur.t0;
       this.cur = null; this.draw(); this.onChange();
       try { to.c.setPointerCapture(id); } catch {}
-      to.curType = type; to.curId = id; to.cur = startStroke([], t0, type); to.cur.gid = gid; active.set(id, to); // same gid: Undo and the eraser treat both parts as one stroke
+      to.curType = type; to.curId = id; to.ink = this.ink; to.cur = startStroke([], t0, type); to.cur.gid = gid; active.set(id, to); // same gid: Undo and the eraser treat both parts as one stroke
       to.strokes.push(to.cur);
       return to;
     }
@@ -858,8 +871,9 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       if (e?.pointerType === "pen") { penDown = false; penAt = performance.now(); }
       if (eraseG && (!e || e.pointerId === eraseG.id)) { if (eraseG.erased.length) history.push({ erased: eraseG.erased }); eraseG = null; return; }
       if (!this.cur || (e && e.pointerId !== this.curId)) return;
-      active.delete(this.curId); this.cur = null; this.onChange();
+      this.endCur();
     }
+    endCur() { if (!this.cur) return; active.delete(this.curId); this.cur = null; this.onChange(); }
     dropCur() {
       const i = this.strokes.lastIndexOf(this.cur);
       if (i >= 0) this.strokes.splice(i, 1);
@@ -876,17 +890,30 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       this.ctx.setTransform(d, 0, 0, d, 0, 0);
       this.draw();
     }
+    // One stroke, from the point at `from` onwards. Starting partway in, the line begins at the midpoint before it,
+    // which is where the curve through the whole stroke passes, so a piece drawn on its own lands exactly on the rest.
+    line(ctx, s, scale, from) {
+      if (s.length === 1) { ctx.beginPath(); ctx.arc(s[0][0] * scale, s[0][1] * scale, ctx.lineWidth / 2, 0, 7); ctx.fill(); return; }
+      const mid = (a, b, k) => ((a[k] + b[k]) / 2) * scale;
+      ctx.beginPath();
+      if (from > 0) ctx.moveTo(mid(s[from - 1], s[from], 0), mid(s[from - 1], s[from], 1));
+      else ctx.moveTo(s[0][0] * scale, s[0][1] * scale);
+      for (let i = Math.max(1, from); i < s.length - 1; i++) ctx.quadraticCurveTo(s[i][0] * scale, s[i][1] * scale, mid(s[i], s[i + 1], 0), mid(s[i], s[i + 1], 1));
+      const l = s[s.length - 1]; ctx.lineTo(l[0] * scale, l[1] * scale); ctx.stroke();
+    }
     paint(ctx, color, scale) {
       ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.lineWidth = this.lw() * scale;
-      for (const s of this.strokes) {
-        if (s.length === 1) { ctx.beginPath(); ctx.arc(s[0][0] * scale, s[0][1] * scale, ctx.lineWidth / 2, 0, 7); ctx.fill(); continue; }
-        ctx.beginPath(); ctx.moveTo(s[0][0] * scale, s[0][1] * scale);
-        for (let i = 1; i < s.length - 1; i++) {
-          const mx = (s[i][0] + s[i + 1][0]) / 2, my = (s[i][1] + s[i + 1][1]) / 2;
-          ctx.quadraticCurveTo(s[i][0] * scale, s[i][1] * scale, mx * scale, my * scale);
-        }
-        const l = s[s.length - 1]; ctx.lineTo(l[0] * scale, l[1] * scale); ctx.stroke();
-      }
+      for (const s of this.strokes) this.line(ctx, s, scale, 0);
+      ctx.restore();
+    }
+    // Only the newest piece of the stroke being written, painted over what is already there. Repainting every stroke on
+    // every move left the scratch pad (the biggest box, and the one that fills up) behind an Apple Pencil's stream of
+    // points, and points arriving faster than they were drawn went missing.
+    tail(from) {
+      if (!this.w || !this.cur) return;
+      const ctx = this.ctx;
+      ctx.save(); ctx.strokeStyle = ctx.fillStyle = this.ink || cssVar("--ink"); ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.lineWidth = this.lw();
+      this.line(ctx, this.cur, 1, Math.max(0, Math.min(from, this.cur.length - 1) - 2));
       ctx.restore();
     }
     draw() {
