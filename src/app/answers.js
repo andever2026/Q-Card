@@ -40,7 +40,9 @@
     const c = get("CORRECT").toLowerCase();
     if (!/^(yes|no|true|false)/.test(c)) throw { code: "invalid_json" };
     const clean = (s) => { s = s.replace(/^[「"']+|[」"']+$/g, "").trim(); return /^(none|empty|n\/a|-)?$/i.test(s) ? "" : s; };
-    return { main: clean(get("MAIN")), furigana: clean(get("FURIGANA")), correct: /^(yes|true)/.test(c), reason: get("REASON") };
+    // Claude sometimes notes where each reading sits ("あめ (above 雨), すく (above 少)"); only the kana are what was written.
+    const kanaOnly = (s) => s.replace(/[（(][^）)]*[）)]/g, " ").replace(/[^\u3040-\u30ff／/]+/g, " ").replace(/\s+/g, " ").trim();
+    return { main: clean(get("MAIN")), furigana: kanaOnly(clean(get("FURIGANA"))), correct: /^(yes|true)/.test(c), reason: get("REASON") };
   }
   // Furigana that isn't part of the word's reading at all (あ over おいしい) is always wrong.
   const hira = (s, wave) => norm(s, wave).replace(/[ァ-ヶ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));

@@ -165,7 +165,7 @@ Read the handwriting, then judge from what you read. The student writes with a f
 Grading rule: ${rulesFor(w)}
 Reply in exactly this format, four lines, nothing else:
 MAIN: <exactly what you read in the main box>
-FURIGANA: <what you read in the furigana strip, or NONE>
+FURIGANA: <only the kana you read in the furigana strip, left to right, a space between groups; or NONE>
 REASON: <one short English sentence; if wrong, name the exact mistake>
 CORRECT: <YES or NO, matching your REASON>`;
   }
