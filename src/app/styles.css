@@ -241,6 +241,7 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .answer rt { font-size: .38em; color: var(--muted); font-weight: 400; }
 .read { font-size: .9rem; color: var(--muted); }
 .read q { font-family: var(--font-jp); color: var(--ink); quotes: "「" "」"; }
+.read.live { margin: 8px 2px 0; }
 .fbfoot { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .err { color: var(--shu); font-size: .9rem; }
 

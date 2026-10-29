@@ -960,6 +960,8 @@
     const chars = [], sizes = [];
     let text = "", allOk = true;
     const views = seg.groups.map((g) => (g ? groupView(S, g) : null));
+    // where each character's strokes are, in the input's coordinates
+    const boxOf = (ids) => { const f = frameOf(ids.map((id) => S[id].bb)); return [f.x0, f.y0, f.x1, f.y1].map((v) => Math.round(v * 10) / 10); };
     // line em from the characters' sizes, to spot a group that is far too wide (an extra character merged in)
     const ems = [];
     P.forEach((p, k) => { if (views[k] && !p.optional && p.ch !== "ー") { const [sz] = expectedBox(p.opts[0]); if (sz >= 0.25) ems.push(views[k].f.s / sz); } });
@@ -999,10 +1001,11 @@
       const got = why === "shape" ? j.other && letterOf(j.other) : why === "small" ? SMALL2LARGE.get(ch) : why === "large" ? LARGE2SMALL.get(ch) : null;
       const c = why ? { ch: p.ch, ok: false, why } : { ch, ok: true, why: null };
       if (got) c.got = got;
+      c.box = boxOf(G.ids);
       if (dbg) Object.assign(c, { cost: +j.cost.toFixed(3), other: j.other, otherCost: +j.otherCost.toFixed(3) }, line && j.ch ? { pl: +placement(G, getT(j.ch), line).toFixed(3), wr: +(G.f.w / line.hx).toFixed(2), tw: getT(j.ch).zw } : {});
       chars.push(c);
     });
-    if (seg.extra.length) { chars.push({ ch: "", ok: false, why: "extra" }); allOk = false; }
+    if (seg.extra.length) { chars.push({ ch: "", ok: false, why: "extra", box: boxOf(seg.extra) }); allOk = false; }
     const out = { ok: allOk, text, chars, score: seg.cost };
     if (dbg) Object.assign(out, { groups: seg.groups, extra: seg.extra, size: sizes, line });
     return out;

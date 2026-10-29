@@ -118,19 +118,60 @@
     const res = C.verify({ strokes: strokesOf(main), candidates: mainCands(w), box: { w: main.w, h: main.h }, anyKana: S.mode !== "kata" });
     if (res.ok === null) return null;
     const r = { main: res.ok ? res.text : readOf(res), furigana: !fr ? "" : fr.ok ? fr.text : readOf(fr), reason: "" };
-    if (!res.ok) return { ok: false, r: { ...r, reason: whyNot(res) } };
-    if (hasFuri && !fc.length) return { ok: false, r: { ...r, reason: "This word has no kanji, so it needs no furigana." } };
-    if (fr && !fr.ok) return { ok: false, r: { ...r, reason: "The furigana doesn't match the reading of this word." } };
+    const chars = { main: res.chars, furi: fr?.chars };
+    if (!res.ok) return { ok: false, r: { ...r, reason: whyNot(res) }, chars };
+    if (hasFuri && !fc.length) return { ok: false, r: { ...r, reason: "This word has no kanji, so it needs no furigana." }, chars };
+    if (fr && !fr.ok) return { ok: false, r: { ...r, reason: "The furigana doesn't match the reading of this word." }, chars };
     const ok = readMatches(w, r) && !badFuri(w, r);
     if (!ok) r.reason = "Furigana goes only over kanji you wrote, as their reading.";
-    return { ok, r };
+    return { ok, r, chars };
   }
   // 日本語 → English: the meaning in any of the ways it may be written (englishAnswers). null when the checker can't read it.
   async function englishCheck(w) {
     await loadTemplates();
     const res = window.QCardChecker.verify({ strokes: strokesOf(main), candidates: window.QCardChecker.englishAnswers(w.en), box: { w: main.w, h: main.h }, latin: true });
-    return res.ok === null ? null : { ok: res.ok, r: { main: res.text, furigana: "", reason: "" } };
+    return res.ok === null ? null : { ok: res.ok, r: { main: res.ok ? res.text : readOf(res), furigana: "", reason: "" }, chars: { main: res.chars } };
   }
+  // Developer tools (Settings), each off until turned on, in this browser:
+  // - "Show what the checker reads as I write": a moment after each stroke, the reading the Check button would get,
+  //   under the answer box, with the time the check took (it tells you before Check, so it's never on by default).
+  // - "Show character boxes": a box around each character the checker found, after Check and with the live reading.
+  let liveTimer = 0;
+  const liveOn = () => !!store.get("liveRead", false), boxesOn = () => !!store.get("charBoxes", false);
+  function showBoxes(res) {
+    for (const [p, chars] of [[main, res?.chars?.main], [furi, res?.chars?.furi]]) {
+      if (!boxesOn() && !p.marks) continue;
+      p.marks = boxesOn() && chars ? chars.filter((c) => c.box).map((c) => ({ box: c.box, ok: c.ok, label: c.ok ? c.ch : c.got || "？" })) : null;
+      p.draw();
+    }
+  }
+  function liveRead() {
+    clearTimeout(liveTimer);
+    const el = $("#liveRead");
+    if (!liveOn() || !Q.cur || Q.answered || Q.busy || main.empty) { el.hidden = true; return; }
+    liveTimer = setTimeout(async () => {
+      if (main.cur || furi.cur) return liveRead(); // not while a stroke is being drawn
+      const cur = Q.cur, { w, dir } = cur;
+      try {
+        await loadTemplates();
+        const t0 = performance.now();
+        const res = dir === "je" ? await englishCheck(w) : await builtinCheck(w, dir === "ej" && !furi.empty);
+        const ms = Math.round(performance.now() - t0);
+        if (Q.cur !== cur || Q.answered || Q.busy || main.empty) return;
+        const r = res?.r || {}, read = [r.furigana ? `furigana 「${r.furigana}」` : "", r.main ? `「${r.main}」` : ""].filter(Boolean).join(" over ");
+        const verdict = !res ? "it can't check this word" : res.ok ? "would pass" : dir === "je" ? "you'd mark it yourself" : "would fail" + (r.reason ? `: ${r.reason}` : "");
+        el.textContent = `Reads ${read || "nothing"} · ${verdict} · ${ms} ms`;
+        el.hidden = false;
+        showBoxes(res);
+      } catch { el.hidden = true; }
+    }, 250);
+  }
+  // new ink: the boxes from the last reading no longer fit it
+  for (const p of [main, furi]) { const was = p.onChange; p.onChange = () => { was(); if (p.marks) { p.marks = null; p.draw(); } liveRead(); }; }
+  $("#liveReadOn").checked = liveOn();
+  $("#liveReadOn").onchange = (e) => { store.set("liveRead", e.target.checked); liveRead(); };
+  $("#charBoxesOn").checked = boxesOn();
+  $("#charBoxesOn").onchange = (e) => store.set("charBoxes", e.target.checked);
   // 日本語 → English answers the checker couldn't match (unmatched), and words it can't read, are marked by the student.
   function selfMark(unmatched) {
     const { w, dir } = Q.cur;
