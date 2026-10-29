@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-RkCHWYdQPVxItKTY6MC/CtlsMgO2fSJCJK6NaZyGKts=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-0n1iHZVpbrKJTcLALUkYnE/nrWpXEGyr/w8E0NurU1E=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -1879,7 +1879,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     nb.hidden = !need.length || need.length === [...new Set([...w.kanji].filter((c) => KANJI.test(c)))].length;
     nb.innerHTML = nb.hidden ? "" : `Must be kanji here: <b>${esc(need.join("、"))}</b>. The rest can be kana.`;
     const read = [r?.furigana ? `furigana 「${r.furigana}」` : "", r?.main ? `「${r.main}」` : ""].filter(Boolean);
-    $("#fbRead").innerHTML = read.length ? "Read as: " + read.map(esc).join(" over ") : "";
+    $("#fbRead").innerHTML = read.length ? "The checker read: " + read.map(esc).join(" over ") : "";
     $("#feedback").hidden = false; $("#overrideBtn").hidden = false; setErasing(false);
     requestAnimationFrame(() => { scratch.resize(); $("#feedback").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); });
   }
@@ -2778,22 +2778,22 @@ CORRECT: <YES or NO, matching your REASON>`;
     if (c.why === "extra") return "There's extra writing at the end.";
     return bad.length > 1 ? `${bad.length} characters don't match, starting with the ${nth(c.i + 1)} (「${c.ch}」).` : `The ${nth(c.i + 1)} character doesn't look like 「${c.ch}」.`;
   }
+  // What the checker read, for "The checker read": each character that matched, its best guess for one that didn't
+  // (？ when it has none) and nothing for a missing one.
+  const readOf = (res) => (res?.chars || []).map((c) => (c.ok ? c.ch : c.why === "missing" ? "" : c.got || "？")).join("");
   // { ok, r } like Claude's verdict, or null when the answer has characters the checker has no templates for.
   async function builtinCheck(w, hasFuri) {
     await loadTemplates();
     const C = window.QCardChecker;
-    let furigana = "";
-    if (hasFuri) {
-      const fc = furiCands(w);
-      const fr = fc.length ? C.verify({ strokes: strokesOf(furi), candidates: fc, box: { w: furi.w, h: furi.h }, anyKana: true }) : { ok: false };
-      if (fr.ok === null) return null;
-      if (!fr.ok) return { ok: false, r: { main: "", furigana: "", reason: fc.length ? "The furigana doesn't match the reading of this word." : "This word has no kanji, so it needs no furigana." } };
-      furigana = fr.text;
-    }
+    const fc = hasFuri ? furiCands(w) : [];
+    const fr = fc.length ? C.verify({ strokes: strokesOf(furi), candidates: fc, box: { w: furi.w, h: furi.h }, anyKana: true }) : null;
+    if (fr?.ok === null) return null;
     const res = C.verify({ strokes: strokesOf(main), candidates: mainCands(w), box: { w: main.w, h: main.h }, anyKana: S.mode !== "kata" });
     if (res.ok === null) return null;
-    if (!res.ok) return { ok: false, r: { main: "", furigana: "", reason: whyNot(res) } };
-    const r = { main: res.text, furigana, reason: "" };
+    const r = { main: res.ok ? res.text : readOf(res), furigana: !fr ? "" : fr.ok ? fr.text : readOf(fr), reason: "" };
+    if (!res.ok) return { ok: false, r: { ...r, reason: whyNot(res) } };
+    if (hasFuri && !fc.length) return { ok: false, r: { ...r, reason: "This word has no kanji, so it needs no furigana." } };
+    if (fr && !fr.ok) return { ok: false, r: { ...r, reason: "The furigana doesn't match the reading of this word." } };
     const ok = readMatches(w, r) && !badFuri(w, r);
     if (!ok) r.reason = "Furigana goes only over kanji you wrote, as their reading.";
     return { ok, r };

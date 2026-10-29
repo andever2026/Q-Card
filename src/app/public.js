@@ -105,22 +105,22 @@
     if (c.why === "extra") return "There's extra writing at the end.";
     return bad.length > 1 ? `${bad.length} characters don't match, starting with the ${nth(c.i + 1)} (「${c.ch}」).` : `The ${nth(c.i + 1)} character doesn't look like 「${c.ch}」.`;
   }
+  // What the checker read, for "The checker read": each character that matched, its best guess for one that didn't
+  // (？ when it has none) and nothing for a missing one.
+  const readOf = (res) => (res?.chars || []).map((c) => (c.ok ? c.ch : c.why === "missing" ? "" : c.got || "？")).join("");
   // { ok, r } like Claude's verdict, or null when the answer has characters the checker has no templates for.
   async function builtinCheck(w, hasFuri) {
     await loadTemplates();
     const C = window.QCardChecker;
-    let furigana = "";
-    if (hasFuri) {
-      const fc = furiCands(w);
-      const fr = fc.length ? C.verify({ strokes: strokesOf(furi), candidates: fc, box: { w: furi.w, h: furi.h }, anyKana: true }) : { ok: false };
-      if (fr.ok === null) return null;
-      if (!fr.ok) return { ok: false, r: { main: "", furigana: "", reason: fc.length ? "The furigana doesn't match the reading of this word." : "This word has no kanji, so it needs no furigana." } };
-      furigana = fr.text;
-    }
+    const fc = hasFuri ? furiCands(w) : [];
+    const fr = fc.length ? C.verify({ strokes: strokesOf(furi), candidates: fc, box: { w: furi.w, h: furi.h }, anyKana: true }) : null;
+    if (fr?.ok === null) return null;
     const res = C.verify({ strokes: strokesOf(main), candidates: mainCands(w), box: { w: main.w, h: main.h }, anyKana: S.mode !== "kata" });
     if (res.ok === null) return null;
-    if (!res.ok) return { ok: false, r: { main: "", furigana: "", reason: whyNot(res) } };
-    const r = { main: res.text, furigana, reason: "" };
+    const r = { main: res.ok ? res.text : readOf(res), furigana: !fr ? "" : fr.ok ? fr.text : readOf(fr), reason: "" };
+    if (!res.ok) return { ok: false, r: { ...r, reason: whyNot(res) } };
+    if (hasFuri && !fc.length) return { ok: false, r: { ...r, reason: "This word has no kanji, so it needs no furigana." } };
+    if (fr && !fr.ok) return { ok: false, r: { ...r, reason: "The furigana doesn't match the reading of this word." } };
     const ok = readMatches(w, r) && !badFuri(w, r);
     if (!ok) r.reason = "Furigana goes only over kanji you wrote, as their reading.";
     return { ok, r };

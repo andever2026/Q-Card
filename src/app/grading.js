@@ -21,7 +21,7 @@
     nb.innerHTML = nb.hidden ? "" : `Must be kanji here: <b>${esc(need.join("、"))}</b>. The rest can be kana.`;
     const read = [r?.furigana ? `furigana 「${r.furigana}」` : "", r?.main ? `「${r.main}」` : ""].filter(Boolean);
     //#if public
-    $("#fbRead").innerHTML = read.length ? "Read as: " + read.map(esc).join(" over ") : "";
+    $("#fbRead").innerHTML = read.length ? "The checker read: " + read.map(esc).join(" over ") : "";
     //#else
     $("#fbRead").innerHTML = read.length ? "Claude read: " + read.map(esc).join(" over ") : "";
     //#endif

@@ -183,6 +183,7 @@ if (entry.length > 1) {
     if (step === 0) ok(!wrong && !self, "built-in: correct kana is accepted", `${answer}${wrong ? " → " + seen[0].reason : ""}`);
     if (step === 1) {
       ok(wrong && !!seen[1].reason, "built-in: a different word is marked wrong, with a reason", `${answer} for ${kana}: ${seen[1].reason}`);
+      ok(/^The checker read: 「.+」$/.test(await text(page, "#fbRead")), "built-in: a wrong answer shows what the checker read", await text(page, "#fbRead"));
       ok(/The checker misread/.test(await text(page, "#overrideBtn")), "built-in: override link names the checker");
     }
     if (step === 2) ok(!wrong && !self, "built-in: correct kanji is accepted", `${answer}${wrong ? " → " + seen[2].reason : ""}`);
@@ -203,6 +204,22 @@ if (entry.length > 1) {
     const v = (strokes, cand) => page.evaluate(([s, c, b]) => window.QCardChecker.verify({ strokes: s, candidates: [c], box: b }).ok, [strokes, cand, { w: w.box.w + em * 1.2, h: w.box.h }]);
     ok(await v(withWave, "〜さん") === true && await v(w.strokes, "〜さん") === true, "built-in: a 〜 may be written or left out where the answer has one");
     ok(await v(withWave, "さん") === false, "built-in: a 〜 where the answer has none is extra writing");
+  }
+  // Size: a plain い written smallish is fine (ぃ is never written); つ for っ is "should be written small", naming つ
+  {
+    const O = { boxW: 400, boxH: 120, level: 0.3, mouse: false, swap: 0, reverse: 0, join: 0, lateDakuten: 0 };
+    const bbx = (S) => { const xs = S.flat().map(([x]) => x), ys = S.flat().map(([, y]) => y); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
+    const verify = (strokes, cands, more) => page.evaluate(([s, c, m]) => window.QCardChecker.verify({ strokes: s, candidates: c, box: { w: 400, h: 120 }, ...m }), [strokes, cands, more || {}]);
+    const k = writeWord("暑", 11, O).strokes, i = writeWord("い", 11, O).strokes, a = bbx(k), b = bbx(i), em = a[3] - a[1];
+    const smallI = k.concat(i.map((s) => s.map(([x, y]) => [a[2] + 0.15 * em + (x - b[0]) * 0.6, a[3] + (y - b[3]) * 0.6])));
+    ok((await verify(smallI, ["暑い"])).ok === true, "built-in: a plain い written a little small is accepted");
+    const tsu = await verify(writeWord("がつこう", 11, O).strokes, ["がっこう"]), bad = tsu.chars.find((c) => !c.ok);
+    ok(tsu.ok === false && bad?.ch === "っ" && bad.why === "small" && bad.got === "つ", "built-in: つ written for っ fails as \"should be written small\"", JSON.stringify(bad));
+    // a tap of the pen far from the writing is not read as part of it
+    const f = writeWord("ほくせい", 11, O).strokes, c = bbx(f), fe = c[3] - c[1];
+    const tap = [[c[2] + 3 * fe, c[1] + fe / 2], [c[2] + 3 * fe + 1, c[1] + fe / 2]];
+    ok((await verify(f.concat([tap]), ["ほくせい", "ほく", "せい"], { anyKana: true })).ok === true && (await verify([tap, ...f], ["ほくせい"], { anyKana: true })).ok === true,
+      "built-in: a stray tap far from the furigana is ignored");
   }
 
   // 日本語 → English: the meaning as worded is accepted; other English is self-marked (synthetic print from test/checker/synth-en.mjs)

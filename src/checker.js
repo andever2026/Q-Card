@@ -47,6 +47,8 @@
   const AFFGATE = 0.34;     // only refine with an affine map when the plain cost is below this
   const SMALLF = 0.65;      // handwritten small kana are about this size of the full-size form...
   const SBOT = 0.88;        // ...sitting on the same bottom line (em units from the top of the cell)
+  const STRAY_SIZE = 0.15;  // a mark no bigger than this (x the height of the other writing)...
+  const STRAY_GAP = 0.6;    // ...this far from every other stroke is a stray tap, not writing
 
   // ---------------------------------------------------------------- state
   let RAW = null;           // ch -> encoded strokes
@@ -63,6 +65,9 @@
   const SMALL = "ぁあぃいぅうぇえぉおっつゃやゅゆょよゎわゕかゖけァアィイゥウェエォオッツャヤュユョヨヮワヵカヶケ";
   const SMALL2LARGE = new Map(), LARGE2SMALL = new Map();
   for (let i = 0; i < SMALL.length; i += 2) { SMALL2LARGE.set(SMALL[i], SMALL[i + 1]); LARGE2SMALL.set(SMALL[i + 1], SMALL[i]); }
+  // small kana people actually write; a full-size kana is only size-checked when its small twin is one of these
+  // (い is never failed for looking like ぃ)
+  const REALSMALL = new Set("っゃゅょァィゥェォッャュョ");
   // Characters that look the same when handwritten (any member may be written for any other).
   const SAME = ["カ力", "チ千", "エ工", "ロ口", "タ夕", "ニ二", "ハ八", "ト卜", "ー一", "へヘ", "べベ", "ぺペ", "りリ", "オ才", "ヒ匕", "メ乂",
     "0Oo", "1lI", "Cc", "Kk", "Pp", "Ss", "Uu", "Vv", "Ww", "Xx", "Zz", "・."];
@@ -308,8 +313,8 @@
   }
 
   // ---------------------------------------------------------------- input strokes
-  function prepInput(strokes) {
-    const S = [];
+  function prepInput(strokes, stray) {
+    let S = [];
     for (const raw of strokes || []) {
       if (!raw || !raw.length) continue;
       const poly = clean(raw);
@@ -317,9 +322,23 @@
       const p = resample(poly, NP);
       S.push({ poly, bb: bboxOf(poly), len: polyLen(poly), p, q: shapeQ(p), lp: loopOf(poly), id: S.length });
     }
+    if (stray) { S = S.filter((s) => !isStray(s, S)); S.forEach((s, i) => { s.id = i; }); }
     // two strokes in a row may be one template stroke drawn in two pieces
     for (let i = 0; i + 1 < S.length; i++) { S[i].next = resample(S[i].poly.concat(S[i + 1].poly), NP); S[i].nq = shapeQ(S[i].next); }
     return S;
+  }
+  // A tiny mark well away from all the other writing (a tap of the pen or a resting finger) is not part of the answer.
+  // Dakuten, the dots of kanji and punctuation sit next to other strokes and are kept.
+  function isStray(s, S) {
+    if (S.length < 2) return false;
+    const others = S.filter((o) => o !== s), f = frameOf(others.map((o) => o.bb)), [x0, y0, x1, y1] = s.bb;
+    if (Math.max(x1 - x0, y1 - y0) > STRAY_SIZE * f.h) return false;
+    let gap = Infinity;
+    for (const o of others) {
+      const dx = Math.max(0, o.bb[0] - x1, x0 - o.bb[2]), dy = Math.max(0, o.bb[1] - y1, y0 - o.bb[3]);
+      gap = Math.min(gap, Math.hypot(dx, dy));
+    }
+    return gap > STRAY_GAP * f.h;
   }
   function normUnit(src, f, inv, len, q, lp) {
     const p = new Float64Array(2 * NP);
@@ -963,13 +982,13 @@
         const t = getT(ch), f = SMALL2LARGE.has(ch) ? SMALLF : 1;
         if (G.f.w / lineEmRef > t.w * f * 1.5 + 0.4) why = i === P.length - 1 ? "extra" : "shape";
       }
-      if (j.ok && (SMALL2LARGE.has(ch) || LARGE2SMALL.has(ch))) {
+      if (j.ok && (SMALL2LARGE.has(ch) || REALSMALL.has(LARGE2SMALL.get(ch)))) {
         const ev = sizeEvidence(views, P, i, ch);
         if (ev) {
           // (a full-size kana written for a small one stands out even next to one or two characters; a small one
           // written for a full-size one is judged more loosely when there are fewer than three)
-          if (SMALL2LARGE.has(ch) && ev.e < 0.45) why = "large";
-          if (LARGE2SMALL.has(ch) && ev.e > 0.75 + (ev.n >= 3 ? 0 : 0.1)) why = "small";
+          if (SMALL2LARGE.has(ch) && ev.e < 0.45) why = "small";
+          if (LARGE2SMALL.has(ch) && ev.e > 0.75 + (ev.n >= 3 ? 0 : 0.1)) why = "large";
           if (dbg) sizes.push([ch, +ev.e.toFixed(2), +ev.q.toFixed(2), +ev.dy.toFixed(2), ev.n]);
         }
       }
@@ -977,7 +996,7 @@
       text += ch;
       // a failing position names the character that was asked for (what the student should have written)
       // (got: what it looked more like, when known)
-      const got = why === "shape" ? j.other && letterOf(j.other) : why === "small" ? LARGE2SMALL.get(ch) : why === "large" ? SMALL2LARGE.get(ch) : null;
+      const got = why === "shape" ? j.other && letterOf(j.other) : why === "small" ? SMALL2LARGE.get(ch) : why === "large" ? LARGE2SMALL.get(ch) : null;
       const c = why ? { ch: p.ch, ok: false, why } : { ch, ok: true, why: null };
       if (got) c.got = got;
       if (dbg) Object.assign(c, { cost: +j.cost.toFixed(3), other: j.other, otherCost: +j.otherCost.toFixed(3) }, line && j.ch ? { pl: +placement(G, getT(j.ch), line).toFixed(3), wr: +(G.f.w / line.hx).toFixed(2), tw: getT(j.ch).zw } : {});
@@ -1015,7 +1034,7 @@
     const t0 = now();
     if (!RAW) throw new Error("QCardChecker.verify: call init() first");
     opts = opts || {};
-    const S = prepInput(opts.strokes);
+    const S = prepInput(opts.strokes, !opts.latin);
     const cands = [...new Set((opts.candidates || []).map((c) => String(c).normalize("NFKC")).filter((c) => c.trim().length))];
     const anyKana = !!opts.anyKana, latin = !!opts.latin;
     CYC = latin;
