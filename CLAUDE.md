@@ -31,10 +31,12 @@ layout, the build and the tests; this file is what README doesn't say.
 - Promises written in the owner's name ("never sold", "no ads", and so on) without asking. The wording of
   `privacy/index.html` is the owner's: ask before changing it.
 - Model names in commits, pull requests or code.
+- The owner's real name anywhere public: files, comments, commit messages, pull requests. Write "the owner" or
+  andever2026.
 
 ## Style
 
-- Commits written by Claude say so (a `Co-Authored-By: Claude` trailer): the owner keeps AI-written work recognizable
-  and her own commits recognizable as hers.
+- Commits written by Claude say so (a `Co-Authored-By: Claude` trailer): AI-written work stays recognizable, and the
+  owner's own commits stay recognizable as theirs.
 - Page wording: "practice", never "test"; short, plain sentences.
 - Code: match the surrounding code (dense, one idea per line, comments only where the why isn't obvious).

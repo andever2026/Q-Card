@@ -192,7 +192,7 @@
   // ---------- public site: welcome / sign-in ----------
   // A first-time visitor sees a welcome pop-up over the page, which runs as a guest behind it. Once they've picked
   // anything (guest, the tour, the X, or signing in) it's remembered (qcard:welcomed) and doesn't come back, signed out
-  // or not, until "Delete" starts the browser over (the owner). Signing in from Settings goes straight to Google.
+  // or not, until "Delete" starts the browser over (the owner's call). Signing in from Settings goes straight to Google.
   let startLocal = () => {};
   const welcomed = () => { try { localStorage.setItem("qcard:welcomed", "1"); } catch {} };
   function welcome(err) {
