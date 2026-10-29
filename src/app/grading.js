@@ -8,7 +8,7 @@
     main.c.classList.add("locked"); furi.c.classList.add("locked");
     // Force kanji hides the reading of 日本語 → English questions until the answer is checked.
     if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
-    // A right answer goes straight on to the next word (the 花丸 that used to be drawn first was taken out, the owner 2026-10-23).
+    // A right answer goes straight on to the next word (the 花丸 that used to be drawn first was taken out, 2026-10-23).
     if (ok) { Q.done.add(key); saveResume(); nextItem(); return; }
     Q.wrong.push(Q.cur); saveResume();
     $("#tools").hidden = true;
@@ -21,7 +21,7 @@
     nb.innerHTML = nb.hidden ? "" : `Must be kanji here: <b>${esc(need.join("、"))}</b>. The rest can be kana.`;
     const read = [r?.furigana ? `furigana 「${r.furigana}」` : "", r?.main ? `「${r.main}」` : ""].filter(Boolean);
     //#if public
-    $("#fbRead").innerHTML = read.length ? "Read as: " + read.map(esc).join(" over ") : "";
+    $("#fbRead").innerHTML = read.length ? "The checker read: " + read.map(esc).join(" over ") : "";
     //#else
     $("#fbRead").innerHTML = read.length ? "Claude read: " + read.map(esc).join(" over ") : "";
     //#endif

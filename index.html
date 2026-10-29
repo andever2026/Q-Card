@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-RkCHWYdQPVxItKTY6MC/CtlsMgO2fSJCJK6NaZyGKts=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-ACkKa2rufhFuIA8ZDNyepwMXFuHGKqmDAgFLGp3jD5c=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -43,7 +43,7 @@
   color-scheme: dark;
 }
 /* Claude palette: warm ivory paper, terracotta accent, crimson pen. Picked per viewer (data-palette).
-   Dark mode is plain grey in both palettes, with only the accent colours differing (the owner). Next to the orange accent
+   Dark mode is plain grey in both palettes, with only the accent colours differing (the owner's call). Next to the orange accent
    a neutral grey looks brownish, so Warm's greys lean a touch cool, and its highlight fill is grey rather than brown. */
 :root[data-palette="claude"] {
   --bg: #f0eee6; --surface: #fdfcf9; --sunk: #f4f2ec; --ink: #1f1e1c; --muted: #696760; --line: #dedad0; --guide: #d3cec2; --ai: #ad5230; --ai-soft: #f6e5dc; --shu: #b0263c; --shu-soft: #f7e0e3; --ok: #4d7a34;
@@ -137,7 +137,7 @@ body.ready #gate { display: none; }
 #setPicker { display: grid; gap: 12px; } /* space above each unit's dashed line as well as below it */
 .chapter + .chapter { border-top: 1px dashed var(--line); padding-top: 12px; }
 .chrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.chrow .unit { font-size: .9rem; font-weight: 500; color: color-mix(in srgb, var(--ink) 80%, var(--muted)); } /* between the bold title it was and the Filter label (the owner) */
+.chrow .unit { font-size: .9rem; font-weight: 500; color: color-mix(in srgb, var(--ink) 80%, var(--muted)); } /* between the bold title it was and the Filter label (the owner's call) */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { border: 1px solid var(--line); background: var(--sunk); border-radius: 999px; padding: 6px 14px; font-weight: 500; display: inline-flex; gap: 6px; align-items: baseline; }
 .chip .n { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -187,7 +187,7 @@ body.ready #gate { display: none; }
 .startrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .startbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 .startbtns .n { color: var(--muted); font-weight: 400; margin-left: 4px; }
-/* On a phone the setup is slimmer so there's less to scroll (the owner): tighter panels, smaller chips and buttons, and a
+/* On a phone the setup is slimmer so there's less to scroll (the owner's call): tighter panels, smaller chips and buttons, and a
    mode's description shows only once it's picked. */
 @media (max-width: 480px) {
   #setup { gap: 12px; }
@@ -252,6 +252,7 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .answer rt { font-size: .38em; color: var(--muted); font-weight: 400; }
 .read { font-size: .9rem; color: var(--muted); }
 .read q { font-family: var(--font-jp); color: var(--ink); quotes: "「" "」"; }
+.read.live { margin: 8px 2px 0; }
 .fbfoot { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .err { color: var(--shu); font-size: .9rem; }
 
@@ -457,9 +458,14 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
         <div class="tactions"><button class="btn" type="button" id="shareToggle">Turn on…</button><button class="link" type="button" id="shareDl" hidden>Download what I've shared</button><button class="link" type="button" id="shareDel" hidden>Delete what I've shared</button></div>
         <div class="tactions" id="shareDelAsk" hidden><span class="small">Delete every answer you've shared, for good?</span><button class="btn danger" type="button" id="shareDelYes">Delete</button><button class="btn" type="button" id="shareDelNo">Cancel</button></div>
       </section>
-      <section id="devSet" hidden><h3>Dev tools</h3>
-        <p class="muted small">Only developers see this. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
-        <div class="tactions"><button class="btn" type="button" id="devAsk1">First time</button><button class="btn" type="button" id="devAsk2">Later times</button></div>
+      <section id="toolsSet"><h3>Developer tools</h3>
+        <p class="muted small">A look at how the page works. Each one stays off until you turn it on, in this browser.</p>
+        <label class="checkrow"><input type="checkbox" id="liveReadOn"> Show what the checker reads as I write</label>
+        <label class="checkrow"><input type="checkbox" id="charBoxesOn"> Show character boxes: where the checker found each character</label>
+        <div id="devSet" hidden>
+          <p class="muted small">Only developers see this. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
+          <div class="tactions"><button class="btn" type="button" id="devAsk1">First time</button><button class="btn" type="button" id="devAsk2">Later times</button></div>
+        </div>
       </section>
       <section><h3>Your vocab</h3><p class="muted" id="setStats"></p></section>
       <section id="portPanel" hidden><h3>Export / import</h3>
@@ -554,6 +560,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
         <div class="checking" id="checking" hidden>Reading your handwriting…</div>
       </div>
     </div>
+    <p class="read live" id="liveRead" hidden></p>
     <div class="tools" id="tools">
       <span class="itools"><span class="igroup"><button type="button" id="undoBtn" title="Undo" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></button><button type="button" id="clearBtn" title="Clear" aria-label="Clear"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button></span><span class="igroup" role="group" aria-label="Writing tool"><button type="button" data-tool="pen" aria-pressed="true" title="Pen" aria-label="Pen"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button><button type="button" data-tool="erase" aria-pressed="false" title="Stroke eraser: erases whole strokes" aria-label="Stroke eraser"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></button></span></span>
       <span class="spacer"></span>
@@ -920,6 +927,19 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       if (!this.w) return;
       this.ctx.clearRect(0, 0, this.w, this.h);
       this.paint(this.ctx, cssVar("--ink"), 1);
+      if (this.marks) this.drawMarks();
+    }
+    // Developer tools → character boxes: [{ box: [x0, y0, x1, y1], ok, label }], a dashed box around each character the
+    // checker found, labelled with what it read there (green when it matched, red when not).
+    drawMarks() {
+      const ctx = this.ctx;
+      ctx.save(); ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]); ctx.font = `13px ${cssVar("--font-ui")}`; ctx.textBaseline = "bottom";
+      for (const { box: [x0, y0, x1, y1], ok, label } of this.marks) {
+        ctx.strokeStyle = ctx.fillStyle = cssVar(ok ? "--ok" : "--shu");
+        ctx.strokeRect(x0 - 4, y0 - 4, x1 - x0 + 8, y1 - y0 + 8);
+        if (label) ctx.fillText(label, x0 - 4, y0 - 6 < 14 ? y1 + 20 : y0 - 6);
+      }
+      ctx.restore();
     }
     // Black ink on white, no guides, cropped to the writing: what Claude sees.
     toBlob(scale = 2) {
@@ -1660,12 +1680,13 @@ CORRECT: <YES or NO, matching your REASON>`;
   async function check() {
     if (main.empty || Q.busy) return;
     const cur = Q.cur, { w, dir } = cur;
-    Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true;
+    Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true; $("#liveRead").hidden = true;
     $("#overrideBtn").textContent = "The checker misread my writing, count it as correct";
     let self = false;
     try {
       const res = dir === "je" ? await englishCheck(w) : await builtinCheck(w, dir === "ej" && !furi.empty);
       if (gone(cur)) return;
+      if (res && !res.ok) showBoxes(res);
       shareAnswer(!res ? "unread" : res.ok ? "right" : dir === "ej" ? "wrong" : "unmatched", res?.r);
       if (res && (res.ok || dir === "ej")) grade(res.ok, res.r); else self = res ? "unmatched" : "unread";
     } catch (e) {
@@ -1867,7 +1888,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     main.c.classList.add("locked"); furi.c.classList.add("locked");
     // Force kanji hides the reading of 日本語 → English questions until the answer is checked.
     if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
-    // A right answer goes straight on to the next word (the 花丸 that used to be drawn first was taken out, the owner 2026-10-23).
+    // A right answer goes straight on to the next word (the 花丸 that used to be drawn first was taken out, 2026-10-23).
     if (ok) { Q.done.add(key); saveResume(); nextItem(); return; }
     Q.wrong.push(Q.cur); saveResume();
     $("#tools").hidden = true;
@@ -1879,7 +1900,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     nb.hidden = !need.length || need.length === [...new Set([...w.kanji].filter((c) => KANJI.test(c)))].length;
     nb.innerHTML = nb.hidden ? "" : `Must be kanji here: <b>${esc(need.join("、"))}</b>. The rest can be kana.`;
     const read = [r?.furigana ? `furigana 「${r.furigana}」` : "", r?.main ? `「${r.main}」` : ""].filter(Boolean);
-    $("#fbRead").innerHTML = read.length ? "Read as: " + read.map(esc).join(" over ") : "";
+    $("#fbRead").innerHTML = read.length ? "The checker read: " + read.map(esc).join(" over ") : "";
     $("#feedback").hidden = false; $("#overrideBtn").hidden = false; setErasing(false);
     requestAnimationFrame(() => { scratch.resize(); $("#feedback").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); });
   }
@@ -2778,32 +2799,73 @@ CORRECT: <YES or NO, matching your REASON>`;
     if (c.why === "extra") return "There's extra writing at the end.";
     return bad.length > 1 ? `${bad.length} characters don't match, starting with the ${nth(c.i + 1)} (「${c.ch}」).` : `The ${nth(c.i + 1)} character doesn't look like 「${c.ch}」.`;
   }
+  // What the checker read, for "The checker read": each character that matched, its best guess for one that didn't
+  // (？ when it has none) and nothing for a missing one.
+  const readOf = (res) => (res?.chars || []).map((c) => (c.ok ? c.ch : c.why === "missing" ? "" : c.got || "？")).join("");
   // { ok, r } like Claude's verdict, or null when the answer has characters the checker has no templates for.
   async function builtinCheck(w, hasFuri) {
     await loadTemplates();
     const C = window.QCardChecker;
-    let furigana = "";
-    if (hasFuri) {
-      const fc = furiCands(w);
-      const fr = fc.length ? C.verify({ strokes: strokesOf(furi), candidates: fc, box: { w: furi.w, h: furi.h }, anyKana: true }) : { ok: false };
-      if (fr.ok === null) return null;
-      if (!fr.ok) return { ok: false, r: { main: "", furigana: "", reason: fc.length ? "The furigana doesn't match the reading of this word." : "This word has no kanji, so it needs no furigana." } };
-      furigana = fr.text;
-    }
+    const fc = hasFuri ? furiCands(w) : [];
+    const fr = fc.length ? C.verify({ strokes: strokesOf(furi), candidates: fc, box: { w: furi.w, h: furi.h }, anyKana: true }) : null;
+    if (fr?.ok === null) return null;
     const res = C.verify({ strokes: strokesOf(main), candidates: mainCands(w), box: { w: main.w, h: main.h }, anyKana: S.mode !== "kata" });
     if (res.ok === null) return null;
-    if (!res.ok) return { ok: false, r: { main: "", furigana: "", reason: whyNot(res) } };
-    const r = { main: res.text, furigana, reason: "" };
+    const r = { main: res.ok ? res.text : readOf(res), furigana: !fr ? "" : fr.ok ? fr.text : readOf(fr), reason: "" };
+    const chars = { main: res.chars, furi: fr?.chars };
+    if (!res.ok) return { ok: false, r: { ...r, reason: whyNot(res) }, chars };
+    if (hasFuri && !fc.length) return { ok: false, r: { ...r, reason: "This word has no kanji, so it needs no furigana." }, chars };
+    if (fr && !fr.ok) return { ok: false, r: { ...r, reason: "The furigana doesn't match the reading of this word." }, chars };
     const ok = readMatches(w, r) && !badFuri(w, r);
     if (!ok) r.reason = "Furigana goes only over kanji you wrote, as their reading.";
-    return { ok, r };
+    return { ok, r, chars };
   }
   // 日本語 → English: the meaning in any of the ways it may be written (englishAnswers). null when the checker can't read it.
   async function englishCheck(w) {
     await loadTemplates();
     const res = window.QCardChecker.verify({ strokes: strokesOf(main), candidates: window.QCardChecker.englishAnswers(w.en), box: { w: main.w, h: main.h }, latin: true });
-    return res.ok === null ? null : { ok: res.ok, r: { main: res.text, furigana: "", reason: "" } };
+    return res.ok === null ? null : { ok: res.ok, r: { main: res.ok ? res.text : readOf(res), furigana: "", reason: "" }, chars: { main: res.chars } };
   }
+  // Developer tools (Settings), each off until turned on, in this browser:
+  // - "Show what the checker reads as I write": a moment after each stroke, the reading the Check button would get,
+  //   under the answer box, with the time the check took (it tells you before Check, so it's never on by default).
+  // - "Show character boxes": a box around each character the checker found, after Check and with the live reading.
+  let liveTimer = 0;
+  const liveOn = () => !!store.get("liveRead", false), boxesOn = () => !!store.get("charBoxes", false);
+  function showBoxes(res) {
+    for (const [p, chars] of [[main, res?.chars?.main], [furi, res?.chars?.furi]]) {
+      if (!boxesOn() && !p.marks) continue;
+      p.marks = boxesOn() && chars ? chars.filter((c) => c.box).map((c) => ({ box: c.box, ok: c.ok, label: c.ok ? c.ch : c.got || "？" })) : null;
+      p.draw();
+    }
+  }
+  function liveRead() {
+    clearTimeout(liveTimer);
+    const el = $("#liveRead");
+    if (!liveOn() || !Q.cur || Q.answered || Q.busy || main.empty) { el.hidden = true; return; }
+    liveTimer = setTimeout(async () => {
+      if (main.cur || furi.cur) return liveRead(); // not while a stroke is being drawn
+      const cur = Q.cur, { w, dir } = cur;
+      try {
+        await loadTemplates();
+        const t0 = performance.now();
+        const res = dir === "je" ? await englishCheck(w) : await builtinCheck(w, dir === "ej" && !furi.empty);
+        const ms = Math.round(performance.now() - t0);
+        if (Q.cur !== cur || Q.answered || Q.busy || main.empty) return;
+        const r = res?.r || {}, read = [r.furigana ? `furigana 「${r.furigana}」` : "", r.main ? `「${r.main}」` : ""].filter(Boolean).join(" over ");
+        const verdict = !res ? "it can't check this word" : res.ok ? "would pass" : dir === "je" ? "you'd mark it yourself" : "would fail" + (r.reason ? `: ${r.reason}` : "");
+        el.textContent = `Reads ${read || "nothing"} · ${verdict} · ${ms} ms`;
+        el.hidden = false;
+        showBoxes(res);
+      } catch { el.hidden = true; }
+    }, 250);
+  }
+  // new ink: the boxes from the last reading no longer fit it
+  for (const p of [main, furi]) { const was = p.onChange; p.onChange = () => { was(); if (p.marks) { p.marks = null; p.draw(); } liveRead(); }; }
+  $("#liveReadOn").checked = liveOn();
+  $("#liveReadOn").onchange = (e) => { store.set("liveRead", e.target.checked); liveRead(); };
+  $("#charBoxesOn").checked = boxesOn();
+  $("#charBoxesOn").onchange = (e) => store.set("charBoxes", e.target.checked);
   // 日本語 → English answers the checker couldn't match (unmatched), and words it can't read, are marked by the student.
   function selfMark(unmatched) {
     const { w, dir } = Q.cur;
@@ -2824,7 +2886,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   // ---------- public site: welcome / sign-in ----------
   // A first-time visitor sees a welcome pop-up over the page, which runs as a guest behind it. Once they've picked
   // anything (guest, the tour, the X, or signing in) it's remembered (qcard:welcomed) and doesn't come back, signed out
-  // or not, until "Delete" starts the browser over (the owner). Signing in from Settings goes straight to Google.
+  // or not, until "Delete" starts the browser over (the owner's call). Signing in from Settings goes straight to Google.
   let startLocal = () => {};
   const welcomed = () => { try { localStorage.setItem("qcard:welcomed", "1"); } catch {} };
   function welcome(err) {
@@ -3057,7 +3119,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   // For dev accounts only for now (the owner, 2026-10-22: no "give us your data" while the site is a demo with few users; the
   // tool comes first). Everyone else gets no question and no Settings section, and an earlier yes saves nothing. To offer
   // it to everyone again, set SHARE_FOR_ALL to true.
-  // Opt-in (the owner): after every 10th finished practice, a signed-in person who hasn't said yes is asked whether their
+  // Opt-in: after every 10th finished practice, a signed-in person who hasn't said yes is asked whether their
   // handwriting may be kept to tune and train the checker. The first time there's no "Don't ask me again"; from the
   // second time there is. With sharing on, each checked answer is saved to users/<uid>/training/<id>: its strokes
   // (points, timing, pressure, pointer kind), the word and direction, the checker's verdict and the student's own call.

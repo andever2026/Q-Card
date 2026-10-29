@@ -45,6 +45,7 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 | `ai/index.html`, `llms.txt` | The page people give to their AI assistant to make an import file (see Vocab files), written by hand with no scripts, and a short pointer to it for AI tools. |
 | `privacy/index.html` | The privacy policy, a plain page with no scripts, linked from the footer and from Settings. Its git history is the list of changes to it. |
 | `index.html`, `js/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus a beta build of the `beta` branch. `js/templates.js` and `js/samples.js` are the two data files above as scripts, which a page opened straight from disk may load (it can't fetch files), so a downloaded copy works offline as a guest by opening `index.html`. |
+| `CLAUDE.md` | Working rules for Claude sessions on this repo (what to never commit, how changes reach the site). |
 | `test/` | Browser tests for the public site (`test/public` with a fake Firebase, `test/emulator` with the real one on the Firebase emulators) and the checker's accuracy tests (`test/checker`). |
 
 ### Building
@@ -90,7 +91,7 @@ The beta page is built with `node tools/build.mjs --beta`: it carries a Beta tag
 2. In Authentication → Sign-in method, enable **Google**.
 3. In Authentication → Settings → Authorized domains, add the site's domain (for GitHub Pages, `<username>.github.io`).
 4. Put the project's web config in `src/platform/config.js` and `frame-src` in `tools/build.mjs`, then build.
-5. Optionally, to get Dev tools in Settings: sign in once, then in Firestore Database → Data start a collection `dev` with a document whose id is your User UID (Authentication → Users) and any field, like `role` = `dev`. The rules let each person read only their own entry and nobody write one, so only the console can make someone a developer.
+5. Optionally, to get the developer-only buttons in Settings → Developer tools: sign in once, then in Firestore Database → Data start a collection `dev` with a document whose id is your User UID (Authentication → Users) and any field, like `role` = `dev`. The rules let each person read only their own entry and nobody write one, so only the console can make someone a developer.
 
 ## Vocab files
 

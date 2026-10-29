@@ -29,7 +29,8 @@ QCardChecker.top(strokes, box, n)  // -> [{ ch, cost, coarse }], best single-cha
 QCardChecker.englishAnswers(meaning) // -> the candidates for an English meaning ("to eat" -> to eat, eat, ...)
 ```
 
-- `strokes`: `[[[x, y], ...], ...]` in drawing order, CSS px, y down.
+- `strokes`: `[[[x, y], ...], ...]` in drawing order, CSS px, y down. A tiny mark far from all the other strokes
+  (no bigger than 0.15 of their height and more than 0.6 of it away: a tap of the pen) is left out, except in English.
 - `candidates`: acceptable answers (NFKC). Punctuation (、。・ etc.) may be left out by the writer, and so may a 〜
   (the mark a set uses for a slot: 〜さん passes as 〜さん or さん; a mark written almost flat, like ー, counts as the 〜).
 - `latin`: the candidates are English (see [English](#english)).
@@ -38,7 +39,8 @@ QCardChecker.englishAnswers(meaning) // -> the candidates for an English meaning
 - `ok: false`: `text` is the closest candidate and `chars` goes through it position by position. A failing
   position names the expected character in `ch`, with `why` = `shape`, `small` (should be small), `large`
   (should be full size), `missing`, or `extra` (`ch: ""`, extra writing). `got`, when present, is the character the
-  writing looked more like.
+  writing looked more like. Every written position (and the extra writing) has `box`: `[x0, y0, x1, y1]` around its
+  strokes, in the coordinates of `strokes`.
 - `ok: null`: every candidate has a character without a template (listed in `unsupported`, e.g. 龘); the page
   falls back to self-marking.
 
@@ -107,8 +109,9 @@ testing only and not shipped:
    for the line (mean of the logs with a quarter cut off at each end), and the position's size (width and height
    ratios averaged) and vertical offset relative to its neighbours give evidence for small (written at about 0.65 of
    full size, on the bottom line). A full-size kana written for a small one fails on fairly weak evidence; a small
-   one written for a full-size one needs stronger evidence, more so with fewer than three reference characters. A
-   one-character answer is not size-checked.
+   one written for a full-size one needs stronger evidence, more so with fewer than three reference characters, and
+   is only checked when its small twin is one people write (っゃゅょ and ァィゥェォッャュョ: a plain い is never failed
+   for looking like ぃ). A one-character answer is not size-checked.
 
 ## Measured
 

@@ -2,7 +2,7 @@
   // For dev accounts only for now (the owner, 2026-10-22: no "give us your data" while the site is a demo with few users; the
   // tool comes first). Everyone else gets no question and no Settings section, and an earlier yes saves nothing. To offer
   // it to everyone again, set SHARE_FOR_ALL to true.
-  // Opt-in (the owner): after every 10th finished practice, a signed-in person who hasn't said yes is asked whether their
+  // Opt-in: after every 10th finished practice, a signed-in person who hasn't said yes is asked whether their
   // handwriting may be kept to tune and train the checker. The first time there's no "Don't ask me again"; from the
   // second time there is. With sharing on, each checked answer is saved to users/<uid>/training/<id>: its strokes
   // (points, timing, pressure, pointer kind), the word and direction, the checker's verdict and the student's own call.

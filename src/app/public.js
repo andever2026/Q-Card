@@ -105,32 +105,73 @@
     if (c.why === "extra") return "There's extra writing at the end.";
     return bad.length > 1 ? `${bad.length} characters don't match, starting with the ${nth(c.i + 1)} (「${c.ch}」).` : `The ${nth(c.i + 1)} character doesn't look like 「${c.ch}」.`;
   }
+  // What the checker read, for "The checker read": each character that matched, its best guess for one that didn't
+  // (？ when it has none) and nothing for a missing one.
+  const readOf = (res) => (res?.chars || []).map((c) => (c.ok ? c.ch : c.why === "missing" ? "" : c.got || "？")).join("");
   // { ok, r } like Claude's verdict, or null when the answer has characters the checker has no templates for.
   async function builtinCheck(w, hasFuri) {
     await loadTemplates();
     const C = window.QCardChecker;
-    let furigana = "";
-    if (hasFuri) {
-      const fc = furiCands(w);
-      const fr = fc.length ? C.verify({ strokes: strokesOf(furi), candidates: fc, box: { w: furi.w, h: furi.h }, anyKana: true }) : { ok: false };
-      if (fr.ok === null) return null;
-      if (!fr.ok) return { ok: false, r: { main: "", furigana: "", reason: fc.length ? "The furigana doesn't match the reading of this word." : "This word has no kanji, so it needs no furigana." } };
-      furigana = fr.text;
-    }
+    const fc = hasFuri ? furiCands(w) : [];
+    const fr = fc.length ? C.verify({ strokes: strokesOf(furi), candidates: fc, box: { w: furi.w, h: furi.h }, anyKana: true }) : null;
+    if (fr?.ok === null) return null;
     const res = C.verify({ strokes: strokesOf(main), candidates: mainCands(w), box: { w: main.w, h: main.h }, anyKana: S.mode !== "kata" });
     if (res.ok === null) return null;
-    if (!res.ok) return { ok: false, r: { main: "", furigana: "", reason: whyNot(res) } };
-    const r = { main: res.text, furigana, reason: "" };
+    const r = { main: res.ok ? res.text : readOf(res), furigana: !fr ? "" : fr.ok ? fr.text : readOf(fr), reason: "" };
+    const chars = { main: res.chars, furi: fr?.chars };
+    if (!res.ok) return { ok: false, r: { ...r, reason: whyNot(res) }, chars };
+    if (hasFuri && !fc.length) return { ok: false, r: { ...r, reason: "This word has no kanji, so it needs no furigana." }, chars };
+    if (fr && !fr.ok) return { ok: false, r: { ...r, reason: "The furigana doesn't match the reading of this word." }, chars };
     const ok = readMatches(w, r) && !badFuri(w, r);
     if (!ok) r.reason = "Furigana goes only over kanji you wrote, as their reading.";
-    return { ok, r };
+    return { ok, r, chars };
   }
   // 日本語 → English: the meaning in any of the ways it may be written (englishAnswers). null when the checker can't read it.
   async function englishCheck(w) {
     await loadTemplates();
     const res = window.QCardChecker.verify({ strokes: strokesOf(main), candidates: window.QCardChecker.englishAnswers(w.en), box: { w: main.w, h: main.h }, latin: true });
-    return res.ok === null ? null : { ok: res.ok, r: { main: res.text, furigana: "", reason: "" } };
+    return res.ok === null ? null : { ok: res.ok, r: { main: res.ok ? res.text : readOf(res), furigana: "", reason: "" }, chars: { main: res.chars } };
   }
+  // Developer tools (Settings), each off until turned on, in this browser:
+  // - "Show what the checker reads as I write": a moment after each stroke, the reading the Check button would get,
+  //   under the answer box, with the time the check took (it tells you before Check, so it's never on by default).
+  // - "Show character boxes": a box around each character the checker found, after Check and with the live reading.
+  let liveTimer = 0;
+  const liveOn = () => !!store.get("liveRead", false), boxesOn = () => !!store.get("charBoxes", false);
+  function showBoxes(res) {
+    for (const [p, chars] of [[main, res?.chars?.main], [furi, res?.chars?.furi]]) {
+      if (!boxesOn() && !p.marks) continue;
+      p.marks = boxesOn() && chars ? chars.filter((c) => c.box).map((c) => ({ box: c.box, ok: c.ok, label: c.ok ? c.ch : c.got || "？" })) : null;
+      p.draw();
+    }
+  }
+  function liveRead() {
+    clearTimeout(liveTimer);
+    const el = $("#liveRead");
+    if (!liveOn() || !Q.cur || Q.answered || Q.busy || main.empty) { el.hidden = true; return; }
+    liveTimer = setTimeout(async () => {
+      if (main.cur || furi.cur) return liveRead(); // not while a stroke is being drawn
+      const cur = Q.cur, { w, dir } = cur;
+      try {
+        await loadTemplates();
+        const t0 = performance.now();
+        const res = dir === "je" ? await englishCheck(w) : await builtinCheck(w, dir === "ej" && !furi.empty);
+        const ms = Math.round(performance.now() - t0);
+        if (Q.cur !== cur || Q.answered || Q.busy || main.empty) return;
+        const r = res?.r || {}, read = [r.furigana ? `furigana 「${r.furigana}」` : "", r.main ? `「${r.main}」` : ""].filter(Boolean).join(" over ");
+        const verdict = !res ? "it can't check this word" : res.ok ? "would pass" : dir === "je" ? "you'd mark it yourself" : "would fail" + (r.reason ? `: ${r.reason}` : "");
+        el.textContent = `Reads ${read || "nothing"} · ${verdict} · ${ms} ms`;
+        el.hidden = false;
+        showBoxes(res);
+      } catch { el.hidden = true; }
+    }, 250);
+  }
+  // new ink: the boxes from the last reading no longer fit it
+  for (const p of [main, furi]) { const was = p.onChange; p.onChange = () => { was(); if (p.marks) { p.marks = null; p.draw(); } liveRead(); }; }
+  $("#liveReadOn").checked = liveOn();
+  $("#liveReadOn").onchange = (e) => { store.set("liveRead", e.target.checked); liveRead(); };
+  $("#charBoxesOn").checked = boxesOn();
+  $("#charBoxesOn").onchange = (e) => store.set("charBoxes", e.target.checked);
   // 日本語 → English answers the checker couldn't match (unmatched), and words it can't read, are marked by the student.
   function selfMark(unmatched) {
     const { w, dir } = Q.cur;
@@ -151,7 +192,7 @@
   // ---------- public site: welcome / sign-in ----------
   // A first-time visitor sees a welcome pop-up over the page, which runs as a guest behind it. Once they've picked
   // anything (guest, the tour, the X, or signing in) it's remembered (qcard:welcomed) and doesn't come back, signed out
-  // or not, until "Delete" starts the browser over (the owner). Signing in from Settings goes straight to Google.
+  // or not, until "Delete" starts the browser over (the owner's call). Signing in from Settings goes straight to Google.
   let startLocal = () => {};
   const welcomed = () => { try { localStorage.setItem("qcard:welcomed", "1"); } catch {} };
   function welcome(err) {
