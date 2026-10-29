@@ -132,6 +132,19 @@
       if (!this.w) return;
       this.ctx.clearRect(0, 0, this.w, this.h);
       this.paint(this.ctx, cssVar("--ink"), 1);
+      if (this.marks) this.drawMarks();
+    }
+    // Developer tools → character boxes: [{ box: [x0, y0, x1, y1], ok, label }], a dashed box around each character the
+    // checker found, labelled with what it read there (green when it matched, red when not).
+    drawMarks() {
+      const ctx = this.ctx;
+      ctx.save(); ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]); ctx.font = `13px ${cssVar("--font-ui")}`; ctx.textBaseline = "bottom";
+      for (const { box: [x0, y0, x1, y1], ok, label } of this.marks) {
+        ctx.strokeStyle = ctx.fillStyle = cssVar(ok ? "--ok" : "--shu");
+        ctx.strokeRect(x0 - 4, y0 - 4, x1 - x0 + 8, y1 - y0 + 8);
+        if (label) ctx.fillText(label, x0 - 4, y0 - 6 < 14 ? y1 + 20 : y0 - 6);
+      }
+      ctx.restore();
     }
     // Black ink on white, no guides, cropped to the writing: what Claude sees.
     toBlob(scale = 2) {

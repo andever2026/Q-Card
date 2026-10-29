@@ -165,6 +165,19 @@ if (entry.length > 1) {
       await page.mouse.up();
     }
   };
+  // Settings → Developer tools (everyone has it, all off at first): live reading and character boxes, used on the 2nd word
+  await page.click("#settingsBtn"); await page.waitForTimeout(200);
+  ok(await vis(page, "#toolsSet") && !(await page.isChecked("#liveReadOn")) && !(await page.isChecked("#charBoxesOn")), "developer tools: in Settings, everything off at first");
+  await page.check("#liveReadOn"); await page.check("#charBoxesOn"); await page.click("#settingsClose");
+  // pixels of the box colours (--ok, --shu) on a writing box
+  const markPx = (sel) => page.evaluate((s) => {
+    const c = document.querySelector(s), x = c.getContext("2d").getImageData(0, 0, c.width, c.height).data, cs = getComputedStyle(document.documentElement);
+    const rgb = (v) => { const d = document.createElement("div"); d.style.color = v; document.body.append(d); const m = getComputedStyle(d).color.match(/\d+/g).map(Number); d.remove(); return m; };
+    const cols = [rgb(cs.getPropertyValue("--ok")), rgb(cs.getPropertyValue("--shu"))];
+    let n = 0;
+    for (let i = 0; i < x.length; i += 4) if (x[i + 3] > 200 && cols.some(([r, g, b]) => Math.abs(x[i] - r) + Math.abs(x[i + 1] - g) + Math.abs(x[i + 2] - b) < 40)) n++;
+    return n;
+  }, sel);
   await page.click("#newBtn"); await page.waitForTimeout(200);
   await page.click("#dir-ej"); await page.click("#startBtn"); await page.waitForTimeout(300);
   const seen = [];
@@ -177,13 +190,22 @@ if (entry.length > 1) {
     // 1st word: kana; 2nd: another word's kana (must be wrong); 3rd: kanji; after that: kana
     const other = [...byEn.values()].find((x) => x.kana !== w.kana && [...x.kana].length === [...kana].length) || { kana: "ねこ" };
     const answer = step === 1 ? other.kana : step === 2 && w.kanji ? w.kanji : kana;
-    await write(answer, 7 + step); await page.click("#checkBtn"); await page.waitForTimeout(600);
+    await write(answer, 7 + step);
+    if (step === 1) {
+      await page.waitForTimeout(700);
+      const live = await text(page, "#liveRead");
+      ok(await vis(page, "#liveRead") && /^Reads 「.+」 · would fail: .+ · \d+ ms$/.test(live), "developer tools: live reading shows what the checker reads, its verdict and the time", live);
+      ok(await markPx("#mainPad") > 20, "developer tools: character boxes drawn with the live reading");
+    }
+    await page.click("#checkBtn"); await page.waitForTimeout(600);
     const wrong = await vis(page, "#feedback"), self = await vis(page, "#selfCheck");
     seen.push({ answer, wrong, self, reason: wrong ? await text(page, "#fbReason") : "" });
     if (step === 0) ok(!wrong && !self, "built-in: correct kana is accepted", `${answer}${wrong ? " → " + seen[0].reason : ""}`);
     if (step === 1) {
       ok(wrong && !!seen[1].reason, "built-in: a different word is marked wrong, with a reason", `${answer} for ${kana}: ${seen[1].reason}`);
       ok(/^The checker read: 「.+」$/.test(await text(page, "#fbRead")), "built-in: a wrong answer shows what the checker read", await text(page, "#fbRead"));
+      ok(!(await vis(page, "#liveRead")) && await markPx("#mainPad") > 20, "developer tools: after Check the live line goes and the character boxes stay on the answer");
+      await page.evaluate(() => { localStorage.removeItem("jpq:liveRead"); localStorage.removeItem("jpq:charBoxes"); });
       ok(/The checker misread/.test(await text(page, "#overrideBtn")), "built-in: override link names the checker");
     }
     if (step === 2) ok(!wrong && !self, "built-in: correct kanji is accepted", `${answer}${wrong ? " → " + seen[2].reason : ""}`);
@@ -657,7 +679,7 @@ const npPractice = async () => { await np.click("#startBtn"); await np.waitForTi
 await npPractice();
 ok(await vis(np, "#results") && !(await np.evaluate(() => document.querySelector("#shareAsk").open)), "share: an account that isn't a developer isn't asked on its 10th practice (developers only for now)");
 await np.click("#settingsBtn"); await np.waitForTimeout(200);
-ok(!(await vis(np, "#shareSet")) && !(await vis(np, "#devSet")), "share: its Settings has no sharing section and no Dev tools");
+ok(!(await vis(np, "#shareSet")) && !(await vis(np, "#devSet")) && await vis(np, "#toolsSet"), "share: its Settings has no sharing section and no developer-only buttons (Developer tools itself is there)");
 await np.click("#settingsClose"); await np.click("#newBtn"); await np.waitForTimeout(200);
 await np.evaluate(() => localStorage.setItem("jpq:share", JSON.stringify({ on: true, at: "2026-10-01T00:00:00Z" })));
 await npPractice();

@@ -39,7 +39,8 @@ QCardChecker.englishAnswers(meaning) // -> the candidates for an English meaning
 - `ok: false`: `text` is the closest candidate and `chars` goes through it position by position. A failing
   position names the expected character in `ch`, with `why` = `shape`, `small` (should be small), `large`
   (should be full size), `missing`, or `extra` (`ch: ""`, extra writing). `got`, when present, is the character the
-  writing looked more like.
+  writing looked more like. Every written position (and the extra writing) has `box`: `[x0, y0, x1, y1]` around its
+  strokes, in the coordinates of `strokes`.
 - `ok: null`: every candidate has a character without a template (listed in `unsupported`, e.g. 龘); the page
   falls back to self-marking.
 

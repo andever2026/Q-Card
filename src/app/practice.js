@@ -210,12 +210,13 @@ CORRECT: <YES or NO, matching your REASON>`;
   async function check() {
     if (main.empty || Q.busy) return;
     const cur = Q.cur, { w, dir } = cur;
-    Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true;
+    Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true; $("#liveRead").hidden = true;
     $("#overrideBtn").textContent = "The checker misread my writing, count it as correct";
     let self = false;
     try {
       const res = dir === "je" ? await englishCheck(w) : await builtinCheck(w, dir === "ej" && !furi.empty);
       if (gone(cur)) return;
+      if (res && !res.ok) showBoxes(res);
       shareAnswer(!res ? "unread" : res.ok ? "right" : dir === "ej" ? "wrong" : "unmatched", res?.r);
       if (res && (res.ok || dir === "ej")) grade(res.ok, res.r); else self = res ? "unmatched" : "unread";
     } catch (e) {
