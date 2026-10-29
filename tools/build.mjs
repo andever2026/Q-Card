@@ -2,7 +2,7 @@
 //   index.html, js/*.js           the public site (GitHub Pages): Google sign-in, Firestore, built-in checker
 //                                 (js/templates.js and js/samples.js are data/*.json as scripts: a page opened straight
 //                                 from disk may load scripts, though not fetch files, so the site works offline that way too)
-//   build/claude-ai.html          the claude.ai artifact (Annie's own copy, using claude.ai's database and Claude)
+//   build/claude-ai.html          the claude.ai artifact (the owner's own copy, using claude.ai's database and Claude)
 // src/app.html is the page's markup. A line that is only an include marker is replaced by that file from src/, as is:
 //   /*#include app/styles.css*/   //#include app/core.js
 // The app code is one function split over src/app/*.js in page order, so those files share their names and

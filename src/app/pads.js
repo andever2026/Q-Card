@@ -93,7 +93,7 @@
     }
     clear() { if (this.cur) active.delete(this.curId); this.strokes = []; this.cur = null; this.draw(); this.onChange(); }
     get empty() { return this.strokes.length === 0; }
-    lw() { return 3; } // one pen width in every box (Annie picked the thinner furigana one)
+    lw() { return 3; } // one pen width in every box (the owner picked the thinner furigana one)
     resize() {
       const r = this.c.getBoundingClientRect(); if (!r.width) return;
       const d = window.devicePixelRatio || 1;

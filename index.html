@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-Rly3S7qWECV02emMhV3okBT+1kzoAX4naQbZ299CIKE=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-ACkKa2rufhFuIA8ZDNyepwMXFuHGKqmDAgFLGp3jD5c=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -43,7 +43,7 @@
   color-scheme: dark;
 }
 /* Claude palette: warm ivory paper, terracotta accent, crimson pen. Picked per viewer (data-palette).
-   Dark mode is plain grey in both palettes, with only the accent colours differing (Annie). Next to the orange accent
+   Dark mode is plain grey in both palettes, with only the accent colours differing (the owner's call). Next to the orange accent
    a neutral grey looks brownish, so Warm's greys lean a touch cool, and its highlight fill is grey rather than brown. */
 :root[data-palette="claude"] {
   --bg: #f0eee6; --surface: #fdfcf9; --sunk: #f4f2ec; --ink: #1f1e1c; --muted: #696760; --line: #dedad0; --guide: #d3cec2; --ai: #ad5230; --ai-soft: #f6e5dc; --shu: #b0263c; --shu-soft: #f7e0e3; --ok: #4d7a34;
@@ -137,7 +137,7 @@ body.ready #gate { display: none; }
 #setPicker { display: grid; gap: 12px; } /* space above each unit's dashed line as well as below it */
 .chapter + .chapter { border-top: 1px dashed var(--line); padding-top: 12px; }
 .chrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.chrow .unit { font-size: .9rem; font-weight: 500; color: color-mix(in srgb, var(--ink) 80%, var(--muted)); } /* between the bold title it was and the Filter label (Annie) */
+.chrow .unit { font-size: .9rem; font-weight: 500; color: color-mix(in srgb, var(--ink) 80%, var(--muted)); } /* between the bold title it was and the Filter label (the owner's call) */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { border: 1px solid var(--line); background: var(--sunk); border-radius: 999px; padding: 6px 14px; font-weight: 500; display: inline-flex; gap: 6px; align-items: baseline; }
 .chip .n { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -187,7 +187,7 @@ body.ready #gate { display: none; }
 .startrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .startbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 .startbtns .n { color: var(--muted); font-weight: 400; margin-left: 4px; }
-/* On a phone the setup is slimmer so there's less to scroll (Annie): tighter panels, smaller chips and buttons, and a
+/* On a phone the setup is slimmer so there's less to scroll (the owner's call): tighter panels, smaller chips and buttons, and a
    mode's description shows only once it's picked. */
 @media (max-width: 480px) {
   #setup { gap: 12px; }
@@ -888,7 +888,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
     }
     clear() { if (this.cur) active.delete(this.curId); this.strokes = []; this.cur = null; this.draw(); this.onChange(); }
     get empty() { return this.strokes.length === 0; }
-    lw() { return 3; } // one pen width in every box (Annie picked the thinner furigana one)
+    lw() { return 3; } // one pen width in every box (the owner picked the thinner furigana one)
     resize() {
       const r = this.c.getBoundingClientRect(); if (!r.width) return;
       const d = window.devicePixelRatio || 1;
@@ -1888,7 +1888,7 @@ CORRECT: <YES or NO, matching your REASON>`;
     main.c.classList.add("locked"); furi.c.classList.add("locked");
     // Force kanji hides the reading of 日本語 → English questions until the answer is checked.
     if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
-    // A right answer goes straight on to the next word (the 花丸 that used to be drawn first was taken out, Annie 2026-10-23).
+    // A right answer goes straight on to the next word (the 花丸 that used to be drawn first was taken out, 2026-10-23).
     if (ok) { Q.done.add(key); saveResume(); nextItem(); return; }
     Q.wrong.push(Q.cur); saveResume();
     $("#tools").hidden = true;
@@ -2886,7 +2886,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   // ---------- public site: welcome / sign-in ----------
   // A first-time visitor sees a welcome pop-up over the page, which runs as a guest behind it. Once they've picked
   // anything (guest, the tour, the X, or signing in) it's remembered (qcard:welcomed) and doesn't come back, signed out
-  // or not, until "Delete" starts the browser over (Annie). Signing in from Settings goes straight to Google.
+  // or not, until "Delete" starts the browser over (the owner's call). Signing in from Settings goes straight to Google.
   let startLocal = () => {};
   const welcomed = () => { try { localStorage.setItem("qcard:welcomed", "1"); } catch {} };
   function welcome(err) {
@@ -3116,15 +3116,15 @@ CORRECT: <YES or NO, matching your REASON>`;
   document.addEventListener("keydown", (e) => { if (tour.on && e.key === "Escape" && !document.querySelector("dialog[open]")) endTour(); });
   $("#tourBtn").onclick = () => { $("#guestBtn").click(); startTour(); };
   // ---------- public site: sharing handwriting to train the checker ----------
-  // For dev accounts only for now (Annie, 2026-10-22: no "give us your data" while the site is a demo with few users; the
+  // For dev accounts only for now (the owner, 2026-10-22: no "give us your data" while the site is a demo with few users; the
   // tool comes first). Everyone else gets no question and no Settings section, and an earlier yes saves nothing. To offer
   // it to everyone again, set SHARE_FOR_ALL to true.
-  // Opt-in (Annie): after every 10th finished practice, a signed-in person who hasn't said yes is asked whether their
+  // Opt-in: after every 10th finished practice, a signed-in person who hasn't said yes is asked whether their
   // handwriting may be kept to tune and train the checker. The first time there's no "Don't ask me again"; from the
   // second time there is. With sharing on, each checked answer is saved to users/<uid>/training/<id>: its strokes
   // (points, timing, pressure, pointer kind), the word and direction, the checker's verdict and the student's own call.
   // Only the account itself (and the site's owner, through Firebase) can read it. The pop-up says it may go into products
-  // offered to others and goes with the site if it becomes or joins a company (Annie's plans, 2026-10-21). Settings turns
+  // offered to others and goes with the site if it becomes or joins a company (the owner's plans, 2026-10-21). Settings turns
   // sharing off and deletes what was shared (models already trained on it stay); deleting the account deletes it too. The choice and counts live in the synced choices:
   // share = { on, at, asked, never, n }, practices = finished practices.
   const SHARE_EVERY = 10, SHARE_FOR_ALL = false;
@@ -3202,7 +3202,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   $("#devAsk1").onclick = () => askShare(SHARE_EVERY, false);
   $("#devAsk2").onclick = () => askShare(2 * SHARE_EVERY, true);
   // Everything shared, as one JSON file, oldest answer first: each with its strokes and their timing, so writing can be
-  // replayed at its real speed (Annie wants her own in the promo video).
+  // replayed at its real speed (for the promo video).
   $("#shareDl").onclick = async (e) => {
     e.target.disabled = true;
     try {

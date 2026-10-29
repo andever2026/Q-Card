@@ -32,7 +32,7 @@
   color-scheme: dark;
 }
 /* Claude palette: warm ivory paper, terracotta accent, crimson pen. Picked per viewer (data-palette).
-   Dark mode is plain grey in both palettes, with only the accent colours differing (Annie). Next to the orange accent
+   Dark mode is plain grey in both palettes, with only the accent colours differing (the owner's call). Next to the orange accent
    a neutral grey looks brownish, so Warm's greys lean a touch cool, and its highlight fill is grey rather than brown. */
 :root[data-palette="claude"] {
   --bg: #f0eee6; --surface: #fdfcf9; --sunk: #f4f2ec; --ink: #1f1e1c; --muted: #696760; --line: #dedad0; --guide: #d3cec2; --ai: #ad5230; --ai-soft: #f6e5dc; --shu: #b0263c; --shu-soft: #f7e0e3; --ok: #4d7a34;
@@ -126,7 +126,7 @@ body.ready #gate { display: none; }
 #setPicker { display: grid; gap: 12px; } /* space above each unit's dashed line as well as below it */
 .chapter + .chapter { border-top: 1px dashed var(--line); padding-top: 12px; }
 .chrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.chrow .unit { font-size: .9rem; font-weight: 500; color: color-mix(in srgb, var(--ink) 80%, var(--muted)); } /* between the bold title it was and the Filter label (Annie) */
+.chrow .unit { font-size: .9rem; font-weight: 500; color: color-mix(in srgb, var(--ink) 80%, var(--muted)); } /* between the bold title it was and the Filter label (the owner's call) */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { border: 1px solid var(--line); background: var(--sunk); border-radius: 999px; padding: 6px 14px; font-weight: 500; display: inline-flex; gap: 6px; align-items: baseline; }
 .chip .n { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -176,7 +176,7 @@ body.ready #gate { display: none; }
 .startrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .startbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 .startbtns .n { color: var(--muted); font-weight: 400; margin-left: 4px; }
-/* On a phone the setup is slimmer so there's less to scroll (Annie): tighter panels, smaller chips and buttons, and a
+/* On a phone the setup is slimmer so there's less to scroll (the owner's call): tighter panels, smaller chips and buttons, and a
    mode's description shows only once it's picked. */
 @media (max-width: 480px) {
   #setup { gap: 12px; }

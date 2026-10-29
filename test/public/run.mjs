@@ -572,7 +572,7 @@ for (const width of [900, 375]) {
 }
 
 // ---------- 14. asking to share handwriting after every 10th practice; what's saved; Settings ----------
-// Sharing is offered to developers only for now (Annie, 2026-10-22), so this account is one; everyone else is checked below.
+// Sharing is offered to developers only for now (the owner, 2026-10-22), so this account is one; everyone else is checked below.
 const sctx = await browser.newContext();
 const sp = await newPage(sctx, { init: () => {
   if (localStorage.getItem("fake:user")) return;
