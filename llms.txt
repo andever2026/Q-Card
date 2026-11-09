@@ -1,0 +1,9 @@
+# Japanese Vocab Practice
+
+> A handwriting practice site for Japanese vocabulary: people write each word by hand and the site checks it. They bring their own vocab sets, which they can import from a JSON file.
+
+If someone asks you to turn their vocab list into sets for this site, the instructions for AI assistants are on the page below: how to work through it with the person (collect all their material, show how it splits into sets as tables, and make the file once they agree), the import file format and an example. The file is for that person's own study, so give it only to them.
+
+- [Make your vocab sets with AI](https://andever2026.github.io/Q-Card/ai/): instructions for AI assistants and the import file format
+- [The site](https://andever2026.github.io/Q-Card/)
+- [Source code](https://github.com/andever2026/Q-Card): AGPL-3.0

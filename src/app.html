@@ -1,0 +1,364 @@
+<!--#if public-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--CSP-->
+<meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
+<title>Japanese Vocab Practice</title>
+<!--#else-->
+<title>Japanese Vocab Practice</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!--#endif-->
+<!--#if public-->
+<link rel="stylesheet" href="fonts/fonts.css">
+<!--#else-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<!--#endif-->
+<style>
+/*#include app/styles.css*/
+</style>
+<script>try { if (JSON.parse(localStorage.getItem("jpq:palette")) === "claude") document.documentElement.dataset.palette = "claude"; } catch {}</script>
+<script>try { const t = JSON.parse(localStorage.getItem("jpq:theme")); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
+
+<!--#if public-->
+</head>
+<body>
+<!--#endif-->
+<div class="wrap">
+  <header class="head">
+    <h1>Japanese Vocab Practice</h1>
+<!--#if public-->
+    <dialog id="welcome" aria-label="Welcome to Japanese Vocab Practice">
+      <button class="dlgx" type="button" id="welcomeClose" aria-label="Close and continue as a guest" title="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18"/></svg></button>
+      <div class="welcome">
+        <p class="lead">This tool aims to improve written Japanese skills by combining traditional Q-Cards with handwriting recognition.</p>
+        <p>To start, sign in with Google to sync your data across devices, or continue as a guest to keep it in this browser only.</p>
+        <div class="signbtns"><button class="btn primary" type="button" id="signInBtn">Sign in with Google</button><button class="btn primary" type="button" id="guestBtn">Continue as a guest</button></div>
+        <button class="btn tourbtn" type="button" id="tourBtn">First time here? Take the 5-minute tour</button>
+        <p class="keyerr small" id="welcomeErr" hidden></p>
+      </div>
+    </dialog>
+    <dialog id="shareAsk" aria-labelledby="shareTitle"><div class="shareask">
+      <h2 id="shareTitle">Help train a better handwriting checker?</h2>
+      <p><span id="shareCount"></span>The checker that reads your writing learns best from real handwriting like yours. If you say yes, each answer you write from now on is saved to your account with:</p>
+      <ul><li>the strokes you drew: their shape, timing and pen pressure</li><li>the word you were answering, and how the checker and you marked it</li><li>whether you wrote with a pen, a finger or a mouse</li></ul>
+      <p>It's used to build better handwriting recognition, for this site and for products made from it, which may be offered to schools or other companies. If the site becomes or joins a company, your shared handwriting goes with it. You can turn sharing off or delete what you've shared any time in Settings; models already trained on it stay as they are. Only say yes if you're 16 or older.</p>
+      <label class="checkrow" id="shareNeverRow" hidden><input type="checkbox" id="shareNever"> Don't ask me again</label>
+      <div class="tactions shareact"><button class="btn" type="button" id="shareNo">Not now</button><button class="btn primary" type="button" id="shareYes">Yes, share my handwriting</button></div>
+    </div></dialog>
+<!--#endif-->
+    <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
+    <dialog id="settings" aria-label="Settings"><div class="settings">
+      <div class="sethead"><h2>Settings</h2><button class="ghost" type="button" id="settingsClose" aria-label="Close settings">✕</button></div>
+      <section class="setrow"><h3>Colours</h3>
+        <div class="palpick" id="palPick" role="group" aria-label="Colours"><button type="button" data-pal="indigo" aria-label="Blue" title="Blue"><i style="background:#2c4a8f"></i></button><button type="button" data-pal="claude" aria-label="Warm" title="Warm"><i style="background:#c96442"></i></button></div>
+      </section>
+      <section class="setrow"><h3>Light or dark</h3>
+        <div class="seg" id="themePick" role="group" aria-label="Light or dark"><button type="button" data-theme-pick="">Match device</button><button type="button" data-theme-pick="light">Light</button><button type="button" data-theme-pick="dark">Dark</button></div>
+      </section>
+<!--#if public-->
+      <section><h3>Account</h3>
+        <p id="acctName"></p>
+        <div class="tactions"><button class="btn" type="button" id="signOutBtn">Sign out</button></div>
+        <p class="keyerr small" id="acctErr" hidden></p>
+        <p class="muted small" id="privacyLink"><a href="privacy/" target="_blank" rel="noopener">Privacy Policy</a></p>
+      </section>
+      <section id="shareSet" hidden><h3>Help train the checker</h3>
+        <p class="muted small" id="shareInfo"></p>
+        <div class="tactions"><button class="btn" type="button" id="shareToggle">Turn on…</button><button class="link" type="button" id="shareDl" hidden>Download what I've shared</button><button class="link" type="button" id="shareDel" hidden>Delete what I've shared</button></div>
+        <div class="tactions" id="shareDelAsk" hidden><span class="small">Delete every answer you've shared, for good?</span><button class="btn danger" type="button" id="shareDelYes">Delete</button><button class="btn" type="button" id="shareDelNo">Cancel</button></div>
+      </section>
+      <section id="toolsSet"><h3>Developer tools</h3>
+        <p class="muted small">A look at how the page works. Each one stays off until you turn it on, in this browser.</p>
+        <label class="checkrow"><input type="checkbox" id="liveReadOn"> Show what the checker reads as I write</label>
+        <label class="checkrow"><input type="checkbox" id="charBoxesOn"> Show character boxes: where the checker found each character</label>
+        <div id="devSet" hidden>
+          <p class="muted small">Only developers see this. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
+          <div class="tactions"><button class="btn" type="button" id="devAsk1">First time</button><button class="btn" type="button" id="devAsk2">Later times</button></div>
+        </div>
+      </section>
+<!--#endif-->
+      <section><h3>Your vocab</h3><p class="muted" id="setStats"></p></section>
+      <section id="portPanel" hidden><h3>Export / import</h3>
+        <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and courses, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
+        <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
+<!--#if public-->
+        <p class="muted small" id="aiHelp">Have a vocab list on paper, in a photo or in a PDF? <a href="ai/" target="_blank" rel="noopener">Let your AI make the file</a>.</p>
+<!--#endif-->
+        <p class="muted small" id="portMsg" hidden></p>
+        <div class="impprev" id="importPreview" hidden></div>
+      </section>
+<!--#if public-->
+      <section><h3>Delete</h3><div id="delAcct"></div></section>
+<!--#endif-->
+    </div></dialog>
+  </header>
+  <div class="banner" id="banner" hidden></div>
+  <div class="gate" id="gate" role="status">Loading…</div>
+
+  <!-- SETUP -->
+  <section id="setup" class="wrap">
+    <div class="panel">
+      <div class="head"><h3>Sets</h3>
+        <div class="headr"><button class="link" id="toTable">vocab table</button>
+          <div class="seg mini" id="groupSeg" role="group" aria-label="Unit rows by" hidden>
+            <button type="button" data-group="book">Collection</button><button type="button" data-group="course">Course</button>
+          </div>
+        </div>
+      </div>
+      <div class="pbar" id="pickBar" hidden>
+        <div class="pchs" id="pickChs" role="group" aria-label="Units"></div>
+        <div class="pkinds" id="pickTagRow" hidden><span class="muted small">Filter</span>
+          <div class="chips" id="pickTags" role="group" aria-label="Show sets tagged"></div>
+        </div>
+        <div class="tsum" id="pickSumRow" hidden><span class="muted small" id="pickSum"></span><button class="link" type="button" id="pickClear">Clear all picks</button></div>
+      </div>
+      <div id="setPicker"><div class="empty">Loading vocab sets…</div></div>
+<!--#if public-->
+      <p class="muted small" id="sampleNote" hidden></p>
+<!--#endif-->
+    </div>
+    <div class="panel">
+      <div class="opt">
+        <h3>Direction</h3>
+        <div class="seg" id="dirSeg">
+          <button id="dir-ej" data-dir="ej">English → 日本語</button>
+          <button id="dir-je" data-dir="je">日本語 → English</button>
+          <button id="dir-both" data-dir="both">Both</button>
+        </div>
+      </div>
+      <div class="opt">
+        <h3>Modes</h3>
+        <div class="modes" id="modeSeg">
+          <button class="mode" id="mode-default" data-mode="default"><b>Default</b><span>Kanji optional. If you add furigana, it gets checked too.</span></button>
+          <button class="mode" id="mode-kanji" data-mode="kanji"><b>Force kanji</b><span>Kanji you’ve learned must be written as kanji.</span></button>
+          <button class="mode" id="mode-kana" data-mode="kana"><b>Kana only</b><span>Only the reading counts, kanji mistakes are ignored.</span></button>
+          <button class="mode" id="mode-kata" data-mode="kata"><b>Katakana only</b><span>Narrows the picked set(s) to the words that include katakana.</span></button>
+          <button class="mode" id="mode-verb" data-mode="verb"><b>Verb forms</b><span>Narrows the picked set(s) to verbs only, and goes through their five forms.</span></button>
+        </div>
+      </div>
+      <div class="opt">
+        <h3>Kanji learned up to</h3>
+        <div class="uptorow"><select class="sel" id="uptoSel" aria-label="Kanji learned up to"></select><span class="muted small" id="uptoHint"></span></div>
+      </div>
+      <div class="startrow">
+        <span class="muted small" id="countLbl">Pick at least one set.</span>
+        <span class="startbtns"><button class="btn" id="resumeBtn" hidden></button><button class="btn primary" id="startBtn" disabled>Start practice</button></span>
+      </div>
+    </div>
+    <div class="panel" id="histPanel" hidden>
+      <div class="head"><h3 id="histTitle">Your recent practice</h3><span class="tactions"><button class="ghost small" id="histOff" hidden>Turn off</button><button class="link" id="histAll">See all history</button></span></div>
+      <div class="histask" id="histAsk" hidden></div>
+      <ul class="hist" id="histList"></ul>
+    </div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz" class="wrap" style="gap:16px" hidden>
+    <div class="qbar">
+      <button class="ghost" id="quitBtn">← Quit</button>
+      <div class="prog"><span id="progLbl"></span><div class="meter"><i id="meterFill"></i></div></div>
+    </div>
+    <div class="prompt">
+      <div class="tag" id="qTag"></div>
+      <div class="qtext" id="qText"></div>
+      <div class="qsub" id="qSub"></div>
+    </div>
+    <div class="sheet">
+      <div class="mainwrap">
+        <canvas id="furiPad" class="pad furi" aria-label="Furigana strip"></canvas>
+        <span class="padtag" id="furiLabel">ふりがな (optional)</span>
+        <div class="checking" id="checkingFuri" hidden>Reading your handwriting…</div>
+      </div>
+      <div class="zlabel"><span id="mainLabel">Answer</span></div>
+      <div class="mainwrap">
+        <canvas id="mainPad" class="pad main" aria-label="Answer box"></canvas>
+        <span class="padtag" id="mainTag">答え (answer)</span>
+        <div class="checking" id="checking" hidden>Reading your handwriting…</div>
+      </div>
+    </div>
+<!--#if public-->
+    <p class="read live" id="liveRead" hidden></p>
+<!--#endif-->
+    <div class="tools" id="tools">
+      <span class="itools"><span class="igroup"><button type="button" id="undoBtn" title="Undo" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></button><button type="button" id="clearBtn" title="Clear" aria-label="Clear"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button></span><span class="igroup" role="group" aria-label="Writing tool"><button type="button" data-tool="pen" aria-pressed="true" title="Pen" aria-label="Pen"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button><button type="button" data-tool="erase" aria-pressed="false" title="Stroke eraser: erases whole strokes" aria-label="Stroke eraser"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></button></span></span>
+      <span class="spacer"></span>
+      <span class="err" id="checkErr" hidden></span>
+      <button class="btn primary" id="checkBtn" disabled>Check</button>
+    </div>
+<!--#if public-->
+    <div class="fb self" id="selfCheck" hidden>
+      <div class="fbhead"><span class="stamp">自己採点</span><span id="selfHead">Compare what you wrote with the answer.</span></div>
+      <div class="answer" id="selfAnswer"></div>
+      <div class="fbfoot"><button class="btn" type="button" id="selfMiss">I missed it</button><button class="btn primary" type="button" id="selfGot">I got it right</button></div>
+    </div>
+<!--#endif-->
+    <div class="fb" id="feedback" hidden>
+      <div class="fbhead"><span class="stamp">もう一度</span><span id="fbReason"></span></div>
+      <div class="answer" id="fbAnswer"></div>
+      <p class="need" id="fbNeed" hidden></p>
+      <p class="read" id="fbRead"></p>
+      <div class="sheet">
+        <div class="zlabel"><span>Scratch pad: practice it a few times</span></div>
+        <canvas id="scratchPad" class="pad scratch" aria-label="Scratch pad"></canvas>
+        <div class="itools"><span class="igroup"><button type="button" id="scratchUndo" title="Undo" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></button><button type="button" id="scratchClear" title="Clear" aria-label="Clear"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button></span><span class="igroup" role="group" aria-label="Writing tool"><button type="button" data-tool="pen" aria-pressed="true" title="Pen" aria-label="Pen"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button><button type="button" data-tool="erase" aria-pressed="false" title="Stroke eraser: erases whole strokes" aria-label="Stroke eraser"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></button></span></div>
+      </div>
+      <div class="fbfoot">
+        <button class="link" id="overrideBtn">Claude misread my writing, count it as correct</button>
+        <button class="btn primary" id="nextBtn">Next word →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results" class="wrap" style="gap:18px" hidden>
+    <div class="panel">
+      <h2>お疲れさま！ Every word was correct at least once.</h2>
+      <div class="stats">
+        <div><span class="big" id="rWords">0</span><span class="muted small">words</span></div>
+        <div><span class="big" id="rFirst">0</span><span class="muted small">right on the first try</span></div>
+        <div><span class="big" id="rTries">0</span><span class="muted small">total tries</span></div>
+      </div>
+    </div>
+    <div class="panel" id="lovePanel">
+      <div class="head"><h3>Words that need more love</h3><button class="link" type="button" id="skipAll" hidden></button></div>
+      <ul class="love" id="loveList"></ul>
+    </div>
+    <div class="panel" id="firstPanel">
+      <h3>First try</h3>
+      <p class="firsts" id="firstList"></p>
+    </div>
+    <div class="startrow">
+      <button class="btn" id="againBtn">Practice the tricky ones again</button>
+      <button class="btn primary" id="newBtn">New practice</button>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="history" class="wrap" style="gap:18px" hidden>
+    <div class="qbar"><button class="ghost" id="histBack">← Back to practice</button></div>
+    <div class="panel">
+<!--#if public-->
+      <div class="head"><h2>Your history</h2><span class="muted small" id="histWhere">Private to your account</span></div>
+<!--#else-->
+      <div class="head"><h2>Your history</h2><span class="muted small">Only you can see this</span></div>
+<!--#endif-->
+      <div class="empty" id="hEmpty" hidden></div>
+      <div class="stats" id="hStats">
+        <div><span class="big" id="hTests">0</span><span class="muted small">practice sessions</span></div>
+        <div><span class="big" id="hWords">0</span><span class="muted small">words practiced</span></div>
+        <div><span class="big" id="hStreak">0</span><span class="muted small">day streak</span></div>
+      </div>
+    </div>
+    <div id="hBody" class="wrap" style="gap:18px">
+      <div class="panel">
+        <div class="head"><h3 id="heatTitle">Practice sessions per day</h3>
+          <span class="heatlegend">Less <i style="background:var(--line)"></i><i style="background:var(--h1)"></i><i style="background:var(--h2)"></i><i style="background:var(--h3)"></i><i style="background:var(--ai)"></i> More</span></div>
+        <div class="heatwrap" id="heat"></div>
+      </div>
+      <div class="panel">
+        <h3>First-try score, last 30 sessions</h3>
+        <div id="acc"></div>
+      </div>
+      <div class="panel" id="hLovePanel">
+        <div class="head"><h3>Words that need the most love overall</h3><div class="headr">
+          <span class="muted small" aria-hidden="true">Last</span><div class="seg mini" id="loveWin" role="group" aria-label="Count misses in the last"><button type="button" data-win="5">5</button><button type="button" data-win="10">10</button><button type="button" data-win="20">20</button><button type="button" data-win="50">50</button><button type="button" data-win="all">All</button></div></div></div>
+        <ul class="love" id="hLove"></ul>
+        <div class="tactions" style="justify-content: flex-end"><button class="btn primary" type="button" id="hPractise">Practice these</button></div>
+      </div>
+      <div class="panel">
+        <div class="head"><h3>All practice sessions</h3><span class="tactions" id="delAllWrap"></span></div>
+        <ul class="tests" id="hList"></ul>
+        <button class="btn" id="hMore" hidden>Show more</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TABLE -->
+  <section id="table" class="wrap" style="gap:18px" hidden>
+    <div class="qbar"><button class="ghost" id="backBtn">← Back to practice</button></div>
+    <div class="panel">
+      <div class="head"><h2>Vocab table</h2>
+        <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="bookOrderBtn" hidden>Change collection order</button>
+          <div class="seg mini" id="tGroupSeg" role="group" aria-label="Unit rows by" hidden>
+            <button type="button" data-group="book">Collection</button><button type="button" data-group="course">Course</button>
+          </div>
+        </div>
+      </div>
+      <div class="tbar">
+        <input type="search" class="tsearch" id="tSearch" placeholder="Search English, kana or kanji" aria-label="Search the vocab table in every unit">
+        <div class="bookorder setedit" id="bookOrderEd" hidden></div>
+        <div class="pbar tpbar" id="tPickBar"><div class="pchs" id="tChs" role="group" aria-label="Units"></div></div>
+        <div class="tsum"><span class="muted small" id="tSummary"></span><button class="link" id="tOpenAll" type="button"></button></div>
+      </div>
+      <div id="setTables"></div>
+      <form class="newset" id="newSetForm" hidden>
+        <label>Collection<input id="nsCol" list="colList" placeholder="Japanese 1" required></label>
+        <label>Unit<input id="nsUnit" list="unitList" placeholder="Week 3" required></label>
+        <label>Set name<input id="nsName" placeholder="Food and drink" required></label>
+        <label>Tags (optional)<input id="nsTags" placeholder="Verbs, Quiz 3"></label>
+        <button class="btn" type="submit">Add set</button>
+      </form>
+    </div>
+    <div class="panel">
+      <div class="head"><h2>Kanji by unit</h2><span class="muted small" id="kanjiCount"></span></div>
+      <p class="muted small">The kanji each unit teaches, for Force kanji and “Kanji learned up to”. Paste them in any form; only kanji are kept. This follows the units picked in the vocab table.</p>
+      <div class="tsum"><span class="muted small" id="kSummary"></span><button class="link" id="kAllBtn" type="button"></button></div>
+      <div id="kanjiLists"></div>
+      <form class="newset" id="newKanjiForm" hidden>
+        <label>Collection<input id="nkCol" list="colList" placeholder="Japanese 1" required></label>
+        <label>Unit<input id="nkUnit" list="unitList" placeholder="Week 3" required></label>
+        <button class="btn" type="submit">Add kanji list</button>
+      </form>
+      <datalist id="colList"></datalist><datalist id="unitList"></datalist>
+    </div>
+  </section>
+  <div class="tip" id="tip" role="tooltip" hidden></div>
+</div>
+<!--#if public-->
+<footer class="foot">
+  <p>Japanese Vocab Practice is free and open source under the AGPL-3.0: <a href="https://github.com/andever2026/Q-Card" rel="noopener">source code on GitHub</a>.</p>
+  <p>Handwriting templates from <a href="https://kanjivg.tagaini.net" rel="noopener">KanjiVG</a> (CC BY-SA 3.0) and the Hershey fonts (Dr. A. V. Hershey, U. S. National Bureau of Standards). Kanji readings from <a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project" rel="noopener">KANJIDIC</a> (EDRDG, CC BY-SA 4.0).</p>
+  <p><a href="privacy/">Privacy Policy</a></p>
+</footer>
+<script src="js/platform.js"></script>
+<!--#endif-->
+
+<script>
+(() => {
+  //#include app/core.js
+
+  //#include app/pads.js
+
+  //#include app/data.js
+  //#include app/verbs.js
+  //#include app/setup.js
+
+  //#include app/practice.js
+  //#include app/answers.js
+  //#include app/grading.js
+
+  //#include app/results.js
+  //#include app/history.js
+
+  //#include app/table.js
+
+  //#include app/export-import.js
+
+  //#if public
+  //#include app/public.js
+  //#include app/tour.js
+  //#include app/share.js
+  //#endif
+  //#include app/boot.js
+})();
+</script>
+<!--#if public-->
+</body>
+</html>
+<!--#endif-->

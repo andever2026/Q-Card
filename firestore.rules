@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Each signed-in person can read and write only their own folder:
+    // users/<their id>/sets, kanji, history and settings. Everything else stays locked.
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    // Developers: dev/<their id>, a document made by hand in the Firebase console (the site can never write it).
+    // Each signed-in person can read only their own entry, which is how the page knows whether to show Dev tools.
+    // Anything only a developer (or, later, an owner) may do is checked against such a document here, never in the page.
+    match /dev/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+  }
+}
