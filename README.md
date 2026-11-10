@@ -47,6 +47,7 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 | `tools/repeats.mjs` | Fails when the same code is written in two places under `src/`. Part of `npm run check`. |
 | `llms.txt` | A short pointer for AI tools to the AI page (`ai/`), the page people give to their AI assistant to make an import file (see Vocab files). Everything on that page is in its HTML, for AI tools that don't run scripts. |
 | `index.html`, `ai/`, `privacy/`, `js/`, `css/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus a beta build of the `beta` branch. `js/templates.js` and `js/samples.js` are the two data files above as scripts, which a page opened straight from disk may load (it can't fetch files), so a downloaded copy works offline as a guest by opening `index.html`. The privacy policy's git history (`src/side-pages/privacy.html`) is the list of changes to it. |
+| `.nvmrc` | The Node version the build and the tests run on: GitHub reads it, and so does `nvm use`. |
 | `CLAUDE.md` | Working rules for Claude sessions on this repo (what to never commit, how changes reach the site). |
 | `test/` | Browser tests for the public site (`test/public` with a fake Firebase, `test/emulator` with the real one on the Firebase emulators) and for the claude.ai copy (`test/claude`, with a stand-in for claude.ai), and the checker's accuracy tests (`test/checker`). |
 
@@ -78,11 +79,14 @@ GitHub runs both browser tests on every pull request into `main`. The public-sit
 `test/emulator/run.mjs` runs the page against the real Firebase SDK and the real `firestore.rules` instead, on the Firebase emulators (Auth and Firestore, project `demo-qcard`, so nothing reaches the real project): signing in from the welcome pop-up with the sample sets and saved choices, a practice left midway with its writing, sharing handwriting and deleting it, Dev tools, Delete my account, and the rules themselves. They need the Firebase CLI and Java 21 or later; the emulators start and stop around the run:
 
 ```sh
-npm install --no-save playwright@1.56.1 firebase-tools@14   # both at once, or the second install removes the first
+npm install --no-save playwright firebase-tools   # both at once, or the second install removes the first
+npx playwright install chromium
 PLAYWRIGHT_DIR=$PWD/node_modules/playwright npx firebase emulators:exec --config test/emulator/firebase.json --only auth,firestore --project demo-qcard "node test/emulator/run.mjs"
 ```
 
 Or keep the emulators running (`npx firebase emulators:start` with the same options) and run `node test/emulator/run.mjs` as often as you like. GitHub runs these on pull requests into `main` too.
+
+The versions GitHub uses are each written once: Node's in `.nvmrc`, Playwright's and the Firebase CLI's at the top of `.github/workflows/check.yml`.
 
 ### Beta site
 

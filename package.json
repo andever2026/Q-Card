@@ -9,6 +9,6 @@
   },
   "devDependencies": {
     "esbuild": "0.28.2",
-    "firebase": "12.19.0"
+    "firebase": "13.2.0"
   }
 }

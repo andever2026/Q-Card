@@ -17,6 +17,8 @@ layout, the build and the tests; this file is what README doesn't say.
   "All passed") and add checks there for what changed. Changes to `src/checking/checker.js` also get
   `test/checker/eval.mjs` run before and after, and the numbers compared.
 - Keep README.md's file list in step with the files.
+- A version is looked up when it's chosen or changed (Node in `.nvmrc`, the actions and test tools in
+  `.github/workflows/`, packages in `package.json`), never taken from memory: what a session remembers is often a year old.
 
 ## Where code goes
 
