@@ -1,7 +1,6 @@
   // ---------- verb forms ----------
   // Verb forms practice asks five plain forms of each verb. A word is a verb when its English starts with "to" and each
   // Japanese alternative ends like a verb; Nakama 1's early masu forms (飲みます) are turned back into dictionary forms first.
-  const VDESC = { "Current Plain+": "plain non-past affirmative (dictionary) form", "Current Plain-": "plain non-past negative form (〜ない)", "て form": "て form", "Past Plain+": "plain past affirmative form (〜た)", "Past Plain-": "plain past negative form (〜なかった)" };
   const VFORMS = [["now", "Current Plain+"], ["nownot", "Current Plain-"], ["te", "て form"], ["past", "Past Plain+"], ["pastnot", "Past Plain-"]];
   const VROWS = ["わかさたなはまやらがざだばぱ", "いきしちにひみ・りぎじぢびぴ", "うくすつぬふむゆるぐずづぶぷ", "えけせてねへめ・れげぜでべぺ"];
   const vrow = (c, to) => { for (const r of VROWS) { const i = r.indexOf(c); if (i >= 0 && c !== "・") return VROWS[to][i]; } return ""; };

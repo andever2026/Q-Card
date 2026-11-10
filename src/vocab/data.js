@@ -1,13 +1,6 @@
   // ---------- data ----------
-  // Vocab is grouped Collection › Unit › Set: a collection (a textbook, a course, any list of lists) has units (Ch. 3,
-  // Week 1, any name), and each unit has sets; kanji lists go by unit. Documents saved before October 2026 name a book,
-  // a numbered chapter and a section with an optional label: they're read as collection, unit "Ch. N" and set name "A · Label".
+  // The vocab as the page holds it: collections, their units and sets, in order (how a stored document is read: vocab/docs.js).
   const coll = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-  const tidy = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
-  const oldUnit = (v) => { const c = tidy(v, 60).replace(/^ch(apter)?\.?\s*(?=\d)/i, ""); return /^\d+$/.test(c) ? `Ch. ${+c}` : c; };
-  const docCol = (d) => tidy(d.collection ?? d.book, 100);
-  const docUnit = (d) => (d.unit != null ? tidy(d.unit, 60) : oldUnit(d.chapter)) || "No unit";
-  const docName = (d) => tidy(d.name ?? [d.section, d.label].map((x) => tidy(x, 200)).filter(Boolean).join(" · "), 200) || "Untitled set";
   // Units sort by name with numbers in order (Week 2 before Week 10). In a unit, Kanji sets, Extras and supplementary lists come last.
   const byUnit = (a, b) => coll.compare(String(a), String(b));
   const secRank = (s) => { s = String(s || ""); return /^kanji/i.test(s) ? 1 : /^extra/i.test(s) ? 2 : /^supp/i.test(s) ? 3 : 0; };
@@ -22,7 +15,6 @@
   const byCol = (a, b) => colRank(a) - colRank(b) || coll.compare(String(a), String(b));
   const cols = () => [...new Set([...S.sets, ...S.kanjiLists].map(colOf))].sort(byCol);
   const multiCol = () => cols().length > 1;
-  const colLabel = (b) => b || "No collection";
   // The collection in view: the one picked, or the first one while the picked one doesn't exist (yet).
   const shownCol = (b) => { const bs = cols(); return bs.includes(b) ? b : bs[0] ?? ""; };
   // Typed names match an existing collection, or unit of that collection, whatever their case ("ch. 3" is "Ch. 3").
@@ -32,47 +24,35 @@
   const keyUnit = (k) => k.split("\u0001")[1];
   // Picks saved before units name the chapter number ("Nakama 1\u00013"), now "Nakama 1\u0001Ch. 3" (unless a unit is named "3").
   const newKey = (k, has) => (/\u0001\d+$/.test(k) && !has(k) ? k.replace(/\u0001(\d+)$/, "\u0001Ch. $1") : k);
-  // "Nakama 1 › Ch. 3" when there's more than one collection, else "Ch. 3".
-  const unitTitle = (x) => `${multiCol() ? colLabel(colOf(x)) + " › " : ""}${x.unit}`;
-  const setName = (s) => `${unitTitle(s)} › ${s.name}`;
+  // "Genki 1 › Lesson 3" when there's more than one collection, else "Lesson 3".
+  const unitTitle = (x) => unitPath(x, multiCol());
+  const setName = (s) => setPath(s, multiCol());
   const jpForm = (w) => w.kanji || w.kana;
 
-  // A course takes a range of units from one collection, by name: { collection, from, to }. Older courses gave a book and chapter numbers.
-  const coursePart = (p) => (p?.collection != null ? { collection: tidy(p.collection, 100), from: tidy(p.from, 60), to: tidy(p.to, 60) }
-    : { collection: tidy(p?.book, 100), from: oldUnit(p?.from), to: oldUnit(p?.to) });
   function onCourses(snap) {
-    raw.courses = snap.exists ? snap.data() : null;
+    raw.courses = dataOrNull(snap);
     const list = snap.exists ? snap.data()?.courses : null;
     S.courses = (Array.isArray(list) ? list : []).filter((c) => c && c.name && Array.isArray(c.parts))
       .map((c) => ({ name: String(c.name), parts: c.parts.map(coursePart) }));
     renderSetup(); renderTable();
-    //#if public
-    takeAiImport();
-    //#endif
   }
   function onBookOrder(snap) {
-    raw.books = snap.exists ? snap.data() : null;
+    raw.books = dataOrNull(snap);
     const o = snap.exists ? snap.data()?.order : null;
     S.colOrder = Array.isArray(o) ? o.map(String) : [];
     S.sets.sort(sortSets);
     S.kanjiLists.sort(sortLists);
     if (S.kLoaded) renderUpto(); // before the kanji lists load, renderUpto would reset the choice
     renderSetup(); renderTable();
-    //#if public
-    takeAiImport();
-    //#endif
   }
   function onSets(snap) {
-    raw.sets = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    raw.sets = withIds(snap);
     S.sets = snap.docs.map((d) => { const x = d.data(); return { id: d.id, collection: docCol(x), unit: docUnit(x), name: docName(x), tags: x.tags, words: (x.words || []).map((w) => ({ ...w })) }; }).sort(sortSets);
     S.loaded = true;
     const ids = new Set(S.sets.map((s) => s.id));
     for (const id of [...S.selected]) if (!ids.has(id)) S.selected.delete(id);
     renderSetup();
     renderTable();
-    //#if public
-    takeAiImport();
-    //#endif
   }
 
   // ---------- setup ----------

@@ -1,44 +1,44 @@
 <!doctype html>
 <html lang="en">
 <head>
+<!-- Made by tools/build.mjs from src/side-pages/ai.html; edit that file instead. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src data:; base-uri 'none'; form-action 'none'">
-<meta name="description" content="Give this page's link to your AI assistant along with your vocab list, and it makes a file you can import into Japanese Vocab Practice. Instructions for AI assistants are on the page.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src data:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
-<title>Make your vocab sets with AI · Japanese Vocab Practice</title>
 <link rel="stylesheet" href="../fonts/fonts.css">
 <link rel="stylesheet" href="../css/theme.css">
 <script src="../js/pages.js"></script>
+<meta name="description" content="Give this page's link to your AI assistant along with your vocab list, and it makes a file you can import into Japanese Vocab Practice. Instructions for AI assistants are on the page.">
+<title>Make your vocab sets with AI · Japanese Vocab Practice</title>
+<script src="../js/ai.js" defer></script>
 <!-- Everything is in the HTML: AI tools that fetch the page without running scripts get all of it, the folded part included.
-     js/pages.js only adds the colours picked in the site's Settings and the Copy and Import buttons. -->
+     js/pages.js adds the colours picked in the site's Settings, and js/ai.js the Copy and Import buttons. -->
 <style>
+/* What the side pages (ai/, privacy/) share on top of css/theme.css: a single column of text. */
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); line-height: 1.6; }
 main { max-width: 720px; margin: 0 auto; padding: 28px 16px 48px; display: grid; gap: 20px; }
 a { color: var(--ai); text-underline-offset: 3px; }
 h1 { margin: 0; font-size: 1.7rem; line-height: 1.3; }
 h2 { margin: 8px 0 0; font-size: 1.15rem; }
-h3 { margin: 4px 0 0; font-size: 1rem; }
 p, ol, ul { margin: 0; }
 ol, ul { padding-left: 1.3em; display: grid; gap: 4px; }
-.lead { font-size: 1.1rem; }
-.muted { color: var(--muted); }
 .small { font-size: .9rem; }
 .back { font-size: .9rem; }
+h3 { margin: 4px 0 0; font-size: 1rem; }
+.lead { font-size: 1.1rem; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; }
 .steps { gap: 12px; }
 .say { margin-top: 6px; background: var(--ai-soft); border-radius: 8px; padding: 10px 10px 10px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .say p { flex: 1 1 260px; overflow-wrap: anywhere; }
-.btn { font: inherit; color: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 14px; font-weight: 500; }
-.btn:hover { border-color: var(--ai); }
-.btn:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
-.btn.primary { background: var(--ai); border-color: var(--ai); color: var(--surface); font-weight: 700; }
 .say .btn { min-width: 6.5em; }
 .act { display: block; margin-top: 8px; }
-.msg { color: var(--shu); }
+/* The import preview (src/import-export/import.js), wherever an importer draws it. */
+.impprev { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 8px; background: var(--sunk); }
+.impprev ul { margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
+.impprev .names { font-size: .85rem; color: var(--muted); }
 html:not(.js) .js-only, html.js .no-js { display: none; }
-[hidden] { display: none !important; }
 details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 summary { cursor: pointer; padding: 14px 18px; font-weight: 700; }
 details[open] summary { border-bottom: 1px solid var(--line); }
@@ -70,7 +70,9 @@ dd { margin: 0 0 0 1.2em; }
       <span class="act no-js">In Japanese Vocab Practice, open Settings (the gear) and choose <b>Import a file…</b></span></li>
   </ol>
   <input type="file" id="aiImportFile" accept=".json,application/json" hidden>
-  <p class="msg small" id="aiImportMsg" role="alert" hidden></p>
+  <p class="muted small" id="aiImportMsg" role="status" hidden></p>
+  <div class="impprev" id="aiImportPreview" hidden></div>
+  <p class="small" id="aiImportDone" hidden>Your sets are ready: <a href="../">open Japanese Vocab Practice</a>.</p>
 </div>
 
 <details id="for-ai">
@@ -100,7 +102,7 @@ dd { margin: 0 0 0 1.2em; }
   <li>Build one JSON file in the format below, with the sets and words from the tables they agreed to.</li>
   <li>If you can create files, make a downloadable file named something like <code>my-vocab.json</code>. If you can't, put the whole JSON in one code block and tell them to save it as a plain text file ending in <code>.json</code>.</li>
   <li>Tell them to import it with <b>Import a file…</b> on this page, or in Settings (the gear) in Japanese Vocab Practice. They see a preview before anything is saved.</li>
-  <li>If you can use their browser for them, you can import it yourself: open this page, press <b>Import a file…</b>, choose the file, and press Import on the preview the site shows.</li>
+  <li>If you can use their browser for them, you can import it yourself: open this page, press <b>Import a file…</b>, choose the file, and press Import on the preview that appears.</li>
 </ul>
 
 <h2>Privacy</h2>

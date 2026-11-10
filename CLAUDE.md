@@ -5,18 +5,31 @@ layout, the build and the tests; this file is what README doesn't say.
 
 ## How changes reach the site
 
-- Edit `src/` only, then `npm run build` and commit the built files (`index.html`, `js/`) with the change.
-  `npm run check` must say "Built files are up to date".
+- Edit `src/` only, then `npm run build` and commit the built files (`index.html`, `ai/`, `privacy/`, `js/`, `css/`)
+  with the change. `npm run check` must say "Built files are up to date" and "No code is written twice under src/".
 - Everything is shared between the public site and the owner's claude.ai copy (`#if public` / `#if claude` in
   `src/page/page.html` and the scripts). A fix in one version's own section (sign-in, saving, checking) means checking the
   other version's section too.
 - Branch `beta` deploys to https://andever2026.github.io/Q-Card/beta/, `main` to the live site. Changes go to `beta`
   first; `main` only through a pull request from `beta` (merge method: merge, never squash or force-push).
 - Don't push or merge unless the owner asks. The owner tests and pushes.
-- Before calling something done, run `node test/public/run.mjs` (it ends with "All passed") and add checks there for
-  what changed. Changes to `src/checking/checker.js` also get `test/checker/eval.mjs` run before and after, and the numbers
-  compared.
+- Before calling something done, run `node test/public/run.mjs` and `node test/claude/run.mjs` (each ends with
+  "All passed") and add checks there for what changed. Changes to `src/checking/checker.js` also get
+  `test/checker/eval.mjs` run before and after, and the numbers compared.
 - Keep README.md's file list in step with the files.
+
+## Where code goes
+
+- One implementation per behaviour. Before writing something, look for where the site already does it and use that. When
+  a second place needs it, it moves into one file that both use (the AI page's Import is Settings' importer,
+  `src/import-export/import.js`); it is never written out again. Calling one function from many places is fine.
+  `npm run check` fails when the same code is written twice under `src/` (`tools/repeats.mjs`).
+- Folders in `src/` are named for what their code does (`page`, `theme`, `vocab`, `import-export`, `practice`,
+  `checking`, `account`, `tour`, `side-pages`). New code goes in the folder of its function, or in a new folder named
+  the same way. No `shared/`, `utils/` or `misc/`.
+- Where the two versions differ, each version's part is a file of its own behind one caller (`checking/builtin.js` and
+  `checking/claude.js` behind the one Check button in `checking/grading.js`), not two copies of a function inside `#if`.
+- More features are coming, so a change that makes the next one harder to place is worth stopping to restructure first.
 
 ## Never
 
@@ -29,7 +42,7 @@ layout, the build and the tests; this file is what README doesn't say.
 - `eval`, inline event handlers or new outside hosts: the page has a strict Content-Security-Policy (the build hashes
   the inline scripts). Fonts are self-hosted.
 - Promises written in the owner's name ("never sold", "no ads", and so on) without asking. The wording of
-  `privacy/index.html` is the owner's: ask before changing it.
+  the privacy policy (`src/side-pages/privacy.html`) is the owner's: ask before changing it.
 - Model names in commits, pull requests or code.
 - The owner's real name anywhere public: files, comments, commit messages, pull requests. Write "the owner" or
   andever2026.

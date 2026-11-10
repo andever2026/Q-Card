@@ -75,8 +75,9 @@ window.qcardPlatform = {
     try { await deleteUser(u); }
     catch (e) { if (e?.code !== "auth/requires-recent-login") throw e; await reauthenticateWithPopup(u, new GoogleAuthProvider()); await deleteUser(u); }
   },
-  db: makeDb,
-  localDb: makeLocalDb,
+  // Where someone's vocab is kept: their own folder in the database when signed in (u as onAuth gives it), else this
+  // browser. The site and the AI page's import both ask here, so they always agree.
+  storeFor: (u) => (u ? { id: u.uid, db: makeDb(u.uid) } : { id: "local", db: makeLocalDb() }),
   user: makeUser,
   // Whether this account is a developer: dev/<uid> exists (see firestore.rules; only the Firebase console makes it).
   isDev: async (uid) => { try { return (await getDoc(doc(fs, "dev/" + uid))).exists(); } catch { return false; } },

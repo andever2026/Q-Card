@@ -78,6 +78,7 @@ const authUsers = async () => (await (await fetch(`http://${AUTH_HOST}/identityt
 // ---------- the page ----------
 // src/account/firebase.js and src/checking/checker.js, as tools/build.mjs bundles them, with firebase/auth, firebase/firestore and
 // ./config.js wrapped: the real SDK, connected to the emulators. window.__googleUser is who "Google" signs in.
+const CONFIG = join(root, "src/account/config.js");
 const shims = {
   "firebase/auth": `export * from "firebase/auth";
     import { getAuth as realGetAuth, connectAuthEmulator, signInWithCredential, reauthenticateWithCredential, GoogleAuthProvider } from "firebase/auth";
@@ -88,12 +89,13 @@ const shims = {
   "firebase/firestore": `export * from "firebase/firestore";
     import { initializeFirestore as realInit, connectFirestoreEmulator } from "firebase/firestore";
     export function initializeFirestore(app, settings) { const fs = realInit(app, settings); connectFirestoreEmulator(fs, ${JSON.stringify(FS_HOST.replace(/:\d+$/, ""))}, ${+FS_HOST.split(":").at(-1)}); return fs; }`,
-  config: `import config from ${JSON.stringify(join(root, "src/account/config.js"))}; export default { ...config, projectId: "${PROJECT}" };`,
+  config: `import config from ${JSON.stringify(CONFIG)}; export default { ...config, projectId: "${PROJECT}" };`,
 };
+let wrapped = false; // set when the page's own import of its config got the one above
 const emulate = { name: "emulators", setup(b) {
   // The shims' own imports of the SDK resolve as usual (onResolve returns nothing for them).
   b.onResolve({ filter: /^firebase\/(auth|firestore)$/ }, (a) => (a.namespace === "emu" ? undefined : { path: a.path, namespace: "emu" }));
-  b.onResolve({ filter: /^\.\/config\.js$/ }, (a) => (/platform[\\/]firebase\.js$/.test(a.importer) ? { path: "config", namespace: "emu" } : undefined));
+  b.onResolve({ filter: /^\.\/config\.js$/ }, (a) => (join(a.resolveDir, a.path) === CONFIG ? (wrapped = true, { path: "config", namespace: "emu" }) : undefined));
   b.onLoad({ filter: /.*/, namespace: "emu" }, (a) => ({ contents: shims[a.path], resolveDir: root, loader: "js" }));
 } };
 const entry = ['import "./src/account/firebase.js";', ...(existsSync(join(root, "src/checking/checker.js")) ? ['import "./src/checking/checker.js";'] : [])];
@@ -101,6 +103,7 @@ const platformJs = (await esbuild.build({
   stdin: { contents: entry.join("\n"), resolveDir: root, sourcefile: "emulator-entry.js" },
   bundle: true, format: "iife", write: false, plugins: [emulate],
 })).outputFiles[0].text;
+if (!wrapped) { console.error(`The page didn't import ${CONFIG}, so it would run as the real project. Nothing was started.`); process.exit(1); }
 
 // The built page, with the emulators added to its Content-Security-Policy's connect-src.
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".css": "text/css", ".woff2": "font/woff2" };

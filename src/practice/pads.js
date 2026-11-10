@@ -146,36 +146,6 @@
       }
       ctx.restore();
     }
-    // Black ink on white, no guides, cropped to the writing: what Claude sees.
-    toBlob(scale = 2) {
-      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-      for (const s of this.strokes) for (const [x, y] of s) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
-      const pad = 16;
-      x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(this.w, x1 + pad); y1 = Math.min(this.h, y1 + pad);
-      const c = document.createElement("canvas");
-      c.width = Math.ceil((x1 - x0) * scale); c.height = Math.ceil((y1 - y0) * scale);
-      const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
-      ctx.translate(-x0 * scale, -y0 * scale); this.paint(ctx, "#000", scale);
-      return new Promise((res) => c.toBlob(res, "image/png"));
-    }
-  }
-  // Strip and box stacked as on screen, so Claude sees which character each furigana sits over.
-  function sheetBlob() {
-    const scale = 2, gap = 14, w = Math.max(furi.w, main.w), h = furi.h + gap + main.h;
-    let x0 = Infinity, x1 = -Infinity;
-    for (const p of [furi, main]) for (const s of p.strokes) for (const [x] of s) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); }
-    x0 = Math.max(0, x0 - 24); x1 = Math.min(w, x1 + 24);
-    const c = document.createElement("canvas");
-    c.width = Math.ceil((x1 - x0) * scale); c.height = Math.ceil(h * scale);
-    const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
-    ctx.translate(-x0 * scale, 0);
-    furi.paint(ctx, "#000", scale);
-    const sy = (furi.h + gap / 2) * scale;
-    ctx.strokeStyle = "#bbb"; ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
-    ctx.beginPath(); ctx.moveTo(x0 * scale, sy); ctx.lineTo(x1 * scale, sy); ctx.stroke(); ctx.setLineDash([]);
-    ctx.translate(0, (furi.h + gap) * scale);
-    main.paint(ctx, "#000", scale);
-    return new Promise((res) => c.toBlob(res, "image/png"));
   }
   const furi = new Pad($("#furiPad"), "furi");
   const main = new Pad($("#mainPad"), "main");

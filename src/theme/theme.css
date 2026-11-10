@@ -1,5 +1,6 @@
-/* Colours: Blue (the default) and Warm (data-palette="claude"), each light and dark (data-theme, else the device's setting).
-   Shared by the page (styles.css includes it) and the side pages ai/ and privacy/ (as css/theme.css, with js/pages.js). */
+/* The look every page of the site shares: its colours, and further down the pieces drawn the same way everywhere (buttons,
+   quiet text). The page includes this file (page/styles.css); the side pages ai/ and privacy/ link it as css/theme.css.
+   Colours: Blue (the default) and Warm (data-palette="claude"), each light and dark (data-theme, else the device's setting). */
 :root {
   --bg: #fdfdfd;
   --surface: #ffffff;
@@ -48,3 +49,18 @@
   --bg: #17181a; --surface: #212225; --sunk: #1b1c1e; --ink: #ececec; --muted: #a3a3a5; --line: #35373b; --guide: #3e4044; --ai: #e08560; --ai-soft: #2d2e32; --shu: #f0707e; --shu-soft: #3a2427; --ok: #7cbf6a;
   color-scheme: dark;
 }
+
+/* Pieces every page draws the same way. */
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 14px; font-weight: 500; }
+.btn:hover { border-color: var(--ai); }
+.btn.primary { background: var(--ai); border-color: var(--ai); color: var(--surface); font-weight: 700; padding: 10px 20px; }
+.btn.primary:disabled { opacity: .45; cursor: not-allowed; }
+/* A primary button beside a plain one takes the plain one's size, so the row lines up. */
+.btn:not(.primary) ~ .btn.primary, .btn.primary:has(~ .btn:not(.primary)) { padding: 8px 14px; }
+.btn.danger { color: var(--shu); }
+.link { background: none; border: none; padding: 0; color: var(--ai); text-decoration: underline; text-underline-offset: 3px; font-size: .9rem; }
+.muted { color: var(--muted); }
+.tactions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

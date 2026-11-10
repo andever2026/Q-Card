@@ -78,13 +78,10 @@
     catch { banner("Couldn't add the kanji list. Only the owner and editors can change the table."); }
   });
   function onKanji(snap) {
-    raw.kanji = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    raw.kanji = withIds(snap);
     S.kLoaded = true;
     S.kanjiLists = snap.docs.map((d) => { const x = d.data(); return { id: d.id, collection: docCol(x), unit: docUnit(x), kanji: String(x.kanji ?? "") }; }).sort(sortLists);
     renderUpto(); renderTable(); renderSetup();
-    //#if public
-    takeAiImport();
-    //#endif
   }
 
   // Units picked like on the practice page, sets folded until opened; a search looks across every unit.

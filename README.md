@@ -31,46 +31,49 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 
 | Path | What it is |
 | --- | --- |
-| `src/app.html` | The page's markup. It pulls in the stylesheet and the app code from `src/app/` with `#include` lines, and is shared with a personal copy that runs as a claude.ai artifact: lines between `#if public` / `#if claude` markers (in any of these files) go to one version only. |
-| `src/app/styles.css` | The page's styles. |
-| `src/app/theme.css` | The colours: Blue and Warm, each light and dark. `styles.css` includes it, and the build copies it to `css/theme.css` for the side pages. |
-| `src/pages.js` | The one script of the side pages (`ai/`, `privacy/`), built to `js/pages.js`: it applies the colours and light or dark picked in Settings, and runs the AI page's Copy and Import buttons. |
-| `src/app/*.js` | The app code, one part per file in page order: `core` (state, storage, views), `pads` (the writing boxes), `data` (loading vocab), `verbs` (verb forms), `setup` (the practice page and set picker), `practice` (asking and checking), `answers` (what counts as a right answer: forms, furigana, kanji), `grading`, `results`, `history`, `table` (the vocab table), `export-import`, `public` (public site only: sample sets, built-in checker, sign-in), `tour` (the 5-minute tour, public site only), `share` (asking to share handwriting for training, public site only, developer accounts only for now), `boot`. They're parts of one function, so they share names and only work once the build puts them together. |
-| `src/platform/firebase.js` | Public-site platform: Google sign-in, the Firestore adapter, file downloads. |
-| `src/platform/local.js` | Guest use (no sign-in): the same database shape, kept in the browser's `localStorage`. |
-| `src/platform/config.js` | Firebase web config. These values are public by design; the rules above protect the data. |
-| `src/checker.js` | The built-in handwriting checker. |
+| `src/page/` | The page itself. `page.html` is its markup: it pulls in the stylesheet and the code from the folders below with `#include` lines, and is shared with a personal copy that runs as a claude.ai artifact (lines between `#if public` / `#if claude` markers, in any file, go to one version only). Also `styles.css`, `dom.js` (finding elements, escaping text), `core.js` (state, storage, views), `data-files.js` and `boot.js` (start-up). |
+| `src/theme/` | The look every page shares. `theme.css`: the colours (Blue and Warm, each light and dark) and the pieces drawn the same everywhere, such as buttons; the build also copies it to `css/theme.css` for the side pages. `apply.js`: the one place the colours are set. `pick.js`: the two choices in Settings. `icon.html`: the site's icon. |
+| `src/vocab/` | The vocab. `docs.js`: what's stored for a set, a kanji list, the collection order and the courses, and how each is read and cleaned. `data.js` (the vocab as the page holds it), `setup.js` (the practice page and set picker), `table.js` (the vocab table), `samples.js` (the sample sets, public site only). |
+| `src/import-export/` | Vocab files. `import.js` is the one importer (read the file, preview, write), used by Settings and by the AI page; `import.css` styles its preview. `export.js` writes the file, and `panel.js` is the Export / import part of Settings. |
+| `src/practice/` | A practice: `practice.js` (asking the words, Resume), `pads.js` (the writing boxes), `verbs.js` (verb forms), `results.js`, `history.js`. |
+| `src/checking/` | Checking an answer. `grading.js`: the Check button and showing the result, the same for both versions. `answers.js`: what counts as a right answer (forms, furigana, kanji). `builtin.js` (public site) and `claude.js` (claude.ai copy) are each version's way of reading the handwriting. `checker.js`: the built-in handwriting checker itself. |
+| `src/account/` | Where things are kept and who's signed in. `firebase.js`: Google sign-in, the Firestore adapter, file downloads, and the rule for where someone's vocab is kept. `local.js`: guest use, the same database shape in the browser's `localStorage`. `config.js`: the Firebase web config (public by design; the rules protect the data). `account.js` (sign-in, sign-out and deleting, in the page), `choices.js` (the choices saved to the account, so they're the same on every device) and `share.js` (asking to share handwriting for training, developer accounts only for now). |
+| `src/tour/` | The 5-minute tour (public site only). |
+| `src/side-pages/` | The AI page and the privacy policy: `ai.html` and `privacy.html`, with the `head.html` and `base.css` they share. `pages.js` gives both the colours picked in Settings; `ai.js` is the AI page's Copy and Import buttons. |
 | `data/samples.json` | The sample sets new visitors start with, in the same format as an export. Written for this site, not taken from a textbook. |
 | `data/templates.json` | Stroke templates for the checker, generated from KanjiVG and the Hershey fonts (`tools/checker/hershey-latin.json`) by `tools/make-templates.mjs`. |
 | `fonts/` | The page's fonts, served from the site itself so visitors never contact Google Fonts. `tools/fetch-fonts.mjs` refreshes them. |
-| `tools/build.mjs` | Builds `index.html`, `js/*.js` and `css/theme.css` (the site) and `build/claude-ai.html` (the claude.ai copy). |
-| `ai/index.html`, `llms.txt` | The page people give to their AI assistant to make an import file (see Vocab files), written by hand, and a short pointer to it for AI tools. Everything is in its HTML for AI tools that don't run scripts; `js/pages.js` adds the colours and the Copy and Import buttons. |
-| `privacy/index.html` | The privacy policy, a plain page (its only script, `js/pages.js`, applies the colours), linked from the footer and from Settings. Its git history is the list of changes to it. |
-| `index.html`, `js/`, `css/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus a beta build of the `beta` branch. `js/templates.js` and `js/samples.js` are the two data files above as scripts, which a page opened straight from disk may load (it can't fetch files), so a downloaded copy works offline as a guest by opening `index.html`. |
+| `tools/build.mjs` | Builds the site (`index.html`, `ai/index.html`, `privacy/index.html`, `js/*.js`, `css/theme.css`) and `build/claude-ai.html` (the claude.ai copy). |
+| `tools/repeats.mjs` | Fails when the same code is written in two places under `src/`. Part of `npm run check`. |
+| `llms.txt` | A short pointer for AI tools to the AI page (`ai/`), the page people give to their AI assistant to make an import file (see Vocab files). Everything on that page is in its HTML, for AI tools that don't run scripts. |
+| `index.html`, `ai/`, `privacy/`, `js/`, `css/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus a beta build of the `beta` branch. `js/templates.js` and `js/samples.js` are the two data files above as scripts, which a page opened straight from disk may load (it can't fetch files), so a downloaded copy works offline as a guest by opening `index.html`. The privacy policy's git history (`src/side-pages/privacy.html`) is the list of changes to it. |
 | `CLAUDE.md` | Working rules for Claude sessions on this repo (what to never commit, how changes reach the site). |
-| `test/` | Browser tests for the public site (`test/public` with a fake Firebase, `test/emulator` with the real one on the Firebase emulators) and the checker's accuracy tests (`test/checker`). |
+| `test/` | Browser tests for the public site (`test/public` with a fake Firebase, `test/emulator` with the real one on the Firebase emulators) and for the claude.ai copy (`test/claude`, with a stand-in for claude.ai), and the checker's accuracy tests (`test/checker`). |
 
 ### Building
 
 ```sh
 npm install
-npm run build     # writes index.html, js/*.js, css/theme.css, build/claude-ai.html
-npm run check     # fails if the committed built files are out of date (CI runs this)
+npm run build     # writes index.html, ai/, privacy/, js/*.js, css/theme.css, build/claude-ai.html
+npm run check     # fails if the committed built files are out of date, or if code is written twice under src/ (CI runs this)
 ```
 
 Edit files in `src/`, then build and commit the built files with your change.
+
+The page's code is one function split over the folders of `src/`, each named for what its code does, so the files share names and only work once the build puts them together. Each behaviour has one implementation: the AI page's Import, for example, is the same `import-export/import.js` that Settings uses, included into `js/ai.js` by the build.
 
 ### Testing
 
 ```sh
 node test/public/run.mjs          # sign-in, import, practice, settings, saved choices, CSP (Playwright)
+node test/claude/run.mjs          # the claude.ai copy: Claude checking the handwriting, export and import (after npm run build)
 node test/checker/eval.mjs --vocab <folder of vocab files>   # built-in checker accuracy and speed
 node test/checker/eval-en.mjs --vocab <folder> --hershey <hersheytext package>   # the same for English answers
 ```
 
 See [test/checker/README.md](test/checker/README.md) for how the checker works, its accuracy numbers and its weak spots. `test/checker/demo.html` is a standalone writing box for trying it out.
 
-GitHub runs the public-site tests on every pull request into `main`. They swap Firebase for an in-memory fake (`test/public/fake-firebase.js`), so they need no accounts.
+GitHub runs both browser tests on every pull request into `main`. The public-site ones swap Firebase for an in-memory fake (`test/public/fake-firebase.js`), and the claude.ai ones swap claude.ai's runtime for a stand-in, so they need no accounts.
 
 `test/emulator/run.mjs` runs the page against the real Firebase SDK and the real `firestore.rules` instead, on the Firebase emulators (Auth and Firestore, project `demo-qcard`, so nothing reaches the real project): signing in from the welcome pop-up with the sample sets and saved choices, a practice left midway with its writing, sharing handwriting and deleting it, Dev tools, Delete my account, and the rules themselves. They need the Firebase CLI and Java 21 or later; the emulators start and stop around the run:
 
@@ -92,7 +95,7 @@ The beta page is built with `node tools/build.mjs --beta`: it carries a Beta tag
 1. Create a Firebase project and a Cloud Firestore database, and publish `firestore.rules`.
 2. In Authentication → Sign-in method, enable **Google**.
 3. In Authentication → Settings → Authorized domains, add the site's domain (for GitHub Pages, `<username>.github.io`).
-4. Put the project's web config in `src/platform/config.js` and `frame-src` in `tools/build.mjs`, then build.
+4. Put the project's web config in `src/account/config.js` and `frame-src` in `tools/build.mjs`, then build.
 5. Optionally, to get the developer-only buttons in Settings → Developer tools: sign in once, then in Firestore Database → Data start a collection `dev` with a document whose id is your User UID (Authentication → Users) and any field, like `role` = `dev`. The rules let each person read only their own entry and nobody write one, so only the console can make someone a developer.
 
 ## Vocab files
@@ -117,7 +120,7 @@ Import adds new sets and replaces ones with the same `id`; it never deletes. `co
 
 Please don't share files copied from copyrighted textbooks publicly.
 
-[`ai/`](https://andever2026.github.io/Q-Card/ai/) is a plain page people can give to their AI assistant along with their vocab list: it explains this format to the assistant (in a folded "For AI assistants" section), and asks it to collect all the material, show how it splits into sets as tables, and make the file once the person agrees. The page has a Copy button for the message to send and its own Import button, which opens the site with the same preview as Settings → Import. `llms.txt` points AI tools to it. Settings links to it beside Import.
+[`ai/`](https://andever2026.github.io/Q-Card/ai/) is a plain page people can give to their AI assistant along with their vocab list: it explains this format to the assistant (in a folded "For AI assistants" section), and asks it to collect all the material, show how it splits into sets as tables, and make the file once the person agrees. The page has a Copy button for the message to send and its own Import button: it shows the same preview as Settings → Import right there, and saves where the site keeps your vocab (your account when you're signed in, otherwise this browser). `llms.txt` points AI tools to it. Settings links to it beside Import.
 
 ## Credits and licenses
 

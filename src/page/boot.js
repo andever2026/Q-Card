@@ -28,7 +28,7 @@
   (() => {
     if (!platform) { $("#gate").innerHTML = "<b>The page couldn't start</b>Reload it to try again."; return; }
     let started = null;
-    const start = (id, store) => {
+    const start = ({ id, db: store }) => {
       started = uid = id;
       db = store; user = platform.user(uid); owner = canWrite = true; downloads = platform.downloads;
       document.body.classList.add("ready");
@@ -43,7 +43,7 @@
     };
     // As a guest, everything is kept in this browser (src/account/local.js); choosing it in the welcome pop-up is remembered.
     startLocal = () => {
-      start("local", platform.localDb());
+      start(platform.storeFor(null));
       $("#histWhere").textContent = "Saved only in this browser";
     };
     platform.onAuth((u) => {
@@ -60,7 +60,7 @@
       try { localStorage.removeItem("qcard:mode"); } catch {}
       welcomed();
       account = u;
-      start(u.uid, platform.db(u.uid));
+      start(platform.storeFor(u));
       checkDev();
     });
   })();

@@ -78,7 +78,6 @@
   function endTour() {
     tour.on = false; tour.i = -1; cancelAnimationFrame(tour.frame);
     tour.spot.hidden = tour.card.hidden = true;
-    takeAiImport();
   }
   function goStep(i, dir = 1) {
     TOUR[tour.i]?.leave?.();

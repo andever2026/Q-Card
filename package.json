@@ -5,7 +5,7 @@
   "license": "AGPL-3.0-only",
   "scripts": {
     "build": "node tools/build.mjs",
-    "check": "node tools/build.mjs --check"
+    "check": "node tools/build.mjs --check && node tools/repeats.mjs"
   },
   "devDependencies": {
     "esbuild": "0.28.2",

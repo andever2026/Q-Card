@@ -1,8 +1,8 @@
 // Builds both versions of the page from src/page/page.html and the files it includes from src/:
 //   index.html, js/*.js           the public site (GitHub Pages): Google sign-in, Firestore, built-in checker
-//                                 (js/pages.js and css/theme.css are for the plain side pages, ai/ and privacy/)
 //                                 (js/templates.js and js/samples.js are data/*.json as scripts: a page opened straight
 //                                 from disk may load scripts, though not fetch files, so the site works offline that way too)
+//   ai/, privacy/                 the site's side pages, from src/side-pages/ (with css/theme.css, js/pages.js and js/ai.js)
 //   build/claude-ai.html          the claude.ai artifact (the owner's own copy, using claude.ai's database and Claude)
 // src/page/page.html is the page's markup. A line that is only an include marker is replaced by that file from src/, as is:
 //   /*#include page/styles.css*/   //#include page/core.js
@@ -49,23 +49,27 @@ export function preprocess(text, target) {
 }
 
 const sha = (s) => `'sha256-${createHash("sha256").update(s, "utf8").digest("base64")}'`;
-function csp(html) {
+// What a page may load and where it may send data, written into its <!--CSP--> line. A page that runs js/platform.js
+// (firebase: the site itself, and the AI page for its Import) may reach Firebase; the others reach nothing outside the site.
+function csp(html, { firebase = false, images = "data:" } = {}) {
   const hashes = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => sha(m[1]));
-  return [
+  const policy = [
     "default-src 'none'",
     // apis.google.com: Firebase's Google sign-in popup loads Google's iframe helper from there.
-    `script-src 'self' ${hashes.join(" ")} https://apis.google.com`,
+    `script-src ${["'self'", ...hashes, ...(firebase ? ["https://apis.google.com"] : [])].join(" ")}`,
     // Fonts are served from the site itself (fonts/, see tools/fetch-fonts.mjs), so visitors never contact Google Fonts.
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
-    "img-src 'self' data: blob:",
-    // The only places the page sends data: its own files and Firebase (sign-in and the database).
-    "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com",
-    "frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com",
+    `img-src ${images}`,
+    // The only places a page sends data: its own files and Firebase (sign-in and the database).
+    ...(firebase ? ["connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com",
+      "frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com"] : []),
     "object-src 'none'",
     "base-uri 'none'",
     "form-action 'none'",
   ].join("; ");
+  if (!html.includes("<!--CSP-->")) throw new Error("a page has no <!--CSP--> line");
+  return html.replace("<!--CSP-->", () => `<meta http-equiv="Content-Security-Policy" content="${policy}">`);
 }
 
 // Firestore only uses re2js for regex pipeline queries, which the page never runs; leaving it out saves ~150 KB.
@@ -102,16 +106,23 @@ const dataScript = (name) => ({
     `(window.QCardData = window.QCardData || {})[${JSON.stringify(name)}] = ${JSON.stringify(JSON.parse(readFileSync(at(`data/${name}.json`), "utf8")))};\n`,
 });
 
+const made = (f) => `Made by tools/build.mjs from src/${f}; edit that file instead.`;
+const script = (f) => variant(`// ${made(f)}\n${preprocess(expand(`src/${f}`), "public")}`, `js/${f.split("/").at(-1)}`);
+const sidePage = (f, load) => variant(csp(preprocess(expand(`src/${f}`), "public"), load).replace("<head>\n", `<head>\n<!-- ${made(f)} -->\n`), f);
 const src = expand("src/page/page.html");
 const page = variant(preprocess(src, "public"), "index.html");
 const files = {
-  "index.html": page.replace("<!--CSP-->", () => `<meta http-equiv="Content-Security-Policy" content="${csp(page)}">`),
+  "index.html": csp(page, { firebase: true, images: "'self' data: blob:" }),
   "js/platform.js": variant(await bundle(["src/account/firebase.js", ...(existsSync(at("src/checking/checker.js")) ? ["src/checking/checker.js"] : [])]), "js/platform.js"),
   ...dataScript("templates"),
   ...dataScript("samples"),
-  // The side pages (ai/, privacy/) are plain HTML: they take the page's colours and its saved choices from these two.
+  // The side pages (ai/, privacy/): plain HTML that takes the site's look from css/theme.css and the colours picked in
+  // Settings from js/pages.js. The AI page's Copy and Import are js/ai.js.
   "css/theme.css": `/* Made by tools/build.mjs from src/theme/theme.css; edit that file instead. */\n${readFileSync(at("src/theme/theme.css"), "utf8")}`,
-  "js/pages.js": variant(`// Made by tools/build.mjs from src/side-pages/pages.js; edit that file instead.\n${readFileSync(at("src/side-pages/pages.js"), "utf8")}`, "js/pages.js"),
+  "js/pages.js": script("side-pages/pages.js"),
+  "js/ai.js": script("side-pages/ai.js"),
+  "ai/index.html": sidePage("side-pages/ai.html", { firebase: true }),
+  "privacy/index.html": sidePage("side-pages/privacy.html"),
 };
 
 if (check && beta) throw new Error("--check is for the committed files; the beta build is never committed");

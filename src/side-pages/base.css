@@ -1,0 +1,11 @@
+/* What the side pages (ai/, privacy/) share on top of css/theme.css: a single column of text. */
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); line-height: 1.6; }
+main { max-width: 720px; margin: 0 auto; padding: 28px 16px 48px; display: grid; gap: 20px; }
+a { color: var(--ai); text-underline-offset: 3px; }
+h1 { margin: 0; font-size: 1.7rem; line-height: 1.3; }
+h2 { margin: 8px 0 0; font-size: 1.15rem; }
+p, ol, ul { margin: 0; }
+ol, ul { padding-left: 1.3em; display: grid; gap: 4px; }
+.small { font-size: .9rem; }
+.back { font-size: .9rem; }

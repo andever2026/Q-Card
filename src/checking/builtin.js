@@ -67,6 +67,25 @@
     const res = window.QCardChecker.verify({ strokes: strokesOf(main), candidates: window.QCardChecker.englishAnswers(w.en), box: { w: main.w, h: main.h }, latin: true });
     return res.ok === null ? null : { ok: res.ok, r: { main: res.ok ? res.text : readOf(res), furigana: "", reason: "" }, chars: { main: res.chars } };
   }
+  // The one question both Check and the live reading ask: is what's written the answer to this word, this way round?
+  const checkWriting = (w, dir) => (dir === "je" ? englishCheck(w) : builtinCheck(w, dir === "ej" && !furi.empty));
+  const CHECK_ERR = {
+    tpl_load: "Couldn't load the handwriting checker. Check your connection and press Check again.",
+    other: "Something went wrong with the check. Press Check to try again.",
+  };
+  // What Check does with this answer (see check in checking/grading.js). The checker reads English → 日本語 answers, and
+  // 日本語 → English answers written the way the meaning is worded. Other English (a synonym, say) and words it has no
+  // strokes for are marked by the student (selfMark).
+  async function judge({ w, dir }) {
+    $("#liveRead").hidden = true;
+    $("#overrideBtn").textContent = "The checker misread my writing, count it as correct";
+    const res = await checkWriting(w, dir);
+    return () => {
+      if (res && !res.ok) showBoxes(res);
+      shareAnswer(!res ? "unread" : res.ok ? "right" : dir === "ej" ? "wrong" : "unmatched", res?.r);
+      if (res && (res.ok || dir === "ej")) grade(res.ok, res.r); else selfMark(!!res);
+    };
+  }
   // Developer tools (Settings), each off until turned on, in this browser:
   // - "Show what the checker reads as I write": a moment after each stroke, the reading the Check button would get,
   //   under the answer box, with the time the check took (it tells you before Check, so it's never on by default).
@@ -90,10 +109,10 @@
       try {
         await loadTemplates();
         const t0 = performance.now();
-        const res = dir === "je" ? await englishCheck(w) : await builtinCheck(w, dir === "ej" && !furi.empty);
+        const res = await checkWriting(w, dir);
         const ms = Math.round(performance.now() - t0);
         if (Q.cur !== cur || Q.answered || Q.busy || main.empty) return;
-        const r = res?.r || {}, read = [r.furigana ? `furigana 「${r.furigana}」` : "", r.main ? `「${r.main}」` : ""].filter(Boolean).join(" over ");
+        const r = res?.r || {}, read = readAs(r);
         const verdict = !res ? "it can't check this word" : res.ok ? "would pass" : dir === "je" ? "you'd mark it yourself" : "would fail" + (r.reason ? `: ${r.reason}` : "");
         el.textContent = `Reads ${read || "nothing"} · ${verdict} · ${ms} ms`;
         el.hidden = false;
@@ -109,15 +128,11 @@
   $("#charBoxesOn").onchange = (e) => store.set("charBoxes", e.target.checked);
   // 日本語 → English answers the checker couldn't match (unmatched), and words it can't read, are marked by the student.
   function selfMark(unmatched) {
-    const { w, dir } = Q.cur;
     $("#selfHead").textContent = unmatched ? "The checker couldn't match this to the wording below. Did you mean the same thing?" : "Compare what you wrote with the answer.";
     Q.answered = true; syncCheck();
-    main.c.classList.add("locked"); furi.c.classList.add("locked");
+    lockPads();
     $("#tools").hidden = true; setErasing(false);
-    if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
-    const a = $("#selfAnswer");
-    if (dir === "ej") { a.className = "answer"; a.innerHTML = w.kanji ? `<ruby>${esc(w.kanji)}<rt>${esc(w.kana)}</rt></ruby>` : esc(w.kana); }
-    else { a.className = "answer en"; a.textContent = w.en; }
+    writeAnswer($("#selfAnswer"));
     $("#selfCheck").hidden = false;
     requestAnimationFrame(() => $("#selfCheck").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" }));
   }

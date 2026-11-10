@@ -1,41 +1,30 @@
-  // What each kanji rule does depends on the direction: it shapes what you write, what the question shows, or both.
+  // What each kanji rule does depends on the direction: it shapes what you write (ej), what the question shows (je), or
+  // both. A rule that does the same whatever the direction has one line.
   const MODE_TEXT = {
-    ej: {
-      default: "Kanji optional. If you add furigana, it gets checked too.",
-      kanji: "Kanji you’ve learned must be written as kanji.",
-      kana: "Only the reading counts, kanji mistakes are ignored.",
-      kata: "Narrows the picked set(s) to the words that include katakana.",
-      verb: "Narrows the picked set(s) to verbs only, and goes through their five forms.",
+    default: {
+      ej: "Kanji optional. If you add furigana, it gets checked too.",
+      je: "Words show as written in the set, with the reading underneath.",
+      both: "Kanji optional when you write. Japanese questions show the word as written, with the reading.",
     },
-    je: {
-      default: "Words show as written in the set, with the reading underneath.",
-      kanji: "Words show only the kanji you’ve learned, with no reading.",
-      kana: "Words show in kana only.",
-      kata: "Narrows the picked set(s) to the words that include katakana.",
-      verb: "Only for English → 日本語.",
+    kanji: {
+      ej: "Kanji you’ve learned must be written as kanji.",
+      je: "Words show only the kanji you’ve learned, with no reading.",
+      both: "Kanji you’ve learned must be written as kanji, and Japanese questions show only those kanji, with no reading.",
     },
-    both: {
-      default: "Kanji optional when you write. Japanese questions show the word as written, with the reading.",
-      kanji: "Kanji you’ve learned must be written as kanji, and Japanese questions show only those kanji, with no reading.",
-      kana: "Only the reading counts when you write, and Japanese questions show kana only.",
-      kata: "Narrows the picked set(s) to the words that include katakana.",
-      verb: "Only for English → 日本語.",
+    kana: {
+      ej: "Only the reading counts, kanji mistakes are ignored.",
+      je: "Words show in kana only.",
+      both: "Only the reading counts when you write, and Japanese questions show kana only.",
     },
+    kata: "Narrows the picked set(s) to the words that include katakana.",
+    verb: { ej: "Narrows the picked set(s) to verbs only, and goes through their five forms.", je: "Only for English → 日本語.", both: "Only for English → 日本語." },
   };
+  const modeText = (mode, dir) => MODE_TEXT[mode]?.[dir] ?? MODE_TEXT[mode];
   // Sets are filtered by unit and by tag (the Filter row); picks in hidden sets stay picked.
   const setKind = (s) => (/^supp/i.test(s.name) ? "supp" : /^extra/i.test(s.name) ? "extras" : "main");
   // A set's tags are its own (sets/<id>.tags, from its details) plus its kind from the start of its name, when the table has
   // more than one kind. Tags match without case; a comma (or 、) separates them when typed.
   const KIND_TAGS = { main: "Main sets", extras: "Extras", supp: "Supp." };
-  const tagKey = (t) => t.toLowerCase();
-  function cleanTags(v) {
-    const out = [], seen = new Set();
-    for (const t of Array.isArray(v) ? v : String(v ?? "").split(/[,、，]/)) {
-      const x = String(t ?? "").replace(/\s+/g, " ").trim().slice(0, 30);
-      if (x && !seen.has(tagKey(x)) && out.length < 12) { seen.add(tagKey(x)); out.push(x); }
-    }
-    return out;
-  }
   const setTags = (s, kinds) => cleanTags([...(kinds ? [KIND_TAGS[setKind(s)]] : []), ...(Array.isArray(s.tags) ? s.tags : [])]);
   // Every tag in use: [{key, name, n}], n = sets with it. The Filter row puts the ones that hide the most sets first.
   function tagCounts() {
@@ -233,7 +222,7 @@
     if (S.mode === "verb" && S.dir !== "ej") S.mode = "default";
     $("#mode-verb").disabled = S.dir !== "ej";
     document.querySelectorAll("#modeSeg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.mode === S.mode));
-    document.querySelectorAll("#modeSeg [data-mode] span").forEach((sp) => (sp.textContent = MODE_TEXT[S.dir][sp.parentNode.dataset.mode]));
+    document.querySelectorAll("#modeSeg [data-mode] span").forEach((sp) => (sp.textContent = modeText(sp.parentNode.dataset.mode, S.dir)));
     const n = selectedWords().length, items = S.dir === "both" ? n * 2 : n;
     const kata = S.mode === "kata" ? "katakana " : "";
     $("#countLbl").textContent = n && S.mode === "verb" ? `${n} verb${n === 1 ? "" : "s"}, ${n * VFORMS.length} questions`

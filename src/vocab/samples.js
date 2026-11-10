@@ -47,6 +47,3 @@
       renderSampleNote();
     };
   }
-
-  const platform = window.qcardPlatform;
-

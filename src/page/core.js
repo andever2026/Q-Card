@@ -1,7 +1,5 @@
-  const $ = (s) => document.querySelector(s);
-  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   // Choices people make on the page. They're kept in this browser and, for someone signed in, in their account
-  // too (data/users/<id>/prefs, see syncPrefs), so they come along to other devices.
+  // too (data/users/<id>/prefs, see syncPrefs in account/choices.js), so they come along to other devices.
   const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "palette", "theme", "resume", "share", "practices"];
   let prefsChanged = () => {};
   const store = {
@@ -18,12 +16,11 @@
     return k.map((x) => ({ main: "main sets", extras: "extras", supp: "supp." })[x]).filter(Boolean);
   }
   const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  const rid = () => Math.random().toString(36).slice(2, 9);
 
   let db = null, user = null, sample = null, uid = null, canWrite = false, owner = false;
   // Export / import works from the documents exactly as stored, not the tidied copies the page renders from.
-  let downloads = null, importPlan = null, importing = false;
-  const raw = { sets: [], kanji: [], books: undefined, courses: undefined }; // books and courses: undefined until they load, then null if there are none
+  let downloads = null;
+  const raw = { sets: [], kanji: [], books: null, courses: null };
   const S = {
     sets: [], loaded: false,
     selected: new Set(store.get("selected", [])),
@@ -60,15 +57,6 @@
 
   // ---------- views ----------
   const views = ["setup", "quiz", "results", "table", "history"];
-  // Colour palette: per viewer, remembered in this browser.
-  function setPalette(name) {
-    name = name === "claude" ? "claude" : "indigo";
-    if (name === "claude") document.documentElement.dataset.palette = "claude"; else delete document.documentElement.dataset.palette;
-    document.querySelectorAll("#palPick [data-pal]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.pal === name));
-    store.set("palette", name);
-    pads.forEach((p) => p.draw());
-  }
-  document.querySelectorAll("#palPick [data-pal]").forEach((b) => (b.onclick = () => setPalette(b.dataset.pal)));
   // Settings pop-up (the gear in the header): colours, the vocab counts, export / import, and on the public site light or dark,
   // the account and deleting.
   function openSettings() { renderSettings(); $("#settings").showModal(); }
@@ -83,13 +71,5 @@
     renderAccount(); renderShare();
     //#endif
   }
-  function setTheme(t) {
-    t = t === "light" || t === "dark" ? t : "";
-    if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
-    document.querySelectorAll("#themePick [data-theme-pick]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.themePick === t));
-    store.set("theme", t);
-  }
-  document.querySelectorAll("#themePick [data-theme-pick]").forEach((b) => (b.onclick = () => setTheme(b.dataset.themePick)));
-  setTheme(store.get("theme", ""));
   function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
   function banner(msg) { const b = $("#banner"); b.hidden = !msg; b.textContent = msg || ""; }

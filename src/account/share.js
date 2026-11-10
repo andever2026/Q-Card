@@ -89,7 +89,7 @@
   $("#shareDl").onclick = async (e) => {
     e.target.disabled = true;
     try {
-      const answers = (await db.collection("training").get()).docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+      const answers = withIds(await db.collection("training").get()).sort((a, b) => String(a.at).localeCompare(String(b.at)));
       await downloads.save({ filename: `japanese-vocab-handwriting-${new Date().toLocaleDateString("en-CA")}.json`,
         data: JSON.stringify({ app: APP, kind: "handwriting", version: 1, exportedAt: new Date().toISOString(), answers }) });
     } catch (err) { if (err?.code !== "declined") banner("Your shared answers couldn't be downloaded. Try again."); }
