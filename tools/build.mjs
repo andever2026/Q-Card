@@ -12,6 +12,7 @@
 //   <!--#if public-->  //#if claude  /*#if public*/   …   #else   …   #endif
 // Marker lines themselves never reach the output.
 // `node tools/build.mjs --check` fails if the committed public files are out of date.
+// `node tools/build.mjs --beta` builds the beta site instead (see .github/workflows/pages.yml); it's never committed.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
@@ -21,6 +22,7 @@ import * as esbuild from "esbuild";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const at = (p) => join(root, p);
 const check = process.argv.includes("--check");
+const beta = process.argv.includes("--beta");
 
 const INCLUDE = /^\s*(?:<!--|\/\/|\/\*)\s*#include\s+(\S+?)\s*(?:-->|\*\/)?\s*$/;
 export function expand(file, seen = []) {
@@ -81,6 +83,19 @@ async function bundle(imports) {
   return r.outputFiles[0].text;
 }
 
+// The beta site lives on the same site as the live one (/Q-Card/beta/), so it gets its own browser storage keys
+// ("jpq-beta:…", "qcard-beta:…"): trying things there never touches the live site's guest data or settings.
+// Signing in with Google is shared, so beta uses the same account and its data.
+function toBeta(text, file) {
+  const out = text.replaceAll('"jpq:', '"jpq-beta:').replaceAll('"qcard:', '"qcard-beta:');
+  if (file !== "index.html") return out;
+  const tag = '<span style="font-size:.45em; vertical-align:middle; padding:2px 8px; border-radius:99px; background:var(--ink); color:var(--surface)">Beta</span>';
+  const page = out.replaceAll("<title>Japanese Vocab Practice</title>", "<title>Japanese Vocab Practice (beta)</title>")
+    .replace("<h1>Japanese Vocab Practice</h1>", `<h1>Japanese Vocab Practice ${tag}</h1>`);
+  if (!page.includes(tag)) throw new Error("beta: couldn't find the page title to tag");
+  return page;
+}
+const variant = (text, file) => (beta ? toBeta(text, file) : text);
 // data/<name>.json as js/<name>.js, which leaves it in window.QCardData[name] for the page to pick up (see dataFile in public.js).
 const dataScript = (name) => ({
   [`js/${name}.js`]: `// Made by tools/build.mjs from data/${name}.json; edit that file instead.\n` +
@@ -88,17 +103,18 @@ const dataScript = (name) => ({
 });
 
 const src = expand("src/app.html");
-const page = preprocess(src, "public");
+const page = variant(preprocess(src, "public"), "index.html");
 const files = {
   "index.html": page.replace("<!--CSP-->", () => `<meta http-equiv="Content-Security-Policy" content="${csp(page)}">`),
-  "js/platform.js": await bundle(["src/platform/firebase.js", ...(existsSync(at("src/checker.js")) ? ["src/checker.js"] : [])]),
+  "js/platform.js": variant(await bundle(["src/platform/firebase.js", ...(existsSync(at("src/checker.js")) ? ["src/checker.js"] : [])]), "js/platform.js"),
   ...dataScript("templates"),
   ...dataScript("samples"),
   // The side pages (ai/, privacy/) are plain HTML: they take the page's colours and its saved choices from these two.
   "css/theme.css": `/* Made by tools/build.mjs from src/app/theme.css; edit that file instead. */\n${readFileSync(at("src/app/theme.css"), "utf8")}`,
-  "js/pages.js": `// Made by tools/build.mjs from src/pages.js; edit that file instead.\n${readFileSync(at("src/pages.js"), "utf8")}`,
+  "js/pages.js": variant(`// Made by tools/build.mjs from src/pages.js; edit that file instead.\n${readFileSync(at("src/pages.js"), "utf8")}`, "js/pages.js"),
 };
 
+if (check && beta) throw new Error("--check is for the committed files; the beta build is never committed");
 if (check) {
   const stale = Object.entries(files).filter(([p, t]) => !existsSync(at(p)) || readFileSync(at(p), "utf8") !== t).map(([p]) => p);
   if (stale.length) { console.error(`Out of date: ${stale.join(", ")}. Run npm run build and commit the result.`); process.exit(1); }

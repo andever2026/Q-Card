@@ -46,7 +46,7 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 | `tools/build.mjs` | Builds `index.html`, `js/*.js` and `css/theme.css` (the site) and `build/claude-ai.html` (the claude.ai copy). |
 | `ai/index.html`, `llms.txt` | The page people give to their AI assistant to make an import file (see Vocab files), written by hand, and a short pointer to it for AI tools. Everything is in its HTML for AI tools that don't run scripts; `js/pages.js` adds the colours and the Copy and Import buttons. |
 | `privacy/index.html` | The privacy policy, a plain page (its only script, `js/pages.js`, applies the colours), linked from the footer and from Settings. Its git history is the list of changes to it. |
-| `index.html`, `js/`, `css/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`. `js/templates.js` and `js/samples.js` are the two data files above as scripts, which a page opened straight from disk may load (it can't fetch files), so a downloaded copy works offline as a guest by opening `index.html`. |
+| `index.html`, `js/`, `css/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus a beta build of the `beta` branch. `js/templates.js` and `js/samples.js` are the two data files above as scripts, which a page opened straight from disk may load (it can't fetch files), so a downloaded copy works offline as a guest by opening `index.html`. |
 | `CLAUDE.md` | Working rules for Claude sessions on this repo (what to never commit, how changes reach the site). |
 | `test/` | Browser tests for the public site (`test/public` with a fake Firebase, `test/emulator` with the real one on the Firebase emulators) and the checker's accuracy tests (`test/checker`). |
 
@@ -81,9 +81,11 @@ PLAYWRIGHT_DIR=$PWD/node_modules/playwright npx firebase emulators:exec --config
 
 Or keep the emulators running (`npx firebase emulators:start` with the same options) and run `node test/emulator/run.mjs` as often as you like. GitHub runs these on pull requests into `main` too.
 
-### Publishing
+### Beta site
 
-`main` is the live site. A change reaches it through a pull request into `main`, which runs the full browser tests; merging it updates the site: after the build check passes on `main`, `.github/workflows/pages.yml` publishes the committed files. Publishing needs Settings → Pages → Source set to **GitHub Actions**.
+Changes go to the `beta` branch first. After the build check passes, `.github/workflows/pages.yml` publishes it at [/Q-Card/beta/](https://andever2026.github.io/Q-Card/beta/), next to the live site from `main`. When beta looks right, a pull request from `beta` into `main` runs the full browser tests, and merging it updates the live site.
+
+The beta page is built with `node tools/build.mjs --beta`: it carries a Beta tag and keeps its own browser storage, so guest data and settings there never mix with the live site's. Google sign-in is shared, so signing in on beta uses the same account and data. Publishing needs Settings → Pages → Source set to **GitHub Actions**.
 
 ### Firebase setup (for a copy of this project)
 

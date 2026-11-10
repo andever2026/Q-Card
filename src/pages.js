@@ -15,7 +15,7 @@
   addEventListener("DOMContentLoaded", () => {
     const $ = (s) => document.querySelector(s);
     if (!$("#ask")) return;
-    // The message names this page as it's served (so a copy hosted elsewhere names itself); opened from disk, the live link stays.
+    // The message names this page as it's served (so the beta page names itself); opened from disk, the live link stays.
     if (/^https?:$/.test(location.protocol)) $("#pageLink").textContent = location.origin + location.pathname;
     $("#copyBtn").onclick = async () => {
       const b = $("#copyBtn");
