@@ -1086,11 +1086,13 @@
         }
       }
       if (why) allOk = false;
-      text += ch;
+      // a look-alike counts as the character asked for (ー for 一, カ for 力), so the answer reads as asked
+      const shown = !latin && same(p.ch, ch) ? p.ch : ch;
+      text += shown;
       // a failing position names the character that was asked for (what the student should have written)
       // (got: what it looked more like, when known)
       const got = why === "shape" ? j.other && letterOf(j.other) : why === "small" ? SMALL2LARGE.get(ch) : why === "large" ? LARGE2SMALL.get(ch) : null;
-      const c = why ? { ch: p.ch, ok: false, why } : { ch, ok: true, why: null };
+      const c = why ? { ch: p.ch, ok: false, why } : { ch: shown, ok: true, why: null };
       if (why === "strokes") c.strokes = j.strokes;
       if (got) c.got = got;
       c.box = boxOf(G.ids);

@@ -47,7 +47,7 @@ QCardChecker.englishAnswers(meaning) // -> the candidates for an English meaning
   falls back to self-marking.
 
 Look-alikes across scripts count as the same character: カ力, チ千, エ工, ロ口, タ夕, ニ二, ハ八, ト卜, ー一,
-へヘ, べベ, ぺペ, りリ, オ才, ヒ匕, メ乂.
+へヘ, べベ, ぺペ, りリ, オ才, ヒ匕, メ乂. `text` then has the character the candidate has (ジュース, never ジュ一ス).
 
 ## Rebuilding the templates
 

@@ -243,6 +243,12 @@ if (entry.length > 1) {
     ok((await res([...y.filter((_, i) => i !== 6), lean])).startsWith("strokes") || (await res([...y.filter((_, i) => i !== 6), lean])).startsWith("shape"),
       "built-in: 夜 with 彳 for 亻 and no inner dot fails", await res([...y.filter((_, i) => i !== 6), lean]));
   }
+  // A look-alike reads as the character asked for: ー written like 一 in ジュース, so the answer still matches
+  {
+    const w = writeWord("ジュ一ス", 11, { boxW: 400, boxH: 120, level: 0.3, mouse: false, swap: 0, reverse: 0, join: 0, lateDakuten: 0 });
+    const r = await page.evaluate(([s, b]) => window.QCardChecker.verify({ strokes: s, candidates: ["ジュース"], box: b, anyKana: true }), [w.strokes, w.box]);
+    ok(r.ok === true && r.text === "ジュース", "built-in: ジュース with its ー written like 一 reads as ジュース", JSON.stringify(r.text));
+  }
   // Size: a plain い written smallish is fine (ぃ is never written); つ for っ is "should be written small", naming つ
   {
     const O = { boxW: 400, boxH: 120, level: 0.3, mouse: false, swap: 0, reverse: 0, join: 0, lateDakuten: 0 };
