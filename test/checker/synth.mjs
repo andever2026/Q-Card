@@ -220,7 +220,7 @@ export function writeWord(text, seed, opt = {}) {
   const drift = r.norm() * 0.04;
   const all = [];
   let realChars = 0, augChars = 0;
-  const pendingTail = [];
+  const pendingTail = [], spans = [];
   chars.forEach((ch, ci) => {
     const cs = charStrokes(ch, r, o.mode, o.realDir, o.pick);
     if (!cs.strokes) throw new Error("no strokes for " + ch);
@@ -239,6 +239,7 @@ export function writeWord(text, seed, opt = {}) {
     // dakuten written after the next character
     let tail = [];
     if (cs.tail && ci < chars.length - 1 && r() < o.lateDakuten) tail = pxs.splice(pxs.length - cs.tail, cs.tail);
+    spans.push([all.length, all.length + pxs.length, scale]); // this character's strokes (late dakuten aside) and size
     all.push(...pxs);
     if (pendingTail.length) { all.push(...pendingTail); pendingTail.length = 0; }
     pendingTail.push(...tail);
@@ -256,5 +257,5 @@ export function writeWord(text, seed, opt = {}) {
       return [Math.round((px + ox + r.norm() * amp * 0.3) * 10) / 10, Math.round((py + oy + r.norm() * amp * 0.3) * 10) / 10];
     });
   });
-  return { strokes, box: { w: Math.round(o.boxW), h: Math.round(boxH) }, realChars, augChars, totalChars: chars.length };
+  return { strokes, spans, box: { w: Math.round(o.boxW), h: Math.round(boxH) }, realChars, augChars, totalChars: chars.length };
 }

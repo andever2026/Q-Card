@@ -125,6 +125,7 @@ function run(cat, mode, writes, cands, expectOk, extra = {}) {
   const seed = (R() * 1e9) | 0;
   const w = writeWord(writes, seed, { mode, realDir: opt.real, ...extra.write });
   if (mode === "real" && w.realChars < w.totalChars) return; // only words fully written from real patterns
+  if (extra.alter && !(w.strokes = extra.alter(w, rng(seed + 1)))) return;
   const res = C.verify({ strokes: w.strokes, candidates: cands, box: w.box, debug: !!opt.verbose, ...extra.verify });
   times.push({ ms: res.ms, len: [...writes].length, writes, cands, seed, n: w.strokes.length });
   row.n++;
@@ -164,6 +165,22 @@ for (const mode of modes) {
       const bad = mutate(src, type, R);
       if (!bad || w.cands.includes(bad) || !supported(bad)) continue;
       run("wrong: " + type, mode, bad, w.cands, false);
+    }
+    // strokes of one kanji: one left out, one added away from the others, one gone over again (part of it, close by)
+    const kw = ok.filter((c) => /[一-鿿]/.test(c));
+    if (kw.length) {
+      const src = R.pick(kw), at = (wd, r) => { const ks = [...src].map((c, i) => (/[一-鿿]/.test(c) && wd.spans[i][1] - wd.spans[i][0] >= 3 ? i : -1)).filter((i) => i >= 0); return ks.length ? wd.spans[r.pick(ks)] : null; };
+      run("wrong: kanji stroke left out", mode, src, w.cands, false, { alter: (wd, r) => { const sp = at(wd, r); if (!sp) return null; const k = r.int(sp[0], sp[1] - 1); return wd.strokes.filter((_, i) => i !== k); } });
+      run("wrong: kanji stroke added", mode, src, w.cands, false, { alter: (wd, r) => {
+        const sp = at(wd, r); if (!sp) return null;
+        const s = wd.strokes[r.int(sp[0], sp[1] - 1)], a = r() * 2 * Math.PI, d = sp[2] * r.range(0.22, 0.3);
+        return [...wd.strokes, s.map(([x, y]) => [x + Math.cos(a) * d, y + Math.sin(a) * d])];
+      } });
+      run("kanji stroke gone over again", mode, src, w.cands, true, { alter: (wd, r) => {
+        const sp = at(wd, r); if (!sp) return null;
+        const s = wd.strokes[r.int(sp[0], sp[1] - 1)], a = Math.floor(s.length * r.range(0, 0.2)), b = Math.max(a + 2, Math.ceil(s.length * r.range(0.8, 1))), e = sp[2] * 0.02;
+        return [...wd.strokes, s.slice(a, b).map(([x, y]) => [x + r.norm() * e, y + r.norm() * e])];
+      } });
     }
     if (w.kanji.length) {
       const kj = w.kanji.filter(supported), kn = w.kana.filter(supported);

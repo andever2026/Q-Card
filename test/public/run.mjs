@@ -227,6 +227,22 @@ if (entry.length > 1) {
     ok(await v(withWave, "〜さん") === true && await v(w.strokes, "〜さん") === true, "built-in: a 〜 may be written or left out where the answer has one");
     ok(await v(withWave, "さん") === false, "built-in: a 〜 where the answer has none is extra writing");
   }
+  // Strokes: the right kanji with a stroke left out, added or swapped fails; any order, touch-ups and pieces pass
+  {
+    const O = { boxW: 300, boxH: 200, level: 0.3, mouse: false, swap: 0, reverse: 0, join: 0, lateDakuten: 0 };
+    const verify = (strokes) => page.evaluate((s) => window.QCardChecker.verify({ strokes: s, candidates: ["夜"], box: { w: 300, h: 200 } }), strokes);
+    const y = writeWord("夜", 11, O).strokes; // 丶 一 ノ 丨 ノ フ 丶 ㇏
+    const lean = y[2].map(([x, py]) => [x + 3, py + 9]); // a second ノ under the first: 彳 where 夜 has 亻
+    const res = async (s) => { const r = await verify(s); return r.ok ? "ok" : r.chars[0].why + ":" + r.chars[0].strokes; };
+    ok(await res(y) === "ok" && await res(y.slice().reverse()) === "ok", "built-in: 夜 passes in any stroke order");
+    const h = y[1], half = h.length >> 1;
+    ok(await res([...y, h.map(([x, py]) => [x + 1, py + 1])]) === "ok" && await res([y[0], h.slice(0, half + 1), h.slice(half), ...y.slice(2)]) === "ok",
+      "built-in: a stroke gone over again, or drawn in two pieces, still passes");
+    ok(await res(y.filter((_, i) => i !== 6)) === "strokes:missing", "built-in: 夜 without its inner dot fails as a missing stroke", await res(y.filter((_, i) => i !== 6)));
+    ok(await res([...y, lean]) === "strokes:extra", "built-in: 夜 with an extra ノ fails as an extra stroke", await res([...y, lean]));
+    ok((await res([...y.filter((_, i) => i !== 6), lean])).startsWith("strokes") || (await res([...y.filter((_, i) => i !== 6), lean])).startsWith("shape"),
+      "built-in: 夜 with 彳 for 亻 and no inner dot fails", await res([...y.filter((_, i) => i !== 6), lean]));
+  }
   // Size: a plain い written smallish is fine (ぃ is never written); つ for っ is "should be written small", naming つ
   {
     const O = { boxW: 400, boxH: 120, level: 0.3, mouse: false, swap: 0, reverse: 0, join: 0, lateDakuten: 0 };
