@@ -18,8 +18,8 @@ const ok = (cond, msg, extra = "") => { console.log(`${cond ? "✓" : "✗"} ${m
 
 // The real platform code, with the Firebase SDK swapped for the in-memory fake.
 const fake = join(root, "test/public/fake-firebase.js");
-const entry = ['import "./src/platform/firebase.js";'];
-if (process.env.WITH_CHECKER !== "0" && existsSync(join(root, "src/checker.js"))) entry.push('import "./src/checker.js";');
+const entry = ['import "./src/account/firebase.js";'];
+if (process.env.WITH_CHECKER !== "0" && existsSync(join(root, "src/checking/checker.js"))) entry.push('import "./src/checking/checker.js";');
 const bundle = async (plugins = []) => (await esbuild.build({
   stdin: { contents: entry.join("\n"), resolveDir: root, sourcefile: "test-entry.js" },
   bundle: true, format: "iife", write: false, alias: { "firebase/app": fake, "firebase/auth": fake, "firebase/firestore": fake }, plugins,

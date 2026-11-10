@@ -1,4 +1,4 @@
-// Synthetic and "real composite" handwriting for evaluating src/checker.js.
+// Synthetic and "real composite" handwriting for evaluating src/checking/checker.js.
 // Everything here is deterministic given the seed.
 import fs from "node:fs";
 import path from "node:path";

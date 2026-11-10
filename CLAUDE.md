@@ -8,20 +8,20 @@ layout, the build and the tests; this file is what README doesn't say.
 - Edit `src/` only, then `npm run build` and commit the built files (`index.html`, `js/`) with the change.
   `npm run check` must say "Built files are up to date".
 - Everything is shared between the public site and the owner's claude.ai copy (`#if public` / `#if claude` in
-  `src/app.html` and the scripts). A fix in one version's own section (sign-in, saving, checking) means checking the
+  `src/page/page.html` and the scripts). A fix in one version's own section (sign-in, saving, checking) means checking the
   other version's section too.
 - Branch `beta` deploys to https://andever2026.github.io/Q-Card/beta/, `main` to the live site. Changes go to `beta`
   first; `main` only through a pull request from `beta` (merge method: merge, never squash or force-push).
 - Don't push or merge unless the owner asks. The owner tests and pushes.
 - Before calling something done, run `node test/public/run.mjs` (it ends with "All passed") and add checks there for
-  what changed. Changes to `src/checker.js` also get `test/checker/eval.mjs` run before and after, and the numbers
+  what changed. Changes to `src/checking/checker.js` also get `test/checker/eval.mjs` run before and after, and the numbers
   compared.
 - Keep README.md's file list in step with the files.
 
 ## Never
 
 - Textbook vocab (Nakama etc.) in the repo: it's copyrighted. Users bring their own sets; tests use made-up words.
-- A Claude/Anthropic API key, or any secret, in the code. (The Firebase web config in `src/platform/config.js` is
+- A Claude/Anthropic API key, or any secret, in the code. (The Firebase web config in `src/account/config.js` is
   public by design.)
 - The owner's Firebase UID in the code. Developers are marked by hand in the Firebase console (`dev/<uid>`).
 - Privileged behaviour enforced only in the page. Anything only some accounts may do is enforced in `firestore.rules`.

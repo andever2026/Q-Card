@@ -20,7 +20,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <!--#endif-->
 <style>
-/*#include app/styles.css*/
+/*#include page/styles.css*/
 </style>
 <script>try { if (JSON.parse(localStorage.getItem("jpq:palette")) === "claude") document.documentElement.dataset.palette = "claude"; } catch {}</script>
 <script>try { const t = JSON.parse(localStorage.getItem("jpq:theme")); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
@@ -331,31 +331,34 @@
 
 <script>
 (() => {
-  //#include app/core.js
+  //#include page/core.js
 
-  //#include app/pads.js
+  //#include practice/pads.js
 
-  //#include app/data.js
-  //#include app/verbs.js
-  //#include app/setup.js
+  //#include vocab/data.js
+  //#include practice/verbs.js
+  //#include vocab/setup.js
 
-  //#include app/practice.js
-  //#include app/answers.js
-  //#include app/grading.js
+  //#include practice/practice.js
+  //#include checking/answers.js
+  //#include checking/grading.js
 
-  //#include app/results.js
-  //#include app/history.js
+  //#include practice/results.js
+  //#include practice/history.js
 
-  //#include app/table.js
+  //#include vocab/table.js
 
-  //#include app/export-import.js
+  //#include import-export/export-import.js
 
   //#if public
-  //#include app/public.js
-  //#include app/tour.js
-  //#include app/share.js
+  //#include page/data-files.js
+  //#include vocab/samples.js
+  //#include checking/builtin.js
+  //#include account/account.js
+  //#include tour/tour.js
+  //#include account/share.js
   //#endif
-  //#include app/boot.js
+  //#include page/boot.js
 })();
 </script>
 <!--#if public-->

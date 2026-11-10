@@ -1,4 +1,4 @@
-// Made by tools/build.mjs from src/pages.js; edit that file instead.
+// Made by tools/build.mjs from src/side-pages/pages.js; edit that file instead.
 // The side pages (ai/, privacy/): the colours and light or dark picked in the site's Settings, and on the AI page its Copy and
 // Import buttons. Loaded in <head>, so the colours are right before anything shows. Without it the pages still read fine.
 (() => {

@@ -1,12 +1,12 @@
-// Builds both versions of the page from src/app.html and the files it includes from src/app/:
+// Builds both versions of the page from src/page/page.html and the files it includes from src/:
 //   index.html, js/*.js           the public site (GitHub Pages): Google sign-in, Firestore, built-in checker
 //                                 (js/pages.js and css/theme.css are for the plain side pages, ai/ and privacy/)
 //                                 (js/templates.js and js/samples.js are data/*.json as scripts: a page opened straight
 //                                 from disk may load scripts, though not fetch files, so the site works offline that way too)
 //   build/claude-ai.html          the claude.ai artifact (the owner's own copy, using claude.ai's database and Claude)
-// src/app.html is the page's markup. A line that is only an include marker is replaced by that file from src/, as is:
-//   /*#include app/styles.css*/   //#include app/core.js
-// The app code is one function split over src/app/*.js in page order, so those files share their names and
+// src/page/page.html is the page's markup. A line that is only an include marker is replaced by that file from src/, as is:
+//   /*#include page/styles.css*/   //#include page/core.js
+// The page's code is one function split over the folders of src/ (one per function of the page), in page order, so those files share their names and
 // aren't scripts of their own: the build puts them back together into the single page both versions need.
 // Lines can be limited to one version, in any of those files:
 //   <!--#if public-->  //#if claude  /*#if public*/   …   #else   …   #endif
@@ -96,22 +96,22 @@ function toBeta(text, file) {
   return page;
 }
 const variant = (text, file) => (beta ? toBeta(text, file) : text);
-// data/<name>.json as js/<name>.js, which leaves it in window.QCardData[name] for the page to pick up (see dataFile in public.js).
+// data/<name>.json as js/<name>.js, which leaves it in window.QCardData[name] for the page to pick up (see dataFile in src/page/data-files.js).
 const dataScript = (name) => ({
   [`js/${name}.js`]: `// Made by tools/build.mjs from data/${name}.json; edit that file instead.\n` +
     `(window.QCardData = window.QCardData || {})[${JSON.stringify(name)}] = ${JSON.stringify(JSON.parse(readFileSync(at(`data/${name}.json`), "utf8")))};\n`,
 });
 
-const src = expand("src/app.html");
+const src = expand("src/page/page.html");
 const page = variant(preprocess(src, "public"), "index.html");
 const files = {
   "index.html": page.replace("<!--CSP-->", () => `<meta http-equiv="Content-Security-Policy" content="${csp(page)}">`),
-  "js/platform.js": variant(await bundle(["src/platform/firebase.js", ...(existsSync(at("src/checker.js")) ? ["src/checker.js"] : [])]), "js/platform.js"),
+  "js/platform.js": variant(await bundle(["src/account/firebase.js", ...(existsSync(at("src/checking/checker.js")) ? ["src/checking/checker.js"] : [])]), "js/platform.js"),
   ...dataScript("templates"),
   ...dataScript("samples"),
   // The side pages (ai/, privacy/) are plain HTML: they take the page's colours and its saved choices from these two.
-  "css/theme.css": `/* Made by tools/build.mjs from src/app/theme.css; edit that file instead. */\n${readFileSync(at("src/app/theme.css"), "utf8")}`,
-  "js/pages.js": variant(`// Made by tools/build.mjs from src/pages.js; edit that file instead.\n${readFileSync(at("src/pages.js"), "utf8")}`, "js/pages.js"),
+  "css/theme.css": `/* Made by tools/build.mjs from src/theme/theme.css; edit that file instead. */\n${readFileSync(at("src/theme/theme.css"), "utf8")}`,
+  "js/pages.js": variant(`// Made by tools/build.mjs from src/side-pages/pages.js; edit that file instead.\n${readFileSync(at("src/side-pages/pages.js"), "utf8")}`, "js/pages.js"),
 };
 
 if (check && beta) throw new Error("--check is for the committed files; the beta build is never committed");

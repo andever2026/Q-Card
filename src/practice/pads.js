@@ -9,7 +9,7 @@
   const ERASE_R = 12; // px around the eraser that counts as touching a stroke
   const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   // Beside each stroke's points: when each was drawn (ms from the stroke's start, t0) and the pen pressure, plus the kind
-  // of pointer. Only shared handwriting (see share.js) uses them.
+  // of pointer. Only shared handwriting (see account/share.js) uses them.
   const stamp = (st, ev) => { st.ts.push(Math.round(ev.timeStamp - st.t0)); st.fs.push(Math.round((ev.pressure || 0) * 100) / 100); };
   const startStroke = (st, t0, dev) => Object.assign(st, { t0, dev, ts: [], fs: [] });
   // Every point the pointer passed through since the last event. Safari sometimes hands back an empty list, which would

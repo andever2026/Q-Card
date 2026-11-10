@@ -1,5 +1,5 @@
 // The public site's platform: Google sign-in, a private Firestore folder per person (or this browser's storage for
-// people who don't sign in, src/platform/local.js) and file downloads. The page was written against claude.ai's artifact runtime
+// people who don't sign in, src/account/local.js) and file downloads. The page was written against claude.ai's artifact runtime
 // (window.claude.use("db" | "user" | "downloads")), so this hands it objects with the same shape.
 // Bundled into js/platform.js by tools/build.mjs.
 import { initializeApp } from "firebase/app";

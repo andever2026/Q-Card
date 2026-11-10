@@ -1,4 +1,4 @@
-/* Made by tools/build.mjs from src/app/theme.css; edit that file instead. */
+/* Made by tools/build.mjs from src/theme/theme.css; edit that file instead. */
 /* Colours: Blue (the default) and Warm (data-palette="claude"), each light and dark (data-theme, else the device's setting).
    Shared by the page (styles.css includes it) and the side pages ai/ and privacy/ (as css/theme.css, with js/pages.js). */
 :root {

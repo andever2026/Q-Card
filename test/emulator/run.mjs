@@ -1,7 +1,7 @@
 // Browser tests for the public site (index.html) against the real Firebase SDK and the real firestore.rules, on the Firebase
 // emulators (Auth and Firestore). test/public/run.mjs covers the page with an in-memory fake; these catch what a fake can't:
 // what Firestore really accepts and refuses, the rules themselves, and the SDK's own behaviour.
-// src/platform/firebase.js is bundled as is, except that it connects to the emulators, uses the project demo-qcard (so nothing
+// src/account/firebase.js is bundled as is, except that it connects to the emulators, uses the project demo-qcard (so nothing
 // can reach the real project) and signs in with a made-up Google account instead of Google's pop-up.
 // Run (needs firebase-tools and Java 21, and Playwright like test/public; PLAYWRIGHT_DIR overrides where it lives):
 //   npx firebase emulators:exec --config test/emulator/firebase.json --only auth,firestore --project demo-qcard "node test/emulator/run.mjs"
@@ -76,7 +76,7 @@ async function docsOf(uid) {
 const authUsers = async () => (await (await fetch(`http://${AUTH_HOST}/identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:query`, { method: "POST", headers: OWNER, body: "{}" })).json()).userInfo || [];
 
 // ---------- the page ----------
-// src/platform/firebase.js and src/checker.js, as tools/build.mjs bundles them, with firebase/auth, firebase/firestore and
+// src/account/firebase.js and src/checking/checker.js, as tools/build.mjs bundles them, with firebase/auth, firebase/firestore and
 // ./config.js wrapped: the real SDK, connected to the emulators. window.__googleUser is who "Google" signs in.
 const shims = {
   "firebase/auth": `export * from "firebase/auth";
@@ -88,7 +88,7 @@ const shims = {
   "firebase/firestore": `export * from "firebase/firestore";
     import { initializeFirestore as realInit, connectFirestoreEmulator } from "firebase/firestore";
     export function initializeFirestore(app, settings) { const fs = realInit(app, settings); connectFirestoreEmulator(fs, ${JSON.stringify(FS_HOST.replace(/:\d+$/, ""))}, ${+FS_HOST.split(":").at(-1)}); return fs; }`,
-  config: `import config from ${JSON.stringify(join(root, "src/platform/config.js"))}; export default { ...config, projectId: "${PROJECT}" };`,
+  config: `import config from ${JSON.stringify(join(root, "src/account/config.js"))}; export default { ...config, projectId: "${PROJECT}" };`,
 };
 const emulate = { name: "emulators", setup(b) {
   // The shims' own imports of the SDK resolve as usual (onResolve returns nothing for them).
@@ -96,7 +96,7 @@ const emulate = { name: "emulators", setup(b) {
   b.onResolve({ filter: /^\.\/config\.js$/ }, (a) => (/platform[\\/]firebase\.js$/.test(a.importer) ? { path: "config", namespace: "emu" } : undefined));
   b.onLoad({ filter: /.*/, namespace: "emu" }, (a) => ({ contents: shims[a.path], resolveDir: root, loader: "js" }));
 } };
-const entry = ['import "./src/platform/firebase.js";', ...(existsSync(join(root, "src/checker.js")) ? ['import "./src/checker.js";'] : [])];
+const entry = ['import "./src/account/firebase.js";', ...(existsSync(join(root, "src/checking/checker.js")) ? ['import "./src/checking/checker.js";'] : [])];
 const platformJs = (await esbuild.build({
   stdin: { contents: entry.join("\n"), resolveDir: root, sourcefile: "emulator-entry.js" },
   bundle: true, format: "iife", write: false, plugins: [emulate],
@@ -145,7 +145,7 @@ async function scribble(page, sel = "#mainPad") {
   for (let i = 1; i <= 8; i++) await page.mouse.move(b.x + 30 + i * 8, b.y + 30 + (i % 2) * 20);
   await page.mouse.up();
 }
-// Sign in with Google from the welcome pop-up; the page reloads into the account (see src/app/boot.js). Gives the uid.
+// Sign in with Google from the welcome pop-up; the page reloads into the account (see src/page/boot.js). Gives the uid.
 async function signIn(page) {
   await until(() => welcomeOpen(page));
   await page.evaluate(() => { window.__beforeSignIn = true; });

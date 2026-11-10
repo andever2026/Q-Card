@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Builds data/templates.json (handwriting templates for src/checker.js) from KanjiVG stroke data.
+// Builds data/templates.json (handwriting templates for src/checking/checker.js) from KanjiVG stroke data.
 //
-//   node tools/make-templates.mjs --kanjivg <dir with KanjiVG kanji/*.svg> [--fetch] [--page app.html] [--vocab dir] [--out data/templates.json]
+//   node tools/make-templates.mjs --kanjivg <dir with KanjiVG kanji/*.svg> [--fetch] [--page src/checking/answers.js] [--vocab dir] [--out data/templates.json]
 //
 // --kanjivg  folder holding KanjiVG's per-character SVG files (05-hex-digit names such as 0732b.svg),
 //            e.g. the "kanji" folder of a KanjiVG release or clone. Required.

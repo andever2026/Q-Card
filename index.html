@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-KbrPZbpk0J2LXRAwRpubWH0KPt5Kyh4lwOtvfrs5sR4=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-KGYbKF1iE9bH3veKZpQwaWTL67P3b4uPYSN4z/HMPw8=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -806,7 +806,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
   const ERASE_R = 12; // px around the eraser that counts as touching a stroke
   const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   // Beside each stroke's points: when each was drawn (ms from the stroke's start, t0) and the pen pressure, plus the kind
-  // of pointer. Only shared handwriting (see share.js) uses them.
+  // of pointer. Only shared handwriting (see account/share.js) uses them.
   const stamp = (st, ev) => { st.ts.push(Math.round(ev.timeStamp - st.t0)); st.fs.push(Math.round((ev.pressure || 0) * 100) / 100); };
   const startStroke = (st, t0, dev) => Object.assign(st, { t0, dev, ts: [], fs: [] });
   // Every point the pointer passed through since the last event. Safari sometimes hands back an empty list, which would
@@ -2780,7 +2780,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   const platform = window.qcardPlatform;
 
   // ---------- public site: built-in checker ----------
-  // Compares the strokes with stroke templates from KanjiVG and the Hershey fonts (src/checker.js) against every accepted way of writing
+  // Compares the strokes with stroke templates from KanjiVG and the Hershey fonts (src/checking/checker.js) against every accepted way of writing
   // the answer, so it only has to decide "is this one of these?", never read arbitrary writing.
   let templates = null;
   function loadTemplates() {
@@ -3263,7 +3263,7 @@ CORRECT: <YES or NO, matching your REASON>`;
       if (id !== "local") stopPrefs = syncPrefs();
       offerSamples();
     };
-    // As a guest, everything is kept in this browser (src/platform/local.js); choosing it in the welcome pop-up is remembered.
+    // As a guest, everything is kept in this browser (src/account/local.js); choosing it in the welcome pop-up is remembered.
     startLocal = () => {
       start("local", platform.localDb());
       $("#histWhere").textContent = "Saved only in this browser";

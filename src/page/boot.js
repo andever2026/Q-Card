@@ -41,7 +41,7 @@
       if (id !== "local") stopPrefs = syncPrefs();
       offerSamples();
     };
-    // As a guest, everything is kept in this browser (src/platform/local.js); choosing it in the welcome pop-up is remembered.
+    // As a guest, everything is kept in this browser (src/account/local.js); choosing it in the welcome pop-up is remembered.
     startLocal = () => {
       start("local", platform.localDb());
       $("#histWhere").textContent = "Saved only in this browser";
