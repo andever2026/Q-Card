@@ -3,15 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WuQGMscNvTFB8zM4y7H/V9gAOKTceCZ91bcZnhGRLlU=' 'sha256-kJ2nijEmmnAfLI9d7P3+l46JtRdvEFpERbHbI3diGW4=' 'sha256-KbrPZbpk0J2LXRAwRpubWH0KPt5Kyh4lwOtvfrs5sR4=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-jo7N6D/KnE5+EwbbajKN1k0vOpAvUVl9EdAIPsttVs0=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
 <link rel="stylesheet" href="fonts/fonts.css">
 <style>
 /* Layout: one centred practice sheet (練習帳). Teacher's red pen for corrections, indigo ink for the UI. */
-/* Colours: Blue (the default) and Warm (data-palette="claude"), each light and dark (data-theme, else the device's setting).
-   Shared by the page (styles.css includes it) and the side pages ai/ and privacy/ (as css/theme.css, with js/pages.js). */
+/* The look every page of the site shares: its colours, and further down the pieces drawn the same way everywhere (buttons,
+   quiet text). The page includes this file (page/styles.css); the side pages ai/ and privacy/ link it as css/theme.css.
+   Colours: Blue (the default) and Warm (data-palette="claude"), each light and dark (data-theme, else the device's setting). */
 :root {
   --bg: #fdfdfd;
   --surface: #ffffff;
@@ -60,8 +61,22 @@
   --bg: #17181a; --surface: #212225; --sunk: #1b1c1e; --ink: #ececec; --muted: #a3a3a5; --line: #35373b; --guide: #3e4044; --ai: #e08560; --ai-soft: #2d2e32; --shu: #f0707e; --shu-soft: #3a2427; --ok: #7cbf6a;
   color-scheme: dark;
 }
-* { box-sizing: border-box; }
+
+/* Pieces every page draws the same way. */
 [hidden] { display: none !important; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 14px; font-weight: 500; }
+.btn:hover { border-color: var(--ai); }
+.btn.primary { background: var(--ai); border-color: var(--ai); color: var(--surface); font-weight: 700; padding: 10px 20px; }
+.btn.primary:disabled { opacity: .45; cursor: not-allowed; }
+/* A primary button beside a plain one takes the plain one's size, so the row lines up. */
+.btn:not(.primary) ~ .btn.primary, .btn.primary:has(~ .btn:not(.primary)) { padding: 8px 14px; }
+.btn.danger { color: var(--shu); }
+.link { background: none; border: none; padding: 0; color: var(--ai); text-decoration: underline; text-underline-offset: 3px; font-size: .9rem; }
+.muted { color: var(--muted); }
+.tactions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+* { box-sizing: border-box; }
 body {
   background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.55;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -76,15 +91,6 @@ h1 { font-size: 1.5rem; letter-spacing: .01em; }
 h2 { font-size: 1.15rem; }
 h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 500; }
 p { margin: 0; }
-button { font: inherit; color: inherit; cursor: pointer; }
-button:focus-visible, input:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
-.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 14px; font-weight: 500; }
-.btn:hover { border-color: var(--ai); }
-.btn.primary { background: var(--ai); border-color: var(--ai); color: var(--surface); font-weight: 700; padding: 10px 20px; }
-.btn.primary:disabled { opacity: .45; cursor: not-allowed; }
-/* A primary button beside a plain one takes the plain one's size, so the row lines up. */
-.btn:not(.primary) ~ .btn.primary, .btn.primary:has(~ .btn:not(.primary)) { padding: 8px 14px; }
-.btn.danger { color: var(--shu); }
 /* Icon tools under a writing box: Undo and Clear, then the pen / stroke eraser switch. */
 .itools { display: flex; gap: 8px; align-items: center; }
 .igroup { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
@@ -98,9 +104,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ai); outlin
 body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26'%3E%3Ccircle cx='13' cy='13' r='11' fill='none' stroke='%23888' stroke-width='1.5'/%3E%3C/svg%3E") 13 13, cell; }
 .ghost { background: none; border: none; color: var(--muted); padding: 6px 2px; }
 .ghost:hover { color: var(--ink); }
-.link { background: none; border: none; padding: 0; color: var(--ai); text-decoration: underline; text-underline-offset: 3px; font-size: .9rem; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 14px; min-width: 0; }
-.muted { color: var(--muted); }
 .small { font-size: .85rem; }
 .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .head .jp { font-family: var(--font-jp); font-size: 1rem; color: var(--muted); }
@@ -316,8 +320,8 @@ td.c { text-align: center; width: 4.5rem; }
 }
 .rowdel { background: none; border: none; color: var(--muted); font-size: 1.1rem; padding: 2px 8px; }
 .rowdel:hover { color: var(--shu); }
-.tactions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 #aiHelp a { color: var(--ai); text-underline-offset: 3px; }
+/* The import preview (src/import-export/import.js), wherever an importer draws it. */
 .impprev { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 8px; background: var(--sunk); }
 .impprev ul { margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
 .impprev .names { font-size: .85rem; color: var(--muted); }
@@ -414,8 +418,20 @@ body { margin: 0; }
 body.writing .foot { display: none; }
 body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits near the bottom edge */
 </style>
-<script>try { if (JSON.parse(localStorage.getItem("jpq:palette")) === "claude") document.documentElement.dataset.palette = "claude"; } catch {}</script>
-<script>try { const t = JSON.parse(localStorage.getItem("jpq:theme")); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
+<script>
+// The one place the page's colours are set, for the page itself and for the side pages (ai/, privacy/).
+// <html data-palette="claude"> is Warm (none is Blue); data-theme="light" or "dark" is a fixed choice (none follows the device).
+// The choices are kept in this browser, where every page of the site reads them.
+const colours = {
+  saved() { const get = (k) => { try { return JSON.parse(localStorage.getItem("jpq:" + k)); } catch { return null; } }; return [get("palette"), get("theme")]; },
+  apply(palette, theme) {
+    const at = document.documentElement.dataset;
+    if (palette === "claude") at.palette = "claude"; else delete at.palette;
+    if (theme === "light" || theme === "dark") at.theme = theme; else delete at.theme;
+  },
+};
+colours.apply(...colours.saved()); // before anything is drawn
+</script>
 
 </head>
 <body>
@@ -701,10 +717,13 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
 
 <script>
 (() => {
+  // Finding an element, and making text safe to put into HTML: for the page and for the AI page's import.
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // A one-line message under a control: sayIn(el)("…") shows it, sayIn(el)("") takes it away.
+  const sayIn = (el) => (m) => { el.hidden = !m; el.textContent = m || ""; };
   // Choices people make on the page. They're kept in this browser and, for someone signed in, in their account
-  // too (data/users/<id>/prefs, see syncPrefs), so they come along to other devices.
+  // too (data/users/<id>/prefs, see syncPrefs in account/choices.js), so they come along to other devices.
   const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "palette", "theme", "resume", "share", "practices"];
   let prefsChanged = () => {};
   const store = {
@@ -721,12 +740,11 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
     return k.map((x) => ({ main: "main sets", extras: "extras", supp: "supp." })[x]).filter(Boolean);
   }
   const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  const rid = () => Math.random().toString(36).slice(2, 9);
 
   let db = null, user = null, sample = null, uid = null, canWrite = false, owner = false;
   // Export / import works from the documents exactly as stored, not the tidied copies the page renders from.
-  let downloads = null, importPlan = null, importing = false;
-  const raw = { sets: [], kanji: [], books: undefined, courses: undefined }; // books and courses: undefined until they load, then null if there are none
+  let downloads = null;
+  const raw = { sets: [], kanji: [], books: null, courses: null };
   const S = {
     sets: [], loaded: false,
     selected: new Set(store.get("selected", [])),
@@ -763,15 +781,6 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
 
   // ---------- views ----------
   const views = ["setup", "quiz", "results", "table", "history"];
-  // Colour palette: per viewer, remembered in this browser.
-  function setPalette(name) {
-    name = name === "claude" ? "claude" : "indigo";
-    if (name === "claude") document.documentElement.dataset.palette = "claude"; else delete document.documentElement.dataset.palette;
-    document.querySelectorAll("#palPick [data-pal]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.pal === name));
-    store.set("palette", name);
-    pads.forEach((p) => p.draw());
-  }
-  document.querySelectorAll("#palPick [data-pal]").forEach((b) => (b.onclick = () => setPalette(b.dataset.pal)));
   // Settings pop-up (the gear in the header): colours, the vocab counts, export / import, and on the public site light or dark,
   // the account and deleting.
   function openSettings() { renderSettings(); $("#settings").showModal(); }
@@ -784,16 +793,27 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
     renderPort();
     renderAccount(); renderShare();
   }
+  function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
+  function banner(msg) { const b = $("#banner"); b.hidden = !msg; b.textContent = msg || ""; }
+  // ---------- colours: the two choices in Settings ----------
+  // Blue or Warm, and light, dark or the device's setting: per viewer, remembered in this browser (and in the account,
+  // see account/choices.js). colours.apply (theme/apply.js) is what changes the page.
+  function setPalette(name) {
+    name = name === "claude" ? "claude" : "indigo";
+    colours.apply(name, document.documentElement.dataset.theme);
+    document.querySelectorAll("#palPick [data-pal]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.pal === name));
+    store.set("palette", name);
+    pads.forEach((p) => p.draw());
+  }
+  document.querySelectorAll("#palPick [data-pal]").forEach((b) => (b.onclick = () => setPalette(b.dataset.pal)));
   function setTheme(t) {
     t = t === "light" || t === "dark" ? t : "";
-    if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+    colours.apply(document.documentElement.dataset.palette, t);
     document.querySelectorAll("#themePick [data-theme-pick]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.themePick === t));
     store.set("theme", t);
   }
   document.querySelectorAll("#themePick [data-theme-pick]").forEach((b) => (b.onclick = () => setTheme(b.dataset.themePick)));
   setTheme(store.get("theme", ""));
-  function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
-  function banner(msg) { const b = $("#banner"); b.hidden = !msg; b.textContent = msg || ""; }
 
   // ---------- handwriting pads ----------
   // Palm rejection: a finger draws unless the pencil is down or was used in the last moment.
@@ -806,7 +826,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
   const ERASE_R = 12; // px around the eraser that counts as touching a stroke
   const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   // Beside each stroke's points: when each was drawn (ms from the stroke's start, t0) and the pen pressure, plus the kind
-  // of pointer. Only shared handwriting (see share.js) uses them.
+  // of pointer. Only shared handwriting (see account/share.js) uses them.
   const stamp = (st, ev) => { st.ts.push(Math.round(ev.timeStamp - st.t0)); st.fs.push(Math.round((ev.pressure || 0) * 100) / 100); };
   const startStroke = (st, t0, dev) => Object.assign(st, { t0, dev, ts: [], fs: [] });
   // Every point the pointer passed through since the last event. Safari sometimes hands back an empty list, which would
@@ -943,36 +963,6 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       }
       ctx.restore();
     }
-    // Black ink on white, no guides, cropped to the writing: what Claude sees.
-    toBlob(scale = 2) {
-      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-      for (const s of this.strokes) for (const [x, y] of s) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
-      const pad = 16;
-      x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(this.w, x1 + pad); y1 = Math.min(this.h, y1 + pad);
-      const c = document.createElement("canvas");
-      c.width = Math.ceil((x1 - x0) * scale); c.height = Math.ceil((y1 - y0) * scale);
-      const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
-      ctx.translate(-x0 * scale, -y0 * scale); this.paint(ctx, "#000", scale);
-      return new Promise((res) => c.toBlob(res, "image/png"));
-    }
-  }
-  // Strip and box stacked as on screen, so Claude sees which character each furigana sits over.
-  function sheetBlob() {
-    const scale = 2, gap = 14, w = Math.max(furi.w, main.w), h = furi.h + gap + main.h;
-    let x0 = Infinity, x1 = -Infinity;
-    for (const p of [furi, main]) for (const s of p.strokes) for (const [x] of s) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); }
-    x0 = Math.max(0, x0 - 24); x1 = Math.min(w, x1 + 24);
-    const c = document.createElement("canvas");
-    c.width = Math.ceil((x1 - x0) * scale); c.height = Math.ceil(h * scale);
-    const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
-    ctx.translate(-x0 * scale, 0);
-    furi.paint(ctx, "#000", scale);
-    const sy = (furi.h + gap / 2) * scale;
-    ctx.strokeStyle = "#bbb"; ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
-    ctx.beginPath(); ctx.moveTo(x0 * scale, sy); ctx.lineTo(x1 * scale, sy); ctx.stroke(); ctx.setLineDash([]);
-    ctx.translate(0, (furi.h + gap) * scale);
-    main.paint(ctx, "#000", scale);
-    return new Promise((res) => c.toBlob(res, "image/png"));
   }
   const furi = new Pad($("#furiPad"), "furi");
   const main = new Pad($("#mainPad"), "main");
@@ -1035,16 +1025,68 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
   $("#clearBtn").onclick = () => { furi.clear(); main.clear(); };
   $("#scratchClear").onclick = () => scratch.clear();
 
-  // ---------- data ----------
+  // ---------- vocab documents ----------
+  // What's stored, and how each document is read. Nothing here looks at the page, so the AI page's import uses it too.
+  //   sets/<id>      { collection, unit, name, tags?, words: [{ id, en, kana, kanji }] }
+  //   kanji/<id>     { collection, unit, kanji }       the kanji a unit teaches, as one string
+  //   meta/books     { order: [collection, …] }        the order the collections are studied in
+  //   meta/courses   { courses: [{ name, parts: [{ collection, from, to }] }] }
   // Vocab is grouped Collection › Unit › Set: a collection (a textbook, a course, any list of lists) has units (Ch. 3,
   // Week 1, any name), and each unit has sets; kanji lists go by unit. Documents saved before October 2026 name a book,
   // a numbered chapter and a section with an optional label: they're read as collection, unit "Ch. N" and set name "A · Label".
-  const coll = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
   const tidy = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
   const oldUnit = (v) => { const c = tidy(v, 60).replace(/^ch(apter)?\.?\s*(?=\d)/i, ""); return /^\d+$/.test(c) ? `Ch. ${+c}` : c; };
   const docCol = (d) => tidy(d.collection ?? d.book, 100);
   const docUnit = (d) => (d.unit != null ? tidy(d.unit, 60) : oldUnit(d.chapter)) || "No unit";
   const docName = (d) => tidy(d.name ?? [d.section, d.label].map((x) => tidy(x, 200)).filter(Boolean).join(" · "), 200) || "Untitled set";
+  const colLabel = (b) => b || "No collection";
+  // "Genki 1 › Lesson 3" and "Genki 1 › Lesson 3 › Food": the collection is named only where there's more than one (withCol).
+  const unitPath = (x, withCol) => `${withCol ? colLabel(x.collection || "") + " › " : ""}${x.unit}`;
+  const setPath = (s, withCol) => `${unitPath(s, withCol)} › ${s.name}`;
+  // A set's own tags: up to 12 short labels, matched without case; a comma (or 、) separates them when typed.
+  const tagKey = (t) => t.toLowerCase();
+  function cleanTags(v) {
+    const out = [], seen = new Set();
+    for (const t of Array.isArray(v) ? v : String(v ?? "").split(/[,、，]/)) {
+      const x = tidy(t, 30);
+      if (x && !seen.has(tagKey(x)) && out.length < 12) { seen.add(tagKey(x)); out.push(x); }
+    }
+    return out;
+  }
+  // A course takes a range of units from one collection, by name: { collection, from, to }. Older courses gave a book and chapter numbers.
+  const coursePart = (p) => (p?.collection != null ? { collection: tidy(p.collection, 100), from: tidy(p.from, 60), to: tidy(p.to, 60) }
+    : { collection: tidy(p?.book, 100), from: oldUnit(p?.from), to: oldUnit(p?.to) });
+
+  // The documents exactly as stored, with their ids: what Export writes out and Import compares a file with.
+  const withIds = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const dataOrNull = (snap) => (snap.exists ? snap.data() : null);
+  // All four at once, for a page that doesn't keep them loaded (the AI page; the site itself listens to each, see boot).
+  async function readVocab(db) {
+    const [sets, kanji, books, courses] = await Promise.all([db.collection("sets").get(), db.collection("kanji").get(), db.doc("meta/books").get(), db.doc("meta/courses").get()]);
+    return { sets: withIds(sets), kanji: withIds(kanji), books: dataOrNull(books), courses: dataOrNull(courses) };
+  }
+  // A vocab file (Export writes one, Import reads one, an AI can make one: see ai/) is those documents in one JSON object:
+  // { app: APP, version: 2, sets: [...], kanji: [...], collections: { order }, courses }.
+  const APP = "jp-vocab-practice";
+  // Each cleaner returns the document to store, in the current format, or null when what it's given isn't usable.
+  // Files and older documents go through them, so their contents are never trusted.
+  const ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/;
+  const rid = () => Math.random().toString(36).slice(2, 9);
+  const str = (v, n = 500) => String(v ?? "").slice(0, n);
+  const cleanSet = (d) => !d || typeof d !== "object" || !ID_RE.test(String(d.id ?? "")) || !Array.isArray(d.words) ? null : {
+    collection: docCol(d), unit: docUnit(d), name: docName(d), ...(cleanTags(d.tags).length ? { tags: cleanTags(d.tags) } : {}),
+    words: d.words.slice(0, 3000).filter((w) => w && typeof w === "object").map((w) => ({ id: ID_RE.test(String(w.id ?? "")) ? String(w.id) : rid(), en: str(w.en), kana: str(w.kana), kanji: str(w.kanji) })) };
+  const cleanKanji = (d) => !d || typeof d !== "object" || !ID_RE.test(String(d.id ?? "")) ? null : { collection: docCol(d), unit: docUnit(d), kanji: str(d.kanji, 20000) };
+  const cleanBooks = (d) => Array.isArray(d?.order) ? { order: d.order.slice(0, 50).map((b) => str(b, 100)) } : null;
+  // Courses come as stored ({ courses: [...] }) or, in a hand-made file, as the bare list.
+  function cleanCourses(d) {
+    const list = Array.isArray(d) ? d : d?.courses;
+    return Array.isArray(list) ? { courses: list.slice(0, 50).filter((c) => c && c.name && Array.isArray(c.parts)).map((c) => ({ name: str(c.name, 100),
+      parts: c.parts.slice(0, 20).filter((x) => x && typeof x === "object").map(coursePart).filter((x) => x.from && x.to) })) } : null;
+  }
+  // ---------- data ----------
+  // The vocab as the page holds it: collections, their units and sets, in order (how a stored document is read: vocab/docs.js).
+  const coll = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
   // Units sort by name with numbers in order (Week 2 before Week 10). In a unit, Kanji sets, Extras and supplementary lists come last.
   const byUnit = (a, b) => coll.compare(String(a), String(b));
   const secRank = (s) => { s = String(s || ""); return /^kanji/i.test(s) ? 1 : /^extra/i.test(s) ? 2 : /^supp/i.test(s) ? 3 : 0; };
@@ -1059,7 +1101,6 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
   const byCol = (a, b) => colRank(a) - colRank(b) || coll.compare(String(a), String(b));
   const cols = () => [...new Set([...S.sets, ...S.kanjiLists].map(colOf))].sort(byCol);
   const multiCol = () => cols().length > 1;
-  const colLabel = (b) => b || "No collection";
   // The collection in view: the one picked, or the first one while the picked one doesn't exist (yet).
   const shownCol = (b) => { const bs = cols(); return bs.includes(b) ? b : bs[0] ?? ""; };
   // Typed names match an existing collection, or unit of that collection, whatever their case ("ch. 3" is "Ch. 3").
@@ -1069,41 +1110,35 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
   const keyUnit = (k) => k.split("\u0001")[1];
   // Picks saved before units name the chapter number ("Nakama 1\u00013"), now "Nakama 1\u0001Ch. 3" (unless a unit is named "3").
   const newKey = (k, has) => (/\u0001\d+$/.test(k) && !has(k) ? k.replace(/\u0001(\d+)$/, "\u0001Ch. $1") : k);
-  // "Nakama 1 › Ch. 3" when there's more than one collection, else "Ch. 3".
-  const unitTitle = (x) => `${multiCol() ? colLabel(colOf(x)) + " › " : ""}${x.unit}`;
-  const setName = (s) => `${unitTitle(s)} › ${s.name}`;
+  // "Genki 1 › Lesson 3" when there's more than one collection, else "Lesson 3".
+  const unitTitle = (x) => unitPath(x, multiCol());
+  const setName = (s) => setPath(s, multiCol());
   const jpForm = (w) => w.kanji || w.kana;
 
-  // A course takes a range of units from one collection, by name: { collection, from, to }. Older courses gave a book and chapter numbers.
-  const coursePart = (p) => (p?.collection != null ? { collection: tidy(p.collection, 100), from: tidy(p.from, 60), to: tidy(p.to, 60) }
-    : { collection: tidy(p?.book, 100), from: oldUnit(p?.from), to: oldUnit(p?.to) });
   function onCourses(snap) {
-    raw.courses = snap.exists ? snap.data() : null;
+    raw.courses = dataOrNull(snap);
     const list = snap.exists ? snap.data()?.courses : null;
     S.courses = (Array.isArray(list) ? list : []).filter((c) => c && c.name && Array.isArray(c.parts))
       .map((c) => ({ name: String(c.name), parts: c.parts.map(coursePart) }));
     renderSetup(); renderTable();
-    takeAiImport();
   }
   function onBookOrder(snap) {
-    raw.books = snap.exists ? snap.data() : null;
+    raw.books = dataOrNull(snap);
     const o = snap.exists ? snap.data()?.order : null;
     S.colOrder = Array.isArray(o) ? o.map(String) : [];
     S.sets.sort(sortSets);
     S.kanjiLists.sort(sortLists);
     if (S.kLoaded) renderUpto(); // before the kanji lists load, renderUpto would reset the choice
     renderSetup(); renderTable();
-    takeAiImport();
   }
   function onSets(snap) {
-    raw.sets = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    raw.sets = withIds(snap);
     S.sets = snap.docs.map((d) => { const x = d.data(); return { id: d.id, collection: docCol(x), unit: docUnit(x), name: docName(x), tags: x.tags, words: (x.words || []).map((w) => ({ ...w })) }; }).sort(sortSets);
     S.loaded = true;
     const ids = new Set(S.sets.map((s) => s.id));
     for (const id of [...S.selected]) if (!ids.has(id)) S.selected.delete(id);
     renderSetup();
     renderTable();
-    takeAiImport();
   }
 
   // ---------- setup ----------
@@ -1132,7 +1167,6 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
   // ---------- verb forms ----------
   // Verb forms practice asks five plain forms of each verb. A word is a verb when its English starts with "to" and each
   // Japanese alternative ends like a verb; Nakama 1's early masu forms (飲みます) are turned back into dictionary forms first.
-  const VDESC = { "Current Plain+": "plain non-past affirmative (dictionary) form", "Current Plain-": "plain non-past negative form (〜ない)", "て form": "て form", "Past Plain+": "plain past affirmative form (〜た)", "Past Plain-": "plain past negative form (〜なかった)" };
   const VFORMS = [["now", "Current Plain+"], ["nownot", "Current Plain-"], ["te", "て form"], ["past", "Past Plain+"], ["pastnot", "Past Plain-"]];
   const VROWS = ["わかさたなはまやらがざだばぱ", "いきしちにひみ・りぎじぢびぴ", "うくすつぬふむゆるぐずづぶぷ", "えけせてねへめ・れげぜでべぺ"];
   const vrow = (c, to) => { for (const r of VROWS) { const i = r.indexOf(c); if (i >= 0 && c !== "・") return VROWS[to][i]; } return ""; };
@@ -1220,44 +1254,33 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       return { key: w.id + ":" + f, dir: "ej", vid: w.id, w: { ...w, id: w.id + "~" + f, en: `${w.en} · ${label}`, ven: w.en, vf: label, kana, kanji: kanjis.some(Boolean) ? kanjis.map((x, i) => x || conjEnd(alts[i].k, alts[i].t, f)).join("／") : "" } };
     });
   }
-  // What each kanji rule does depends on the direction: it shapes what you write, what the question shows, or both.
+  // What each kanji rule does depends on the direction: it shapes what you write (ej), what the question shows (je), or
+  // both. A rule that does the same whatever the direction has one line.
   const MODE_TEXT = {
-    ej: {
-      default: "Kanji optional. If you add furigana, it gets checked too.",
-      kanji: "Kanji you’ve learned must be written as kanji.",
-      kana: "Only the reading counts, kanji mistakes are ignored.",
-      kata: "Narrows the picked set(s) to the words that include katakana.",
-      verb: "Narrows the picked set(s) to verbs only, and goes through their five forms.",
+    default: {
+      ej: "Kanji optional. If you add furigana, it gets checked too.",
+      je: "Words show as written in the set, with the reading underneath.",
+      both: "Kanji optional when you write. Japanese questions show the word as written, with the reading.",
     },
-    je: {
-      default: "Words show as written in the set, with the reading underneath.",
-      kanji: "Words show only the kanji you’ve learned, with no reading.",
-      kana: "Words show in kana only.",
-      kata: "Narrows the picked set(s) to the words that include katakana.",
-      verb: "Only for English → 日本語.",
+    kanji: {
+      ej: "Kanji you’ve learned must be written as kanji.",
+      je: "Words show only the kanji you’ve learned, with no reading.",
+      both: "Kanji you’ve learned must be written as kanji, and Japanese questions show only those kanji, with no reading.",
     },
-    both: {
-      default: "Kanji optional when you write. Japanese questions show the word as written, with the reading.",
-      kanji: "Kanji you’ve learned must be written as kanji, and Japanese questions show only those kanji, with no reading.",
-      kana: "Only the reading counts when you write, and Japanese questions show kana only.",
-      kata: "Narrows the picked set(s) to the words that include katakana.",
-      verb: "Only for English → 日本語.",
+    kana: {
+      ej: "Only the reading counts, kanji mistakes are ignored.",
+      je: "Words show in kana only.",
+      both: "Only the reading counts when you write, and Japanese questions show kana only.",
     },
+    kata: "Narrows the picked set(s) to the words that include katakana.",
+    verb: { ej: "Narrows the picked set(s) to verbs only, and goes through their five forms.", je: "Only for English → 日本語.", both: "Only for English → 日本語." },
   };
+  const modeText = (mode, dir) => MODE_TEXT[mode]?.[dir] ?? MODE_TEXT[mode];
   // Sets are filtered by unit and by tag (the Filter row); picks in hidden sets stay picked.
   const setKind = (s) => (/^supp/i.test(s.name) ? "supp" : /^extra/i.test(s.name) ? "extras" : "main");
   // A set's tags are its own (sets/<id>.tags, from its details) plus its kind from the start of its name, when the table has
   // more than one kind. Tags match without case; a comma (or 、) separates them when typed.
   const KIND_TAGS = { main: "Main sets", extras: "Extras", supp: "Supp." };
-  const tagKey = (t) => t.toLowerCase();
-  function cleanTags(v) {
-    const out = [], seen = new Set();
-    for (const t of Array.isArray(v) ? v : String(v ?? "").split(/[,、，]/)) {
-      const x = String(t ?? "").replace(/\s+/g, " ").trim().slice(0, 30);
-      if (x && !seen.has(tagKey(x)) && out.length < 12) { seen.add(tagKey(x)); out.push(x); }
-    }
-    return out;
-  }
   const setTags = (s, kinds) => cleanTags([...(kinds ? [KIND_TAGS[setKind(s)]] : []), ...(Array.isArray(s.tags) ? s.tags : [])]);
   // Every tag in use: [{key, name, n}], n = sets with it. The Filter row puts the ones that hide the most sets first.
   function tagCounts() {
@@ -1449,7 +1472,7 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
     if (S.mode === "verb" && S.dir !== "ej") S.mode = "default";
     $("#mode-verb").disabled = S.dir !== "ej";
     document.querySelectorAll("#modeSeg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.mode === S.mode));
-    document.querySelectorAll("#modeSeg [data-mode] span").forEach((sp) => (sp.textContent = MODE_TEXT[S.dir][sp.parentNode.dataset.mode]));
+    document.querySelectorAll("#modeSeg [data-mode] span").forEach((sp) => (sp.textContent = modeText(sp.parentNode.dataset.mode, S.dir)));
     const n = selectedWords().length, items = S.dir === "both" ? n * 2 : n;
     const kata = S.mode === "kata" ? "katakana " : "";
     $("#countLbl").textContent = n && S.mode === "verb" ? `${n} verb${n === 1 ? "" : "s"}, ${n * VFORMS.length} questions`
@@ -1611,95 +1634,11 @@ body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits nea
       qt.className = "qtext jp"; qt.textContent = jp; $("#qSub").className = "qsub"; $("#qSub").textContent = KANJI.test(jp) && S.mode !== "kanji" ? w.kana : "";
       $("#furiLabel").hidden = true; furi.c.hidden = true; $("#mainLabel").parentNode.hidden = true; $("#mainTag").textContent = "English (answer)";
     }
-    const left = Q.total - Q.done.size;
     $("#progLbl").textContent = `${Q.done.size} of ${Q.total} done` + (Q.round > 1 ? ` · round ${Q.round}, ${Q.queue.length + 1} left to fix` : "");
     $("#meterFill").style.width = (Q.done.size / Q.total) * 100 + "%";
     syncCheck();
     saveResume();
     requestAnimationFrame(() => pads.forEach((p) => p.resize()));
-  }
-
-  function rulesFor(w) {
-    const hasKanji = !!(w.kanji && /[一-鿿々]/.test(w.kanji));
-    const req = requiredKanji(w), free = [...new Set([...w.kanji].filter((c) => KANJI.test(c) && !req.includes(c)))];
-    const furiNote = " FURIGANA: furigana normally covers ONLY the kanji characters, so for 食べる writing just た above 食 is correct and complete, for 飲む just の above 飲, and for 申し込む もう above 申 and こ above 込 (or just one of them). Furigana over the whole word is also fine. Never mark an answer wrong because the furigana leaves out the okurigana or other kana already written in the main box; check that the furigana is the right reading for the kanji it sits over. Anything written in the furigana strip must be a correct reading of the characters directly below it: furigana over kana (for example あ over お) is WRONG unless it repeats that same kana, and any wrong, extra or meaningless furigana makes the whole answer wrong.";
-    const base = "If the main box uses kanji: when there is furigana in the strip, BOTH the kanji and the furigana reading must be correct; when the strip is empty, it is correct if the kanji and the whole word (including okurigana) are correct. If the main box is written fully in kana, it is correct if the kana spelling matches the expected reading exactly.";
-    if (S.mode === "kata") {
-      const runs = kataRuns(w.kana);
-      return `KATAKANA MODE: the parts of the expected answer written in katakana (${runs.join(" ")}) MUST be written in katakana. Writing any of them in hiragana is WRONG, and so is writing hiragana parts in katakana. The long vowel mark ー, small ッ ャ ュ ョ ァ ィ ゥ ェ ォ, and dakuten/handakuten must all match. A few katakana look almost the same as hiragana by hand (ヘ/へ, ベ/べ, ペ/ぺ, リ/り): where the expected answer has the katakana one, read it as katakana. ${hasKanji ? "Writing kanji is optional for this word. " : ""}` + base + furiNote;
-    }
-    if (S.mode === "kana") return "KANA-ONLY MODE: judge only the reading. If kanji was written and furigana is present, judge only the furigana and ignore any mistakes in the kanji. If kanji was written with no furigana, judge the reading the written word stands for. If the answer is in kana, judge the kana spelling. Never mark down wrong or missing kanji." + furiNote;
-    if (S.mode === "kanji" && req.length) return `FORCE-KANJI MODE: the student has learned these kanji, so they MUST be written as kanji: ${req.join(" ")}${/[／/]/.test(w.kanji) ? " (only the ones that appear in the alternative the student chose)" : ""}. Writing any of them in kana is WRONG.${free.length ? ` These kanji have NOT been learned yet, so writing their part in kana is fine (writing them as correct kanji is fine too): ${free.join(" ")}.` : ""} Then: ${base}` + furiNote;
-    if (S.mode === "kanji" && hasKanji) return "None of this word's kanji have been learned yet, so kana is fine and correct kanji are fine too. " + base + furiNote;
-    return (hasKanji ? "Writing kanji is optional for this word. " : "This word is normally written in kana. ") + base + furiNote;
-  }
-  // The textbook's notation inside the expected answer, explained only when the word uses it.
-  function notation(w) {
-    const t = (w.kana || "") + (w.kanji || ""), out = [];
-    if (/[（(]/.test(t)) out.push("Parentheses mark an optional part: （お）てんき accepts おてんき or てんき, and きれい（な） accepts きれい or きれいな.");
-    if (/[／/]/.test(t)) out.push("／ separates alternatives: writing any one of them is correct, and so is writing several or all of them separated by ／ the way the expected answer lists them (in the main box or in the furigana), as long as each one is an allowed alternative.");
-    if (/[〜～]/.test(t)) out.push("〜 marks a slot for another word: the student may write 〜, leave it out, or fill it with a suitable word. A handwritten 〜 is a single wavy stroke and is easy to mistake for い, ー, へ or ~. When a mark like that sits where the expected answer has 〜, it IS the 〜: write it as 〜 in MAIN and do not count it as an extra character.");
-    return out.length ? "\nNotation in the expected answer: " + out.join(" ") : "";
-  }
-  function buildPrompt(w, dir, hasFuri) {
-    if (dir === "je") {
-      const jp = shownJp(w);
-      return `You are grading a handwritten answer on a university Japanese vocabulary quiz (Nakama 1 textbook).
-The student saw the Japanese word: ${jp}${KANJI.test(jp) ? ` (reading: ${w.kana})` : ""}${w.kanji && jp !== w.kanji ? ` (textbook form: ${w.kanji})` : ""}
-Expected English meaning: "${w.en}"
-The attached image is the student's handwritten English answer (black ink on white, written with a finger, mouse or stylus).
-Mark it correct if it conveys the same meaning as the expected English. Accept close synonyms, small spelling mistakes, a missing "to" on verbs, and missing articles. Mark it wrong if the meaning is different or only partly right.
-Reply in exactly this format, four lines, nothing else:
-MAIN: <what you read in the image>
-FURIGANA: NONE
-CORRECT: <YES or NO>
-REASON: <one short English sentence; if wrong, say what the meaning should be>`;
-    }
-    return `You are grading a handwritten answer on a university Japanese vocabulary quiz (Nakama 1 textbook). The test is English → Japanese, written by hand.
-The student saw: "${w.ven || w.en}"${w.vf ? `, and was asked for its ${VDESC[w.vf]}. The expected answer below is that form; any other form of the verb is WRONG.` : ""}
-Expected answer: reading (kana) = ${w.kana}${w.kanji ? `; full kanji form = ${w.kanji}. Writing some of the kanji in kana instead (for example よう食 for 洋食) is a valid way to write the word, as long as each part is correct; the grading rule below says whether a specific kanji is required` : "; no kanji form"}.${notation(w)}
-${hasFuri ? "Image 1 shows the whole answer sheet as the student saw it: the furigana strip on top, a dashed separator, and the main answer box below. Furigana sits directly above the characters it belongs to. Image 2 is the furigana strip alone, enlarged, so the small kana are easier to read. Small or light strokes in the strip are almost certainly kana: read them carefully before calling anything a stray mark." : "Image 1 is the main answer box. The furigana strip above the box was left EMPTY."}
-Read the handwriting, then judge from what you read. The student writes with a finger, mouse or stylus, so the writing is rough: NEVER mark an answer wrong for neatness, stroke shape, proportions, joined or separated strokes, or stroke order. If a character can reasonably be read as the expected one, it is correct. Mark a character wrong only when it is actually a different character, for example ソ/ン, シ/ツ, ぬ/め, わ/れ/ね, missing or extra dakuten/handakuten, wrong or missing small っ ゃ ゅ ょ, and wrong long vowels (e.g. おう vs おお). Also wrong: a stroke that clearly passes through another stroke where the printed character has them only meet, or the reverse, the way a teacher would mark it. For example, in 北 the left half's short horizontal stroke and rising stroke both stop at its vertical stroke; drawn through to the right of that vertical, the character is wrong. A slight overshoot or a small gap from writing fast is fine. Hiragana vs katakana matters: the script must match the expected word. Only the expected word counts; a different word with a similar meaning is wrong. Your "correct" value must agree with your own transcription: if what you put in "main" and "furigana" is right under the grading rule, "correct" is true.
-Grading rule: ${rulesFor(w)}
-Reply in exactly this format, four lines, nothing else:
-MAIN: <exactly what you read in the main box>
-FURIGANA: <only the kana you read in the furigana strip, left to right, a space between groups; or NONE>
-REASON: <one short English sentence; if wrong, name the exact mistake>
-CORRECT: <YES or NO, matching your REASON>`;
-  }
-
-  const ERR = {
-    not_granted: "Checking needs permission to use Claude. Allow it from this page's permission menu, then try again.",
-    sampling_disabled: "Claude isn't available on this account, so answers can't be checked.",
-    rate_limited: "Claude is busy or you've hit a usage limit. Wait a moment and press Check again.",
-    session_expired: "Your claude.ai session expired. Sign in again, then press Check.",
-    images_unavailable: "This view can't send handwriting to Claude. Try opening the page in claude.ai in a browser.",
-    invalid_json: "Claude's answer came back in the wrong format. Press Check again.",
-    tpl_load: "Couldn't load the handwriting checker. Check your connection and press Check again.",
-  };
-  // A check still running when the student quits (or a practice started or resumed meanwhile) belongs to a question that's
-  // no longer on screen: its answer stays unchecked, kept for Resume with what was written.
-  const gone = (cur) => Q.cur !== cur || $("#quiz").hidden;
-  // The built-in checker reads English → 日本語 answers, and 日本語 → English answers written the way the meaning is
-  // worded. Other English (a synonym, say) and words it has no strokes for are marked by the student (selfMark).
-  async function check() {
-    if (main.empty || Q.busy) return;
-    const cur = Q.cur, { w, dir } = cur;
-    Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true; $("#liveRead").hidden = true;
-    $("#overrideBtn").textContent = "The checker misread my writing, count it as correct";
-    let self = false;
-    try {
-      const res = dir === "je" ? await englishCheck(w) : await builtinCheck(w, dir === "ej" && !furi.empty);
-      if (gone(cur)) return;
-      if (res && !res.ok) showBoxes(res);
-      shareAnswer(!res ? "unread" : res.ok ? "right" : dir === "ej" ? "wrong" : "unmatched", res?.r);
-      if (res && (res.ok || dir === "ej")) grade(res.ok, res.r); else self = res ? "unmatched" : "unread";
-    } catch (e) {
-      if (!gone(cur)) showErr(ERR[e?.code] || "Something went wrong with the check. Press Check to try again.");
-    } finally {
-      Q.busy = false; $("#checking").hidden = $("#checkingFuri").hidden = true; syncCheck();
-    }
-    if (self) selfMark(self === "unmatched");
   }
   // Claude's transcription is the reliable part: when what it read is exactly the expected answer, the answer is right.
   // (wave: keep the 〜, for the forms the built-in checker is given)
@@ -1736,16 +1675,6 @@ CORRECT: <YES or NO, matching your REASON>`;
     if (!f || f === hira(w.kana)) return true;
     const runs = kanjiReadings(w).join("");
     return !!runs && runs.includes(f);
-  }
-  // Plain labelled lines survive quotes and kana in the reason far better than JSON does.
-  function parseVerdict(text) {
-    const get = (k) => ((String(text).match(new RegExp("^[\\s*_-]*" + k + "[\\s*_]*[:：][\\s*_]*(.*)$", "im")) || [])[1] || "").replace(/\*+$/, "").trim();
-    const c = get("CORRECT").toLowerCase();
-    if (!/^(yes|no|true|false)/.test(c)) throw { code: "invalid_json" };
-    const clean = (s) => { s = s.replace(/^[「"']+|[」"']+$/g, "").trim(); return /^(none|empty|n\/a|-)?$/i.test(s) ? "" : s; };
-    // Claude sometimes notes where each reading sits ("あめ (above 雨), すく (above 少)"); only the kana are what was written.
-    const kanaOnly = (s) => s.replace(/[（(][^）)]*[）)]/g, " ").replace(/[^\u3040-\u30ff／/]+/g, " ").replace(/\s+/g, " ").trim();
-    return { main: clean(get("MAIN")), furigana: kanaOnly(clean(get("FURIGANA"))), correct: /^(yes|true)/.test(c), reason: get("REASON") };
   }
   // Furigana that isn't part of the word's reading at all (あ over おいしい) is always wrong.
   const hira = (s, wave) => norm(s, wave).replace(/[ァ-ヶ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
@@ -1883,29 +1812,57 @@ CORRECT: <YES or NO, matching your REASON>`;
     }
     return [...out];
   }
+  // ---------- the Check button ----------
   function showErr(m) { const el = $("#checkErr"); el.textContent = m; el.hidden = false; }
+  // A check still running when the student quits (or a practice started or resumed meanwhile) belongs to a question that's
+  // no longer on screen: its answer stays unchecked, kept for Resume with what was written.
+  const gone = (cur) => Q.cur !== cur || $("#quiz").hidden;
+  // One Check for both versions of the page. Reading the writing is each version's own: `judge` (Claude in
+  // checking/claude.js, the built-in checker in checking/builtin.js) answers with what to do once the page is no longer
+  // busy, and CHECK_ERR has that version's messages for what can go wrong.
+  async function check() {
+    if (main.empty || Q.busy) return;
+    const cur = Q.cur;
+    Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true;
+    let then = null;
+    try { then = await judge(cur); }
+    catch (e) { if (!gone(cur)) showErr(CHECK_ERR[e?.code] || CHECK_ERR.other); }
+    finally { Q.busy = false; $("#checking").hidden = $("#checkingFuri").hidden = true; syncCheck(); }
+    if (then && !gone(cur)) then();
+  }
   $("#checkBtn").onclick = check;
+
+  // Once an answer is checked, the pads take no more ink and a reading that was held back shows.
+  function lockPads() {
+    const { w, dir } = Q.cur;
+    main.c.classList.add("locked"); furi.c.classList.add("locked");
+    // Force kanji hides the reading of 日本語 → English questions until the answer is checked.
+    if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
+  }
+  // The right answer, written into el: the word with its reading above it, or the English.
+  function writeAnswer(el) {
+    const { w, dir } = Q.cur;
+    if (dir === "ej") { el.className = "answer"; el.innerHTML = w.kanji ? `<ruby>${esc(w.kanji)}<rt>${esc(w.kana)}</rt></ruby>` : esc(w.kana); }
+    else { el.className = "answer en"; el.textContent = w.en; }
+  }
+  // What a checker made of the writing: "furigana 「ほく」 over 「北」", or "" when it read nothing.
+  const readAs = (r) => [r?.furigana ? `furigana 「${r.furigana}」` : "", r?.main ? `「${r.main}」` : ""].filter(Boolean).join(" over ");
 
   function grade(ok, r) {
     const { key, w, dir } = Q.cur;
     Q.tries[key] = (Q.tries[key] || 0) + 1;
     Q.answered = true; syncCheck();
-    main.c.classList.add("locked"); furi.c.classList.add("locked");
-    // Force kanji hides the reading of 日本語 → English questions until the answer is checked.
-    if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
+    lockPads();
     // A right answer goes straight on to the next word (the 花丸 that used to be drawn first was taken out, 2026-10-23).
     if (ok) { Q.done.add(key); saveResume(); nextItem(); return; }
     Q.wrong.push(Q.cur); saveResume();
     $("#tools").hidden = true;
     $("#fbReason").textContent = r?.reason || "";
-    const a = $("#fbAnswer");
-    if (dir === "ej") { a.className = "answer"; a.innerHTML = w.kanji ? `<ruby>${esc(w.kanji)}<rt>${esc(w.kana)}</rt></ruby>` : esc(w.kana); }
-    else { a.className = "answer en"; a.textContent = w.en; }
+    writeAnswer($("#fbAnswer"));
     const need = dir === "ej" && S.mode === "kanji" ? requiredKanji(w) : [], nb = $("#fbNeed");
     nb.hidden = !need.length || need.length === [...new Set([...w.kanji].filter((c) => KANJI.test(c)))].length;
     nb.innerHTML = nb.hidden ? "" : `Must be kanji here: <b>${esc(need.join("、"))}</b>. The rest can be kana.`;
-    const read = [r?.furigana ? `furigana 「${r.furigana}」` : "", r?.main ? `「${r.main}」` : ""].filter(Boolean);
-    $("#fbRead").innerHTML = read.length ? "The checker read: " + read.map(esc).join(" over ") : "";
+    $("#fbRead").textContent = readAs(r) && "The checker read: " + readAs(r);
     $("#feedback").hidden = false; $("#overrideBtn").hidden = false; setErasing(false);
     requestAnimationFrame(() => { scratch.resize(); $("#feedback").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); });
   }
@@ -2021,48 +1978,6 @@ CORRECT: <YES or NO, matching your REASON>`;
   const fmtWhen = (iso) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const fmtDay = (iso) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   const firstTry = (t) => { const ws = t.words || []; return { n: ws.length, first: ws.filter((w) => w.tries === 1).length }; };
-
-  // On load the account's copy of the choices replaces this browser's (a first sign-in saves this browser's instead),
-  // and each later change is saved back shortly after it's made. Returns a function that stops the saving.
-  function syncPrefs() {
-    const ref = db.doc(`data/users/${uid}/prefs`);
-    let first = true, timer = null, stopped = false;
-    // Firestore refuses a whole document with an empty field name, and sets with no collection are under "" in bookShow and tShow:
-    // that one row's choice stays in this browser.
-    const named = (v) => (v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).filter(([k]) => k)) : v);
-    const save = () => {
-      clearTimeout(timer); timer = null;
-      if (stopped) return;
-      const p = Object.fromEntries(PREF_KEYS.map((k) => [k, named(store.get(k, null))]).filter(([, v]) => v != null));
-      Promise.resolve().then(() => ref.set({ ...p, updatedAt: new Date().toISOString() })).catch(() => {});
-    };
-    const off = ref.onSnapshot((snap) => {
-      if (!first) return;
-      first = false; setTimeout(() => typeof off === "function" && off(), 0);
-      // A yes to sharing handwriting left in this browser is another account's, so a first sign-in doesn't take it along.
-      if (snap.exists) usePrefs(snap.data() || {}); else { store.set("share", null); save(); }
-      prefsChanged = () => { clearTimeout(timer); timer = setTimeout(save, 800); };
-      const flush = () => { if (timer) save(); };
-      addEventListener("pagehide", flush);
-      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flush(); });
-    }, () => {});
-    return () => { stopped = true; clearTimeout(timer); prefsChanged = () => {}; };
-  }
-  function usePrefs(p) {
-    // A practice to resume is the account's, or none: one left in this browser may be from another account or already finished elsewhere.
-    // So is the answer to sharing handwriting: only the account's own yes counts.
-    for (const k of PREF_KEYS) if (p[k] != null || k === "resume" || k === "share") store.set(k, p[k] ?? null);
-    S.selected = new Set(store.get("selected", []));
-    Object.assign(S.pick, { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", [])) });
-    Object.assign(S.tpick, { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) });
-    S.groupBy = store.get("groupBy", "book");
-    S.pickTags = new Set(store.get("pickTags", []));
-    S.dir = store.get("dir", "ej"); S.mode = store.get("mode", "default"); S.upto = store.get("uptoPick", "auto");
-    S.loveWin = String(store.get("loveWin", "all"));
-    setPalette(store.get("palette", "indigo"));
-    setTheme(store.get("theme", ""));
-    renderSetup(); renderTable();
-  }
 
   function watchHistory() {
     if (!db || !uid) return;
@@ -2276,6 +2191,48 @@ CORRECT: <YES or NO, matching your REASON>`;
       deletingAll = false; renderDelAll();
     }
   });
+  // ---------- choices that follow the account ----------
+  // On load the account's copy of the choices replaces this browser's (a first sign-in saves this browser's instead),
+  // and each later change is saved back shortly after it's made. Returns a function that stops the saving.
+  function syncPrefs() {
+    const ref = db.doc(`data/users/${uid}/prefs`);
+    let first = true, timer = null, stopped = false;
+    // Firestore refuses a whole document with an empty field name, and sets with no collection are under "" in bookShow and tShow:
+    // that one row's choice stays in this browser.
+    const named = (v) => (v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).filter(([k]) => k)) : v);
+    const save = () => {
+      clearTimeout(timer); timer = null;
+      if (stopped) return;
+      const p = Object.fromEntries(PREF_KEYS.map((k) => [k, named(store.get(k, null))]).filter(([, v]) => v != null));
+      Promise.resolve().then(() => ref.set({ ...p, updatedAt: new Date().toISOString() })).catch(() => {});
+    };
+    const off = ref.onSnapshot((snap) => {
+      if (!first) return;
+      first = false; setTimeout(() => typeof off === "function" && off(), 0);
+      // A yes to sharing handwriting left in this browser is another account's, so a first sign-in doesn't take it along.
+      if (snap.exists) usePrefs(snap.data() || {}); else { store.set("share", null); save(); }
+      prefsChanged = () => { clearTimeout(timer); timer = setTimeout(save, 800); };
+      const flush = () => { if (timer) save(); };
+      addEventListener("pagehide", flush);
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flush(); });
+    }, () => {});
+    return () => { stopped = true; clearTimeout(timer); prefsChanged = () => {}; };
+  }
+  function usePrefs(p) {
+    // A practice to resume is the account's, or none: one left in this browser may be from another account or already finished elsewhere.
+    // So is the answer to sharing handwriting: only the account's own yes counts.
+    for (const k of PREF_KEYS) if (p[k] != null || k === "resume" || k === "share") store.set(k, p[k] ?? null);
+    S.selected = new Set(store.get("selected", []));
+    Object.assign(S.pick, { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", [])) });
+    Object.assign(S.tpick, { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) });
+    S.groupBy = store.get("groupBy", "book");
+    S.pickTags = new Set(store.get("pickTags", []));
+    S.dir = store.get("dir", "ej"); S.mode = store.get("mode", "default"); S.upto = store.get("uptoPick", "auto");
+    S.loveWin = String(store.get("loveWin", "all"));
+    setPalette(store.get("palette", "indigo"));
+    setTheme(store.get("theme", ""));
+    renderSetup(); renderTable();
+  }
 
   // ---------- vocab table ----------
   const onlyKanji = (raw) => [...new Set([...String(raw)].filter((c) => KANJI.test(c) && c !== "々"))].join("");
@@ -2357,11 +2314,10 @@ CORRECT: <YES or NO, matching your REASON>`;
     catch { banner("Couldn't add the kanji list. Only the owner and editors can change the table."); }
   });
   function onKanji(snap) {
-    raw.kanji = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    raw.kanji = withIds(snap);
     S.kLoaded = true;
     S.kanjiLists = snap.docs.map((d) => { const x = d.data(); return { id: d.id, collection: docCol(x), unit: docUnit(x), kanji: String(x.kanji ?? "") }; }).sort(sortLists);
     renderUpto(); renderTable(); renderSetup();
-    takeAiImport();
   }
 
   // Units picked like on the practice page, sets folded until opened; a search looks across every unit.
@@ -2588,36 +2544,106 @@ CORRECT: <YES or NO, matching your REASON>`;
     } catch { banner("Couldn't add the set. Only the owner and editors can change the table."); }
   });
 
-  // ---------- export / import (owner and editors) ----------
-  const APP = "jp-vocab-practice";
-  const ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/;
-  const str = (v, n = 500) => String(v ?? "").slice(0, n);
-  // Each cleaner returns the document to store, or null when the file's entry isn't usable. File contents are untrusted.
-  const cleanSet = (d) => !d || typeof d !== "object" || !ID_RE.test(String(d.id ?? "")) || !Array.isArray(d.words) ? null : {
-    collection: docCol(d), unit: docUnit(d), name: docName(d), ...(cleanTags(d.tags).length ? { tags: cleanTags(d.tags) } : {}),
-    words: d.words.slice(0, 3000).filter((w) => w && typeof w === "object").map((w) => ({ id: ID_RE.test(String(w.id ?? "")) ? String(w.id) : rid(), en: str(w.en), kana: str(w.kana), kanji: str(w.kanji) })) };
-  const cleanKanji = (d) => !d || typeof d !== "object" || !ID_RE.test(String(d.id ?? "")) ? null : { collection: docCol(d), unit: docUnit(d), kanji: str(d.kanji, 20000) };
-  const cleanBooks = (d) => Array.isArray(d?.order) ? { order: d.order.slice(0, 50).map((b) => str(b, 100)) } : null;
-  // Courses come as stored ({ courses: [...] }) or, in a hand-made file, as the bare list.
-  function cleanCourses(d) {
-    const list = Array.isArray(d) ? d : d?.courses;
-    return Array.isArray(list) ? { courses: list.slice(0, 50).filter((c) => c && c.name && Array.isArray(c.parts)).map((c) => ({ name: str(c.name, 100),
-      parts: c.parts.slice(0, 20).filter((x) => x && typeof x === "object").map(coursePart).filter((x) => x.from && x.to) })) } : null;
-  }
-  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-  const portMsg = (m) => { $("#portMsg").hidden = !m; $("#portMsg").textContent = m || ""; };
+  // ---------- importing a vocab file ----------
+  // The one importer, used by Settings → Import and by the AI page (ai/). It reads the file, compares it with what's
+  // stored, shows a preview, and on Import writes only what's new or changed, one document at a time. Sets that aren't
+  // in the file are left alone. It doesn't know where the vocab is kept; whoever makes one says how to read and write it:
+  //   button, input    the "Import a file…" button and its hidden file input
+  //   box, say         where the preview goes, and how a one-line message is shown (say("") clears it)
+  //   stored()         the documents stored now, with their ids: { sets, kanji, books, courses } (it may be async)
+  //   write(path, doc) saves one document
+  //   where()          optional: a line for the preview, saying where the import will be saved
+  //   hint             optional: what to do about a file that isn't one of ours, added to that message
+  //   changed()        optional: called when writing starts and when it stops
+  //   done()           optional: called after an import that wrote everything
+  // importer.busy is true while it's writing.
+  function makeImporter({ button, input, box, say, stored, write, where, hint = "", changed = () => {}, done = () => {} }) {
+    const me = { busy: false };
+    let plan = null;
+    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    const count = (xs, st) => xs.filter((x) => x.status === st).length;
 
-  function renderPort() {
-    $("#portPanel").hidden = !canWrite || !db;
-    if ($("#portPanel").hidden) return;
-    $("#exportBtn").disabled = !downloads || !S.loaded || importing;
-    $("#exportBtn").title = downloads ? "" : "Saving files isn't available in this view.";
-    $("#importBtn").disabled = importing;
-  }
+    // What an import of this file would add or change, compared with what's here; nothing is written yet.
+    function planImport(file, name, here) {
+      let skipped = 0;
+      const walk = (list, have, clean) => {
+        const had = new Map(have.map((d) => [d.id, clean(d)])), seen = new Map();
+        for (const d of Array.isArray(list) ? list : []) { const c = clean(d); if (c) seen.set(String(d.id), c); else skipped++; }
+        return [...seen].map(([id, doc]) => ({ id, doc, status: !had.has(id) ? "new" : same(had.get(id), doc) ? "same" : "changed" }));
+      };
+      const sets = walk(file.sets, here.sets, cleanSet), kanji = walk(file.kanji, here.kanji, cleanKanji);
+      const meta = (v, have, clean) => { const c = v == null ? null : clean(v); if (v != null && !c) skipped++; return c && { doc: c, changed: !same(clean(have), c) }; };
+      // Titles name the collection when there's more than one, counting what's here and what the file brings.
+      const withCol = new Set([...[...here.sets, ...here.kanji].map(docCol), ...[...sets, ...kanji].map((x) => x.doc.collection)]).size > 1;
+      for (const x of sets) x.title = setPath(x.doc, withCol);
+      for (const x of kanji) x.title = "Kanji " + unitPath(x.doc, withCol);
+      return { name, exportedAt: file.exportedAt, sets, kanji, books: meta(file.collections ?? file.books, here.books, cleanBooks), courses: meta(file.courses, here.courses, cleanCourses), skipped };
+    }
 
+    function render() {
+      const p = plan;
+      box.hidden = !p;
+      if (!p) { box.innerHTML = ""; return; }
+      const line = (xs, noun) => {
+        if (!xs.length) return `${noun}: none in the file`;
+        const n = count(xs, "new"), c = count(xs, "changed"), k = count(xs, "same");
+        if (!n && !c) return `${noun}: all ${xs.length} already the same`;
+        return `${noun}: ${[n && `${n} new`, c && `${c} changed`, k && `${k} already the same`].filter(Boolean).join(", ")}`;
+      };
+      const metaLine = (m, noun) => `${noun}: ${!m ? "not in the file" : m.changed ? "will change" : "already the same"}`;
+      const names = (st) => { const xs = [...p.sets, ...p.kanji].filter((x) => x.status === st).map((x) => x.title);
+        return xs.length ? `<div class="names"><b>${st === "new" ? "New" : "Changed"}:</b> ${esc(xs.slice(0, 12).join(", "))}${xs.length > 12 ? `, and ${xs.length - 12} more` : ""}</div>` : ""; };
+      const todo = p.sets.length - count(p.sets, "same") + p.kanji.length - count(p.kanji, "same") + (p.books?.changed ? 1 : 0) + (p.courses?.changed ? 1 : 0);
+      const when = p.exportedAt && !isNaN(new Date(p.exportedAt)) ? ` · exported ${new Date(p.exportedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : "";
+      box.innerHTML = `<div><b>${esc(p.name)}</b><span class="muted small">${esc(when)}</span></div>
+      <ul class="small"><li>${line(p.sets, "Vocab sets")}</li><li>${line(p.kanji, "Kanji lists")}</li><li>${metaLine(p.books, "Collection order")}</li><li>${metaLine(p.courses, "Courses")}</li>
+      ${p.skipped ? `<li>${p.skipped} ${p.skipped === 1 ? "entry isn't" : "entries aren't"} valid and will be skipped</li>` : ""}</ul>
+      ${names("new")}${names("changed")}
+      ${todo && where ? `<div class="muted small" data-where>${esc(where())}</div>` : ""}
+      <div class="tactions">${todo ? `<button class="btn primary" type="button" id="importGo">Import ${todo} ${todo === 1 ? "change" : "changes"}</button><button class="link" type="button" id="importCancel">Cancel</button>`
+        : `<span class="muted small">Everything in this file is already here.</span><button class="link" type="button" id="importCancel">Close</button>`}</div>`;
+      box.querySelector("#importCancel").onclick = () => { plan = null; render(); };
+      if (todo) box.querySelector("#importGo").onclick = run;
+    }
+
+    function busy(on) { me.busy = button.disabled = on; changed(); }
+    async function run() {
+      const p = plan, now = new Date().toISOString(), todo = (xs) => xs.filter((x) => x.status !== "same");
+      const jobs = [...todo(p.sets).map((x) => ["sets/" + x.id, { ...x.doc, updatedAt: now }]), ...todo(p.kanji).map((x) => ["kanji/" + x.id, { ...x.doc, updatedAt: now }]),
+        ...(p.books?.changed ? [["meta/books", { ...p.books.doc, updatedAt: now }]] : []), ...(p.courses?.changed ? [["meta/courses", p.courses.doc]] : [])];
+      plan = null; render(); busy(true);
+      let n = 0;
+      try {
+        for (const [path, doc] of jobs) { say(`Importing ${n + 1} of ${jobs.length}…`); await write(path, doc); n++; }
+        const pl = (k, w) => k && `${k} ${w}${k === 1 ? "" : "s"}`;
+        say(`Imported: ${[pl(count(p.sets, "new"), "new set"), pl(count(p.sets, "changed"), "updated set"), pl(todo(p.kanji).length, "kanji list"),
+          p.books?.changed && "collection order", p.courses?.changed && "courses"].filter(Boolean).join(", ")}.`);
+      } catch (e) {
+        say(`Stopped after ${n} of ${jobs.length}: ${e?.message || "the database refused the change"}. What was imported stays; import the file again to finish.`);
+      }
+      busy(false);
+      if (n === jobs.length) done();
+    }
+
+    button.onclick = () => { input.value = ""; input.click(); };
+    input.onchange = async () => {
+      const f = input.files?.[0];
+      if (!f) return;
+      say(""); plan = null; render();
+      let file = null;
+      try { file = JSON.parse(await f.text()); } catch {}
+      if (!file) return say("That file couldn't be read. Pick a .json file made for Japanese Vocab Practice.");
+      if (typeof file !== "object" || file.app !== APP || !Array.isArray(file.sets)) return say("This isn't a Japanese Vocab Practice file." + (hint && " " + hint));
+      try { plan = planImport(file, f.name, await stored()); }
+      catch { return say("Your vocab couldn't be read just now, so the file can't be compared with it. Reload the page and try again."); }
+      render();
+    };
+    return me;
+  }
+  // ---------- exporting the vocab as a file ----------
+  // Every set and kanji list, the collection order and the courses, in the current format whatever format each was saved in.
   async function exportVocab() {
     const setById = new Map(raw.sets.map((d) => [d.id, d])), kById = new Map(raw.kanji.map((d) => [d.id, d]));
-    // Written in the current format (collection, unit, name), whatever format each document was saved in.
     const tidied = (list, byId, clean) => list.map((x) => byId.get(x.id)).filter(Boolean).map((d) => ({ id: d.id, ...clean(d) }));
     const file = { app: APP, version: 2, exportedAt: new Date().toISOString(),
       sets: tidied(S.sets, setById, cleanSet), kanji: tidied(S.kanjiLists, kById, cleanKanji),
@@ -2627,92 +2653,18 @@ CORRECT: <YES or NO, matching your REASON>`;
     try { await downloads.save({ filename: name, data: JSON.stringify(file, null, 1) }); portMsg(`Saved ${name}.`); }
     catch (e) { portMsg(e?.code === "declined" ? "" : e?.code === "rate_limited" ? "A save prompt is already open." : "The file couldn't be saved in this view."); }
   }
-
-  // Compares the file with what's here and lists what an import would add or change; nothing is written yet.
-  function planImport(file, name) {
-    if (!file || typeof file !== "object" || file.app !== APP || !Array.isArray(file.sets)) throw "This file isn't a Japanese Vocab Practice export.";
-    let skipped = 0;
-    const walk = (list, here, clean, title) => {
-      const have = new Map(here.map((d) => [d.id, clean(d)])), seen = new Map();
-      for (const d of Array.isArray(list) ? list : []) { const c = clean(d); if (c) seen.set(String(d.id), c); else skipped++; }
-      return [...seen].map(([id, doc]) => ({ id, doc, title: title(doc), status: !have.has(id) ? "new" : same(have.get(id), doc) ? "same" : "changed" }));
-    };
-    const sets = walk(file.sets, raw.sets, cleanSet, setName), kanji = walk(file.kanji, raw.kanji, cleanKanji, unitTitle);
-    const meta = (v, here, clean) => { const c = v == null ? null : clean(v); if (v != null && !c) skipped++; return c && { doc: c, changed: !same(clean(here), c) }; };
-    return { name, exportedAt: file.exportedAt, sets, kanji, books: meta(file.collections ?? file.books, raw.books, cleanBooks), courses: meta(file.courses, raw.courses, cleanCourses), skipped };
+  // ---------- Settings → Export / import (owner and editors) ----------
+  const portMsg = sayIn($("#portMsg"));
+  // Import here compares the file with the documents the page has loaded, and writes where the page saves everything else.
+  const importer = makeImporter({ button: $("#importBtn"), input: $("#importFile"), box: $("#importPreview"), say: portMsg,
+    stored: () => raw, write: (path, doc) => db.doc(path).set(doc), changed: () => renderPort() });
+  function renderPort() {
+    $("#portPanel").hidden = !canWrite || !db;
+    if ($("#portPanel").hidden) return;
+    $("#exportBtn").disabled = !downloads || !S.loaded || importer.busy;
+    $("#exportBtn").title = downloads ? "" : "Saving files isn't available in this view.";
   }
-
-  function renderImport() {
-    const box = $("#importPreview"), p = importPlan;
-    box.hidden = !p;
-    if (!p) { box.innerHTML = ""; return; }
-    const count = (xs, st) => xs.filter((x) => x.status === st).length;
-    const line = (xs, noun) => {
-      if (!xs.length) return `${noun}: none in the file`;
-      const n = count(xs, "new"), c = count(xs, "changed"), k = count(xs, "same");
-      if (!n && !c) return `${noun}: all ${xs.length} already the same`;
-      return `${noun}: ${[n && `${n} new`, c && `${c} changed`, k && `${k} already the same`].filter(Boolean).join(", ")}`;
-    };
-    const metaLine = (m, noun) => `${noun}: ${!m ? "not in the file" : m.changed ? "will change" : "already the same"}`;
-    const names = (st) => { const xs = [...p.sets, ...p.kanji.map((k) => ({ ...k, title: "Kanji " + k.title }))].filter((x) => x.status === st).map((x) => x.title);
-      return xs.length ? `<div class="names"><b>${st === "new" ? "New" : "Changed"}:</b> ${esc(xs.slice(0, 12).join(", "))}${xs.length > 12 ? `, and ${xs.length - 12} more` : ""}</div>` : ""; };
-    const todo = p.sets.filter((x) => x.status !== "same").length + p.kanji.filter((x) => x.status !== "same").length + (p.books?.changed ? 1 : 0) + (p.courses?.changed ? 1 : 0);
-    const when = p.exportedAt && !isNaN(new Date(p.exportedAt)) ? ` · exported ${new Date(p.exportedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : "";
-    box.innerHTML = `<div><b>${esc(p.name)}</b><span class="muted small">${esc(when)}</span></div>
-      <ul class="small"><li>${line(p.sets, "Vocab sets")}</li><li>${line(p.kanji, "Kanji lists")}</li><li>${metaLine(p.books, "Collection order")}</li><li>${metaLine(p.courses, "Courses")}</li>
-      ${p.skipped ? `<li>${p.skipped} ${p.skipped === 1 ? "entry isn't" : "entries aren't"} valid and will be skipped</li>` : ""}</ul>
-      ${names("new")}${names("changed")}
-      <div class="tactions">${todo ? `<button class="btn primary" type="button" id="importGo">Import ${todo} ${todo === 1 ? "change" : "changes"}</button><button class="link" type="button" id="importCancel">Cancel</button>`
-        : `<span class="muted small">Everything in this file is already here.</span><button class="link" type="button" id="importCancel">Close</button>`}</div>`;
-    $("#importCancel").onclick = () => { importPlan = null; renderImport(); };
-    if (todo) $("#importGo").onclick = runImport;
-  }
-
-  // Writes only what's new or changed, one document at a time; sets that aren't in the file are left alone.
-  async function runImport() {
-    const p = importPlan, now = new Date().toISOString();
-    const jobs = [...p.sets.filter((x) => x.status !== "same").map((x) => ["sets/" + x.id, { ...x.doc, updatedAt: now }]),
-      ...p.kanji.filter((x) => x.status !== "same").map((x) => ["kanji/" + x.id, { ...x.doc, updatedAt: now }]),
-      ...(p.books?.changed ? [["meta/books", { ...p.books.doc, updatedAt: now }]] : []), ...(p.courses?.changed ? [["meta/courses", p.courses.doc]] : [])];
-    importing = true; importPlan = null; renderImport(); renderPort();
-    let done = 0;
-    try {
-      for (const [path, doc] of jobs) { portMsg(`Importing ${done + 1} of ${jobs.length}…`); await db.doc(path).set(doc); done++; }
-      const n = (pre, st) => p[pre].filter((x) => x.status === st).length, pl = (k, w) => k && `${k} ${w}${k === 1 ? "" : "s"}`;
-      portMsg(`Imported: ${[pl(n("sets", "new"), "new set"), pl(n("sets", "changed"), "updated set"), pl(n("kanji", "new") + n("kanji", "changed"), "kanji list"),
-        p.books?.changed && "collection order", p.courses?.changed && "courses"].filter(Boolean).join(", ")}.`);
-    } catch (e) {
-      portMsg(`Stopped after ${done} of ${jobs.length}: ${e?.message || "the database refused the change"}. What was imported stays; import the file again to finish.`);
-    }
-    importing = false; renderPort();
-  }
-
-  // The AI page (ai/) has an Import button of its own: it leaves the file in this tab's session storage and opens the site,
-  // where it gets the same preview in Settings once the vocab is in (after the welcome pop-up or the tour, on a first visit).
-  function takeAiImport() {
-    let f = null;
-    try { f = JSON.parse(sessionStorage.getItem("jpq:aiImport")); } catch {}
-    const loaded = S.loaded && S.kLoaded && raw.books !== undefined && raw.courses !== undefined; // the preview compares the file with all of it
-    if (!f || !loaded || importing || $("#welcome").open || tour.on) return;
-    try { sessionStorage.removeItem("jpq:aiImport"); } catch {}
-    openSettings(); portMsg("");
-    try { importPlan = planImport(JSON.parse(f.text), String(f.name || "vocab.json")); }
-    catch (err) { importPlan = null; portMsg(typeof err === "string" ? err : "That file couldn't be read. Pick a .json file made by Export."); }
-    renderImport();
-    $("#portPanel").scrollIntoView({ block: "start" });
-  }
-  $("#welcome").addEventListener("close", takeAiImport);
-
   $("#exportBtn").onclick = exportVocab;
-  $("#importBtn").onclick = () => { $("#importFile").value = ""; $("#importFile").click(); };
-  $("#importFile").onchange = async (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    portMsg("");
-    try { importPlan = planImport(JSON.parse(await f.text()), f.name); }
-    catch (err) { importPlan = null; portMsg(typeof err === "string" ? err : "That file couldn't be read. Pick a .json file made by Export."); }
-    renderImport();
-  };
 
   // ---------- public site: data files ----------
   // data/<name>.json comes as the script js/<name>.js (made by tools/build.mjs), which leaves it in window.QCardData:
@@ -2776,11 +2728,8 @@ CORRECT: <YES or NO, matching your REASON>`;
       renderSampleNote();
     };
   }
-
-  const platform = window.qcardPlatform;
-
   // ---------- public site: built-in checker ----------
-  // Compares the strokes with stroke templates from KanjiVG and the Hershey fonts (src/checker.js) against every accepted way of writing
+  // Compares the strokes with stroke templates from KanjiVG and the Hershey fonts (src/checking/checker.js) against every accepted way of writing
   // the answer, so it only has to decide "is this one of these?", never read arbitrary writing.
   let templates = null;
   function loadTemplates() {
@@ -2848,6 +2797,25 @@ CORRECT: <YES or NO, matching your REASON>`;
     const res = window.QCardChecker.verify({ strokes: strokesOf(main), candidates: window.QCardChecker.englishAnswers(w.en), box: { w: main.w, h: main.h }, latin: true });
     return res.ok === null ? null : { ok: res.ok, r: { main: res.ok ? res.text : readOf(res), furigana: "", reason: "" }, chars: { main: res.chars } };
   }
+  // The one question both Check and the live reading ask: is what's written the answer to this word, this way round?
+  const checkWriting = (w, dir) => (dir === "je" ? englishCheck(w) : builtinCheck(w, dir === "ej" && !furi.empty));
+  const CHECK_ERR = {
+    tpl_load: "Couldn't load the handwriting checker. Check your connection and press Check again.",
+    other: "Something went wrong with the check. Press Check to try again.",
+  };
+  // What Check does with this answer (see check in checking/grading.js). The checker reads English → 日本語 answers, and
+  // 日本語 → English answers written the way the meaning is worded. Other English (a synonym, say) and words it has no
+  // strokes for are marked by the student (selfMark).
+  async function judge({ w, dir }) {
+    $("#liveRead").hidden = true;
+    $("#overrideBtn").textContent = "The checker misread my writing, count it as correct";
+    const res = await checkWriting(w, dir);
+    return () => {
+      if (res && !res.ok) showBoxes(res);
+      shareAnswer(!res ? "unread" : res.ok ? "right" : dir === "ej" ? "wrong" : "unmatched", res?.r);
+      if (res && (res.ok || dir === "ej")) grade(res.ok, res.r); else selfMark(!!res);
+    };
+  }
   // Developer tools (Settings), each off until turned on, in this browser:
   // - "Show what the checker reads as I write": a moment after each stroke, the reading the Check button would get,
   //   under the answer box, with the time the check took (it tells you before Check, so it's never on by default).
@@ -2871,10 +2839,10 @@ CORRECT: <YES or NO, matching your REASON>`;
       try {
         await loadTemplates();
         const t0 = performance.now();
-        const res = dir === "je" ? await englishCheck(w) : await builtinCheck(w, dir === "ej" && !furi.empty);
+        const res = await checkWriting(w, dir);
         const ms = Math.round(performance.now() - t0);
         if (Q.cur !== cur || Q.answered || Q.busy || main.empty) return;
-        const r = res?.r || {}, read = [r.furigana ? `furigana 「${r.furigana}」` : "", r.main ? `「${r.main}」` : ""].filter(Boolean).join(" over ");
+        const r = res?.r || {}, read = readAs(r);
         const verdict = !res ? "it can't check this word" : res.ok ? "would pass" : dir === "je" ? "you'd mark it yourself" : "would fail" + (r.reason ? `: ${r.reason}` : "");
         el.textContent = `Reads ${read || "nothing"} · ${verdict} · ${ms} ms`;
         el.hidden = false;
@@ -2890,15 +2858,11 @@ CORRECT: <YES or NO, matching your REASON>`;
   $("#charBoxesOn").onchange = (e) => store.set("charBoxes", e.target.checked);
   // 日本語 → English answers the checker couldn't match (unmatched), and words it can't read, are marked by the student.
   function selfMark(unmatched) {
-    const { w, dir } = Q.cur;
     $("#selfHead").textContent = unmatched ? "The checker couldn't match this to the wording below. Did you mean the same thing?" : "Compare what you wrote with the answer.";
     Q.answered = true; syncCheck();
-    main.c.classList.add("locked"); furi.c.classList.add("locked");
+    lockPads();
     $("#tools").hidden = true; setErasing(false);
-    if (dir === "je") $("#qSub").textContent = KANJI.test($("#qText").textContent) ? w.kana : "";
-    const a = $("#selfAnswer");
-    if (dir === "ej") { a.className = "answer"; a.innerHTML = w.kanji ? `<ruby>${esc(w.kanji)}<rt>${esc(w.kana)}</rt></ruby>` : esc(w.kana); }
-    else { a.className = "answer en"; a.textContent = w.en; }
+    writeAnswer($("#selfAnswer"));
     $("#selfCheck").hidden = false;
     requestAnimationFrame(() => $("#selfCheck").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" }));
   }
@@ -2909,6 +2873,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   // A first-time visitor sees a welcome pop-up over the page, which runs as a guest behind it. Once they've picked
   // anything (guest, the tour, the X, or signing in) it's remembered (qcard:welcomed) and doesn't come back, signed out
   // or not, until "Delete" starts the browser over (the owner's call). Signing in from Settings goes straight to Google.
+  const platform = window.qcardPlatform; // account/firebase.js, which the page loads as js/platform.js
   let startLocal = () => {};
   const welcomed = () => { try { localStorage.setItem("qcard:welcomed", "1"); } catch {} };
   function welcome(err) {
@@ -3055,7 +3020,6 @@ CORRECT: <YES or NO, matching your REASON>`;
   function endTour() {
     tour.on = false; tour.i = -1; cancelAnimationFrame(tour.frame);
     tour.spot.hidden = tour.card.hidden = true;
-    takeAiImport();
   }
   function goStep(i, dir = 1) {
     TOUR[tour.i]?.leave?.();
@@ -3229,7 +3193,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   $("#shareDl").onclick = async (e) => {
     e.target.disabled = true;
     try {
-      const answers = (await db.collection("training").get()).docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+      const answers = withIds(await db.collection("training").get()).sort((a, b) => String(a.at).localeCompare(String(b.at)));
       await downloads.save({ filename: `japanese-vocab-handwriting-${new Date().toLocaleDateString("en-CA")}.json`,
         data: JSON.stringify({ app: APP, kind: "handwriting", version: 1, exportedAt: new Date().toISOString(), answers }) });
     } catch (err) { if (err?.code !== "declined") banner("Your shared answers couldn't be downloaded. Try again."); }
@@ -3250,7 +3214,7 @@ CORRECT: <YES or NO, matching your REASON>`;
   (() => {
     if (!platform) { $("#gate").innerHTML = "<b>The page couldn't start</b>Reload it to try again."; return; }
     let started = null;
-    const start = (id, store) => {
+    const start = ({ id, db: store }) => {
       started = uid = id;
       db = store; user = platform.user(uid); owner = canWrite = true; downloads = platform.downloads;
       document.body.classList.add("ready");
@@ -3263,9 +3227,9 @@ CORRECT: <YES or NO, matching your REASON>`;
       if (id !== "local") stopPrefs = syncPrefs();
       offerSamples();
     };
-    // As a guest, everything is kept in this browser (src/platform/local.js); choosing it in the welcome pop-up is remembered.
+    // As a guest, everything is kept in this browser (src/account/local.js); choosing it in the welcome pop-up is remembered.
     startLocal = () => {
-      start("local", platform.localDb());
+      start(platform.storeFor(null));
       $("#histWhere").textContent = "Saved only in this browser";
     };
     platform.onAuth((u) => {
@@ -3282,7 +3246,7 @@ CORRECT: <YES or NO, matching your REASON>`;
       try { localStorage.removeItem("qcard:mode"); } catch {}
       welcomed();
       account = u;
-      start(u.uid, platform.db(u.uid));
+      start(platform.storeFor(u));
       checkDev();
     });
   })();

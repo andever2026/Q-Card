@@ -1,4 +1,4 @@
-// In-memory stand-in for the parts of the Firebase SDK that src/platform/firebase.js uses, for browser tests.
+// In-memory stand-in for the parts of the Firebase SDK that src/account/firebase.js uses, for browser tests.
 // Data and the signed-in user survive reloads (localStorage), and the security rules are enforced:
 // a signed-in person may only touch users/<their uid>/….
 const LS_DB = "fake:fs", LS_USER = "fake:user";

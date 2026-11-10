@@ -8,43 +8,54 @@ on:
 permissions:
   contents: read
 
+# The tools the tests use, each version written once. Node's version is in .nvmrc.
+env:
+  PLAYWRIGHT: playwright@1.65.0
+  FIREBASE_TOOLS: firebase-tools@15.35.0
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - name: Built files match src/
+      - name: Built files match src/, and nothing is written twice
         run: npm run check
 
-  # The full browser tests (test/public/run.mjs) run before anything goes into main, which is the live site.
+  # The full browser tests run before anything goes into main, which is the live site: the public site
+  # (test/public/run.mjs) and the claude.ai copy (test/claude/run.mjs, on a fresh build of it).
   # Pushes to beta skip them so the beta link updates quickly.
-  # On ubuntu-24.04 rather than ubuntu-latest: Playwright 1.56.1 has no Chromium for Ubuntu 26.
   browser-tests:
     if: github.event_name == 'pull_request' && github.base_ref == 'main'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - name: Install Playwright and Chromium
         run: |
-          npm install --no-save playwright@1.56.1
+          npm install --no-save $PLAYWRIGHT
           npx playwright install --with-deps chromium
-      - name: Browser tests
+      - name: Browser tests, public site
         run: node test/public/run.mjs
+        env:
+          PLAYWRIGHT_DIR: ${{ github.workspace }}/node_modules/playwright
+      - name: Browser tests, claude.ai copy
+        run: |
+          npm run build
+          node test/claude/run.mjs
         env:
           PLAYWRIGHT_DIR: ${{ github.workspace }}/node_modules/playwright
       - name: Keep the screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-shots
           path: build/test-shots
@@ -54,15 +65,15 @@ jobs:
   # also before anything goes into main.
   emulator-tests:
     if: github.event_name == 'pull_request' && github.base_ref == 'main'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
-      # The Firestore emulator runs on Java (21 or later for firebase-tools 14).
-      - uses: actions/setup-java@v4
+      # The Firestore emulator runs on Java 21 or later.
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
@@ -70,7 +81,7 @@ jobs:
       # Both in one npm install: a second `npm install --no-save` would remove what the first one added.
       - name: Install Playwright, Chromium and the Firebase CLI
         run: |
-          npm install --no-save playwright@1.56.1 firebase-tools@14.27.0
+          npm install --no-save $PLAYWRIGHT $FIREBASE_TOOLS
           npx playwright install --with-deps chromium
       - name: Emulator tests
         run: npx firebase emulators:exec --config test/emulator/firebase.json --only auth,firestore --project demo-qcard "node test/emulator/run.mjs"

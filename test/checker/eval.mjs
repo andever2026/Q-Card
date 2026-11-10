@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Accuracy / speed evaluation for src/checker.js.
+// Accuracy / speed evaluation for src/checking/checker.js.
 //
 //   node test/checker/eval.mjs --vocab <dir of vocab set JSON> [--real <dir>] [--words 300] [--seed 1] [--only cat,cat] [--verbose]
 //
@@ -12,7 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { ROOT, rng, writeWord, templates, realPatterns, hasDakuten, baseOf, SMALL_TO_LARGE } from "./synth.mjs";
 
-await import(path.join(ROOT, "src/checker.js"));
+await import(path.join(ROOT, "src/checking/checker.js"));
 const C = globalThis.QCardChecker;
 
 const A = process.argv.slice(2), opt = { words: 300, seed: 1 };

@@ -29,17 +29,17 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           path: live
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: beta
           path: beta
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version-file: beta/.nvmrc
           cache: npm
           cache-dependency-path: beta/package-lock.json
       - name: Build beta
@@ -54,9 +54,9 @@ jobs:
           git -C beta archive HEAD | tar -x -C _site/beta
           cp beta/index.html _site/beta/
           cp beta/js/*.js _site/beta/js/
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

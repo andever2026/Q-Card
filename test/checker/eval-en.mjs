@@ -16,7 +16,7 @@ const require = createRequire(import.meta.url);
 const arg = (k, d) => { const i = process.argv.indexOf("--" + k); return i > 0 ? process.argv[i + 1] : d; };
 const N = +arg("n", 200), SEED = +arg("seed", 1), VERB = +arg("verbose", 0);
 const opts = { join: +arg("join", 0), late: +arg("late", 0.4), level: +arg("level", 1) };
-const C = require(path.join(ROOT, "src/checker.js"));
+const C = require(path.join(ROOT, "src/checking/checker.js"));
 C.init(JSON.parse(fs.readFileSync(path.join(ROOT, "data/templates.json"), "utf8")));
 if (arg("set")) C._.set(JSON.parse(arg("set")));
 const pkg = arg("hershey");

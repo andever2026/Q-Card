@@ -1,6 +1,6 @@
 # Offline handwriting checker
 
-`src/checker.js` checks handwritten Japanese, and printed English (see [English](#english)), against the answers a
+`src/checking/checker.js` checks handwritten Japanese, and printed English (see [English](#english)), against the answers a
 card accepts, in the browser, with no network use beyond loading `data/templates.json` once. Because the expected answer is known, it verifies ("is this one of
 these strings?") rather than recognising free text.
 
@@ -8,7 +8,7 @@ these strings?") rather than recognising free text.
 
 | file | what |
 | --- | --- |
-| `src/checker.js` | the checker (plain JS, no dependencies; classic script, CommonJS, or bundled) |
+| `src/checking/checker.js` | the checker (plain JS, no dependencies; classic script, CommonJS, or bundled) |
 | `data/templates.json` | stroke templates for 2,407 characters plus 62 letter variants (212 KB), generated |
 | `tools/make-templates.mjs` | builds the templates from KanjiVG and `tools/checker/hershey-latin.json` |
 | `tools/checker/hershey-latin.json` | Hershey "futural" letters, digits and punctuation (SVG path data) |
@@ -53,7 +53,7 @@ KanjiVG's per-character SVGs are needed (the `kanji/` folder of a KanjiVG releas
 
 ```sh
 node tools/make-templates.mjs --kanjivg path/to/kanjivg/kanji          # add --fetch to download missing files
-node tools/make-templates.mjs --kanjivg ... --page src/app/answers.js  # also add kanji from the page's READ_SRC
+node tools/make-templates.mjs --kanjivg ... --page src/checking/answers.js  # also add kanji from the page's READ_SRC
 ```
 
 Kana (with small and voiced forms, ゔ, ヴ), ー, 々, 、。・, digits, Latin letters and the kanji look-alikes above

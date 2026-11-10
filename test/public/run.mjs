@@ -18,8 +18,8 @@ const ok = (cond, msg, extra = "") => { console.log(`${cond ? "✓" : "✗"} ${m
 
 // The real platform code, with the Firebase SDK swapped for the in-memory fake.
 const fake = join(root, "test/public/fake-firebase.js");
-const entry = ['import "./src/platform/firebase.js";'];
-if (process.env.WITH_CHECKER !== "0" && existsSync(join(root, "src/checker.js"))) entry.push('import "./src/checker.js";');
+const entry = ['import "./src/account/firebase.js";'];
+if (process.env.WITH_CHECKER !== "0" && existsSync(join(root, "src/checking/checker.js"))) entry.push('import "./src/checking/checker.js";');
 const bundle = async (plugins = []) => (await esbuild.build({
   stdin: { contents: entry.join("\n"), resolveDir: root, sourcefile: "test-entry.js" },
   bundle: true, format: "iife", write: false, alias: { "firebase/app": fake, "firebase/auth": fake, "firebase/firestore": fake }, plugins,
@@ -813,15 +813,15 @@ ok(/c@example\.com/.test(await text(ap, "#acctName")) && /^Off\./.test(await tex
 ok(ap.errors.length === 0, "another account: no page errors", ap.errors.join(" | "));
 
 // ---------- 18. the page people give to their AI assistant, and llms.txt ----------
-// AI tools usually fetch a page without running scripts, so everything is in its HTML; its one script only adds the colours and buttons.
+// AI tools usually fetch a page without running scripts, so everything is in its HTML; its scripts only add the colours and buttons.
 const aipctx = await browser.newContext({ javaScriptEnabled: false });
 const aip = await aipctx.newPage(); await aip.setViewportSize({ width: 375, height: 900 });
 const aiErrors = []; aip.on("console", (m) => { if (m.type() === "error") aiErrors.push(m.text()); });
 await aip.goto(base + "ai/"); await aip.waitForTimeout(300);
 const aiHtml = await (await fetch(base + "ai/")).text();
-ok([...aiHtml.matchAll(/<script[^>]*>/gi)].map((m) => m[0]).join() === '<script src="../js/pages.js">' && /For AI assistants/.test(aiHtml) && /"app": "jp-vocab-practice"/.test(aiHtml)
+ok([...aiHtml.matchAll(/<script[^>]*>/gi)].map((m) => m[0]).join() === '<script src="../js/pages.js">,<script src="../js/ai.js" defer>' && /For AI assistants/.test(aiHtml) && /"app": "jp-vocab-practice"/.test(aiHtml)
   && /collect all the material/i.test(aiHtml) && /overview table/.test(aiHtml) && /only once they say it's right/.test(aiHtml),
-  "AI page: only its own script, and the instructions for AI assistants (collect, show the sets as tables, then the file) are in its HTML");
+  "AI page: only its own two scripts, and the instructions for AI assistants (collect, show the sets as tables, then the file) are in its HTML");
 ok(await aip.evaluate(() => !document.querySelector("#for-ai").open && /Send your AI this page's link and your vocab list\. You could say:/.test(document.body.textContent)
   && document.querySelector("#askText").textContent === "Read this page and make an import file with me: https://andever2026.github.io/Q-Card/ai/"
   && !/blurry photo|textbooks publicly/.test(document.body.textContent)), "AI page: the card says what to send, with the live link; the AI part starts folded");
@@ -874,34 +874,70 @@ await aipctx.close();
   ok((await pv.evaluate(() => getComputedStyle(document.body).backgroundColor)) === "rgb(24, 24, 24)", "privacy page: Blue in dark");
   await pv.close();
   await site.evaluate(() => { localStorage.removeItem("jpq:theme"); localStorage.removeItem("jpq:palette"); });
-  // Import from the AI page: a file that isn't one stays here with a reason; a good one opens the site's preview.
-  const exFile = join(out, "18-ai-example.json"), badFile = join(out, "18-not-vocab.json");
-  writeFileSync(exFile, example); writeFileSync(badFile, JSON.stringify({ hello: 1 }));
-  let [ch] = await Promise.all([a.waitForEvent("filechooser"), a.click("#aiImportBtn")]);
-  await ch.setFiles(badFile); await a.waitForTimeout(200);
-  ok(/isn't a Japanese Vocab Practice file/.test(await text(a, "#aiImportMsg")) && /\/ai\/$/.test(a.url()), "AI page Import: a file that isn't one says so and stays on the page", await text(a, "#aiImportMsg"));
-  [ch] = await Promise.all([a.waitForEvent("filechooser"), a.click("#aiImportBtn")]);
-  await Promise.all([a.waitForURL(base), ch.setFiles(exFile)]); await a.waitForTimeout(500);
-  ok(await a.evaluate(() => document.querySelector("#welcome").open && !document.querySelector("#settings").open), "AI page Import, first visit: the welcome pop-up comes first");
-  await a.click("#guestBtn"); await a.waitForTimeout(500);
-  ok(await a.evaluate(() => document.querySelector("#settings").open) && /^18-ai-example\.json/.test(await text(a, "#importPreview")) && /Vocab sets: 2 new/.test(await text(a, "#importPreview")) && /Kanji lists: 1 new/.test(await text(a, "#importPreview")),
-    "AI page Import: the site opens Settings with the same preview as Import there", await text(a, "#importPreview"));
-  ok(await a.evaluate(() => sessionStorage.getItem("jpq:aiImport") === null), "AI page Import: the handed-over file is cleared once shown");
-  await a.screenshot({ path: join(out, "18-ai-import-preview.png") });
-  await a.click("#importGo"); await a.waitForTimeout(800);
-  ok((await a.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:sets/my-japanese-week-1-food") || "null")))?.words?.length === 5, "AI page Import: importing saves the sets");
-  await a.reload(); await a.waitForTimeout(500);
-  ok(await a.evaluate(() => !document.querySelector("#settings").open), "AI page Import: a reload doesn't bring the preview back");
-  // A returning visitor goes straight to the preview.
-  const b = await aiPage();
-  [ch] = await Promise.all([b.waitForEvent("filechooser"), b.click("#aiImportBtn")]);
-  await Promise.all([b.waitForURL(base), ch.setFiles(exFile)]); await b.waitForTimeout(600);
-  ok(await b.evaluate(() => document.querySelector("#settings").open && !document.querySelector("#welcome").open) && /Everything in this file is already here/.test(await text(b, "#importPreview")),
-    "AI page Import, returning visitor: straight to the preview (here: nothing new)", await text(b, "#importPreview"));
+  // Import on the AI page: the same preview as Settings → Import, shown in the card, and saved where the site keeps this
+  // person's vocab. Nothing leaves the page, and the sign-in and database script loads only once a file is being imported.
+  const exFile = join(out, "18-ai-example.json"), badFile = join(out, "18-not-vocab.json"), txtFile = join(out, "18-not-json.json");
+  writeFileSync(exFile, example); writeFileSync(badFile, JSON.stringify({ hello: 1 })); writeFileSync(txtFile, "たべる, to eat");
+  const pick = async (p, file, wait = 500) => { const [ch] = await Promise.all([p.waitForEvent("filechooser"), p.click("#aiImportBtn")]); await ch.setFiles(file); await p.waitForTimeout(wait); };
+  const platformLoads = (p) => p.evaluate(() => document.querySelectorAll('script[src$="js/platform.js"]').length);
+  const prev = (p) => text(p, "#aiImportPreview"), msg = (p) => text(p, "#aiImportMsg");
+  await pick(a, badFile, 200);
+  ok(/isn't a Japanese Vocab Practice file\. Ask your AI/.test(await msg(a)) && !(await vis(a, "#aiImportPreview")), "AI page Import: a file that isn't one says so", await msg(a));
+  await pick(a, txtFile, 200);
+  ok(/couldn't be read/.test(await msg(a)) && (await platformLoads(a)) === 0, "AI page Import: a file that isn't JSON says so, and neither loaded the sign-in script", await msg(a));
+  // A first-time visitor, not signed in: it saves in this browser, as the site does for a guest.
+  await pick(a, exFile);
+  ok(/^18-ai-example\.json/.test(await prev(a)) && /Vocab sets: 2 new/.test(await prev(a)) && /Kanji lists: 1 new/.test(await prev(a)) && /Collection order: will change/.test(await prev(a)) && !/valid/.test(await prev(a)),
+    "AI page Import: the preview shows in the card, the same as Settings → Import", await prev(a));
+  ok(/\/ai\/$/.test(a.url()) && (await platformLoads(a)) === 1 && /not signed in, so this saves in this browser only/.test(await text(a, "#aiImportPreview [data-where]")) && !(await msg(a)),
+    "AI page Import: it stays on the page and says where it will save", await text(a, "#aiImportPreview [data-where]"));
+  ok(await a.evaluate(() => Object.keys(localStorage).every((k) => !k.startsWith("qcard:local:"))), "AI page Import: nothing is saved before Import is pressed");
+  await a.screenshot({ path: join(out, "18-ai-import-preview.png"), fullPage: true });
+  await a.click("#aiImportPreview #importGo"); await a.waitForTimeout(600);
+  ok((await a.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:sets/my-japanese-week-1-food") || "null")))?.words?.length === 5 && await a.evaluate(() => !!localStorage.getItem("qcard:local:kanji/my-japanese-week-1") && !!localStorage.getItem("qcard:local:meta/books")),
+    "AI page Import: importing saves the sets, kanji list and collection order in this browser");
+  ok(/^Imported: 2 new sets, 1 kanji list, collection order\.$/.test(await msg(a)) && !(await vis(a, "#aiImportPreview")) && await vis(a, "#aiImportDone") && /\/ai\/$/.test(a.url()),
+    "AI page Import: it says what was imported and links to the site", await msg(a));
+  await a.screenshot({ path: join(out, "18-ai-import-done.png"), fullPage: true });
+  await pick(a, exFile);
+  ok(/Everything in this file is already here/.test(await prev(a)) && !(await vis(a, "#aiImportDone")) && !(await a.$("#aiImportPreview [data-where]")) && (await platformLoads(a)) === 1,
+    "AI page Import: the same file again has nothing new", await prev(a));
+  await a.click("#aiImportPreview #importCancel");
+  ok(!(await vis(a, "#aiImportPreview")), "AI page Import: Close puts the preview away");
+  // The site then has them: the welcome pop-up still comes first on a first visit, and the sample sets stay out of the way.
+  await Promise.all([a.waitForURL(base), a.evaluate(() => { document.querySelector("#aiImportDone").hidden = false; document.querySelector("#aiImportDone a").click(); })]);
+  await a.waitForTimeout(500);
+  ok(await a.evaluate(() => document.querySelector("#welcome").open && !document.querySelector("#settings").open), "AI page Import, first visit to the site: the welcome pop-up as usual, no Settings");
+  await a.click("#guestBtn"); await a.waitForTimeout(600);
+  ok(await vis(a, '[data-set="my-japanese-week-1-food"]') && await vis(a, '[data-set="my-japanese-week-1-weather"]') && !(await a.$('[data-set^="samples-"]')) && await a.evaluate(() => !document.querySelector("#settings").open),
+    "AI page Import: the imported sets are on the site, without the sample sets");
+  // Signed in on the site: it saves to the account, and says which.
+  const sctx = await browser.newContext();
+  const seed = await sctx.newPage(); await seed.goto(base + "llms.txt");
+  await seed.evaluate(() => localStorage.setItem("fake:user", JSON.stringify({ uid: "ai1", displayName: "AI Tester", email: "ai1@example.com" })));
+  const b = await sctx.newPage(); await b.setViewportSize({ width: 900, height: 900 });
+  b.errors = []; b.on("pageerror", (e) => b.errors.push(e.message)); b.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) b.errors.push(m.text()); });
+  await b.addInitScript(() => { window.__csp = []; document.addEventListener("securitypolicyviolation", (e) => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`)); });
+  await b.route("**/js/platform.js", (r) => r.fulfill({ contentType: "text/javascript", body: platformJs }));
+  await b.goto(base + "ai/"); await b.waitForTimeout(300);
+  await pick(b, exFile);
+  ok(/This saves to your account \(ai1@example\.com\)\./.test(await text(b, "#aiImportPreview [data-where]")) && /Vocab sets: 2 new/.test(await prev(b)), "AI page Import, signed in: it says it saves to the account", await text(b, "#aiImportPreview [data-where]"));
+  await b.click("#aiImportPreview #importGo"); await b.waitForTimeout(600);
+  const saved = await b.evaluate(() => JSON.parse(localStorage.getItem("fake:fs") || "{}"));
+  ok(saved["users/ai1/sets/my-japanese-week-1-food"]?.words?.length === 5 && !!saved["users/ai1/kanji/my-japanese-week-1"] && Object.keys(saved).every((k) => k.startsWith("users/ai1/"))
+    && await b.evaluate(() => Object.keys(localStorage).every((k) => !k.startsWith("qcard:local:"))), "AI page Import, signed in: saved in the account's own folder and nowhere else", Object.keys(saved).join(" "));
+  // A changed set shows as changed, with its name.
+  const changedFile = join(out, "18-ai-example-changed.json"), ex2 = JSON.parse(example);
+  ex2.sets[0].words.push({ id: "w6", en: "tea", kana: "おちゃ", kanji: "お茶" }); writeFileSync(changedFile, JSON.stringify(ex2));
+  await pick(b, changedFile);
+  ok(/Vocab sets: 1 changed, 1 already the same/.test(await prev(b)) && /Changed: Week 1 › Food and drink/.test(await prev(b)) && /Import 1 change/.test(await prev(b)), "AI page Import: a set that differs from the stored one shows as changed", await prev(b));
+  const site2 = await newPage(sctx);
+  ok(await vis(site2, '[data-set="my-japanese-week-1-food"]') && !(await site2.evaluate(() => document.querySelector("#welcome").open)), "AI page Import, signed in: the sets are on the site");
   const d = await aiPage(null, 1280);
   await d.screenshot({ path: join(out, "18-ai-page-desktop.png") });
-  const errs = [a, b, d].flatMap((p) => p.errors), csp = (await Promise.all([a, b, d].map((p) => p.evaluate(() => window.__csp)))).flat();
+  const errs = [a, b, d, site2].flatMap((p) => p.errors), csp = (await Promise.all([a, b, d, site2].map((p) => p.evaluate(() => window.__csp)))).flat();
   ok(errs.length === 0 && csp.length === 0, "AI page with scripts: no errors and nothing blocked", [...errs, ...csp].join(" | "));
+  await sctx.close();
   await actx.close();
 }
 
