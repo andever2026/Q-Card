@@ -10,9 +10,8 @@ layout, the build and the tests; this file is what README doesn't say.
 - Everything is shared between the public site and the owner's claude.ai copy (`#if public` / `#if claude` in
   `src/app.html` and the scripts). A fix in one version's own section (sign-in, saving, checking) means checking the
   other version's section too.
-- `main` is the live site (https://andever2026.github.io/Q-Card/); there is no beta site. Changes reach `main` through
-  a pull request from a short-lived branch, which runs the browser tests (merge method: merge, never squash or
-  force-push). Delete the branch once it's merged.
+- Branch `beta` deploys to https://andever2026.github.io/Q-Card/beta/, `main` to the live site. Changes go to `beta`
+  first; `main` only through a pull request from `beta` (merge method: merge, never squash or force-push).
 - Don't push or merge unless the owner asks. The owner tests and pushes.
 - Before calling something done, run `node test/public/run.mjs` (it ends with "All passed") and add checks there for
   what changed. Changes to `src/checker.js` also get `test/checker/eval.mjs` run before and after, and the numbers
