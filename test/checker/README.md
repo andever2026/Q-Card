@@ -40,8 +40,8 @@ QCardChecker.englishAnswers(meaning) // -> the candidates for an English meaning
   position names the expected character in `ch`, with `why` = `shape`, `small` (should be small), `large`
   (should be full size), `missing`, or `extra` (`ch: ""`, extra writing). `got`, when present, is the character the
   writing looked more like. `why` = `strokes` is a kanji that is right but for its strokes, with `strokes` =
-  `missing` (one left out), `extra` (one added where the kanji has none) or `wrong` (one in the wrong place, e.g.
-  彳 written for 亻). Every written position (and the extra writing) has `box`: `[x0, y0, x1, y1]` around its
+  `missing` (one left out), `extra` (one added where the kanji has none), `wrong` (one in the wrong place, e.g.
+  彳 written for 亻) or `crossing` (two strokes that should cross don't, e.g. 春's ㇏ started below the third line). Every written position (and the extra writing) has `box`: `[x0, y0, x1, y1]` around its
   strokes, in the coordinates of `strokes`.
 - `ok: null`: every candidate has a character without a template (listed in `unsupported`, e.g. 龘); the page
   falls back to self-marking.
@@ -112,9 +112,13 @@ testing only and not shipped:
    template stroke nothing was paired with fails the position unless it was joined into a neighbouring stroke (the
    best pairing of one written stroke with a run of template strokes over it is close and as long as the run, or
    the stroke paired with its neighbour runs along it), and a written stroke paired with nothing fails it unless it
-   lies on the kanji's ink and touches other writing (a stroke drawn in two pieces). When both sides have a stroke
-   left over, the position fails only if they are far apart (a sloppy stroke has its template stroke nearby).
-   Stroke order never matters. Kana are left to the other checks: they are joined up far more often.
+   runs right along other writing (gone over again) or lies on a stroke of the kanji that the rest of the writing
+   leaves room for and touches other writing (a stroke drawn in two pieces; a third line in 日 has no room). When
+   both sides have a stroke left over, the position fails only if they are far apart (a sloppy stroke has its
+   template stroke nearby). Even with every stroke paired, the position fails when a stroke stands in for one far
+   away and of a very different size while lying on another stroke (a dot drawn on the end of 夜's ㇏ for its inner
+   dot), or when two strokes that clearly cross in the kanji don't touch in the writing (春's ㇏ must cross the
+   third line). Strokes that only meet in the kanji may meet or run past each other. Stroke order never matters. Kana are left to the other checks: they are joined up far more often.
 6. **Strokes gone over again.** When the writing fails, it is checked once more with any stroke drawn again over
    another in the same direction left out (it must cover most of the other one's length; dots and dakuten never
    count). Only then, because strokes written close together in a small hand can look like copies.
@@ -161,6 +165,13 @@ accepted (synth) and 93.9% to 89.9% (real), and the single hand-drawn kanji belo
 and 98.7% to 97.1% (Tomoe). Most of the correct writing it now turns down has strokes joined in a way the pairing
 doesn't model (strokes that don't follow each other joined, or four joined in one go).
 
+2026-11-11, a stroke standing in for another, strokes that should cross, and tighter excuses for added strokes (seed 1,
+300 words, before -> after): stroke added rejected 74.7% -> 87.4% (real) and 64.6% -> 79.8% (synth), stroke left
+out rejected 94.9% -> 96.0% and 94.6% -> 95.3%, gone over again accepted 91.3% -> 88.0% and 96.4% -> 93.9%, correct
+writing accepted 92.4% -> 90.7% (real) and 97.7% -> 97.3% (synth), all near misses rejected 90.7% -> 94.2%, single
+hand-drawn kanji 98.0% -> 97.9% (KanjiCanvas) and 97.1% -> 96.7% (Tomoe). The crossing rule turns down about 1 in 300
+correct single kanji, mostly hand-drawn ones whose strokes really don't cross where the kanji's do (寿, 匕).
+
 \* Most of the 33 real misses are one Tomoe ら drawing, accepted as う (う is common, so that swap recurs).
 Per distinct drawing, the pair test below rejects 70 of 71.
 
@@ -178,8 +189,9 @@ kanji checked against two candidates (お邪魔します, 天麩羅): 250-480 ms
 
 ## Known weak spots
 
-- **Stroke check**: an added stroke that lands on or along another stroke of the kanji passes as a stroke gone over
-  again or drawn in pieces (about a third of added strokes in the test pass). Strokes joined in a way the pairing
+- **Stroke check**: an added stroke that lands right along another stroke of the kanji passes as a stroke gone over
+  again or drawn in pieces (about one in six added strokes in the test pass). A misplaced stroke of about the right
+  size, paired with the stroke it replaces, is only caught by the overall shape. Strokes joined in a way the pairing
   doesn't model (non-consecutive strokes, or four or more in one go) can look like a stroke left out; this turns
   down about 1 in 25 more correct words than before in the hand-drawn test.
 
