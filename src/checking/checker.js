@@ -30,8 +30,12 @@
   const SNEAR = 0.08;       // stroke check (kanji): ink this close to a stroke, running the same way (SCOS), lies on it
   const SCOS = 0.8;
   const SJOIN = 0.2, SJLEN = 0.85; // ... a stroke left unpaired was joined into another if that pairing was this good and long
-  const SFAR = 0.25;
-  const GONE_NEAR = 0.05, GONE_MIN = 0.2; // a stroke this close along another (of the line's height) was drawn over it        // ... an unpaired stroke this far from every unpaired template stroke is a wrong stroke
+  const SFAR = 0.25;        // ... an unpaired stroke this far from every unpaired template stroke is a wrong stroke
+  const SOVER = 0.04;       // ... an unpaired stroke this close along other writing was gone over again
+  const STOUCH = 0.05;      // ... or this close (median) to the stroke it would otherwise be a second piece of
+  const SPLACE = 0.12, SSIZE = 2.5; // ... a paired stroke this far from its place and this many times longer or shorter
+  const SCROSS = 0.12;      // ... kanji strokes cross when both run on this far past the crossing
+  const GONE_NEAR = 0.05, GONE_MIN = 0.2; // a stroke this close along another (of the line's height) was drawn over it
   const KCOARSE = 24;       // competitors taken from the coarse ranking
   const KNEIGH = 12;        // competitors taken from the expected template's own coarse neighbours
   const KFINE = 6;          // closest competitors re-scored with the finer distance
@@ -735,13 +739,40 @@
     }
     return n / NP;
   }
+  // The point of stroke B (resampled) nearest to (x, y): [distance, how far along B].
+  function nearestOn(x, y, B) {
+    let best = Infinity, at = 0, l = 0;
+    for (let m = 0; m + 2 < 2 * NP; m += 2) {
+      const bx = B[m + 2] - B[m], by = B[m + 3] - B[m + 1], bl = Math.hypot(bx, by);
+      const u = bl ? Math.max(0, Math.min(1, ((x - B[m]) * bx + (y - B[m + 1]) * by) / (bl * bl))) : 0;
+      const d = Math.hypot(x - B[m] - u * bx, y - B[m + 1] - u * by);
+      if (d < best) { best = d; at = l + u * bl; }
+      l += bl;
+    }
+    return [best, at];
+  }
+  // Median distance from the points of stroke A to stroke B.
+  function midDist(A, B) {
+    const d = [];
+    for (let k = 0; k < 2 * NP; k += 2) d.push(nearestOn(A[k], A[k + 1], B)[0]);
+    return d.sort((a, b) => a - b)[NP >> 1];
+  }
+  // The part of stroke B that stroke A runs along: [from, to], as lengths along B.
+  function spanOn(A, B) {
+    let lo = Infinity, hi = -Infinity;
+    for (let k = 0; k < 2 * NP; k += 2) { const at = nearestOn(A[k], A[k + 1], B)[1]; lo = Math.min(lo, at); hi = Math.max(hi, at); }
+    return [lo, hi];
+  }
   // A kanji whose strokes don't all add up: one left out, one added where the kanji has none, or one swapped for a
   // stroke somewhere else (彳 written for 亻 with a dot left out). It is still nearer the expected kanji than any other,
   // so only counting strokes catches it. Stroke order doesn't matter, and these still pass: strokes joined in one go
   // (the joined stroke runs along both), one stroke drawn in pieces, and going over a stroke again.
   // det: the stroke pairing from match(..., true). Returns "missing", "extra", "wrong" or null.
   function strokeCheck(det, t) {
-    if (det.byInk || (!det.missT && !det.extraU)) return null;
+    if (det.byInk) return null;
+    return ((det.missT || det.extraU) && strokeCount(det, t)) || (misplaced(det, t) ? "wrong" : crossing(det, t) ? "crossing" : null);
+  }
+  function strokeCount(det, t) {
     const { ust, selU, selT, cand } = det, U = ust.length, Tn = t.s.length;
     let miss = 0, extra = 0;
     for (let j = 0; j < Tn; j++) {
@@ -764,9 +795,9 @@
       if (selU[i]) continue;
       // a stroke gone over again lies on other writing; a piece of a stroke lies on the kanji's ink and touches or
       // ends at other writing
-      const P = ust[i].p, onU = onInk(P, ust.filter((_, q) => q !== i).map((u) => u.p));
-      let fine = onU >= 0.5;
-      if (!fine && onInk(P, t.s.map((u) => u.p)) >= 0.5) {
+      const P = ust[i].p, others = ust.filter((_, q) => q !== i).map((u) => u.p), onU = onInk(P, others);
+      let fine = onInk(P, others, SOVER) >= 0.5;
+      if (!fine && onInk(P, t.s.map((u) => u.p)) >= 0.5 && otherPiece(det, t, i)) {
         const ends = [[P[0], P[1]], [P[2 * NP - 2], P[2 * NP - 1]]];
         fine = onU >= 0.3 || ust.some((u, q) => q !== i && ends.some(([x, y]) => Math.hypot(x - u.p[0], y - u.p[1]) < SNEAR || Math.hypot(x - u.p[2 * NP - 2], y - u.p[2 * NP - 1]) < SNEAR));
       }
@@ -777,6 +808,68 @@
     // both sides have strokes left over: a sloppy stroke has its template stroke nearby, a wrong one doesn't
     const far = (a, as, b, bs) => a.some((x, i) => !as[i] && !b.some((y, j) => !bs[j] && Math.hypot(x.cx - y.cx, x.cy - y.cy) < SFAR));
     return far(ust, selU, t.s, selT) || far(t.s, selT, ust, selU) ? "wrong" : null;
+  }
+
+  // Can unpaired stroke i be a piece of the kanji stroke it lies on most? Only if the stroke paired with that one, if
+  // any, is the other piece (lying on it too and covering mostly another part of it) or is gone over by i. A third
+  // line drawn into 日 covers the same part as its neighbour.
+  function otherPiece(det, t, i) {
+    const { ust, selT } = det, P = ust[i].p;
+    let on = 0, jm = -1;
+    for (let j = 0; j < t.s.length; j++) { const v = onInk(t.s[j].p, [P]); if (v > on) { on = v; jm = j; } }
+    if (jm < 0) return false;
+    const pj = selT[jm], T = t.s[jm].p, a = spanOn(P, T);
+    return !pj || [pj.ua, pj.ub].some((q) => {
+      if (q < 0) return false;
+      if (midDist(P, ust[q].p) < STOUCH) return true;
+      if (onInk(ust[q].p, [T]) < 0.3) return false;
+      const b = spanOn(ust[q].p, T);
+      return 2 * Math.max(0, Math.min(a[1], b[1]) - Math.max(a[0], b[0])) <= Math.min(a[1] - a[0], b[1] - b[0]);
+    });
+  }
+  // A stroke paired with the wrong part of the kanji: far from its place, of another size, and lying on another of the
+  // kanji's strokes and not on its own (a dot drawn on the end of ㇏ stands in for the dot inside 夜).
+  function misplaced(det, t) {
+    const { ust, selT } = det;
+    return det.sel.some((c) => {
+      if (c.ub >= 0 || c.ta !== c.tb) return false;
+      const u = ust[c.ua], tj = t.s[c.ta];
+      if (Math.hypot(u.cx - tj.cx, u.cy - tj.cy) < SPLACE || Math.max(u.len, tj.len) < SSIZE * Math.min(u.len, tj.len) || onInk(u.p, [tj.p]) >= 0.2) return false;
+      // (not when the stroke paired with that other one lies on this one's place: two strokes swapped partners)
+      return t.s.some((s, k) => s !== tj && onInk(u.p, [s.p]) >= 0.6 && !(selT[k] && selT[k].ub < 0 && onInk(ust[selT[k].ua].p, [tj.p]) >= 0.3));
+    });
+  }
+  // Where strokes A and B (resampled) cross: how far along each, and how long each is; null when they don't.
+  function crossAt(A, B) {
+    const L = (P) => { let l = 0; for (let k = 0; k + 2 < 2 * NP; k += 2) l += Math.hypot(P[k + 2] - P[k], P[k + 3] - P[k + 1]); return l; };
+    let la = 0;
+    for (let k = 0; k + 2 < 2 * NP; k += 2) {
+      const ax = A[k], ay = A[k + 1], dx = A[k + 2] - ax, dy = A[k + 3] - ay;
+      let lb = 0;
+      for (let m = 0; m + 2 < 2 * NP; m += 2) {
+        const bx = B[m], by = B[m + 1], ex = B[m + 2] - bx, ey = B[m + 3] - by, den = dx * ey - dy * ex;
+        if (den) {
+          const u = ((bx - ax) * ey - (by - ay) * ex) / den, v = ((bx - ax) * dy - (by - ay) * dx) / den;
+          if (u >= 0 && u <= 1 && v >= 0 && v <= 1) return [la + u * Math.hypot(dx, dy), lb + v * Math.hypot(ex, ey), L(A), L(B)];
+        }
+        lb += Math.hypot(ex, ey);
+      }
+      la += Math.hypot(dx, dy);
+    }
+    return null;
+  }
+  // Two strokes that clearly cross in the kanji and don't in the writing (春 with ㇏ starting below the third line).
+  // Where the kanji's strokes only meet, or one barely runs past the other, either way is fine.
+  function crossing(det, t) {
+    const { ust, selU, selT } = det, Tn = t.s.length, one = (c) => c && c.ub < 0 && c.ta === c.tb;
+    // the writing of a kanji stroke: its partner and any unpaired stroke lying on it (the rest of a stroke in pieces)
+    const of = (j) => [ust[selT[j].ua].p, ...ust.filter((u, i) => !selU[i] && onInk(u.p, [t.s[j].p]) >= 0.5).map((u) => u.p)];
+    for (let a = 0; a < Tn; a++) for (let b = a + 1; b < Tn; b++) {
+      if (!one(selT[a]) || !one(selT[b])) continue;
+      const x = crossAt(t.s[a].p, t.s[b].p);
+      if (x && Math.min(x[0], x[2] - x[0], x[1], x[3] - x[1]) >= SCROSS && !of(a).some((A) => of(b).some((B) => crossAt(A, B)))) return true;
+    }
+    return false;
   }
 
   // Is the writing in G the expected char (any of expSet), rather than some other char?

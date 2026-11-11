@@ -227,7 +227,8 @@ if (entry.length > 1) {
     ok(await v(withWave, "〜さん") === true && await v(w.strokes, "〜さん") === true, "built-in: a 〜 may be written or left out where the answer has one");
     ok(await v(withWave, "さん") === false, "built-in: a 〜 where the answer has none is extra writing");
   }
-  // Strokes: the right kanji with a stroke left out, added or swapped fails; any order, touch-ups and pieces pass
+  // Strokes: the right kanji with a stroke left out, added, swapped, standing in for another or not crossing fails;
+  // any order, touch-ups and pieces pass
   {
     const O = { boxW: 300, boxH: 200, level: 0.3, mouse: false, swap: 0, reverse: 0, join: 0, lateDakuten: 0 };
     const verify = (strokes) => page.evaluate((s) => window.QCardChecker.verify({ strokes: s, candidates: ["夜"], box: { w: 300, h: 200 } }), strokes);
@@ -242,6 +243,17 @@ if (entry.length > 1) {
     ok(await res([...y, lean]) === "strokes:extra", "built-in: 夜 with an extra ノ fails as an extra stroke", await res([...y, lean]));
     ok((await res([...y.filter((_, i) => i !== 6), lean])).startsWith("strokes") || (await res([...y.filter((_, i) => i !== 6), lean])).startsWith("shape"),
       "built-in: 夜 with 彳 for 亻 and no inner dot fails", await res([...y.filter((_, i) => i !== 6), lean]));
+    const dotOnEnd = [...y.filter((_, i) => i !== 6), y[7].slice(Math.floor(y[7].length * 0.75))];
+    ok(await res(dotOnEnd) === "strokes:wrong", "built-in: 夜 with its inner dot drawn on the end of ㇏ fails", await res(dotOnEnd));
+    const other = async (ch, s) => { const r = await page.evaluate(([c, st]) => window.QCardChecker.verify({ strokes: st, candidates: [c], box: { w: 300, h: 200 } }), [ch, s]); return r.ok ? "ok" : r.chars[0].why + ":" + r.chars[0].strokes; };
+    const a = writeWord("暑", 11, O).strokes, third = a[10].map(([x, py], i) => [x, (py + a[11][Math.min(i, a[11].length - 1)][1]) / 2]);
+    ok(await other("暑", a) === "ok" && await other("暑", [...a.slice(0, 11), third, a[11]]) === "strokes:extra",
+      "built-in: 暑 passes, 暑 with 目 for its bottom 日 fails as an extra stroke", await other("暑", [...a.slice(0, 11), third, a[11]]));
+    const hr = writeWord("春", 11, O).strokes, late = [...hr.slice(0, 4), hr[4].slice(Math.floor(hr[4].length * 0.35)), ...hr.slice(5)];
+    ok(await other("春", hr) === "ok" && await other("春", late) === "strokes:crossing",
+      "built-in: 春 passes, 春 with ㇏ starting below the third line fails as strokes not crossing", await other("春", late));
+    const s5 = hr[4], cut = s5.length >> 1, piecesLast = [...hr.slice(0, 4), s5.slice(0, cut + 1), ...hr.slice(5), s5.slice(cut)];
+    ok(await other("春", piecesLast) === "ok", "built-in: 春's ㇏ drawn in two pieces, the second at the end, still passes", await other("春", piecesLast));
   }
   // A look-alike reads as the character asked for: ー written like 一 in ジュース, so the answer still matches
   {

@@ -39,7 +39,7 @@
     if (c.why === "large") return `「${c.ch}」 should be full size.`;
     if (c.why === "missing") return `Something's missing: 「${c.ch}」.`;
     if (c.why === "extra") return "There's extra writing at the end.";
-    if (c.why === "strokes") return c.strokes === "missing" ? `「${c.ch}」 is missing a stroke.` : c.strokes === "extra" ? `「${c.ch}」 has an extra stroke.` : `A stroke in 「${c.ch}」 doesn't belong there.`;
+    if (c.why === "strokes") return { missing: `「${c.ch}」 is missing a stroke.`, extra: `「${c.ch}」 has an extra stroke.`, crossing: `Two strokes in 「${c.ch}」 should cross.` }[c.strokes] || `A stroke in 「${c.ch}」 doesn't belong there.`;
     return bad.length > 1 ? `${bad.length} characters don't match, starting with the ${nth(c.i + 1)} (「${c.ch}」).` : `The ${nth(c.i + 1)} character doesn't look like 「${c.ch}」.`;
   }
   // What the checker read, for "The checker read": each character that matched, its best guess for one that didn't
