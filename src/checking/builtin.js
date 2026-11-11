@@ -31,9 +31,10 @@
     return [...out].filter(Boolean);
   }
   const nth = (n) => n + (n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th");
+  const WRONG = "This doesn't look like the answer.";
   function whyNot(res) {
     const bad = (res.chars || []).map((c, i) => ({ ...c, i })).filter((c) => !c.ok), c = bad[0];
-    if (!c) return "This doesn't look like the answer.";
+    if (!c) return WRONG;
     if (c.why === "small") return `「${c.ch}」 should be written small.`;
     if (c.why === "large") return `「${c.ch}」 should be full size.`;
     if (c.why === "missing") return `Something's missing: 「${c.ch}」.`;
@@ -59,7 +60,8 @@
     if (hasFuri && !fc.length) return { ok: false, r: { ...r, reason: "This word has no kanji, so it needs no furigana." }, chars };
     if (fr && !fr.ok) return { ok: false, r: { ...r, reason: "The furigana doesn't match the reading of this word." }, chars };
     const ok = readMatches(w, r) && !badFuri(w, r);
-    if (!ok) r.reason = "Furigana goes only over kanji you wrote, as their reading.";
+    // (the furigana rule only when there is furigana; otherwise the writing just isn't one of the word's forms)
+    if (!ok) r.reason = r.furigana ? "Furigana goes only over kanji you wrote, as their reading." : WRONG;
     return { ok, r, chars };
   }
   // 日本語 → English: the meaning in any of the ways it may be written (englishAnswers). null when the checker can't read it.
