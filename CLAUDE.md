@@ -12,7 +12,7 @@ layout, the build and the tests; this file is what README doesn't say.
   other version's section too.
 - Branch `beta` deploys to https://andever2026.github.io/Q-Card/beta/, `main` to the live site. Changes go to `beta`
   first; `main` only through a pull request from `beta` (merge method: merge, never squash or force-push).
-- Don't push or merge unless the owner asks. The owner tests and pushes.
+- Claude may push to `beta` (the owner tests there). Never push to `main` or merge into it until the owner says so.
 - Before calling something done, run `node test/public/run.mjs` and `node test/claude/run.mjs` (each ends with
   "All passed") and add checks there for what changed. Changes to `src/checking/checker.js` also get
   `test/checker/eval.mjs` run before and after, and the numbers compared.

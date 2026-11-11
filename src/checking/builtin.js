@@ -31,18 +31,20 @@
     return [...out].filter(Boolean);
   }
   const nth = (n) => n + (n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th");
+  const WRONG = "This doesn't look like the answer.";
   function whyNot(res) {
     const bad = (res.chars || []).map((c, i) => ({ ...c, i })).filter((c) => !c.ok), c = bad[0];
-    if (!c) return "This doesn't look like the answer.";
+    if (!c) return WRONG;
     if (c.why === "small") return `「${c.ch}」 should be written small.`;
     if (c.why === "large") return `「${c.ch}」 should be full size.`;
     if (c.why === "missing") return `Something's missing: 「${c.ch}」.`;
     if (c.why === "extra") return "There's extra writing at the end.";
+    if (c.why === "strokes") return c.strokes === "missing" ? `「${c.ch}」 is missing a stroke.` : c.strokes === "extra" ? `「${c.ch}」 has an extra stroke.` : `A stroke in 「${c.ch}」 doesn't belong there.`;
     return bad.length > 1 ? `${bad.length} characters don't match, starting with the ${nth(c.i + 1)} (「${c.ch}」).` : `The ${nth(c.i + 1)} character doesn't look like 「${c.ch}」.`;
   }
   // What the checker read, for "The checker read": each character that matched, its best guess for one that didn't
-  // (？ when it has none) and nothing for a missing one.
-  const readOf = (res) => (res?.chars || []).map((c) => (c.ok ? c.ch : c.why === "missing" ? "" : c.got || "？")).join("");
+  // (？ when it has none; the character itself when only its strokes were off) and nothing for a missing one.
+  const readOf = (res) => (res?.chars || []).map((c) => (c.ok || c.why === "strokes" ? c.ch : c.why === "missing" ? "" : c.got || "？")).join("");
   // { ok, r } like Claude's verdict, or null when the answer has characters the checker has no templates for.
   async function builtinCheck(w, hasFuri) {
     await loadTemplates();
@@ -58,7 +60,8 @@
     if (hasFuri && !fc.length) return { ok: false, r: { ...r, reason: "This word has no kanji, so it needs no furigana." }, chars };
     if (fr && !fr.ok) return { ok: false, r: { ...r, reason: "The furigana doesn't match the reading of this word." }, chars };
     const ok = readMatches(w, r) && !badFuri(w, r);
-    if (!ok) r.reason = "Furigana goes only over kanji you wrote, as their reading.";
+    // (the furigana rule only when there is furigana; otherwise the writing just isn't one of the word's forms)
+    if (!ok) r.reason = r.furigana ? "Furigana goes only over kanji you wrote, as their reading." : WRONG;
     return { ok, r, chars };
   }
   // 日本語 → English: the meaning in any of the ways it may be written (englishAnswers). null when the checker can't read it.

@@ -39,13 +39,15 @@ QCardChecker.englishAnswers(meaning) // -> the candidates for an English meaning
 - `ok: false`: `text` is the closest candidate and `chars` goes through it position by position. A failing
   position names the expected character in `ch`, with `why` = `shape`, `small` (should be small), `large`
   (should be full size), `missing`, or `extra` (`ch: ""`, extra writing). `got`, when present, is the character the
-  writing looked more like. Every written position (and the extra writing) has `box`: `[x0, y0, x1, y1]` around its
+  writing looked more like. `why` = `strokes` is a kanji that is right but for its strokes, with `strokes` =
+  `missing` (one left out), `extra` (one added where the kanji has none) or `wrong` (one in the wrong place, e.g.
+  彳 written for 亻). Every written position (and the extra writing) has `box`: `[x0, y0, x1, y1]` around its
   strokes, in the coordinates of `strokes`.
 - `ok: null`: every candidate has a character without a template (listed in `unsupported`, e.g. 龘); the page
   falls back to self-marking.
 
 Look-alikes across scripts count as the same character: カ力, チ千, エ工, ロ口, タ夕, ニ二, ハ八, ト卜, ー一,
-へヘ, べベ, ぺペ, りリ, オ才, ヒ匕, メ乂.
+へヘ, べベ, ぺペ, りリ, オ才, ヒ匕, メ乂. `text` then has the character the candidate has (ジュース, never ジュ一ス).
 
 ## Rebuilding the templates
 
@@ -105,7 +107,18 @@ testing only and not shipped:
    天/夫) are also compared by the stroke ends in which they differ: when the other template is at least as close
    and the writing's ends sit more than 0.6 of the way towards it, the position fails. A group fails if much of its
    ink matches no stroke, or if it is far wider than the character (an extra character merged in).
-5. **Small kana.** っ/つ, ゃ/や etc. share a shape, so size decides: each other character gives an implied em size
+5. **Strokes of a kanji.** A kanji with one stroke left out, added or swapped for a stroke somewhere else is still
+   nearer the right kanji than any other, so step 4 passes it. The stroke pairing from step 3 is checked too: a
+   template stroke nothing was paired with fails the position unless it was joined into a neighbouring stroke (the
+   best pairing of one written stroke with a run of template strokes over it is close and as long as the run, or
+   the stroke paired with its neighbour runs along it), and a written stroke paired with nothing fails it unless it
+   lies on the kanji's ink and touches other writing (a stroke drawn in two pieces). When both sides have a stroke
+   left over, the position fails only if they are far apart (a sloppy stroke has its template stroke nearby).
+   Stroke order never matters. Kana are left to the other checks: they are joined up far more often.
+6. **Strokes gone over again.** When the writing fails, it is checked once more with any stroke drawn again over
+   another in the same direction left out (it must cover most of the other one's length; dots and dakuten never
+   count). Only then, because strokes written close together in a small hand can look like copies.
+7. **Small kana.** っ/つ, ゃ/や etc. share a shape, so size decides: each other character gives an implied em size
    for the line (mean of the logs with a quarter cut off at each end), and the position's size (width and height
    ratios averaged) and vertical offset relative to its neighbours give evidence for small (written at about 0.65 of
    full size, on the bottom line). A full-size kana written for a small one fails on fairly weak evidence; a small
@@ -133,10 +146,20 @@ strokes, cursive joins and late dakuten. "real" words are composed only from han
 | wrong: ー or っ left out | 47 | 93.6% | 16 | 100% | reject |
 | wrong: one extra character | 400 | 99.5% | 337 | 99.7% | reject |
 | wrong: another kanji of similar stroke count | 133 | 99.2% | 121 | 99.2% | reject |
+| wrong: one stroke of a kanji left out ** | 431 | 94.7% | 431 | 92.8% | reject |
+| wrong: one stroke of a kanji added, a quarter of its size away ** | 431 | 63.8% | 431 | 68.0% | reject |
+| one stroke of a kanji (most of it) gone over again ** | 431 | 96.3% | 430 | 89.5% | accept |
 | wrong: kana written when only the kanji form is accepted | 274 | 100% | 268 | 99.3% | reject |
 | wrong: whole word in the other script, no anyKana | 394 | 99.7% | 30 | 100% | reject |
 | furigana strip, wrong answer | 150 | 99.3% | | | reject |
 | **all near misses** | 2043 | **99.1%** | | | ≥ 90% |
+
+\*\* Added 2026-11-10 with the stroke check (steps 5 and 6), from a separate run (seed 1, 455 words: the six sample
+sets and 400 made-up one- and two-kanji words). Before the stroke check the same run gave: stroke left out 43-45%
+rejected, stroke added 39-40% rejected, gone over again 62-65% accepted; correct writing went from 96.9% to 96.0%
+accepted (synth) and 93.9% to 89.9% (real), and the single hand-drawn kanji below from 99.3% to 98.0% (KanjiCanvas)
+and 98.7% to 97.1% (Tomoe). Most of the correct writing it now turns down has strokes joined in a way the pairing
+doesn't model (strokes that don't follow each other joined, or four joined in one go).
 
 \* Most of the 33 real misses are one Tomoe ら drawing, accepted as う (う is common, so that swap recurs).
 Per distinct drawing, the pair test below rejects 70 of 71.
@@ -154,6 +177,11 @@ p95 106 ms, 6-character words median 26 ms (max 470 ms), 12+ characters median 9
 kanji checked against two candidates (お邪魔します, 天麩羅): 250-480 ms. Phones will be slower by 2-4x.
 
 ## Known weak spots
+
+- **Stroke check**: an added stroke that lands on or along another stroke of the kanji passes as a stroke gone over
+  again or drawn in pieces (about a third of added strokes in the test pass). Strokes joined in a way the pairing
+  doesn't model (non-consecutive strokes, or four or more in one go) can look like a stroke left out; this turns
+  down about 1 in 25 more correct words than before in the hand-drawn test.
 
 - **Small/large kana** (っ/つ, ゃ/や): only size and height relative to the rest of the line tell them apart, so
   1-5% of swaps pass, more in short words (a small kana written for a full-size one next to only one or two other

@@ -27,6 +27,11 @@
   const MARGIN_X = 0.05;    // ... than a char of another kind (a kanji when kana is expected, or the reverse)
   let CEIL = 0.21;          // a char costing more than this never passes
   const UNINK = 0.22;       // a char fails when more than this share of its ink matches no stroke of the expected char
+  const SNEAR = 0.08;       // stroke check (kanji): ink this close to a stroke, running the same way (SCOS), lies on it
+  const SCOS = 0.8;
+  const SJOIN = 0.2, SJLEN = 0.85; // ... a stroke left unpaired was joined into another if that pairing was this good and long
+  const SFAR = 0.25;
+  const GONE_NEAR = 0.05, GONE_MIN = 0.2; // a stroke this close along another (of the line's height) was drawn over it        // ... an unpaired stroke this far from every unpaired template stroke is a wrong stroke
   const KCOARSE = 24;       // competitors taken from the coarse ranking
   const KNEIGH = 12;        // competitors taken from the expected template's own coarse neighbours
   const KFINE = 6;          // closest competitors re-scored with the finer distance
@@ -323,9 +328,25 @@
       S.push({ poly, bb: bboxOf(poly), len: polyLen(poly), p, q: shapeQ(p), lp: loopOf(poly), id: S.length });
     }
     if (stray) { S = S.filter((s) => !isStray(s, S)); S.forEach((s, i) => { s.id = i; }); }
-    // two strokes in a row may be one template stroke drawn in two pieces
+    return linkNext(S);
+  }
+  // two strokes in a row may be one template stroke drawn in two pieces
+  function linkNext(S) {
     for (let i = 0; i + 1 < S.length; i++) { S[i].next = resample(S[i].poly.concat(S[i + 1].poly), NP); S[i].nq = shapeQ(S[i].next); }
     return S;
+  }
+  // Writing that failed is checked once more with any stroke drawn again over another (to make it look neater), in
+  // the same direction, left out: the longer of the two stays. (Only then: strokes written close together in a small
+  // or hurried hand can look like copies, and a correct answer shouldn't lose one.) Short marks
+  // (dakuten, dots) are never taken as copies of each other, nor is a stroke that a much longer one (strokes joined in
+  // one go) merely runs along.
+  function goneOver(S) {
+    if (S.length < 2) return S;
+    const h = frameOf(S.map((s) => s.bb)).h, out = [];
+    S.forEach((a, i) => {
+      if (a.len < GONE_MIN * h || !S.some((b, q) => q !== i && b.len >= GONE_MIN * h && (b.len > a.len || (b.len === a.len && q < i)) && onInk(a.p, [b.p], GONE_NEAR * h, true) >= 0.7 && onInk(b.p, [a.p], GONE_NEAR * h, true) >= 0.4)) out.push(a);
+    });
+    return out.length === S.length ? S : linkNext(out.map((a, i) => ({ ...a, id: i })));
   }
   // A tiny mark well away from all the other writing (a tap of the pen or a resting finger) is not part of the answer.
   // Dakuten, the dots of kanji and punctuation sit next to other strokes and are kept.
@@ -517,7 +538,7 @@
     for (let j = 0; j < Tn; j++) if (!selT[j]) { cost += pt(j); missT++; }
     let lenAll = 0, lenUn = 0;
     for (let i = 0; i < U; i++) { lenAll += ust[i].len; if (!selU[i]) { cost += pu(i); extraU++; lenUn += ust[i].len; } }
-    return { cost: SQ ? Math.sqrt(cost / t.wsum) : cost / t.wsum, sel, missT, extraU, unInk: lenAll > 0 ? lenUn / lenAll : 0 };
+    return { cost: SQ ? Math.sqrt(cost / t.wsum) : cost / t.wsum, sel, missT, extraU, unInk: lenAll > 0 ? lenUn / lenAll : 0, ust, selU, selT, cand };
   }
   // Least-squares affine map from user points to template points over the matched pairs, damped towards identity.
   function fitAffine(sel) {
@@ -690,6 +711,74 @@
     }
     return den > 0 ? num / den : null;
   }
+  // Share of the points of stroke A (resampled) that lie on one of the strokes Bs: near a segment running the same way
+  // (sameWay: in the same direction too, not just along the same line).
+  function onInk(A, Bs, near = SNEAR, sameWay = false) {
+    let n = 0;
+    for (let k = 0; k < 2 * NP; k += 2) {
+      const k0 = Math.max(0, k - 2), k1 = Math.min(2 * NP - 2, k + 2);
+      let ax = A[k1] - A[k0], ay = A[k1 + 1] - A[k0 + 1];
+      const al = Math.hypot(ax, ay);
+      if (al > 0) { ax /= al; ay /= al; }
+      let hit = false;
+      for (const B of Bs) {
+        for (let m = 0; m + 2 < 2 * NP && !hit; m += 2) {
+          const bx = B[m + 2] - B[m], by = B[m + 3] - B[m + 1], bl = bx * bx + by * by;
+          if (!bl) continue;
+          const u = Math.max(0, Math.min(1, ((A[k] - B[m]) * bx + (A[k + 1] - B[m + 1]) * by) / bl));
+          const dx = A[k] - B[m] - u * bx, dy = A[k + 1] - B[m + 1] - u * by;
+          if (dx * dx + dy * dy < near * near && (al < 1e-3 || (sameWay ? ax * bx + ay * by : Math.abs(ax * bx + ay * by)) / Math.sqrt(bl) >= SCOS)) hit = true;
+        }
+        if (hit) break;
+      }
+      if (hit) n++;
+    }
+    return n / NP;
+  }
+  // A kanji whose strokes don't all add up: one left out, one added where the kanji has none, or one swapped for a
+  // stroke somewhere else (彳 written for 亻 with a dot left out). It is still nearer the expected kanji than any other,
+  // so only counting strokes catches it. Stroke order doesn't matter, and these still pass: strokes joined in one go
+  // (the joined stroke runs along both), one stroke drawn in pieces, and going over a stroke again.
+  // det: the stroke pairing from match(..., true). Returns "missing", "extra", "wrong" or null.
+  function strokeCheck(det, t) {
+    if (det.byInk || (!det.missT && !det.extraU)) return null;
+    const { ust, selU, selT, cand } = det, U = ust.length, Tn = t.s.length;
+    let miss = 0, extra = 0;
+    for (let j = 0; j < Tn; j++) {
+      if (selT[j]) continue;
+      // joined into a neighbouring stroke: the best pairing of one user stroke with a run of template strokes over j
+      // is close and as long as the run, or the user stroke paired with j's neighbour runs along j and is long enough
+      let jc = null;
+      for (const c of cand) if (c.ub < 0 && c.ta < c.tb && c.ta <= j && j <= c.tb && (!jc || c.d < jc.d)) jc = c;
+      let joined = false;
+      if (jc && jc.d < SJOIN) { let tl = 0; for (let q = jc.ta; q <= jc.tb; q++) tl += t.s[q].len; joined = ust[jc.ua].len >= SJLEN * tl; }
+      for (let i = 0; i < U && !joined; i++) {
+        const c = selU[i];
+        if (!c || c.ub >= 0 || (c.tb !== j - 1 && c.ta !== j + 1)) continue;
+        let tl = t.s[j].len; for (let q = c.ta; q <= c.tb; q++) tl += t.s[q].len;
+        joined = ust[i].len >= 0.8 * tl && onInk(t.s[j].p, [ust[i].p]) >= 0.3;
+      }
+      if (!joined) miss++;
+    }
+    for (let i = 0; i < U; i++) {
+      if (selU[i]) continue;
+      // a stroke gone over again lies on other writing; a piece of a stroke lies on the kanji's ink and touches or
+      // ends at other writing
+      const P = ust[i].p, onU = onInk(P, ust.filter((_, q) => q !== i).map((u) => u.p));
+      let fine = onU >= 0.5;
+      if (!fine && onInk(P, t.s.map((u) => u.p)) >= 0.5) {
+        const ends = [[P[0], P[1]], [P[2 * NP - 2], P[2 * NP - 1]]];
+        fine = onU >= 0.3 || ust.some((u, q) => q !== i && ends.some(([x, y]) => Math.hypot(x - u.p[0], y - u.p[1]) < SNEAR || Math.hypot(x - u.p[2 * NP - 2], y - u.p[2 * NP - 1]) < SNEAR));
+      }
+      if (!fine) extra++;
+    }
+    if (det.missT && !det.extraU) return miss ? "missing" : null;
+    if (det.extraU && !det.missT) return extra ? "extra" : null;
+    // both sides have strokes left over: a sloppy stroke has its template stroke nearby, a wrong one doesn't
+    const far = (a, as, b, bs) => a.some((x, i) => !as[i] && !b.some((y, j) => !bs[j] && Math.hypot(x.cx - y.cx, x.cy - y.cy) < SFAR));
+    return far(ust, selU, t.s, selT) || far(t.s, selT, ust, selU) ? "wrong" : null;
+  }
+
   // Is the writing in G the expected char (any of expSet), rather than some other char?
   function judge(S, G, expSet, latin, line) {
     const pool = latin ? LPOOL : JPOOL;
@@ -718,6 +807,8 @@
     const det = match(G, getT(bestE), true, JUDGE_DTW);
     if (!det.byInk && (det.unInk > UNINK || det.extraU >= 2)) return { ok: false, ch: bestE, cost: ce, other: null, otherCost: Infinity, unInk: det.unInk };
     const kind = kindOf(bestE);
+    const sc = !latin && kind === 0 ? strokeCheck(det, getT(bestE)) : null;
+    if (sc) return { ok: false, ch: bestE, cost: ce, other: null, otherCost: Infinity, strokes: sc };
     let co = Infinity, other = null, bar = Infinity;
     // the expected char passes when it is (nearly) as close as every competitor; for competitors whose template is
     // itself close to the expected one, "nearly" shrinks with that distance (decide at a point between the two)
@@ -978,7 +1069,7 @@
       const key = G.ids.join(",") + "|" + p.key + lkey;
       let j = jcache.get(key);
       if (!j) { j = judge(S, G, p.opts, latin, line); jcache.set(key, j); }
-      let why = j.ok ? null : "shape";
+      let why = j.ok ? null : j.strokes ? "strokes" : "shape";
       const ch = letterOf(j.ch || p.ch);
       if (!why && lineEmRef && !latin) {
         const t = getT(ch), f = SMALL2LARGE.has(ch) ? SMALLF : 1;
@@ -995,11 +1086,14 @@
         }
       }
       if (why) allOk = false;
-      text += ch;
+      // a look-alike counts as the character asked for (ー for 一, カ for 力), so the answer reads as asked
+      const shown = !latin && same(p.ch, ch) ? p.ch : ch;
+      text += shown;
       // a failing position names the character that was asked for (what the student should have written)
       // (got: what it looked more like, when known)
       const got = why === "shape" ? j.other && letterOf(j.other) : why === "small" ? SMALL2LARGE.get(ch) : why === "large" ? LARGE2SMALL.get(ch) : null;
-      const c = why ? { ch: p.ch, ok: false, why } : { ch, ok: true, why: null };
+      const c = why ? { ch: p.ch, ok: false, why } : { ch: shown, ok: true, why: null };
+      if (why === "strokes") c.strokes = j.strokes;
       if (got) c.got = got;
       c.box = boxOf(G.ids);
       if (dbg) Object.assign(c, { cost: +j.cost.toFixed(3), other: j.other, otherCost: +j.otherCost.toFixed(3) }, line && j.ch ? { pl: +placement(G, getT(j.ch), line).toFixed(3), wr: +(G.f.w / line.hx).toFixed(2), tw: getT(j.ch).zw } : {});
@@ -1037,7 +1131,7 @@
     const t0 = now();
     if (!RAW) throw new Error("QCardChecker.verify: call init() first");
     opts = opts || {};
-    const S = prepInput(opts.strokes, !opts.latin);
+    const S = opts.goneOver || prepInput(opts.strokes, !opts.latin);
     const cands = [...new Set((opts.candidates || []).map((c) => String(c).normalize("NFKC")).filter((c) => c.trim().length))];
     const anyKana = !!opts.anyKana, latin = !!opts.latin;
     CYC = latin;
@@ -1082,6 +1176,7 @@
       if (best.ok) break;
     }
     if (!best) { const c = usable[0]; return done({ ok: false, text: c.text, chars: c.pos.map((p) => ({ ch: p.ch, ok: false, why: "shape" })) }); }
+    if (!best.ok && !latin && !opts.goneOver) { const S2 = goneOver(S); if (S2 !== S) { const r2 = verify({ ...opts, goneOver: S2 }); if (r2.ok) return done(r2); } }
     if (all) best.all = all;
     delete best.score;
     if (!opts.debug) { delete best.groups; delete best.extra; delete best.size; delete best.line; }
