@@ -13,7 +13,7 @@ these strings?") rather than recognising free text.
 | `tools/make-templates.mjs` | builds the templates from KanjiVG and `tools/checker/hershey-latin.json` |
 | `tools/checker/hershey-latin.json` | Hershey "futural" letters, digits and punctuation (SVG path data) |
 | `tools/checker/charset.txt` | the kanji that get templates (the 2,148 kanji the page knows readings for) |
-| `test/checker/synth.mjs` | synthetic handwriting, and words composed from hand-drawn reference characters |
+| `test/checker/synth.mjs` | synthetic handwriting, words composed from hand-drawn reference characters, and boxes (口, 日) redrawn as one loop or with a line added |
 | `test/checker/eval.mjs` | accuracy and speed evaluation |
 | `test/checker/synth-en.mjs`, `eval-en.mjs` | synthetic printed English, and the English evaluation |
 | `test/checker/demo.html` | a writing box for trying the checker by hand |
@@ -112,7 +112,8 @@ testing only and not shipped:
    template stroke nothing was paired with fails the position unless it was joined into a neighbouring stroke (the
    best pairing of one written stroke with a run of template strokes over it is close and as long as the run, or
    the stroke paired with its neighbour runs along it), and a written stroke paired with nothing fails it unless it
-   runs right along other writing (gone over again) or lies on a stroke of the kanji that the rest of the writing
+   runs right along other writing (gone over again; not when a second stroke runs alongside it within twice the
+   distance, which makes it a line of its own between two lines, as in 目 written for 日) or lies on a stroke of the kanji that the rest of the writing
    leaves room for and touches other writing (a stroke drawn in two pieces; a third line in 日 has no room). When
    both sides have a stroke left over, the position fails only if they are far apart (a sloppy stroke has its
    template stroke nearby). Even with every stroke paired, the position fails when a stroke stands in for one far
@@ -121,8 +122,22 @@ testing only and not shipped:
    third line). Strokes that only meet in the kanji may meet or run past each other. Stroke order never matters. Kana are left to the other checks: they are joined up far more often.
 6. **Strokes gone over again.** When the writing fails, it is checked once more with any stroke drawn again over
    another in the same direction left out (it must cover most of the other one's length; dots and dakuten never
-   count). Only then, because strokes written close together in a small hand can look like copies.
-7. **Small kana.** っ/つ, ゃ/や etc. share a shape, so size decides: each other character gives an implied em size
+   count, and neither does a stroke with other writing alongside it within twice the distance: that is a line
+   between two lines). Only then, because strokes written close together in a small hand can look like copies.
+7. **Line by line.** Pen strokes are not part of the answer, only the lines drawn: 口 drawn in one go, as a loop, is
+   still 口. When the writing still fails and has fewer pen strokes than the closest answer takes, it is checked once
+   more with every stroke, written and template, cut where it turns a corner (by more than about 55 degrees, measured
+   between two arms a twelfth of the stroke long, sharpest corners first, no piece under a seventh of the stroke; a
+   closed loop is cut all the way round; strokes under 0.15 of the writing's height stay whole). Steps 2 to 6 then
+   run on the pieces, so a looped box is the four lines of the box. Cutting can lose a corner, so three things are
+   stricter in this pass: a template line nothing was paired with counts as joined only with ink along it from
+   strokes that lie where they were paired; a line lying off the template line it was paired with, while another
+   stroke already draws that one, is an extra line; and anything that isn't a kanji must also pass stroke by stroke,
+   from the whole strokes its pieces came from (a kana cut into lines still looks close without its dakuten). The
+   verdict of this pass stands when it passes, faults fewer characters, or faults as many for their strokes. Always
+   comparing line by line was tried and dropped: corners in real handwriting are too unsteady (correct hand-drawn
+   words fell from 91% to 56% accepted).
+8. **Small kana.** っ/つ, ゃ/や etc. share a shape, so size decides: each other character gives an implied em size
    for the line (mean of the logs with a quarter cut off at each end), and the position's size (width and height
    ratios averaged) and vertical offset relative to its neighbours give evidence for small (written at about 0.65 of
    full size, on the bottom line). A full-size kana written for a small one fails on fairly weak evidence; a small
@@ -172,6 +187,18 @@ writing accepted 92.4% -> 90.7% (real) and 97.7% -> 97.3% (synth), all near miss
 hand-drawn kanji 98.0% -> 97.9% (KanjiCanvas) and 97.1% -> 96.7% (Tomoe). The crossing rule turns down about 1 in 300
 correct single kanji, mostly hand-drawn ones whose strokes really don't cross where the kanji's do (寿, 匕).
 
+2026-11-11, line by line (step 7) and "a line between two lines is not a stroke gone over" (seed 1, 300 words,
+before -> after; real / synth): a box of a kanji drawn as one loop accepted 27.3% -> 68.2% (of 44) / 25.0% -> 75.0%
+(of 20), correct writing accepted 90.7% -> 91.7% / 97.3% -> 97.7%, gone over again accepted 88.0% -> 88.4% / 93.9% ->
+94.6%, stroke added rejected 87.4% -> 87.4% / 79.8% -> 80.9%, stroke left out rejected 96.0% -> 95.7% / 95.3% ->
+93.9%, a line added across a box rejected 95.5% / 85.0% (unchanged), another kanji rejected 100% (unchanged), all
+near misses 94.1% -> 94.0%, single hand-drawn kanji 97.9% -> 98.6% (KanjiCanvas) and 96.7% -> 96.8% (Tomoe), the
+confusable pairs unchanged. The two box rows are new in `eval.mjs` (with seeds of their own, so the older rows read
+as before). On single kanji written in template stroke order (250 kanji with a box): one box as a loop accepted
+23.6% -> 91.6%, every box as a loop 14.4% -> 90.0%, a line added across a box accepted 4.4% -> 2.4%. Speed with
+three jobs running: median 30 -> 39 ms, p95 135 -> 230 ms, slowest 660 -> 999 ms; only answers that fail in fewer
+pen strokes than expected take the second pass.
+
 \* Most of the 33 real misses are one Tomoe ら drawing, accepted as う (う is common, so that swap recurs).
 Per distinct drawing, the pair test below rejects 70 of 71.
 
@@ -189,6 +216,11 @@ kanji checked against two candidates (お邪魔します, 天麩羅): 250-480 ms
 
 ## Known weak spots
 
+- **Line by line** (step 7): a box drawn as a loop inside a whole word passes about 7 times in 10, less than on its
+  own (9 in 10): a corner drawn round, or lost to the smoothing of a loop with few points, leaves the loop a line
+  short. It only runs for writing with fewer pen strokes than the answer, so a looped box next to a stroke drawn in
+  two pieces gets no second pass. A stroke left out passes a little more often than before (about 1 in 20) when the
+  cutting gives the writing a piece too many.
 - **Stroke check**: an added stroke that lands right along another stroke of the kanji passes as a stroke gone over
   again or drawn in pieces (about one in six added strokes in the test pass). A misplaced stroke of about the right
   size, paired with the stroke it replaces, is only caught by the overall shape. Strokes joined in a way the pairing
@@ -211,7 +243,9 @@ kanji checked against two candidates (お邪魔します, 天麩羅): 250-480 ms
 - **Synthetic tests use the same templates the checker uses**, so they flatter it; the hand-drawn sets cover one
   writer per character (kanji) and one drawing per kana, mostly neat. There is no real data from students writing
   with a mouse or finger yet.
-- **Speed**: complex kanji make the segmentation search and the judging slower; worst seen 480 ms on this machine.
+- **Speed**: complex kanji make the segmentation search and the judging slower, and a wrong answer in fewer pen
+  strokes than expected is checked a second time, line by line; worst seen 1 s on this machine (two made-up 16-stroke
+  kanji, wrong, with other jobs running).
 
 ## English
 

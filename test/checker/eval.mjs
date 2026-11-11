@@ -10,7 +10,7 @@
 //          Words are then also written from these patterns ("real" rows). Dakuten/small kana are built on a real base.
 import fs from "node:fs";
 import path from "node:path";
-import { ROOT, rng, writeWord, templates, realPatterns, hasDakuten, baseOf, SMALL_TO_LARGE } from "./synth.mjs";
+import { ROOT, rng, writeWord, templates, realPatterns, hasDakuten, baseOf, SMALL_TO_LARGE, boxesIn, loopBox, lineInBox } from "./synth.mjs";
 
 await import(path.join(ROOT, "src/checking/checker.js"));
 const C = globalThis.QCardChecker;
@@ -27,6 +27,7 @@ if (process.env.DTW) C._.setDTW(true);
 if (process.env.SQ) C._.set({ SQ: process.env.SQ === "1" });
 if (process.env.KAPPA) C._.set({ KAPPA: +process.env.KAPPA });
 if (process.env.CEIL) C._.set({ CEIL: +process.env.CEIL });
+if (process.env.LINES) C._.set({ lines: process.env.LINES }); // "off": never line by line (step 7 of the README left out)
 const initMs = performance.now() - t0;
 const dataKB = fs.statSync(path.join(ROOT, "data/templates.json")).size / 1024;
 
@@ -122,7 +123,7 @@ function run(cat, mode, writes, cands, expectOk, extra = {}) {
   const key = cat + "|" + mode;
   let row = rows.find((x) => x.key === key);
   if (!row) { row = { key, cat, mode, n: 0, acc: 0, rej: 0, nul: 0, expectOk, fails: [] }; rows.push(row); }
-  const seed = (R() * 1e9) | 0;
+  const seed = extra.seed ?? (R() * 1e9) | 0; // (a given seed leaves the other rows' writing as it was)
   const w = writeWord(writes, seed, { mode, realDir: opt.real, ...extra.write });
   if (mode === "real" && w.realChars < w.totalChars) return; // only words fully written from real patterns
   if (extra.alter && !(w.strokes = extra.alter(w, rng(seed + 1)))) return;
@@ -181,6 +182,11 @@ for (const mode of modes) {
         const s = wd.strokes[r.int(sp[0], sp[1] - 1)], a = Math.floor(s.length * r.range(0, 0.2)), b = Math.max(a + 2, Math.ceil(s.length * r.range(0.8, 1))), e = sp[2] * 0.02;
         return [...wd.strokes, s.slice(a, b).map(([x, y]) => [x + r.norm() * e, y + r.norm() * e])];
       } });
+      // boxes (口, 日...): one drawn in a single go, as a loop, is the same kanji; one with a line added across it isn't
+      const box = (wd, r) => { const sp = at(wd, r); if (!sp) return null; const bs = boxesIn(wd.strokes.slice(sp[0], sp[1]), sp[2]); return bs.length ? r.pick(bs).map((i) => i + sp[0]) : null; };
+      const seed = 7919 * (W.indexOf(w) + 1);
+      run("kanji box drawn as one loop", mode, src, w.cands, true, { seed, alter: (wd, r) => { const b = box(wd, r); return b && loopBox(wd.strokes, b, r); } });
+      run("wrong: kanji line added in a box", mode, src, w.cands, false, { seed, alter: (wd, r) => { const b = box(wd, r); return b && lineInBox(wd.strokes, b); } });
     }
     if (w.kanji.length) {
       const kj = w.kanji.filter(supported), kn = w.kana.filter(supported);

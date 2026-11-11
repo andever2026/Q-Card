@@ -15,6 +15,7 @@
   // ---------------------------------------------------------------- tunables
   const NP = 16;            // points per resampled stroke
   const REV = 0.07;         // penalty for drawing a stroke in the opposite direction (scaled by stroke length)
+  let REVL = 0.07;          // ... when comparing line by line
   const JOIN = 0.015;       // penalty per template-stroke boundary covered by one user stroke (cursive join)
   const SPLIT = 0.02;       // penalty for one template stroke drawn as two user strokes
   const DMAX = 0.32;        // a stroke pair farther apart than this is never matched
@@ -35,7 +36,10 @@
   const STOUCH = 0.05;      // ... or this close (median) to the stroke it would otherwise be a second piece of
   const SPLACE = 0.12, SSIZE = 2.5; // ... a paired stroke this far from its place and this many times longer or shorter
   const SCROSS = 0.12;      // ... kanji strokes cross when both run on this far past the crossing
-  const GONE_NEAR = 0.05, GONE_MIN = 0.2; // a stroke this close along another (of the line's height) was drawn over it
+  let CUTCOS = 0.57;        // line by line: a stroke is cut where it turns by more than about 55 degrees (the cosine)...
+  const CUTN = 48, CUTW = 4, CUTMIN = 7; // ... measured over CUTW of CUTN steps along it, no piece shorter than CUTMIN steps
+  const CUTLEN = 0.15;      // ... and only strokes at least this long (of the writing's height)
+  const GONE_NEAR = 0.05, GONE_MIN = 0.2, GONE_SAME = 0.015; // a stroke this close along another (of the line's height) was drawn over it
   const KCOARSE = 24;       // competitors taken from the coarse ranking
   const KNEIGH = 12;        // competitors taken from the expected template's own coarse neighbours
   const KFINE = 6;          // closest competitors re-scored with the finer distance
@@ -142,6 +146,30 @@
     return r.subarray(0, 2 * NP);
   }
   let CYC = false;          // compare loops from any starting point (English writing)
+  let NO_LINES = false;     // (evaluation only: never line by line)
+  let LINES = false;        // compare line by line: strokes and templates cut where they turn a corner (verify's last try)
+  // The straight-ish pieces of a stroke: cut at its corners, sharpest first. A closed loop (a box drawn in one go) is
+  // cut all the way round, so where it started doesn't matter. Hooks and short strokes stay whole.
+  function cutCorners(poly, minLen) {
+    if (poly.length < 3 || polyLen(poly) < minLen) return [poly];
+    const closed = !!loopOf(poly), R = resample(closed ? poly.concat([poly[0]]) : poly, CUTN + 1);
+    const at = (i) => { const k = closed ? ((i % CUTN) + CUTN) % CUTN : i; return [R[2 * k], R[2 * k + 1]]; };
+    const turn = [];
+    for (let i = 0; i < (closed ? CUTN : CUTN + 1); i++) {
+      if (!closed && (i < CUTMIN || i > CUTN - CUTMIN)) { turn.push(1); continue; }
+      const a = at(i - CUTW), b = at(i), c = at(i + CUTW), n = Math.hypot(b[0] - a[0], b[1] - a[1]) * Math.hypot(c[0] - b[0], c[1] - b[1]);
+      turn.push(n ? ((b[0] - a[0]) * (c[0] - b[0]) + (b[1] - a[1]) * (c[1] - b[1])) / n : 1);
+    }
+    const cuts = [];
+    for (const i of turn.map((_, k) => k).filter((k) => turn[k] < CUTCOS).sort((x, y) => turn[x] - turn[y])) {
+      if (cuts.every((c) => Math.min(Math.abs(c - i), closed ? CUTN - Math.abs(c - i) : CUTN) >= CUTMIN)) cuts.push(i);
+    }
+    if (!cuts.length) return [poly];
+    cuts.sort((x, y) => x - y);
+    const ends = closed ? [...cuts, cuts[0] + CUTN] : [0, ...cuts, CUTN], out = [];
+    for (let k = 0; k + 1 < ends.length; k++) { const piece = []; for (let i = ends[k]; i <= ends[k + 1]; i++) piece.push(at(i)); out.push(piece); }
+    return out;
+  }
   function loopDist(A, B) {
     let best = Infinity;
     for (let dir = 0; dir < 2; dir++) for (let sh = 0; sh < NP; sh++) {
@@ -224,9 +252,10 @@
     return { f, polys: strokes.map((p) => p.map(([x, y]) => [(x - f.cx) / f.s, (y - f.cy) / f.s])) };
   }
   function getT(ch) {
-    let t = DEC.get(ch);
+    const key = LINES ? "/" + ch : ch; // (each mode has its own templates, and its own distances between them)
+    let t = DEC.get(key);
     if (t) return t;
-    const { f, polys } = decodePolys(ch);
+    const { f, polys: whole } = decodePolys(ch), polys = LINES ? whole.flatMap((np) => cutCorners(np, CUTLEN)) : whole;
     const strokes = polys.map((np) => { const u = unitOf(np, { poly: np, lp: loopOf(np) }); u.w = WBASE + u.len; return u; });
     const chains = [];
     for (let a = 0; a < strokes.length; a++) for (let b = a + 1; b <= Math.min(a + 2, strokes.length - 1); b++) {
@@ -249,7 +278,7 @@
         t.zt = Math.max(-0.5, Math.min(1.3, (-lt - X) / (1 - X))); t.zb = Math.max(-0.5, Math.min(1.5, lb / D)); t.zw = f.w / H.h / X;
       }
     }
-    DEC.set(ch, t);
+    DEC.set(key, t);
     return t;
   }
 
@@ -324,14 +353,15 @@
   // ---------------------------------------------------------------- input strokes
   function prepInput(strokes, stray) {
     let S = [];
+    const add = (poly) => { const p = resample(poly, NP); S.push({ poly, bb: bboxOf(poly), len: polyLen(poly), p, q: shapeQ(p), lp: loopOf(poly), id: S.length }); };
     for (const raw of strokes || []) {
       if (!raw || !raw.length) continue;
       const poly = clean(raw);
-      if (!poly.length) continue;
-      const p = resample(poly, NP);
-      S.push({ poly, bb: bboxOf(poly), len: polyLen(poly), p, q: shapeQ(p), lp: loopOf(poly), id: S.length });
+      if (poly.length) add(poly);
     }
-    if (stray) { S = S.filter((s) => !isStray(s, S)); S.forEach((s, i) => { s.id = i; }); }
+    if (stray) S = S.filter((s) => !isStray(s, S));
+    if (LINES && S.length) { const whole = S, minLen = CUTLEN * Math.max(1, frameOf(S.map((s) => s.bb)).h); S = []; for (const s of whole) for (const piece of cutCorners(s.poly, minLen)) { add(piece); S[S.length - 1].whole = s.poly; } }
+    S.forEach((s, i) => { s.id = i; });
     return linkNext(S);
   }
   // two strokes in a row may be one template stroke drawn in two pieces
@@ -346,9 +376,9 @@
   // one go) merely runs along.
   function goneOver(S) {
     if (S.length < 2) return S;
-    const h = frameOf(S.map((s) => s.bb)).h, out = [];
+    const h = frameOf(S.map((s) => s.bb)).h, all = S.map((s) => s.p), out = [];
     S.forEach((a, i) => {
-      if (a.len < GONE_MIN * h || !S.some((b, q) => q !== i && b.len >= GONE_MIN * h && (b.len > a.len || (b.len === a.len && q < i)) && onInk(a.p, [b.p], GONE_NEAR * h, true) >= 0.7 && onInk(b.p, [a.p], GONE_NEAR * h, true) >= 0.4)) out.push(a);
+      if (a.len < GONE_MIN * h || !S.some((b, q) => q !== i && b.len >= GONE_MIN * h && (b.len > a.len || (b.len === a.len && q < i)) && onInk(a.p, [b.p], GONE_NEAR * h, true) >= 0.7 && onInk(b.p, [a.p], GONE_NEAR * h, true) >= 0.4 && secondGo(a.p, b.p, all, h))) out.push(a);
     });
     return out.length === S.length ? S : linkNext(out.map((a, i) => ({ ...a, id: i })));
   }
@@ -417,7 +447,7 @@
     }
     f /= NP; r /= NP;
     if (SQ) { f = Math.sqrt(f); r = Math.sqrt(r); }
-    r += REV * Math.min(1, tlen / 0.35);
+    r += (LINES ? REVL : REV) * Math.min(1, tlen / 0.35);
     lastRev = r < f;
     return lastRev ? r : f;
   }
@@ -447,7 +477,7 @@
   }
   let USE_DTW = false, JUDGE_DTW = true;
   function sdistW(A, B, tlen) {
-    const f = dtw(A, B, false), r = dtw(A, B, true) + REV * Math.min(1, tlen / 0.35);
+    const f = dtw(A, B, false), r = dtw(A, B, true) + (LINES ? REVL : REV) * Math.min(1, tlen / 0.35);
     lastRev = r < f;
     return lastRev ? r : f;
   }
@@ -667,7 +697,7 @@
   // How far template c is from template e (c "written perfectly", judged as e). Cached.
   const TD = new Map();
   function tdist(e, c) {
-    const key = e + c;
+    const key = (LINES ? "/" : "") + e + c;
     let d = TD.get(key);
     if (d === undefined) {
       const t = getT(c);
@@ -681,7 +711,7 @@
   // of the same shape (only the lengths and places differ, as in 未/末, not 材/村). Cached.
   const XD = new Map();
   function endDiff(e, c) {
-    const key = e + c;
+    const key = (LINES ? "/" : "") + e + c;
     let D = XD.get(key);
     if (D === undefined) {
       D = [];
@@ -757,6 +787,12 @@
     for (let k = 0; k < 2 * NP; k += 2) d.push(nearestOn(A[k], A[k + 1], B)[0]);
     return d.sort((a, b) => a - b)[NP >> 1];
   }
+  // Is stroke A, lying close along stroke B, a second go at B and not a line of its own? Not when another stroke runs
+  // alongside A within twice the distance: a line drawn between two lines of 目 is near both, however close they are.
+  function secondGo(A, B, all, unit) {
+    const d = midDist(A, B);
+    return d < GONE_SAME * unit || !all.some((C) => C !== A && C !== B && onInk(A, [C], 2 * d) >= 0.5);
+  }
   // The part of stroke B that stroke A runs along: [from, to], as lengths along B.
   function spanOn(A, B) {
     let lo = Infinity, hi = -Infinity;
@@ -770,11 +806,12 @@
   // det: the stroke pairing from match(..., true). Returns "missing", "extra", "wrong" or null.
   function strokeCheck(det, t) {
     if (det.byInk) return null;
-    return ((det.missT || det.extraU) && strokeCount(det, t)) || (misplaced(det, t) ? "wrong" : crossing(det, t) ? "crossing" : null);
+    return ((det.missT || det.extraU) && strokeCount(det, t)) || (misplaced(det, t) ? "wrong" : crossing(det, t) ? "crossing" : LINES && spare(det, t) ? "extra" : null);
   }
   function strokeCount(det, t) {
     const { ust, selU, selT, cand } = det, U = ust.length, Tn = t.s.length;
     let miss = 0, extra = 0;
+    const own = ust.filter((u, i) => !selU[i] || onInk(u.p, t.s.slice(selU[i].ta, selU[i].tb + 1).map((x) => x.p)) >= 0.3).map((u) => u.p);
     for (let j = 0; j < Tn; j++) {
       if (selT[j]) continue;
       // joined into a neighbouring stroke: the best pairing of one user stroke with a run of template strokes over j
@@ -789,14 +826,16 @@
         let tl = t.s[j].len; for (let q = c.ta; q <= c.tb; q++) tl += t.s[q].len;
         joined = ust[i].len >= 0.8 * tl && onInk(t.s[j].p, [ust[i].p]) >= 0.3;
       }
-      if (!joined) miss++;
+      // (line by line: only with ink along it, from strokes that lie where they are paired; a line paired with the
+      // wrong place would hide the gap it left)
+      if (!joined || (LINES && onInk(t.s[j].p, own) < 0.5)) miss++;
     }
     for (let i = 0; i < U; i++) {
       if (selU[i]) continue;
       // a stroke gone over again lies on other writing; a piece of a stroke lies on the kanji's ink and touches or
       // ends at other writing
       const P = ust[i].p, others = ust.filter((_, q) => q !== i).map((u) => u.p), onU = onInk(P, others);
-      let fine = onInk(P, others, SOVER) >= 0.5;
+      let fine = onInk(P, others, SOVER) >= 0.5 && secondGo(P, others.reduce((a, b) => (midDist(P, b) < midDist(P, a) ? b : a)), others, 1);
       if (!fine && onInk(P, t.s.map((u) => u.p)) >= 0.5 && otherPiece(det, t, i)) {
         const ends = [[P[0], P[1]], [P[2 * NP - 2], P[2 * NP - 1]]];
         fine = onU >= 0.3 || ust.some((u, q) => q !== i && ends.some(([x, y]) => Math.hypot(x - u.p[0], y - u.p[1]) < SNEAR || Math.hypot(x - u.p[2 * NP - 2], y - u.p[2 * NP - 1]) < SNEAR));
@@ -821,7 +860,7 @@
     const pj = selT[jm], T = t.s[jm].p, a = spanOn(P, T);
     return !pj || [pj.ua, pj.ub].some((q) => {
       if (q < 0) return false;
-      if (midDist(P, ust[q].p) < STOUCH) return true;
+      if (midDist(P, ust[q].p) < STOUCH && secondGo(P, ust[q].p, ust.map((u) => u.p), 1)) return true;
       if (onInk(ust[q].p, [T]) < 0.3) return false;
       const b = spanOn(ust[q].p, T);
       return 2 * Math.max(0, Math.min(a[1], b[1]) - Math.max(a[0], b[0])) <= Math.min(a[1] - a[0], b[1] - b[0]);
@@ -838,6 +877,12 @@
       // (not when the stroke paired with that other one lies on this one's place: two strokes swapped partners)
       return t.s.some((s, k) => s !== tj && onInk(u.p, [s.p]) >= 0.6 && !(selT[k] && selT[k].ub < 0 && onInk(ust[selT[k].ua].p, [tj.p]) >= 0.3));
     });
+  }
+  // A line the kanji doesn't have: off the line it is paired with, which another stroke already draws (a box drawn
+  // as a loop whose corner wasn't found is a line short, and a line added across the box would make up the count).
+  function spare(det, t) {
+    const { ust } = det;
+    return det.sel.some((c) => c.ub < 0 && c.ta === c.tb && onInk(ust[c.ua].p, [t.s[c.ta].p]) < 0.3 && onInk(t.s[c.ta].p, ust.filter((_, i) => i !== c.ua).map((u) => u.p)) >= 0.5);
   }
   // Where strokes A and B (resampled) cross: how far along each, and how long each is; null when they don't.
   function crossAt(A, B) {
@@ -1140,6 +1185,11 @@
     return LPLACE * (Math.max(0, dt - PSLACK) + Math.max(0, db - PSLACK)) + LWIDE * Math.max(0, dw);
   }
 
+  function wholeOk(S, G, p) {
+    const r = verify({ strokes: [...new Set(G.ids.map((id) => S[id].whole))], candidates: p.opts, lines: false });
+    LINES = true;
+    return r.ok !== false;
+  }
   function evaluate(S, P, seg, jcache, dbg, latin, mcache) {
     const chars = [], sizes = [];
     let text = "", allOk = true;
@@ -1161,7 +1211,13 @@
       }
       const key = G.ids.join(",") + "|" + p.key + lkey;
       let j = jcache.get(key);
-      if (!j) { j = judge(S, G, p.opts, latin, line); jcache.set(key, j); }
+      if (!j) {
+        j = judge(S, G, p.opts, latin, line);
+        // line by line is for kanji. Cut into lines, a kana with its dakuten left out still looks close, so anything
+        // else must also pass stroke by stroke, as the whole strokes its lines came from.
+        if (j.ok && LINES && kindOf(p.ch) && !wholeOk(S, G, p)) j = { ...j, ok: false };
+        jcache.set(key, j);
+      }
       let why = j.ok ? null : j.strokes ? "strokes" : "shape";
       const ch = letterOf(j.ch || p.ch);
       if (!why && lineEmRef && !latin) {
@@ -1220,14 +1276,17 @@
   }
   function has(ch) { return !!(RAW && RAW[ch]); }
 
+  // how many pen strokes a candidate takes when written stroke by stroke
+  function strokesOf(info) { return info.pos.reduce((n, p) => n + (p.optional ? 0 : getT(p.ch).n), 0); }
+
   function verify(opts) {
     const t0 = now();
     if (!RAW) throw new Error("QCardChecker.verify: call init() first");
     opts = opts || {};
-    const S = opts.goneOver || prepInput(opts.strokes, !opts.latin);
     const cands = [...new Set((opts.candidates || []).map((c) => String(c).normalize("NFKC")).filter((c) => c.trim().length))];
     const anyKana = !!opts.anyKana, latin = !!opts.latin;
-    CYC = latin;
+    CYC = latin; LINES = !latin && !!opts.lines;
+    const S = opts.goneOver || prepInput(opts.strokes, !opts.latin);
     const infos = cands.map((c) => ({ text: c, ...candidateInfo(c, latin) }));
     // (English: a whole sentence is left to the student; reading 30+ letters is slow and less sure)
     const usable = infos.filter((x) => !x.unsupported.length && x.pos.some((p) => !p.optional) && (!latin || x.pos.filter((p) => !p.optional).length <= LMAXLEN));
@@ -1270,6 +1329,14 @@
     }
     if (!best) { const c = usable[0]; return done({ ok: false, text: c.text, chars: c.pos.map((p) => ({ ch: p.ch, ok: false, why: "shape" })) }); }
     if (!best.ok && !latin && !opts.goneOver) { const S2 = goneOver(S); if (S2 !== S) { const r2 = verify({ ...opts, goneOver: S2 }); if (r2.ok) return done(r2); } }
+    // still wrong, in fewer pen strokes than the answer has: once more line by line, so that strokes joined in one go
+    // (a box drawn as one loop) count as the lines they draw. Its verdict stands when it passes, faults fewer
+    // characters, or faults as many for their strokes (it says which line is wrong, not that a pen stroke is missing).
+    if (!best.ok && !latin && !LINES && !NO_LINES && opts.lines === undefined && !opts.goneOver && S.length < Math.min(...usable.map(strokesOf))) {
+      const r3 = verify({ ...opts, lines: true }), bad = (r) => r.chars.filter((c) => !c.ok), share = (r) => bad(r).length / Math.max(1, r.chars.length);
+      LINES = false;
+      if (r3.ok || share(r3) < share(best) || (share(r3) === share(best) && bad(r3).every((c) => c.why === "strokes"))) return done(r3);
+    }
     if (all) best.all = all;
     delete best.score;
     if (!opts.debug) { delete best.groups; delete best.extra; delete best.size; delete best.line; }
@@ -1332,7 +1399,7 @@
 
   const api = {
     init, has, verify, top, englishAnswers,
-    _: { set: (o) => { if ("SQ" in o) SQ = o.SQ; if ("KAPPA" in o) KAPPA = o.KAPPA; if ("CEIL" in o) CEIL = o.CEIL; if ("LPLACE" in o) LPLACE = o.LPLACE; if ("LMARGIN" in o) LMARGIN = o.LMARGIN; if ("LMARGIN_X" in o) LMARGIN_X = o.LMARGIN_X; if ("LKAPPA" in o) LKAPPA = o.LKAPPA; if ("LCEIL" in o) LCEIL = o.LCEIL; if ("LOOPPEN" in o) LOOPPEN = o.LOOPPEN; if ("INKW" in o) INKW = o.INKW; if ("LWIDE" in o) LWIDE = o.LWIDE; if ("WSLACK" in o) WSLACK = o.WSLACK; if ("PSLACK" in o) PSLACK = o.PSLACK; if ("INKGATE" in o) INKGATE = o.INKGATE; if ("XSHIFT" in o) XSHIFT = o.XSHIFT; TD.clear(); }, tdist, endDiff, setDTW: (v, j) => { USE_DTW = v; if (j !== undefined) JUDGE_DTW = j; }, sdist, assign, prepInput, groupView, match, getT, coarseFeat, coarseRank, judge, segment, orders, lineEm, variantsOf, SAMEMAP, SMALL2LARGE },
+    _: { set: (o) => { if ("SQ" in o) SQ = o.SQ; if ("KAPPA" in o) KAPPA = o.KAPPA; if ("CEIL" in o) CEIL = o.CEIL; if ("LPLACE" in o) LPLACE = o.LPLACE; if ("LMARGIN" in o) LMARGIN = o.LMARGIN; if ("LMARGIN_X" in o) LMARGIN_X = o.LMARGIN_X; if ("LKAPPA" in o) LKAPPA = o.LKAPPA; if ("LCEIL" in o) LCEIL = o.LCEIL; if ("LOOPPEN" in o) LOOPPEN = o.LOOPPEN; if ("INKW" in o) INKW = o.INKW; if ("LWIDE" in o) LWIDE = o.LWIDE; if ("WSLACK" in o) WSLACK = o.WSLACK; if ("PSLACK" in o) PSLACK = o.PSLACK; if ("INKGATE" in o) INKGATE = o.INKGATE; if ("XSHIFT" in o) XSHIFT = o.XSHIFT; if ("REVL" in o) REVL = o.REVL; if ("CUTCOS" in o) CUTCOS = o.CUTCOS; if ("lines" in o) NO_LINES = o.lines === "off"; TD.clear(); DEC.clear(); XD.clear(); }, cutCorners, tdist, endDiff, setDTW: (v, j) => { USE_DTW = v; if (j !== undefined) JUDGE_DTW = j; }, sdist, assign, prepInput, groupView, match, getT, coarseFeat, coarseRank, judge, segment, orders, lineEm, variantsOf, SAMEMAP, SMALL2LARGE },
   };
   root.QCardChecker = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

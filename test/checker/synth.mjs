@@ -259,3 +259,38 @@ export function writeWord(text, seed, opt = {}) {
   });
   return { strokes, spans, box: { w: Math.round(o.boxW), h: Math.round(boxH) }, realChars, augChars, totalChars: chars.length };
 }
+
+// ---------------------------------------------------------------- boxes (口, 日, 田...)
+// The boxes among written strokes: [a, a + 1, c] = the left side, the top and right side drawn in one go, the bottom.
+// size: the height the strokes were written at (1 for tplStrokes).
+export function boxesIn(strokes, size = 1) {
+  const d = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]) / size, out = [];
+  for (let a = 0; a + 2 < strokes.length; a++) {
+    const a0 = strokes[a][0], a1 = strokes[a].at(-1), b0 = strokes[a + 1][0], b1 = strokes[a + 1].at(-1);
+    if (a1[1] - a0[1] < 0.12 * size || Math.abs(a1[0] - a0[0]) > 0.5 * (a1[1] - a0[1])) continue;        // the left side goes down
+    if (d(a0, b0) > 0.06 || b1[0] - b0[0] < 0.1 * size || b1[1] - b0[1] < 0.1 * size) continue; // from the same corner to the lower right
+    for (let c = a + 2; c < Math.min(strokes.length, a + 8); c++) {
+      if (d(strokes[c][0], a1) < 0.07 && d(strokes[c].at(-1), b1) < 0.07) { out.push([a, a + 1, c]); break; }
+    }
+  }
+  return out;
+}
+// The strokes with box [a, b, c] drawn as one loop: down the left, along the bottom, up the right and back along the
+// top. r: either way round, from any point of it.
+export function loopBox(strokes, [a, b, c], r) {
+  let loop = strokes[a].concat(strokes[c], strokes[b].slice().reverse());
+  if (r && r() < 0.5) loop.reverse();
+  if (r) { const k = Math.floor(r() * loop.length); loop = loop.slice(k).concat(loop.slice(0, k + 1)); }
+  const out = strokes.filter((_, i) => i !== a && i !== b && i !== c);
+  out.splice(a, 0, loop);
+  return out;
+}
+// The strokes with one more line across box [a, b, c], halfway between the two lines of it that are furthest apart.
+export function lineInBox(strokes, [a, b, c]) {
+  const bot = strokes[c], mid = (s) => (s[0][1] + s.at(-1)[1]) / 2, flat = (s) => Math.abs(s.at(-1)[1] - s[0][1]) < 0.3 * Math.abs(s.at(-1)[0] - s[0][0]);
+  const ys = [strokes[b][0][1], ...strokes.slice(b + 1, c).filter(flat).map(mid), mid(bot)].sort((p, q) => p - q);
+  let g = 0;
+  for (let i = 1; i + 1 < ys.length; i++) if (ys[i + 1] - ys[i] > ys[g + 1] - ys[g]) g = i;
+  const y = (ys[g] + ys[g + 1]) / 2;
+  return [...strokes, bot.map(([px, py]) => [px, py - mid(bot) + y])];
+}
