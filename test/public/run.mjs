@@ -152,7 +152,7 @@ ok(hist.length === 1 && hist[0][1].words.length === 3, "history: one session wit
 
 // ---------- 3b. English → 日本語 with the built-in checker (synthetic handwriting from test/checker/synth.mjs) ----------
 if (entry.length > 1) {
-  const { writeWord } = await import("../checker/synth.mjs");
+  const { writeWord, rng, boxesIn, loopBox, lineInBox } = await import("../checker/synth.mjs");
   const fixture = JSON.parse(readFileSync(join(root, "test/public/fixtures/sample-export.json"), "utf8"));
   const byEn = new Map(fixture.sets.flatMap((s) => s.words).map((w) => [w.en, w]));
   const write = async (str, seed) => {
@@ -254,6 +254,13 @@ if (entry.length > 1) {
       "built-in: 春 passes, 春 with ㇏ starting below the third line fails as strokes not crossing", await other("春", late));
     const s5 = hr[4], cut = s5.length >> 1, piecesLast = [...hr.slice(0, 4), s5.slice(0, cut + 1), ...hr.slice(5), s5.slice(cut)];
     ok(await other("春", piecesLast) === "ok", "built-in: 春's ㇏ drawn in two pieces, the second at the end, still passes", await other("春", piecesLast));
+    // Pen strokes don't matter, only the lines drawn: a box drawn in one go, as a loop, is the same kanji
+    const kai = writeWord("回", 11, O), r = rng(5), inner = [2, 3, 4]; // 丨 ㇕ around 丨 ㇕ 一, then the outer 一
+    const loops = loopBox(loopBox(kai.strokes, inner, r), [0, 1, 3], r), line = lineInBox(kai.strokes, inner).at(-1);
+    ok(JSON.stringify(boxesIn(kai.strokes, kai.spans[0][2])) === "[[0,1,5],[2,3,4]]" && loops.length === 2 && await other("回", loops) === "ok",
+      "built-in: 回 with each box drawn in one go, as a loop, passes", await other("回", loops));
+    ok(await other("回", [...loops, line]) === "strokes:extra" && await other("回", [...kai.strokes, line]) === "strokes:extra",
+      "built-in: 回 with one more line across its inner box fails as an extra stroke, drawn as loops or not", await other("回", [...loops, line]) + " " + await other("回", [...kai.strokes, line]));
   }
   // A look-alike reads as the character asked for: ー written like 一 in ジュース, so the answer still matches
   {
