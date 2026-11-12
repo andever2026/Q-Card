@@ -51,6 +51,7 @@
     S.loaded = true;
     const ids = new Set(S.sets.map((s) => s.id));
     for (const id of [...S.selected]) if (!ids.has(id)) S.selected.delete(id);
+    for (const id of [...S.drafts.keys()]) if (!ids.has(id)) S.drafts.delete(id);
     renderSetup();
     renderTable();
   }

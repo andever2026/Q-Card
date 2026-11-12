@@ -269,4 +269,4 @@
   document.querySelectorAll("#dirSeg button").forEach((b) => (b.onclick = () => { S.dir = b.dataset.dir; saveSetup(); renderSetup(); }));
   document.querySelectorAll("#modeSeg button").forEach((b) => (b.onclick = () => { S.mode = b.dataset.mode; saveSetup(); renderSetup(); }));
   $("#toTable").onclick = () => { renderTable(); show("table"); };
-  $("#backBtn").onclick = () => show("setup");
+  $("#backBtn").onclick = () => leaveTable();

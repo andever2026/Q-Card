@@ -40,7 +40,9 @@
     upto: store.get("uptoPick", "auto"), // "auto" follows the highest picked unit; older manual picks lived under "upto"
     kdrafts: new Map(),  // listId -> edited kanji string
     kConfirmDel: null,
-    drafts: new Map(),   // setId -> words[] being edited
+    drafts: new Map(),   // setId -> {words, vals}: the set being edited in the vocab table (vocab/table.js)
+    editNew: null,       // a set just added, to open ready for typing
+    leaveAsk: false,     // leaving the vocab table with unsaved changes: asking what to do with them
     confirmDel: null,
     tableCh: store.get("tableCh", null), // chapter shown in the vocab table
     tq: "",              // vocab table search text
@@ -48,7 +50,6 @@
     touched: new Set(),  // word ids edited during the current search, kept visible
     kAll: false,         // kanji panel: every unit instead of the vocab table's units
     tAll: false,         // search: draw every match instead of the first TLIMIT
-    editSet: null, editVals: null, // set whose collection/unit/name is being edited
     kEdit: null, kEditUnit: "", kEditCol: "",  // kanji list whose collection and unit are being edited
     formCol: null,                 // collection last filled into the new set / new kanji forms
     colOrder: [],                  // saved book order (meta/books); books not in it come after, by name

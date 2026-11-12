@@ -338,13 +338,49 @@ ok(!(await page.$("#checkPanel")) && !(await page.$("#keyForm")) && !/How answer
 // ---------- 5. tags, export ----------
 await page.click("#toTable"); await page.waitForTimeout(200);
 const tset = '[data-sid="sample-ch1-a"]';
-await page.click(`${tset} [data-toggle]`); await page.click(`${tset} [data-editset]`);
+// The vocab editor: a set reads as plain text until Edit turns it into fields; nothing is saved until Save.
+const leaveAsked = () => page.evaluate(() => { const e = new Event("beforeunload", { cancelable: true }); dispatchEvent(e); return e.defaultPrevented; });
+await page.click(`${tset} [data-toggle]`);
+const w1 = await text(page, `${tset} tbody td`);
+ok(!!w1 && !(await page.$(`${tset} textarea, ${tset} input`)) && await vis(page, `${tset} .tseth [data-edit]`) && !(await page.$(`${tset} [data-save], ${tset} [data-delset]`)),
+  "vocab table: an open set reads as plain text, with Edit beside its name", w1);
+await page.click(`${tset} [data-edit]`);
+ok((await page.$$eval(`${tset} textarea[data-f]`, (xs) => xs.length)) >= 3 && await vis(page, `${tset} [data-ef="name"]`) && await page.$eval(`${tset} [data-save]`, (b) => b.disabled) && (await text(page, `${tset} [data-discard]`)) === "Cancel"
+  && !(await page.$(`${tset} [data-edit]`)) && /Editing/.test(await text(page, `${tset} .tsethead`)) && await page.evaluate(() => document.activeElement?.dataset.f === "en") && !(await leaveAsked()),
+  "vocab table: Edit turns the set into fields with its details on top, and there's nothing to save yet");
 await page.fill(`${tset} [data-ef="tags"]`, " Quiz 1,quiz 1 、 Food  and drink, ");
-await page.click(`${tset} [data-editform] [type="submit"]`); await page.waitForTimeout(400);
+ok(/Unsaved changes/.test(await text(page, `${tset} .tsethead`)) && await page.$eval(`${tset} [data-ef="tags"]`, (i) => i.classList.contains("chg") && document.activeElement === i) && !(await page.$eval(`${tset} [data-save]`, (b) => b.disabled))
+  && (await text(page, `${tset} [data-discard]`)) === "Discard changes" && await leaveAsked(), "vocab table: a changed field is marked, the set says Unsaved changes, and the browser asks before the page is left");
+await page.click("#backBtn");
+ok(await vis(page, "#table") && /^1 set has unsaved changes\./.test(await text(page, "#leaveAsk")), "vocab table: ← Back with unsaved changes asks what to do with them", await text(page, "#leaveAsk"));
+await page.click("#leaveAsk [data-lkeep]");
+ok(!(await vis(page, "#leaveAsk")) && await vis(page, "#table") && /Quiz 1/.test(await page.$eval(`${tset} [data-ef="tags"]`, (i) => i.value)), "vocab table: Keep editing stays, with the changes");
+await page.click(`${tset} [data-save]`); await page.waitForTimeout(400);
+ok(!(await page.$(`${tset} textarea`)) && await vis(page, `${tset} [data-edit]`) && !(await leaveAsked()), "vocab table: after Save the set reads as text again");
 data = await fsData(page);
-ok(JSON.stringify(data["users/u1/sets/sample-ch1-a"]?.tags) === '["Quiz 1","Food and drink"]', "tags: saved from Edit details, tidied and without repeats", JSON.stringify(data["users/u1/sets/sample-ch1-a"]?.tags));
+ok(JSON.stringify(data["users/u1/sets/sample-ch1-a"]?.tags) === '["Quiz 1","Food and drink"]', "tags: saved from Edit, tidied and without repeats", JSON.stringify(data["users/u1/sets/sample-ch1-a"]?.tags));
 ok((await page.$$eval(`${tset} .tag`, (xs) => xs.map((x) => x.textContent).join("|"))) === "Quiz 1|Food and drink", "tags: shown on the set in the vocab table");
-await page.click(`${tset} [data-editset]`); await page.locator(tset).screenshot({ path: join(out, "5-tags-table.png") }); await page.click(`${tset} [data-editcancel]`);
+{ const en = `${tset} tr:first-child textarea[data-f="en"]`, saved = async () => (await fsData(page))["users/u1/sets/sample-ch1-a"].words[0].en;
+  await page.click(`${tset} [data-edit]`);
+  const tall = await page.$eval(en, (t) => t.offsetHeight);
+  await page.fill(en, "a phrase long enough that it can't fit on one line of its field, so the field has to grow to show all of it");
+  ok(await page.$eval(en, (t) => t.classList.contains("chg") && t.scrollWidth <= t.clientWidth + 1) && (await page.$eval(en, (t) => t.offsetHeight)) > tall && (await page.$$eval(`${tset} textarea.chg`, (x) => x.length)) === 1,
+    "vocab table: a long phrase wraps in its field instead of scrolling, and only the changed field is marked");
+  await page.locator(tset).screenshot({ path: join(out, "5-tags-table.png") });
+  await page.press(en, "Enter");
+  ok(await page.evaluate(() => document.activeElement?.dataset.f === "kana") && !/\n/.test(await page.$eval(en, (t) => t.value)), "vocab table: Enter goes on to the next field");
+  await page.click(`${tset} [data-discard]`);
+  ok(!(await page.$(`${tset} textarea`)) && (await text(page, `${tset} tbody td`)) === w1 && (await saved()) === w1, "vocab table: Discard changes puts the set back as it was saved");
+  await page.click(`${tset} [data-edit]`); await page.fill(en, w1 + "!"); await page.click("#backBtn"); await page.click("#leaveAsk [data-ldiscard]");
+  ok(await vis(page, "#setup") && (await saved()) === w1, "vocab table: Discard all on leaving saves nothing");
+  await page.click("#toTable");
+  ok(!(await page.$(`${tset} textarea`)) && (await text(page, `${tset} tbody td`)) === w1, "vocab table: coming back, the set isn't being edited any more");
+  await page.click(`${tset} [data-edit]`); await page.fill(en, w1 + "!"); await page.click("#backBtn"); await page.click("#leaveAsk [data-lsave]"); await page.waitForTimeout(400);
+  ok(await vis(page, "#setup") && (await saved()) === w1 + "!", "vocab table: Save all on leaving saves, then goes back to practice", await saved());
+  await page.click("#toTable"); await page.click(`${tset} [data-edit]`); await page.fill(en, w1);
+  await page.click(`${tset} [data-add]`); await page.keyboard.type("spare"); await page.click(`${tset} tr:last-child [data-del]`);
+  await page.click(`${tset} [data-save]`); await page.waitForTimeout(400);
+  ok((await saved()) === w1 && !(await page.$(`${tset} textarea`)), "vocab table: (the word is back as it was; an added row taken out again isn't saved)", JSON.stringify((await fsData(page))["users/u1/sets/sample-ch1-a"].words.length)); }
 ok(!(await page.$("#table #exportBtn")), "export / import: no longer in the vocab table");
 await settings(page, "vocab");
 const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#exportBtn")]);
@@ -558,14 +594,15 @@ await up.click('#groupSeg [data-group="book"]');
 await up.click("#toTable"); await up.waitForTimeout(200);
 await up.fill("#nsCol", "mine"); await up.fill("#nsUnit", "week 2"); await up.fill("#nsName", "Weather");
 await up.click('#newSetForm [type="submit"]'); await up.waitForTimeout(400);
+ok(await up.evaluate(() => { const a = document.activeElement; return a?.dataset.f === "en" && !!a.closest(".tset.editing") && /Weather/.test(a.closest(".tset").querySelector(".tsethead").textContent); }), "vocab table: a set just added opens ready to type its first word");
 const local = () => up.evaluate(() => Object.fromEntries(Object.keys(localStorage).filter((k) => k.startsWith("qcard:local:sets/")).map((k) => [k.slice(17), JSON.parse(localStorage.getItem(k))])));
 let docs = await local(), added = Object.entries(docs).find(([, d]) => d.name === "Weather");
 ok(added && added[1].collection === "Mine" && added[1].unit === "Week 2" && !("book" in added[1]), "units: a new set is saved with collection, unit and name, matching an existing unit whatever its case", JSON.stringify(added?.[1] ? { id: added[0], ...added[1], words: undefined } : null));
 const ot = '[data-sid="n-1a"]';
 await up.click('#tChs .pchrow:nth-child(2) [data-k="all"]'); await up.waitForTimeout(100);
-await up.click(`${ot} [data-toggle]`); await up.click(`${ot} [data-editset]`);
-ok((await up.$eval(`${ot} [data-ef="unit"]`, (i) => i.value)) === "Ch. 1" && (await up.$eval(`${ot} [data-ef="name"]`, (i) => i.value)) === "A · Hello", "units: Edit details shows an older set as unit and name");
-await up.fill(`${ot} [data-ef="name"]`, "A · Greetings"); await up.click(`${ot} [data-editform] [type="submit"]`); await up.waitForTimeout(400);
+await up.click(`${ot} [data-toggle]`); await up.click(`${ot} [data-edit]`);
+ok((await up.$eval(`${ot} [data-ef="unit"]`, (i) => i.value)) === "Ch. 1" && (await up.$eval(`${ot} [data-ef="name"]`, (i) => i.value)) === "A · Hello", "units: Edit shows an older set as unit and name");
+await up.fill(`${ot} [data-ef="name"]`, "A · Greetings"); await up.click(`${ot} [data-save]`); await up.waitForTimeout(400);
 docs = await local();
 ok(docs["n-1a"]?.name === "A · Greetings" && docs["n-1a"]?.unit === "Ch. 1" && docs["n-1a"]?.collection === "Nakama", "units: editing an older set saves it with collection, unit and name", JSON.stringify({ ...docs["n-1a"], words: undefined }));
 await up.screenshot({ path: join(out, "11-units-table.png"), fullPage: true });

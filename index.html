@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-BRsZ+kwXkqszJe2H/Hn5Dv1UmbXL94t+wArM/ATsPZY=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-eLG5C4MlMpDFtszfpbynrSwgfsOAGyQo6CmYuzgj1HU=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -306,8 +306,9 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .tset { display: grid; gap: 10px; }
 .tset + .tset { border-top: 1px solid var(--line); padding-top: 10px; }
 .tset.open:not(:last-child) { padding-bottom: 14px; } /* room between an open set's buttons and the line under them */
-.tseth { margin: 0; font-size: inherit; }
-.tsethead { width: 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; background: none; border: none; padding: 4px 0; text-align: left; }
+.tseth { margin: 0; font-size: inherit; display: flex; align-items: center; gap: 10px; }
+.tseth .btn { padding: 4px 12px; font-size: .85rem; text-transform: none; letter-spacing: normal; color: var(--ink); }
+.tsethead { flex: 1; min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; background: none; border: none; padding: 4px 0; text-align: left; }
 .tsethead .t { font-size: 1.15rem; font-weight: 700; display: inline-flex; gap: 8px; align-items: baseline; flex-wrap: wrap; min-width: 0; }
 .tsethead .t .muted { font-weight: 400; }
 .tsethead > .small { white-space: nowrap; }
@@ -319,9 +320,19 @@ table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: .92
 th { text-align: left; font-weight: 500; font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 6px; border-bottom: 1px solid var(--line); }
 td { padding: 4px 6px; border-bottom: 1px dashed var(--line); vertical-align: middle; }
 td.jp { font-family: var(--font-jp); font-size: 1.05rem; }
-td input[type="text"] { width: 100%; font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid transparent; border-radius: 6px; padding: 5px 7px; }
-td input[type="text"]:hover { border-color: var(--line); }
-td.c { text-align: center; width: 4.5rem; }
+/* A set being edited: each word's field grows with its text, and a field that differs from what's saved is marked. */
+td textarea { display: block; width: 100%; font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid transparent; border-radius: 6px; padding: 5px 7px; resize: none; overflow: hidden; field-sizing: content; }
+td textarea:hover { border-color: var(--line); }
+td textarea:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+td textarea.chg, .setedit input.chg { border-color: var(--ai); background: var(--ai-soft); }
+.tset:not(.editing) td { padding-block: 7px; overflow-wrap: anywhere; }
+/* The columns keep their widths between reading and editing, whatever is in them. */
+.tscroll table { table-layout: fixed; }
+.tscroll th:first-child { width: 36%; }
+.tscroll th:nth-child(2) { width: 34%; }
+.tscroll th:empty { width: 2.75rem; }
+.leaveask { display: flex; align-items: center; justify-content: space-between; gap: 8px 14px; flex-wrap: wrap; }
+td.c { text-align: center; padding-inline: 0; }
 @media (max-width: 560px) {
   /* On a phone each word is a small card: English on top, kana and kanji under it, delete at the side. */
   .tscroll table { min-width: 0; }
@@ -331,6 +342,11 @@ td.c { text-align: center; width: 4.5rem; }
   .tscroll td { border: none; padding: 2px 3px; }
   .tscroll td:first-child { grid-column: 1 / 3; }
   .tscroll td.c { grid-column: 3; grid-row: 1 / 3; width: auto; }
+  /* Read as text, the kana and the kanji share the second line, each as long as it needs. */
+  .tset:not(.editing) .tscroll tr { display: flex; flex-wrap: wrap; column-gap: 12px; }
+  .tset:not(.editing) .tscroll td { padding-block: 1px; }
+  .tset:not(.editing) .tscroll td:first-child { flex-basis: 100%; }
+  .tset:not(.editing) .tscroll td:empty { display: none; }
 }
 .rowdel { background: none; border: none; color: var(--muted); font-size: 1.1rem; padding: 2px 8px; }
 .rowdel:hover { color: var(--shu); }
@@ -716,6 +732,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   <!-- TABLE -->
   <section id="table" class="wrap" style="gap:18px" hidden>
     <div class="qbar"><button class="ghost" id="backBtn">← Back to practice</button></div>
+    <div class="banner leaveask" id="leaveAsk" hidden></div>
     <div class="panel">
       <div class="head"><h2>Vocab table</h2>
         <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="bookOrderBtn" hidden>Change collection order</button>
@@ -810,7 +827,9 @@ colours.apply(...colours.saved()); // before anything is drawn
     upto: store.get("uptoPick", "auto"), // "auto" follows the highest picked unit; older manual picks lived under "upto"
     kdrafts: new Map(),  // listId -> edited kanji string
     kConfirmDel: null,
-    drafts: new Map(),   // setId -> words[] being edited
+    drafts: new Map(),   // setId -> {words, vals}: the set being edited in the vocab table (vocab/table.js)
+    editNew: null,       // a set just added, to open ready for typing
+    leaveAsk: false,     // leaving the vocab table with unsaved changes: asking what to do with them
     confirmDel: null,
     tableCh: store.get("tableCh", null), // chapter shown in the vocab table
     tq: "",              // vocab table search text
@@ -818,7 +837,6 @@ colours.apply(...colours.saved()); // before anything is drawn
     touched: new Set(),  // word ids edited during the current search, kept visible
     kAll: false,         // kanji panel: every unit instead of the vocab table's units
     tAll: false,         // search: draw every match instead of the first TLIMIT
-    editSet: null, editVals: null, // set whose collection/unit/name is being edited
     kEdit: null, kEditUnit: "", kEditCol: "",  // kanji list whose collection and unit are being edited
     formCol: null,                 // collection last filled into the new set / new kanji forms
     colOrder: [],                  // saved book order (meta/books); books not in it come after, by name
@@ -1216,6 +1234,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     S.loaded = true;
     const ids = new Set(S.sets.map((s) => s.id));
     for (const id of [...S.selected]) if (!ids.has(id)) S.selected.delete(id);
+    for (const id of [...S.drafts.keys()]) if (!ids.has(id)) S.drafts.delete(id);
     renderSetup();
     renderTable();
   }
@@ -1598,7 +1617,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   document.querySelectorAll("#dirSeg button").forEach((b) => (b.onclick = () => { S.dir = b.dataset.dir; saveSetup(); renderSetup(); }));
   document.querySelectorAll("#modeSeg button").forEach((b) => (b.onclick = () => { S.mode = b.dataset.mode; saveSetup(); renderSetup(); }));
   $("#toTable").onclick = () => { renderTable(); show("table"); };
-  $("#backBtn").onclick = () => show("setup");
+  $("#backBtn").onclick = () => leaveTable();
 
   // ---------- quiz ----------
   const Q = { items: [], queue: [], wrong: [], round: 1, cur: null, tries: {}, busy: false, answered: false, total: 0, done: new Set(), meta: null };
@@ -2366,10 +2385,9 @@ colours.apply(...colours.saved()); // before anything is drawn
       });
       inp.addEventListener("keydown", (e) => { if (e.key === "Enter" && S.kdrafts.has(id)) row.querySelector("[data-ksave]").click(); });
       row.querySelector("[data-ksave]").onclick = async (ev) => {
-        const b = ev.currentTarget, kanji = onlyKanji(S.kdrafts.get(id) || "");
+        const b = ev.currentTarget;
         b.disabled = true; b.textContent = "Saving…";
-        try { await db.doc("kanji/" + id).update({ kanji, updatedAt: new Date().toISOString() }); S.kdrafts.delete(id); }
-        catch { b.textContent = "Save failed, try again"; b.disabled = false; return; }
+        if (!(await saveKanji(id))) { b.textContent = "Save failed, try again"; b.disabled = false; return; }
         renderKanji();
       };
       const dis = row.querySelector("[data-kdiscard]"); if (dis) dis.onclick = () => { S.kdrafts.delete(id); renderKanji(); };
@@ -2414,11 +2432,15 @@ colours.apply(...colours.saved()); // before anything is drawn
     renderUpto(); renderTable(); renderSetup();
   }
 
+  async function saveKanji(id) {
+    try { await db.doc("kanji/" + id).update({ kanji: onlyKanji(S.kdrafts.get(id) || ""), updatedAt: new Date().toISOString() }); S.kdrafts.delete(id); return true; }
+    catch { return false; }
+  }
   // Units picked like on the practice page, sets folded until opened; a search looks across every unit.
   // Unit chips come from every unit used by a vocab set or a kanji list.
   const tKeys = (b) => [...new Set([...S.sets, ...S.kanjiLists].filter((x) => colOf(x) === b).map((x) => x.unit))].sort(byUnit).map((c) => `${b}\u0001${c}`);
   const TP = makePicker({ st: S.tpick, showKey: "tShow", chsKey: "tChs", cols, keys: tKeys, bar: $("#tPickBar"), rows: $("#tChs"),
-    dot: (k) => (S.sets.some((s) => S.drafts.has(s.id) && unitKey(s) === k) ? `<span class="dot" title="Unsaved changes">•</span>` : ""),
+    dot: (k) => (S.sets.some((s) => dirtySet(s) && unitKey(s) === k) ? `<span class="dot" title="Unsaved changes">•</span>` : ""),
     onChange: () => { clearSearch(); renderTable(); } });
   // The collection new sets and kanji lists default to: the first one with units showing.
   const curCol = () => TP.shownKeys()[0]?.split("\u0001")[0] ?? cols()[0] ?? "";
@@ -2490,8 +2512,64 @@ colours.apply(...colours.saved()); // before anything is drawn
     renderTable();
   };
 
+  // ---------- editing a set ----------
+  // A set reads as plain text until Edit turns it into fields. While it's edited, S.drafts holds a copy of its words and
+  // its details (collection, unit, name, tags), and nothing is stored until Save. Unsaved = the copy differs from what's stored.
+  const setVals = (s) => ({ collection: colOf(s), unit: s.unit, name: s.name, tags: cleanTags(s.tags).join(", ") });
+  const keptWords = (ws) => ws.map((w) => ({ id: w.id, en: (w.en || "").trim(), kana: (w.kana || "").trim(), kanji: (w.kanji || "").trim() })).filter((w) => w.en || w.kana || w.kanji);
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const blankWord = () => ({ id: rid(), en: "", kana: "", kanji: "" });
+  const startEdit = (s) => S.drafts.set(s.id, { words: s.words.length ? s.words.map((w) => ({ ...w })) : [blankWord()], vals: setVals(s) });
+  function dirtySet(s) { const d = S.drafts.get(s.id); return !!d && !(same(keptWords(d.words), keptWords(s.words)) && same(d.vals, setVals(s))); }
+  // Saves the set being edited: its words, and its details when they changed. say shows what's wrong; true = saved.
+  async function saveSet(s, say) {
+    const d = S.drafts.get(s.id), det = !same(d.vals, setVals(s));
+    const col = canonCol(d.vals.collection), unit = canonUnit(col, d.vals.unit), name = tidy(d.vals.name, 200), tags = cleanTags(d.vals.tags);
+    if (det && (!col || !unit || !name)) { say("Collection, unit and set name can't be empty."); return false; }
+    if (det && S.sets.some((x) => x.id !== s.id && sameName(colOf(x), col) && sameName(x.unit, unit) && sameName(x.name, name))) { say(`${col} › ${unit} › ${name} already exists.`); return false; }
+    try { await db.doc("sets/" + s.id).update({ ...(det ? { collection: col, unit, name, tags } : {}), words: keptWords(d.words).map((w) => ({ ...w, id: w.id || rid() })), updatedAt: new Date().toISOString() }); }
+    catch { say("Couldn't save. Try again."); return false; }
+    S.drafts.delete(s.id);
+    if (det) { S.openSets.add(s.id); pickUnit(unit, col); }
+    return true;
+  }
+  // A word's field grows with its text, so a long phrase wraps instead of scrolling sideways.
+  const fit = CSS.supports("field-sizing", "content") ? () => {} : (t) => { t.style.height = "auto"; t.style.height = t.scrollHeight + 2 + "px"; };
+  // Unsaved changes are asked about before they can be lost: on leaving the vocab table, and by the browser on leaving the page.
+  const unsavedSets = () => S.sets.filter(dirtySet), unsavedLists = () => S.kanjiLists.filter((k) => S.kdrafts.has(k.id));
+  addEventListener("beforeunload", (e) => { if (unsavedSets().length || unsavedLists().length) { e.preventDefault(); e.returnValue = ""; } });
+  function leaveTable() {
+    // Whatever was opened for editing and left as it was just closes.
+    for (const s of S.sets) if (!dirtySet(s)) S.drafts.delete(s.id);
+    S.kEdit = S.confirmDel = S.kConfirmDel = null;
+    S.leaveAsk = true; renderLeave();
+    if (!S.leaveAsk) show("setup"); else window.scrollTo(0, 0);
+  }
+  function renderLeave(why = "") {
+    const sets = unsavedSets(), lists = unsavedLists(), n = sets.length + lists.length, box = $("#leaveAsk");
+    if (!n) S.leaveAsk = false;
+    box.hidden = !S.leaveAsk;
+    if (box.hidden) return;
+    const count = (k, w) => (k ? [`${k} ${w}${k === 1 ? "" : "s"}`] : []);
+    box.innerHTML = `<span>${[...count(sets.length, "set"), ...count(lists.length, "kanji list")].join(" and ")} ${n === 1 ? "has" : "have"} unsaved changes.${why ? ` <span class="keyerr">${esc(why)}</span>` : ""}</span>
+      <span class="tactions"><button class="btn primary" type="button" data-lsave>Save all</button><button class="btn" type="button" data-ldiscard>Discard all</button><button class="link" type="button" data-lkeep>Keep editing</button></span>`;
+    box.querySelector("[data-lkeep]").onclick = () => { S.leaveAsk = false; renderLeave(); };
+    box.querySelector("[data-ldiscard]").onclick = () => { S.drafts.clear(); S.kdrafts.clear(); renderTable(); show("setup"); };
+    box.querySelector("[data-lsave]").onclick = async (e) => {
+      e.target.disabled = true; e.target.textContent = "Saving…";
+      let bad = "";
+      for (const s of sets) if (!bad && !(await saveSet(s, (m) => { bad = `${setName(s)}: ${m}`; })) && !bad) bad = "Couldn't save. Try again.";
+      for (const k of lists) if (!bad && !(await saveKanji(k.id))) bad = "Couldn't save. Try again.";
+      renderTable();
+      if (bad) renderLeave(bad); else show("setup");
+    };
+  }
+
   function renderTable(searchOnly) {
+    // The table is drawn again whenever anything changes, also from elsewhere: whoever is typing in it keeps their place.
+    const at = document.activeElement, typing = at?.id && $("#setTables").contains(at) ? { id: at.id, pos: at.selectionStart } : null;
     if (!searchOnly) { renderKanji(); renderPort(); }
+    renderLeave();
     $("#tableRole").hidden = canWrite;
     $("#newSetForm").hidden = !canWrite;
     $("#colList").innerHTML = cols().filter(Boolean).map((b) => `<option value="${esc(b)}"></option>`).join("");
@@ -2509,8 +2587,11 @@ colours.apply(...colours.saved()); // before anything is drawn
     // While searching, only the first TLIMIT matches are drawn (edited and blank rows always are).
     const shown = [], qk = { en: q.toLowerCase(), jp: hira(q) };
     let total = 0, drawn = 0;
+    let fresh = null;
     for (const s of S.sets) {
-      const words = S.drafts.get(s.id) || s.words;
+      // A set just added opens ready to type in.
+      if (S.editNew === s.id) { S.editNew = null; if (canWrite && !S.drafts.has(s.id)) { startEdit(s); fresh = s.id; } }
+      const words = S.drafts.get(s.id)?.words || s.words;
       if (q) {
         const idx = []; let any = false;
         words.forEach((w, i) => {
@@ -2537,92 +2618,72 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (!shown.length) { box.innerHTML = `<div class="empty"><span>${esc(where)} ${keys.length === 1 ? "has" : "have"} no vocab sets yet${canWrite ? ". Add one below." : "."}</span></div>`; return; }
     const manyCols = new Set(shown.map(({ s }) => colOf(s))).size > 1;
     box.innerHTML = shown.map(({ s, words, idx, open }) => {
-      const dirty = S.drafts.has(s.id);
+      const d = canWrite ? S.drafts.get(s.id) : null, dirty = dirtySet(s), was = new Map(s.words.map((w) => [w.id, w]));
       const head = `<h3 class="tseth"><button class="tsethead" type="button" data-toggle aria-expanded="${open}"><span class="t"><span class="car" aria-hidden="true">›</span>${esc(q || manyCols ? setName(s) : `${s.unit} › ${s.name}`)}${cleanTags(s.tags).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</span>
-        <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> ` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button></h3>`;
+        <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button>${open && canWrite && !d ? `<button class="btn" type="button" data-edit>Edit</button>` : ""}</h3>`;
       if (!open) return `<div class="tset" data-sid="${esc(s.id)}">${head}</div>`;
-      const rows = idx.map((i) => { const w = words[i]; return canWrite
-        ? `<tr><td><input type="text" id="w-${s.id}-${w.id}-en" data-i="${i}" data-f="en" value="${esc(w.en)}" placeholder="English"></td>
-             <td class="jp"><input type="text" id="w-${s.id}-${w.id}-kana" data-i="${i}" data-f="kana" value="${esc(w.kana)}" placeholder="Kana"></td>
-             <td class="jp"><input type="text" id="w-${s.id}-${w.id}-kanji" data-i="${i}" data-f="kanji" value="${esc(w.kanji)}" placeholder="Kanji"></td>
+      const cell = (w, i, f, name) => `<textarea rows="1" id="w-${s.id}-${w.id}-${f}" data-i="${i}" data-f="${f}" placeholder="${name}" aria-label="${name}"${(w[f] || "").trim() !== (was.get(w.id)?.[f] || "").trim() ? ` class="chg"` : ""}>${esc(w[f])}</textarea>`;
+      const rows = idx.map((i) => { const w = words[i]; return d
+        ? `<tr><td>${cell(w, i, "en", "English")}</td><td class="jp">${cell(w, i, "kana", "Kana")}</td><td class="jp">${cell(w, i, "kanji", "Kanji")}</td>
              <td class="c"><button class="rowdel" data-del="${i}" aria-label="Delete row">×</button></td></tr>`
-        : `<tr><td>${esc(w.en)}</td><td class="jp">${esc(w.kana)}</td><td class="jp">${esc(w.kanji)}</td></tr>`; }).join("");
-      const del = S.confirmDel === s.id, ev = canWrite && S.editSet === s.id && S.editVals;
-      const edit = ev ? `<form class="newset setedit" data-editform>
-          <label>Collection<input data-ef="collection" list="colList" value="${esc(ev.collection)}" required></label>
-          <label>Unit<input data-ef="unit" list="unitList" value="${esc(ev.unit)}" required></label>
-          <label>Set name<input data-ef="name" value="${esc(ev.name)}" required></label>
-          <label>Tags (optional)<input data-ef="tags" value="${esc(ev.tags)}" placeholder="Verbs, Quiz 3"></label>
-          <button class="btn primary" type="submit">Save details</button><button class="btn" type="button" data-editcancel>Cancel</button><span class="editerr" data-editerr></span>
-        </form>` : "";
-      return `<div class="tset open" data-sid="${esc(s.id)}">
-        ${head}${edit}
-        <div class="tscroll"><table><thead><tr><th>English</th><th>Kana</th><th>Kanji</th>${canWrite ? "<th></th>" : ""}</tr></thead><tbody>${rows}</tbody></table></div>
-        ${canWrite ? `<div class="tactions"><button class="btn" data-add>Add word</button><button class="btn primary" data-save ${dirty ? "" : "disabled"}>Save</button>${dirty ? `<button class="link" data-discard>Discard</button>` : ""}
-          <span style="flex:1"></span>${del ? `<span class="small">Delete this set for everyone?</span><button class="btn danger" data-delset-yes>Delete</button><button class="btn" data-delset-no>Keep</button>` : `${ev ? "" : `<button class="ghost small" data-editset>Edit details</button>`}<button class="ghost small" data-delset>Delete set</button>`}</div>` : ""}
+        : w.en || w.kana || w.kanji ? `<tr><td>${esc(w.en)}</td><td class="jp">${esc(w.kana)}</td><td class="jp">${esc(w.kanji)}</td></tr>` : ""; }).join("");
+      const del = S.confirmDel === s.id, now = setVals(s);
+      const field = (f, name, more = "") => `<label>${name}<input id="d-${s.id}-${f}" data-ef="${f}" value="${esc(d.vals[f])}"${more}${d.vals[f] !== now[f] ? ` class="chg"` : ""}></label>`;
+      return `<div class="tset open${d ? " editing" : ""}" data-sid="${esc(s.id)}">
+        ${head}${d ? `<div class="newset setedit">${field("collection", "Collection", ` list="colList"`)}${field("unit", "Unit", ` list="unitList"`)}${field("name", "Set name")}${field("tags", "Tags (optional)", ` placeholder="Verbs, Quiz 3"`)}</div>` : ""}
+        ${rows ? `<div class="tscroll"><table><thead><tr><th>English</th><th>Kana</th><th>Kanji</th>${d ? "<th></th>" : ""}</tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="muted small">No words yet.${canWrite ? " Tap Edit to add some." : ""}</p>`}
+        ${d ? `<div class="tactions"><button class="btn" data-add>Add word</button></div>
+          <div class="tactions editbar"><button class="btn primary" data-save ${dirty ? "" : "disabled"}>Save</button><button class="btn" data-discard>${dirty ? "Discard changes" : "Cancel"}</button><span class="editerr" data-editerr></span>
+          <span style="flex:1"></span>${del ? `<span class="small">Delete this set for everyone?</span><button class="btn danger" data-delset-yes>Delete</button><button class="btn" data-delset-no>Keep</button>` : `<button class="ghost small" data-delset>Delete set</button>`}</div>` : ""}
       </div>`;
     }).join("");
     box.querySelectorAll(".tset").forEach((el) => {
-      const sid = el.dataset.sid;
+      const sid = el.dataset.sid, s = S.sets.find((x) => x.id === sid), d = canWrite ? S.drafts.get(sid) : null;
       el.querySelector("[data-toggle]").onclick = () => {
         if (q) return; // search results always stay open
-        S.openSets.has(sid) ? S.openSets.delete(sid) : S.openSets.add(sid);
+        // Closing a set that was opened for editing and left as it was ends the editing too.
+        if (S.openSets.has(sid)) { S.openSets.delete(sid); if (!dirtySet(s)) S.drafts.delete(sid); } else S.openSets.add(sid);
         renderTable();
       };
-    });
-    if (!canWrite) return;
-    box.querySelectorAll(".tset").forEach((el) => {
-      const sid = el.dataset.sid, s = S.sets.find((x) => x.id === sid);
-      if (!el.querySelector("table")) return;
-      const draft = () => { if (!S.drafts.has(sid)) S.drafts.set(sid, s.words.map((w) => ({ ...w }))); S.openSets.add(sid); return S.drafts.get(sid); };
-      el.querySelectorAll("input[data-f]").forEach((inp) => {
-        inp.addEventListener(inp.type === "checkbox" ? "change" : "input", () => {
-          const ws = draft(), w = ws[+inp.dataset.i], f = inp.dataset.f;
-          w[f] = inp.type === "checkbox" ? inp.checked : inp.value;
+      const ed = el.querySelector("[data-edit]");
+      if (ed) ed.onclick = () => { startEdit(s); renderTable(); document.querySelector(`[data-sid="${CSS.escape(sid)}"] textarea`)?.focus(); };
+      if (!d || !el.classList.contains("open")) return;
+      const was = new Map(s.words.map((w) => [w.id, w])), err = (m) => { el.querySelector("[data-editerr]").textContent = m; };
+      // A field was typed in: its "changed" mark, and the set drawn again only when it turns unsaved or back.
+      const unsavedThen = dirtySet(s), typed = (inp, changed) => { inp.classList.toggle("chg", changed); err(""); if (dirtySet(s) !== unsavedThen) renderTableKeepFocus(inp.id); };
+      el.querySelectorAll("textarea[data-f]").forEach((inp) => {
+        fit(inp);
+        inp.addEventListener("input", () => {
+          const w = d.words[+inp.dataset.i], f = inp.dataset.f;
+          w[f] = inp.value.replace(/\s*\n\s*/g, " ");
           if (q) S.touched.add(w.id);
-          const wasDirty = el.querySelector(".dirty");
-          if (!wasDirty) renderTableKeepFocus(inp.id);
+          fit(inp); typed(inp, w[f].trim() !== (was.get(w.id)?.[f] || "").trim());
+        });
+        // Enter goes on to the next field (and from the last one, to a new word) instead of breaking the line.
+        inp.addEventListener("keydown", (e) => {
+          if (e.key !== "Enter" || e.isComposing) return;
+          e.preventDefault();
+          const all = [...el.querySelectorAll("textarea[data-f]")], next = all[all.indexOf(inp) + 1];
+          next ? next.focus() : el.querySelector("[data-add]").click();
         });
       });
-      el.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => { draft().splice(+b.dataset.del, 1); renderTable(); }));
-      el.querySelector("[data-add]").onclick = () => { const ws = draft(); const w = { id: rid(), en: "", kana: "", kanji: "" }; ws.push(w); renderTableKeepFocus(`w-${sid}-${w.id}-en`); };
+      el.querySelectorAll("[data-ef]").forEach((inp) => inp.addEventListener("input", () => { d.vals[inp.dataset.ef] = inp.value; typed(inp, inp.value !== setVals(s)[inp.dataset.ef]); }));
+      el.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => { d.words.splice(+b.dataset.del, 1); renderTable(); }));
+      el.querySelector("[data-add]").onclick = () => { const w = blankWord(); d.words.push(w); renderTableKeepFocus(`w-${sid}-${w.id}-en`); };
       el.querySelector("[data-save]").onclick = async (ev) => {
-        const ws = (S.drafts.get(sid) || s.words).map((w) => ({ id: w.id || rid(), en: (w.en || "").trim(), kana: (w.kana || "").trim(), kanji: (w.kanji || "").trim() })).filter((w) => w.en || w.kana || w.kanji);
         ev.target.disabled = true; ev.target.textContent = "Saving…";
-        try { await db.doc("sets/" + sid).update({ words: ws, updatedAt: new Date().toISOString() }); S.drafts.delete(sid); }
-        catch { ev.target.textContent = "Save failed, try again"; ev.target.disabled = false; return; }
-        renderTable();
+        if (await saveSet(s, err)) renderTable(); else { ev.target.disabled = false; ev.target.textContent = "Save"; }
       };
-      const dis = el.querySelector("[data-discard]"); if (dis) dis.onclick = () => { S.drafts.delete(sid); renderTable(); };
+      el.querySelector("[data-discard]").onclick = () => { S.drafts.delete(sid); S.confirmDel = null; renderTable(); };
       const d1 = el.querySelector("[data-delset]"); if (d1) d1.onclick = () => { S.confirmDel = sid; renderTable(); };
       const dn = el.querySelector("[data-delset-no]"); if (dn) dn.onclick = () => { S.confirmDel = null; renderTable(); };
       const dy = el.querySelector("[data-delset-yes]"); if (dy) dy.onclick = async () => { S.confirmDel = null; S.drafts.delete(sid); try { await db.doc("sets/" + sid).delete(); } catch {} };
-      const es = el.querySelector("[data-editset]");
-      if (es) es.onclick = () => { S.editSet = sid; S.editVals = { collection: colOf(s), unit: s.unit, name: s.name, tags: cleanTags(s.tags).join(", ") }; renderTable(); document.querySelector(`[data-sid="${CSS.escape(sid)}"] [data-ef="name"]`)?.focus(); };
-      const ef = el.querySelector("[data-editform]");
-      if (ef) {
-        const err = (m) => { ef.querySelector("[data-editerr]").textContent = m; };
-        ef.querySelectorAll("[data-ef]").forEach((inp) => inp.addEventListener("input", () => { S.editVals[inp.dataset.ef] = inp.value; err(""); }));
-        ef.querySelector("[data-editcancel]").onclick = () => { S.editSet = null; renderTable(); };
-        ef.onsubmit = async (e) => {
-          e.preventDefault();
-          const col = canonCol(S.editVals.collection), unit = canonUnit(col, S.editVals.unit), name = tidy(S.editVals.name, 200), tags = cleanTags(S.editVals.tags);
-          if (!col || !unit || !name) return err("Collection, unit and set name can't be empty.");
-          if (S.sets.some((x) => x.id !== sid && sameName(colOf(x), col) && sameName(x.unit, unit) && sameName(x.name, name))) return err(`${col} › ${unit} › ${name} already exists.`);
-          const b = ef.querySelector("[type=submit]"); b.disabled = true; b.textContent = "Saving…";
-          try { await db.doc("sets/" + sid).update({ collection: col, unit, name, tags, updatedAt: new Date().toISOString() }); }
-          catch { b.disabled = false; b.textContent = "Save details"; return err("Couldn't save. Try again."); }
-          S.editSet = null; S.openSets.add(sid); pickUnit(unit, col);
-          renderTable();
-        };
-      }
     });
+    const back = fresh ? box.querySelector(`[data-sid="${CSS.escape(fresh)}"] textarea`) : typing && document.getElementById(typing.id);
+    if (back && back !== document.activeElement) { back.focus(); if (!fresh && typing.pos != null && back.setSelectionRange) back.setSelectionRange(typing.pos, typing.pos); }
   }
-  function renderTableKeepFocus(id) {
-    const a = document.activeElement, pos = a && a.selectionStart;
-    renderTable();
-    const el = document.getElementById(id); if (el) { el.focus(); if (pos != null && el.setSelectionRange && a && a.id === id) el.setSelectionRange(pos, pos); }
-  }
+  // Draws the table again and puts the cursor in the field with this id (a word just added; otherwise it stays where it was).
+  function renderTableKeepFocus(id) { renderTable(); const el = document.getElementById(id); if (el && el !== document.activeElement) el.focus(); }
   $("#newSetForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const col = canonCol($("#nsCol").value), unit = canonUnit(col, $("#nsUnit").value), name = tidy($("#nsName").value, 200), tags = cleanTags($("#nsTags").value);
@@ -2630,10 +2691,10 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (S.sets.some((s) => sameName(colOf(s), col) && sameName(s.unit, unit) && sameName(s.name, name))) { $("#nsName").setCustomValidity("That set already exists"); $("#nsName").reportValidity(); $("#nsName").setCustomValidity(""); return; }
     const id = freeId(slug(`${col}-${unit}-${name}`, "set"), new Set(S.sets.map((s) => s.id)));
     pickUnit(unit, col);
-    S.openSets.add(id);
+    S.openSets.add(id); S.editNew = id;
     clearSearch();
     try {
-      await db.doc("sets/" + id).set({ collection: col, unit, name, ...(tags.length ? { tags } : {}), words: [{ id: rid(), en: "", kana: "", kanji: "" }], updatedAt: new Date().toISOString() });
+      await db.doc("sets/" + id).set({ collection: col, unit, name, ...(tags.length ? { tags } : {}), words: [blankWord()], updatedAt: new Date().toISOString() });
       e.target.reset(); $("#nsCol").value = col; $("#nsUnit").value = unit;
     } catch { banner("Couldn't add the set. Only the owner and editors can change the table."); }
   });
