@@ -875,7 +875,7 @@ await cp.click(await vis(cp, "#quiz") ? "#quitBtn" : "#newBtn"); await cp.waitFo
 ok(await cp.$eval("#mode-default", (b) => b.getAttribute("aria-pressed") === "true") && await cp.evaluate(() => Object.keys(localStorage).filter((k) => /data\/users\/local\/t\d/.test(k)).length) === 1,
   "Practice these with Verb forms picked: Default is picked after, and no empty session is saved");
 ok(cp.errors.length === 0, "quit while checking: no page errors", cp.errors.join(" | "));
-// History: 20 sessions to a page, and "Practice these" takes every word on the hard-words list (it used to stop at 10).
+// History: 20 sessions to a page; the hard-words list shows as many words as picked (5 to All), and "Practice these" takes those.
 const hctx = await browser.newContext();
 const hp = await newPage(hctx, { init: () => {
   if (localStorage.getItem("qcard:mode")) return;
@@ -895,6 +895,10 @@ ok((await hPage()) === "5,Page 3 of 3,false,true", "history pages: the last page
 await hp.click("#hNewer");
 ok((await hPage()) === "20,Page 2 of 3,false,false", "history pages: Newer goes back a page", await hPage());
 ok((await hp.$$eval("#hLove > li", (l) => l.length)) === 11 && (await text(hp, "#hPractise")) === "Practice these 11", "hard words: every word on the list is shown, not only 10", await text(hp, "#hPractise"));
+await hp.click('#loveWin [data-win="5"]');
+ok((await hp.$$eval("#hLove > li", (l) => l.length)) === 5 && (await text(hp, "#hPractise")) === "Practice these 5" && (await text(hp, "#loveCount")) === "Top 5 of 11",
+  "hard words: Show 5 lists the 5 most missed words", `${await text(hp, "#hPractise")} / ${await text(hp, "#loveCount")}`);
+await hp.click('#loveWin [data-win="all"]');
 await hp.click("#hPractise"); await hp.waitForTimeout(300);
 ok(await vis(hp, "#quiz") && /^0 of 11 done/.test(await text(hp, "#progLbl")), "hard words: Practice these practices all of them", await text(hp, "#progLbl"));
 ok(hp.errors.length === 0, "history pages: no page errors", hp.errors.join(" | "));

@@ -193,23 +193,22 @@
     const agg = new Map();
     // Oldest session first, so each word's run counts the sessions since its latest miss.
     const byTime = S.history.slice().sort((a, b) => String(a.finishedAt || "").localeCompare(String(b.finishedAt || "")));
-    const win = S.loveWin === "all" ? Infinity : +S.loveWin;
+    const show = S.loveWin === "all" ? Infinity : +S.loveWin; // how many words to list
     document.querySelectorAll("#loveWin [data-win]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.win === S.loveWin));
-    for (const [ti, t] of byTime.entries()) for (const w of t.words || []) {
+    for (const t of byTime) for (const w of t.words || []) {
       if (w.skip) continue; // left off the list on the results page
       const k = w.id + ":" + w.dir, a = agg.get(k) || { w, misses: 0, tests: 0, run: 0 };
       const miss = Math.max(0, (w.tries || 1) - 1);
-      // Misses count only inside the chosen window of recent sessions; the clearing run always looks at everything.
-      if (byTime.length - ti <= win) { a.misses += miss; a.tests++; }
-      a.run = miss ? 0 : a.run + 1; a.w = w; a.ever = (a.ever || 0) + miss; agg.set(k, a);
+      a.misses += miss; a.tests++; a.run = miss ? 0 : a.run + 1; a.w = w; agg.set(k, a);
     }
-    const top = [...agg.values()].filter((a) => a.misses && a.run < CLEAR_RUN).sort((a, b) => b.misses - a.misses || b.tests - a.tests);
-    // The panel stays while any word is still on the list, so the window can be widened again.
-    $("#hLovePanel").hidden = ![...agg.values()].some((a) => a.ever && a.run < CLEAR_RUN);
+    const all = [...agg.values()].filter((a) => a.misses && a.run < CLEAR_RUN).sort((a, b) => b.misses - a.misses || b.tests - a.tests);
+    const top = all.slice(0, show);
+    $("#hLovePanel").hidden = !all.length;
+    $("#loveCount").textContent = top.length < all.length ? `Top ${top.length} of ${all.length}` : "";
     S.toughIds = top.map((a) => a.w.id);
     const n = toughWords().length;
     $("#hPractise").hidden = !n; $("#hPractise").textContent = n === 1 ? "Practice this word" : `Practice these ${n}`;
-    $("#hLove").innerHTML = top.map((a) => `<li><span class="tries">${a.misses}</span><div><div class="w">${esc(a.w.jp)}<small>${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</small></div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${win >= byTime.length ? `all ${byTime.length} session${byTime.length === 1 ? "" : "s"}` : `the last ${win} sessions`}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`).join("") || `<li class="none"><p>No misses in the last ${win} sessions.</p></li>`;
+    $("#hLove").innerHTML = top.map((a) => `<li><span class="tries">${a.misses}</span><div><div class="w">${esc(a.w.jp)}<small>${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</small></div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${a.tests} session${a.tests === 1 ? "" : "s"}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`).join("");
   }
   S.loveWin = String(store.get("loveWin", "all"));
   if (!["5", "10", "20", "50", "all"].includes(S.loveWin)) S.loveWin = "all";
