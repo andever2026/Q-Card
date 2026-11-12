@@ -280,11 +280,12 @@ await part("4. Dev tools", async () => {
   const { page, uid } = await newAccount("dev");
   await page.click("#settingsBtn");
   await page.waitForTimeout(1000); // the page has asked about dev/<uid> by now
-  ok(!(await vis(page, "#devSet")), "dev tools: hidden for a normal account");
+  ok(!(await vis(page, '[data-set-tab="admin"]')), "admin: no Admin tab for a normal account");
   await page.click("#settingsClose");
   ok(await makeDev(page, uid), "dev tools: (dev/<uid> made with admin access)");
   await page.click("#settingsBtn");
-  ok(await until(() => vis(page, "#devSet")), "dev tools: shown once dev/<uid> exists (read under the real rules)");
+  await page.click('#setNav [data-set-tab="admin"]'); // listed once the page knows this is a developer
+  ok(await until(() => vis(page, "#devSet")), "admin: the Admin tab is there once dev/<uid> exists (read under the real rules)");
   await clean(page, "dev tools");
   await page.context().close();
 });

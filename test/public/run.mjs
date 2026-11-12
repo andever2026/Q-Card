@@ -87,8 +87,8 @@ const settings = async (p, tab) => { if (!(await setOpen(p))) await p.click("#se
 await page.click("#settingsBtn");
 ok(await setOpen(page) && !(await vis(page, "#setup")) && await page.evaluate(() => document.querySelector('#setNav [aria-current="page"]')?.dataset.setTab === "look" && getComputedStyle(document.querySelector("#palPick")).display !== "none" && !document.querySelector("#acctName").getClientRects().length),
   "settings: the gear opens a page with tabs down the side, Appearance first, the other tabs' parts not shown");
-ok(await page.evaluate(() => [...document.querySelectorAll("#setNav [data-set-tab]")].filter((b) => !b.hidden).map((b) => b.textContent).join(", ")) === "Appearance, Account, Your vocab, Practice history, Developer tools",
-  "settings: the tabs (no Handwriting sharing where it isn't offered)");
+ok(await page.evaluate(() => [...document.querySelectorAll("#setNav [data-set-tab]")].filter((b) => !b.hidden).map((b) => b.textContent).join(", ")) === "Appearance, Account, Data, Practice history, Developer tools",
+  "settings: the tabs (no Handwriting sharing where it isn't offered, no Admin for an account that isn't a developer)");
 await settings(page, "account");
 
 ok(await page.evaluate(() => document.querySelector("#acctName").getClientRects().length > 0 && !document.querySelector("#palPick").getClientRects().length) && /student@example\.com/.test(await text(page, "#acctName")) && (await text(page, "#signOutBtn")) === "Sign out" && (await text(page, "#delStart")) === "Delete my account", "settings: shows the signed-in account, Sign out and Delete my account", await text(page, "#acctName"));
@@ -127,7 +127,7 @@ await page.screenshot({ path: join(out, "2-empty.png"), fullPage: true });
 const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("#emptyImport")]);
 await chooser.setFiles(join(root, "test/public/fixtures/sample-export.json"));
 await page.waitForTimeout(300);
-ok(await setOpen(page) && await page.evaluate(() => document.querySelector('#setNav [aria-current="page"]')?.dataset.setTab === "vocab") && await vis(page, "#importPreview"), "import: the empty state's Import opens Settings on Your vocab with the preview");
+ok(await setOpen(page) && await page.evaluate(() => document.querySelector('#setNav [aria-current="page"]')?.dataset.setTab === "data") && await vis(page, "#importPreview"), "import: the empty state's Import opens Settings on Data with the preview");
 await page.click("#importGo"); await page.waitForTimeout(800);
 data = await fsData(page);
 ok(!!data["users/u1/sets/sample-ch1-a"] && !!data["users/u1/kanji/sample-ch1"] && !!data["users/u1/meta/books"], "import: sets, kanji list and book order saved under users/u1/");
@@ -386,7 +386,7 @@ ok((await page.$$eval(`${tset} .tag`, (xs) => xs.map((x) => x.textContent).join(
   await page.click(`${tset} [data-save]`); await page.waitForTimeout(400);
   ok((await saved()) === w1 && !(await page.$(`${tset} textarea`)), "vocab table: (the word is back as it was; an added row taken out again isn't saved)", JSON.stringify((await fsData(page))["users/u1/sets/sample-ch1-a"].words.length)); }
 ok(!(await page.$("#table #exportBtn")), "export / import: no longer in the vocab table");
-await settings(page, "vocab");
+await settings(page, "data");
 const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#exportBtn")]);
 await page.click("#settingsClose");
 ok(/\.json$/.test(dl.suggestedFilename()), "export downloads a .json file", dl.suggestedFilename());
@@ -751,8 +751,8 @@ await sp.click("#settingsClose");
 ok(sp.errors.length === 0, "share: no page errors", sp.errors.join(" | "));
 // a developer (dev/<uid>, made in the Firebase console) gets Dev tools in Settings to open the question themselves
 const op = await newPage(sctx);
-await op.waitForTimeout(600); await settings(op, "tools"); await op.waitForTimeout(200);
-ok(await vis(op, "#devSet"), "dev tools: a developer sees them in Settings");
+await op.waitForTimeout(600); await settings(op, "admin"); await op.waitForTimeout(200);
+ok(await vis(op, "#devSet") && await op.evaluate(() => !document.querySelector("#toolsSet #devAsk1") && !document.querySelector("#devSet #liveReadOn")), "admin: a developer gets an Admin tab in Settings, apart from the Developer tools everyone has");
 await op.locator("#devSet").screenshot({ path: join(out, "14-dev-tools.png") });
 const asked = () => op.evaluate(() => JSON.parse(localStorage.getItem("jpq:share"))?.asked);
 const askedBefore = await asked();
@@ -788,7 +788,7 @@ const npPractice = async () => { await np.click("#startBtn"); await np.waitForTi
 await npPractice();
 ok(await vis(np, "#results") && !(await np.evaluate(() => document.querySelector("#shareAsk").open)), "share: an account that isn't a developer isn't asked on its 10th practice (developers only for now)");
 await settings(np, "tools"); await np.waitForTimeout(200);
-ok(!(await vis(np, "#shareSet")) && !(await vis(np, "#devSet")) && await vis(np, "#toolsSet"), "share: its Settings has no sharing section and no developer-only buttons (Developer tools itself is there)");
+ok(!(await vis(np, '[data-set-tab="share"]')) && !(await vis(np, '[data-set-tab="admin"]')) && await vis(np, "#toolsSet"), "share: its Settings has no Handwriting sharing tab and no Admin tab (Developer tools itself is there)");
 await np.click("#settingsClose"); await np.click("#newBtn"); await np.waitForTimeout(200);
 await np.evaluate(() => localStorage.setItem("jpq:share", JSON.stringify({ on: true, at: "2026-10-01T00:00:00Z" })));
 await npPractice();
@@ -1054,7 +1054,7 @@ await aipctx.close();
 const ictx = await browser.newContext();
 const ip = await newPage(ictx);
 await ip.click("#guestBtn"); await ip.waitForTimeout(400);
-await settings(ip, "vocab");
+await settings(ip, "data");
 ok(await ip.evaluate(() => { const a = document.querySelector("#aiHelp a"); return !!a && a.getAttribute("href") === "ai/" && a.target === "_blank"; }) && await vis(ip, "#aiHelp"), "settings: links to the AI page beside Import, in a new tab");
 const exPath = join(out, "18-ai-example.json"); writeFileSync(exPath, example);
 const [ichooser] = await Promise.all([ip.waitForEvent("filechooser"), ip.click("#importBtn")]);

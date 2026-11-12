@@ -247,11 +247,12 @@ colours.apply(...colours.saved()); // before anything is drawn
 <!--#if public-->
         <button type="button" data-set-tab="account">Account</button>
 <!--#endif-->
-        <button type="button" data-set-tab="vocab">Your vocab</button>
+        <button type="button" data-set-tab="data">Data</button>
         <button type="button" data-set-tab="history">Practice history</button>
 <!--#if public-->
         <button type="button" data-set-tab="share">Handwriting sharing</button>
         <button type="button" data-set-tab="tools">Developer tools</button>
+        <button type="button" data-set-tab="admin">Admin</button>
 <!--#endif-->
       </nav>
       <div class="setbody">
@@ -274,8 +275,8 @@ colours.apply(...colours.saved()); // before anything is drawn
           <section><h3>Delete</h3><div id="delAcct"></div></section>
         </div>
 <!--#endif-->
-        <div class="setpane" data-set-pane="vocab"><h2>Your vocab</h2>
-          <section><p class="muted" id="setStats"></p></section>
+        <div class="setpane" data-set-pane="data"><h2>Data</h2>
+          <section><h3>Vocabulary</h3><p class="muted" id="setStats"></p></section>
           <section id="portPanel" hidden><h3>Export / import</h3>
             <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and courses, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
             <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
@@ -307,8 +308,10 @@ colours.apply(...colours.saved()); // before anything is drawn
             <label class="checkrow"><input type="checkbox" id="liveReadOn"> Show what the checker reads as I write</label>
             <label class="checkrow"><input type="checkbox" id="charBoxesOn"> Show character boxes: where the checker found each character</label>
           </section>
-          <section id="devSet" hidden><h3>Developers only</h3>
-            <p class="muted small">Only developers see this. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
+        </div>
+        <div class="setpane" data-set-pane="admin" id="devSet" hidden><h2>Admin</h2>
+          <section><h3>The sharing question</h3>
+            <p class="muted small">Only developers see this tab. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
             <div class="tactions"><button class="btn" type="button" id="devAsk1">First time</button><button class="btn" type="button" id="devAsk2">Later times</button></div>
           </section>
         </div>

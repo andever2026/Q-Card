@@ -159,7 +159,7 @@
       if (samplesState) box.innerHTML = `<div class="empty"><b>${samplesState === "adding" ? "Adding the sample sets…" : "Loading your sets…"}</b></div>`;
       else {
         box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets into the vocab table.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open the vocab table</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
-        $("#emptyImport").onclick = () => { openSettings("vocab"); $("#importBtn").click(); };
+        $("#emptyImport").onclick = () => { openSettings("data"); $("#importBtn").click(); };
         $("#emptyTable").onclick = () => { renderTable(); show("table"); };
         $("#emptySamples").onclick = (e) => { e.target.disabled = true; addSamples().catch(() => { e.target.disabled = false; banner("The sample sets couldn't be added. Try again."); }); };
       }

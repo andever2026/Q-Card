@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-iOPBUP8c//s/iglj4fO9z2GYUp3VPaNAkvbELv6CngI=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-l0uZQDupz6U6VVj4xkikPlEK8kQOcV8HJmZzNtpfcJc=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -667,10 +667,11 @@ colours.apply(...colours.saved()); // before anything is drawn
         <h2>Settings</h2>
         <button type="button" data-set-tab="look">Appearance</button>
         <button type="button" data-set-tab="account">Account</button>
-        <button type="button" data-set-tab="vocab">Your vocab</button>
+        <button type="button" data-set-tab="data">Data</button>
         <button type="button" data-set-tab="history">Practice history</button>
         <button type="button" data-set-tab="share">Handwriting sharing</button>
         <button type="button" data-set-tab="tools">Developer tools</button>
+        <button type="button" data-set-tab="admin">Admin</button>
       </nav>
       <div class="setbody">
         <div class="setpane" data-set-pane="look"><h2>Appearance</h2>
@@ -690,8 +691,8 @@ colours.apply(...colours.saved()); // before anything is drawn
           </section>
           <section><h3>Delete</h3><div id="delAcct"></div></section>
         </div>
-        <div class="setpane" data-set-pane="vocab"><h2>Your vocab</h2>
-          <section><p class="muted" id="setStats"></p></section>
+        <div class="setpane" data-set-pane="data"><h2>Data</h2>
+          <section><h3>Vocabulary</h3><p class="muted" id="setStats"></p></section>
           <section id="portPanel" hidden><h3>Export / import</h3>
             <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and courses, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
             <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
@@ -720,8 +721,10 @@ colours.apply(...colours.saved()); // before anything is drawn
             <label class="checkrow"><input type="checkbox" id="liveReadOn"> Show what the checker reads as I write</label>
             <label class="checkrow"><input type="checkbox" id="charBoxesOn"> Show character boxes: where the checker found each character</label>
           </section>
-          <section id="devSet" hidden><h3>Developers only</h3>
-            <p class="muted small">Only developers see this. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
+        </div>
+        <div class="setpane" data-set-pane="admin" id="devSet" hidden><h2>Admin</h2>
+          <section><h3>The sharing question</h3>
+            <p class="muted small">Only developers see this tab. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
             <div class="tactions"><button class="btn" type="button" id="devAsk1">First time</button><button class="btn" type="button" id="devAsk2">Later times</button></div>
           </section>
         </div>
@@ -1510,7 +1513,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       if (samplesState) box.innerHTML = `<div class="empty"><b>${samplesState === "adding" ? "Adding the sample sets…" : "Loading your sets…"}</b></div>`;
       else {
         box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets into the vocab table.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open the vocab table</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
-        $("#emptyImport").onclick = () => { openSettings("vocab"); $("#importBtn").click(); };
+        $("#emptyImport").onclick = () => { openSettings("data"); $("#importBtn").click(); };
         $("#emptyTable").onclick = () => { renderTable(); show("table"); };
         $("#emptySamples").onclick = (e) => { e.target.disabled = true; addSamples().catch(() => { e.target.disabled = false; banner("The sample sets couldn't be added. Try again."); }); };
       }

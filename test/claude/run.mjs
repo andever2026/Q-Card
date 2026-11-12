@@ -112,9 +112,9 @@ ok(await vis("#results") || /^2 of 2 done/.test(await text("#progLbl")), "check:
 // ---------- 3. export and import, shared with the public site ----------
 await page.click("#newBtn").catch(() => {}); await page.waitForTimeout(200);
 await page.click("#settingsBtn");
-ok(await page.evaluate(() => !document.querySelector("#settings").hidden && [...document.querySelectorAll("#setNav [data-set-tab]")].filter((b) => !b.hidden).map((b) => b.textContent).join(", ")) === "Appearance, Your vocab, Practice history",
-  "settings: a page with its tabs, without the public site's Account, sharing and Developer tools");
-await page.click('#setNav [data-set-tab="vocab"]');
+ok(await page.evaluate(() => !document.querySelector("#settings").hidden && [...document.querySelectorAll("#setNav [data-set-tab]")].filter((b) => !b.hidden).map((b) => b.textContent).join(", ")) === "Appearance, Data, Practice history",
+  "settings: a page with its tabs, without the public site's Account, sharing, Developer tools and Admin");
+await page.click('#setNav [data-set-tab="data"]');
 ok(await vis("#portPanel") && !(await page.$("#aiHelp")), "settings: export / import is there, without the public site's AI link");
 await page.click("#exportBtn"); await page.waitForTimeout(300);
 const saved = await page.evaluate(() => window.__saved[0]);
