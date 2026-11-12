@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-q7/G+yVjr2Q5JCpI+MGM4yBKQOnryR/JF3nhuk4MnFE=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-95Wdq7IBSlPZbFFpC2oRe7HZ8HsMfGEROXvOFGGhnDU=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -2946,13 +2946,18 @@ colours.apply(...colours.saved()); // before anything is drawn
     return [...out].filter((m) => m && readMatches(w, { main: m, furigana: "" }) && (S.mode !== "kata" || kataOk(w, { main: m })));
   }
   // Furigana that could sit over a kanji form: the whole reading, or the readings of some of its kanji, in order.
-  function furiCands(w) {
-    const out = new Set();
+  // The kanji forms are the ones the main box may hold (すいぞく over 水族かん, not only すいぞくかん over 水族館);
+  // main: what the main box was read as, to keep only that form's readings.
+  function furiCands(w, main) {
+    const out = new Set(), read = main && hira(main);
     for (const p of forms(w)) {
       if (!KANJI.test(p.kanji)) continue;
       out.add(hira(p.kana));
-      const runs = kanjiReadings(p);
-      if (runs.length <= 6) for (let m = 1; m < 1 << runs.length; m++) out.add(runs.filter((_, i) => (m >> i) & 1).join(""));
+      for (const k of new Set([p.kanji, learnedForm(p), ...kanjiMixes(p)])) {
+        if (!k || !KANJI.test(k) || (read && hira(k) !== read)) continue;
+        const runs = kanjiReadings({ ...p, kanji: k });
+        if (runs.length <= 6) for (let m = 1; m < 1 << runs.length; m++) out.add(runs.filter((_, i) => (m >> i) & 1).join(""));
+      }
     }
     return [...out].filter(Boolean);
   }
@@ -2975,11 +2980,11 @@ colours.apply(...colours.saved()); // before anything is drawn
   async function builtinCheck(w, hasFuri) {
     await loadTemplates();
     const C = window.QCardChecker;
-    const fc = hasFuri ? furiCands(w) : [];
-    const fr = fc.length ? C.verify({ strokes: strokesOf(furi), candidates: fc, box: { w: furi.w, h: furi.h }, anyKana: true }) : null;
-    if (fr?.ok === null) return null;
     const res = C.verify({ strokes: strokesOf(main), candidates: mainCands(w), box: { w: main.w, h: main.h }, anyKana: S.mode !== "kata" });
     if (res.ok === null) return null;
+    const fc = hasFuri ? furiCands(w, res.ok ? res.text : "") : [];
+    const fr = fc.length ? C.verify({ strokes: strokesOf(furi), candidates: fc, box: { w: furi.w, h: furi.h }, anyKana: true }) : null;
+    if (fr?.ok === null) return null;
     const r = { main: res.ok ? res.text : readOf(res), furigana: !fr ? "" : fr.ok ? fr.text : readOf(fr), reason: "" };
     const chars = { main: res.chars, furi: fr?.chars };
     if (!res.ok) return { ok: false, r: { ...r, reason: whyNot(res) }, chars };

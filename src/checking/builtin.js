@@ -20,13 +20,18 @@
     return [...out].filter((m) => m && readMatches(w, { main: m, furigana: "" }) && (S.mode !== "kata" || kataOk(w, { main: m })));
   }
   // Furigana that could sit over a kanji form: the whole reading, or the readings of some of its kanji, in order.
-  function furiCands(w) {
-    const out = new Set();
+  // The kanji forms are the ones the main box may hold (すいぞく over 水族かん, not only すいぞくかん over 水族館);
+  // main: what the main box was read as, to keep only that form's readings.
+  function furiCands(w, main) {
+    const out = new Set(), read = main && hira(main);
     for (const p of forms(w)) {
       if (!KANJI.test(p.kanji)) continue;
       out.add(hira(p.kana));
-      const runs = kanjiReadings(p);
-      if (runs.length <= 6) for (let m = 1; m < 1 << runs.length; m++) out.add(runs.filter((_, i) => (m >> i) & 1).join(""));
+      for (const k of new Set([p.kanji, learnedForm(p), ...kanjiMixes(p)])) {
+        if (!k || !KANJI.test(k) || (read && hira(k) !== read)) continue;
+        const runs = kanjiReadings({ ...p, kanji: k });
+        if (runs.length <= 6) for (let m = 1; m < 1 << runs.length; m++) out.add(runs.filter((_, i) => (m >> i) & 1).join(""));
+      }
     }
     return [...out].filter(Boolean);
   }
@@ -49,11 +54,11 @@
   async function builtinCheck(w, hasFuri) {
     await loadTemplates();
     const C = window.QCardChecker;
-    const fc = hasFuri ? furiCands(w) : [];
-    const fr = fc.length ? C.verify({ strokes: strokesOf(furi), candidates: fc, box: { w: furi.w, h: furi.h }, anyKana: true }) : null;
-    if (fr?.ok === null) return null;
     const res = C.verify({ strokes: strokesOf(main), candidates: mainCands(w), box: { w: main.w, h: main.h }, anyKana: S.mode !== "kata" });
     if (res.ok === null) return null;
+    const fc = hasFuri ? furiCands(w, res.ok ? res.text : "") : [];
+    const fr = fc.length ? C.verify({ strokes: strokesOf(furi), candidates: fc, box: { w: furi.w, h: furi.h }, anyKana: true }) : null;
+    if (fr?.ok === null) return null;
     const r = { main: res.ok ? res.text : readOf(res), furigana: !fr ? "" : fr.ok ? fr.text : readOf(fr), reason: "" };
     const chars = { main: res.chars, furi: fr?.chars };
     if (!res.ok) return { ok: false, r: { ...r, reason: whyNot(res) }, chars };

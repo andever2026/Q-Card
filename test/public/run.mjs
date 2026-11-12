@@ -1207,6 +1207,52 @@ await ictx.close();
   await sctx.close();
 }
 
+// ---------- 21. furigana over the kanji written: すいぞく over 水族かん, おととし over 一昨年 (a reading of the whole word) ----------
+if (entry.length > 1) {
+  const { writeWord } = await import("../checker/synth.mjs");
+  const fctx = await browser.newContext();
+  const fp = await newPage(fctx, { init: () => {
+    if (localStorage.getItem("qcard:mode")) return;
+    const put = (k, v) => localStorage.setItem("qcard:local:" + k, JSON.stringify(v));
+    localStorage.setItem("qcard:mode", "local"); put("meta/samples", { offeredAt: "x" });
+    put("sets/f-a", { collection: "F", unit: "U", name: "A", words: [{ id: "1", en: "aquarium", kana: "すいぞくかん", kanji: "水族館" }, { id: "2", en: "year before last", kana: "おととし", kanji: "一昨年" }] });
+    localStorage.setItem("jpq:selected", '["f-a"]'); localStorage.setItem("jpq:dir", '"ej"');
+  } });
+  // each character written on its own, spread out the way people write furigana over the kanji they belong to
+  const writeAt = async (sel, parts, seed) => {
+    const b = await (await fp.$(sel)).boundingBox();
+    for (const [str, fx] of parts) {
+      const { strokes, box } = writeWord(str, seed++, { boxW: b.height, boxH: b.height, level: 0.3, mouse: false, swap: 0, reverse: 0, join: 0, lateDakuten: 0 });
+      const k = (b.height / Math.max(box.w, box.h)) * 0.8, x0 = Math.min(...strokes.flat().map(([x]) => x));
+      for (const st of strokes) {
+        await fp.mouse.move(b.x + b.width * fx + (st[0][0] - x0) * k, b.y + st[0][1] * k); await fp.mouse.down();
+        for (const [x, y] of st.slice(1)) await fp.mouse.move(b.x + b.width * fx + (x - x0) * k, b.y + y * k);
+        await fp.mouse.up();
+      }
+    }
+  };
+  const answers = {
+    aquarium: [[["か", 0.47], ["ん", 0.52]], [["水", 0.3], ["族", 0.4], ["か", 0.52], ["ん", 0.62]]], // かん over the kana: wrong
+    aquarium2: [[["す", 0.3], ["い", 0.35], ["ぞ", 0.42], ["く", 0.47]], [["水", 0.3], ["族", 0.4], ["か", 0.52], ["ん", 0.62]]],
+    "year before last": [[["お", 0.3], ["と", 0.42], ["と", 0.47], ["し", 0.58]], [["一", 0.3], ["昨", 0.4], ["年", 0.54]]],
+  };
+  const got = {};
+  await fp.click("#startBtn"); await fp.waitForTimeout(300);
+  for (let i = 0; i < 6 && await vis(fp, "#quiz"); i++) {
+    const q = await text(fp, "#qText"), key = q === "aquarium" && got.aquarium ? "aquarium2" : q;
+    await writeAt("#furiPad", answers[key][0], 3); await writeAt("#mainPad", answers[key][1], 9);
+    await fp.click("#checkBtn"); await fp.waitForTimeout(800);
+    got[key] = await vis(fp, "#feedback") ? await text(fp, "#fbReason") : "ok";
+    if (await vis(fp, "#feedback")) await fp.click("#nextBtn");
+    await fp.waitForTimeout(1300);
+  }
+  ok(got.aquarium === "The furigana doesn't match the reading of this word.", "furigana: かん over the かん of 水族かん fails", got.aquarium);
+  ok(got.aquarium2 === "ok", "furigana: すいぞく over 水族 in 水族かん passes", got.aquarium2);
+  ok(got["year before last"] === "ok", "furigana: おととし over 一昨年, a reading of the whole word, passes", got["year before last"]);
+  ok(fp.errors.length === 0, "furigana: no page errors", fp.errors.join(" | "));
+  await fctx.close();
+}
+
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");
 process.exit(failures ? 1 : 0);
