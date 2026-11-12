@@ -271,13 +271,13 @@
     box.innerHTML = shown.map(({ s, words, idx, open }) => {
       const d = canWrite ? S.drafts.get(s.id) : null, dirty = dirtySet(s), was = new Map(s.words.map((w) => [w.id, w]));
       const head = `<h3 class="tseth"><button class="tsethead" type="button" data-toggle aria-expanded="${open}"><span class="t"><span class="car" aria-hidden="true">›</span>${esc(q || manyCols ? setName(s) : `${s.unit} › ${s.name}`)}${cleanTags(s.tags).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</span>
-        <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button>${open && canWrite && !d ? `<button class="btn" type="button" data-edit>Edit</button>` : ""}</h3>`;
+        <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button>${open && canWrite && !d ? `<button class="btn" type="button" data-edit title="Edit this set. Double-clicking a word does the same, at that word.">Edit</button>` : ""}</h3>`;
       if (!open) return `<div class="tset" data-sid="${esc(s.id)}">${head}</div>`;
       const cell = (w, i, f, name) => `<textarea rows="1" id="w-${s.id}-${w.id}-${f}" data-i="${i}" data-f="${f}" placeholder="${name}" aria-label="${name}"${(w[f] || "").trim() !== (was.get(w.id)?.[f] || "").trim() ? ` class="chg"` : ""}>${esc(w[f])}</textarea>`;
       const rows = idx.map((i) => { const w = words[i]; return d
         ? `<tr><td>${cell(w, i, "en", "English")}</td><td class="jp">${cell(w, i, "kana", "Kana")}</td><td class="jp">${cell(w, i, "kanji", "Kanji")}</td>
              <td class="c"><button class="rowdel" data-del="${i}" aria-label="Delete row">×</button></td></tr>`
-        : w.en || w.kana || w.kanji ? `<tr><td>${esc(w.en)}</td><td class="jp">${esc(w.kana)}</td><td class="jp">${esc(w.kanji)}</td></tr>` : ""; }).join("");
+        : w.en || w.kana || w.kanji ? `<tr data-w="${esc(w.id)}"><td data-f="en">${esc(w.en)}</td><td class="jp" data-f="kana">${esc(w.kana)}</td><td class="jp" data-f="kanji">${esc(w.kanji)}</td></tr>` : ""; }).join("");
       const del = S.confirmDel === s.id, now = setVals(s);
       const field = (f, name, more = "") => `<label>${name}<input id="d-${s.id}-${f}" data-ef="${f}" value="${esc(d.vals[f])}"${more}${d.vals[f] !== now[f] ? ` class="chg"` : ""}></label>`;
       return `<div class="tset open${d ? " editing" : ""}" data-sid="${esc(s.id)}">
@@ -297,7 +297,12 @@
         renderTable();
       };
       const ed = el.querySelector("[data-edit]");
-      if (ed) ed.onclick = () => { startEdit(s); renderTable(); document.querySelector(`[data-sid="${CSS.escape(sid)}"] textarea`)?.focus(); };
+      if (ed) {
+        // Edit, or a double-click on a word, which puts the cursor at the end of that word's field: the quick way to fix one typo.
+        const edit = (at) => { startEdit(s); renderTable(); const f = at && document.getElementById(at) || document.querySelector(`[data-sid="${CSS.escape(sid)}"] textarea`); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } };
+        ed.onclick = () => edit();
+        el.querySelectorAll("tbody td[data-f]").forEach((td) => (td.ondblclick = () => { getSelection()?.removeAllRanges(); edit(`w-${sid}-${td.parentElement.dataset.w}-${td.dataset.f}`); }));
+      }
       if (!d || !el.classList.contains("open")) return;
       const was = new Map(s.words.map((w) => [w.id, w])), err = (m) => { el.querySelector("[data-editerr]").textContent = m; };
       // A field was typed in: its "changed" mark, and the set drawn again only when it turns unsaved or back.
