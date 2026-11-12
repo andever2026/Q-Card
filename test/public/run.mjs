@@ -1216,6 +1216,7 @@ if (entry.length > 1) {
     const put = (k, v) => localStorage.setItem("qcard:local:" + k, JSON.stringify(v));
     localStorage.setItem("qcard:mode", "local"); put("meta/samples", { offeredAt: "x" });
     put("sets/f-a", { collection: "F", unit: "U", name: "A", words: [{ id: "1", en: "aquarium", kana: "すいぞくかん", kanji: "水族館" }, { id: "2", en: "year before last", kana: "おととし", kanji: "一昨年" }] });
+    put("data/users/local/settings", { history: true });
     localStorage.setItem("jpq:selected", '["f-a"]'); localStorage.setItem("jpq:dir", '"ej"');
   } });
   // each character written on its own, spread out the way people write furigana over the kanji they belong to
@@ -1249,6 +1250,13 @@ if (entry.length > 1) {
   ok(got.aquarium === "The furigana doesn't match the reading of this word.", "furigana: かん over the かん of 水族かん fails", got.aquarium);
   ok(got.aquarium2 === "ok", "furigana: すいぞく over 水族 in 水族かん passes", got.aquarium2);
   ok(got["year before last"] === "ok", "furigana: おととし over 一昨年, a reading of the whole word, passes", got["year before last"]);
+  // the words that need more love show their reading over the kanji, on the results and in History
+  const loveRuby = (sel) => fp.evaluate((q) => [...document.querySelectorAll(q + " .w ruby")].map((r) => r.firstChild.textContent + "/" + r.querySelector("rt").textContent).join(","), sel);
+  ok(await vis(fp, "#results") && (await loveRuby("#loveList")) === "水族館/すいぞくかん", "results: a word that needs more love has its reading over the kanji", await loveRuby("#loveList"));
+  await fp.screenshot({ path: join(out, "21-results-furigana.png") });
+  await fp.click("#newBtn"); await fp.waitForTimeout(300); await fp.click("#histAll"); await fp.waitForTimeout(300);
+  ok((await loveRuby("#hLove")) === "水族館/すいぞくかん", "history: the hard words have their reading over the kanji", await loveRuby("#hLove"));
+  await fp.screenshot({ path: join(out, "21-history-furigana.png") });
   ok(fp.errors.length === 0, "furigana: no page errors", fp.errors.join(" | "));
   await fctx.close();
 }

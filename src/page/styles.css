@@ -193,7 +193,8 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .stamp { font-family: var(--font-jp); color: var(--shu); border: 2px solid var(--shu); border-radius: 6px; padding: 2px 10px; font-weight: 600; transform: rotate(-3deg); }
 .answer { font-family: var(--font-jp); font-size: clamp(2rem, 9vw, 3rem); font-weight: 600; text-align: center; line-height: 1.6; overflow-wrap: anywhere; }
 .answer.en { font-family: var(--font-ui); font-size: 1.7rem; font-weight: 700; }
-.answer rt { font-size: .38em; color: var(--muted); font-weight: 400; }
+.answer rt, .love .w rt { font-size: .38em; color: var(--muted); font-weight: 400; }
+.love .w rt { font-size: .55em; }
 .read { font-size: .9rem; color: var(--muted); }
 .read q { font-family: var(--font-jp); color: var(--ink); quotes: "「" "」"; }
 .read.live { margin: 8px 2px 0; }

@@ -28,6 +28,8 @@
   const unitTitle = (x) => unitPath(x, multiCol());
   const setName = (s) => setPath(s, multiCol());
   const jpForm = (w) => w.kanji || w.kana;
+  // The same as HTML, with the reading over the kanji (ruby) when the word has kanji.
+  const jpRuby = (w) => (w.kana && KANJI.test(w.kanji || "") ? `<ruby>${esc(w.kanji)}<rt>${esc(w.kana)}</rt></ruby>` : esc(jpForm(w)));
 
   function onCourses(snap) {
     raw.courses = dataOrNull(snap);

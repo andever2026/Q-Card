@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-95Wdq7IBSlPZbFFpC2oRe7HZ8HsMfGEROXvOFGGhnDU=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-tWLXfiJOvdc4i9j3ZucJvBmEoYjcJtQOZ6o5DirX5ok=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -269,7 +269,8 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .stamp { font-family: var(--font-jp); color: var(--shu); border: 2px solid var(--shu); border-radius: 6px; padding: 2px 10px; font-weight: 600; transform: rotate(-3deg); }
 .answer { font-family: var(--font-jp); font-size: clamp(2rem, 9vw, 3rem); font-weight: 600; text-align: center; line-height: 1.6; overflow-wrap: anywhere; }
 .answer.en { font-family: var(--font-ui); font-size: 1.7rem; font-weight: 700; }
-.answer rt { font-size: .38em; color: var(--muted); font-weight: 400; }
+.answer rt, .love .w rt { font-size: .38em; color: var(--muted); font-weight: 400; }
+.love .w rt { font-size: .55em; }
 .read { font-size: .9rem; color: var(--muted); }
 .read q { font-family: var(--font-jp); color: var(--ink); quotes: "「" "」"; }
 .read.live { margin: 8px 2px 0; }
@@ -1224,6 +1225,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   const unitTitle = (x) => unitPath(x, multiCol());
   const setName = (s) => setPath(s, multiCol());
   const jpForm = (w) => w.kanji || w.kana;
+  // The same as HTML, with the reading over the kanji (ruby) when the word has kanji.
+  const jpRuby = (w) => (w.kana && KANJI.test(w.kanji || "") ? `<ruby>${esc(w.kanji)}<rt>${esc(w.kana)}</rt></ruby>` : esc(jpForm(w)));
 
   function onCourses(snap) {
     raw.courses = dataOrNull(snap);
@@ -1953,7 +1956,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // The right answer, written into el: the word with its reading above it, or the English.
   function writeAnswer(el) {
     const { w, dir } = Q.cur;
-    if (dir === "ej") { el.className = "answer"; el.innerHTML = w.kanji ? `<ruby>${esc(w.kanji)}<rt>${esc(w.kana)}</rt></ruby>` : esc(w.kana); }
+    if (dir === "ej") { el.className = "answer"; el.innerHTML = jpRuby(w); }
     else { el.className = "answer en"; el.textContent = w.en; }
   }
   // What a checker made of the writing: "furigana 「ほく」 over 「北」", or "" when it read nothing.
@@ -1998,7 +2001,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     Q.rows = rows; Q.skip = new Set(); Q.savedId = null;
     // With history on, each missed word can be left off the overall "need the most love" list.
     const canSkip = S.histOn === true;
-    $("#loveList").innerHTML = love.map(({ it, n }) => `<li data-key="${esc(it.key)}"><span class="tries">${n}</span><div><div class="w">${esc(jpForm(it.w))}<small>${esc(it.w.en)}${Q.meta.dir === "both" ? (it.dir === "ej" ? " · EN→JP" : " · JP→EN") : ""}</small></div><p>You figured out ${esc(label(it))} in ${n} tries!</p></div>${canSkip ? `<button class="ghost small skipw" type="button" aria-pressed="false">Leave off overall list</button>` : ""}</li>`).join("");
+    $("#loveList").innerHTML = love.map(({ it, n }) => `<li data-key="${esc(it.key)}"><span class="tries">${n}</span><div><div class="w">${jpRuby(it.w)}<small>${esc(it.w.en)}${Q.meta.dir === "both" ? (it.dir === "ej" ? " · EN→JP" : " · JP→EN") : ""}</small></div><p>You figured out ${esc(label(it))} in ${n} tries!</p></div>${canSkip ? `<button class="ghost small skipw" type="button" aria-pressed="false">Leave off overall list</button>` : ""}</li>`).join("");
     $("#skipAll").hidden = !canSkip; syncSkip();
     const firsts = rows.filter((r) => r.n === 1);
     $("#firstPanel").hidden = !firsts.length;
@@ -2234,6 +2237,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   // A word leaves the list after CLEAR_RUN sessions in a row where it was right on the first try; a miss resets the run,
   // and a word that comes back keeps its old miss count.
   const CLEAR_RUN = 3;
+  // A saved word as it is in the sets now, for its reading (the session keeps only how it was written).
+  const savedWord = (h) => { for (const s of S.sets) for (const w of s.words) if (w.id === h.id && jpForm(w) === h.jp) return w; return { kanji: h.jp }; };
   function renderToughest() {
     const agg = new Map();
     // Oldest session first, so each word's run counts the sessions since its latest miss.
@@ -2256,7 +2261,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     S.toughIds = top.map((a) => a.w.id);
     const n = toughWords().length;
     $("#hPractise").hidden = !n; $("#hPractise").textContent = n === 1 ? "Practice this word" : `Practice these ${n}`;
-    $("#hLove").innerHTML = top.map((a) => `<li><span class="tries">${a.misses}</span><div><div class="w">${esc(a.w.jp)}<small>${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</small></div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${a.tests} session${a.tests === 1 ? "" : "s"}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`).join("");
+    $("#hLove").innerHTML = top.map((a) => `<li><span class="tries">${a.misses}</span><div><div class="w">${jpRuby(savedWord(a.w))}<small>${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</small></div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${a.tests} session${a.tests === 1 ? "" : "s"}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`).join("");
   }
   S.loveWin = String(store.get("loveWin", "10"));
   if (!["5", "10", "20", "50", "all"].includes(S.loveWin)) S.loveWin = "10";

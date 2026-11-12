@@ -28,7 +28,7 @@
   // The right answer, written into el: the word with its reading above it, or the English.
   function writeAnswer(el) {
     const { w, dir } = Q.cur;
-    if (dir === "ej") { el.className = "answer"; el.innerHTML = w.kanji ? `<ruby>${esc(w.kanji)}<rt>${esc(w.kana)}</rt></ruby>` : esc(w.kana); }
+    if (dir === "ej") { el.className = "answer"; el.innerHTML = jpRuby(w); }
     else { el.className = "answer en"; el.textContent = w.en; }
   }
   // What a checker made of the writing: "furigana 「ほく」 over 「北」", or "" when it read nothing.
