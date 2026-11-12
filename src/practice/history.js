@@ -88,7 +88,7 @@
   }
   $("#histAll").onclick = () => openHistory();
   $("#histOff").onclick = async () => { if (await setHistory(false)) histChanged(); };
-  const openHistory = () => { S.hConfirm = null; show("history"); renderHistory(); };
+  const openHistory = () => { S.hConfirm = null; S.hPage = 0; show("history"); renderHistory(); };
   // Settings → Practice history: the same choice as on the practice page, where it can be found again later.
   function renderHistSet() {
     const on = S.histOn === true, n = S.history.length;
@@ -203,30 +203,39 @@
       if (byTime.length - ti <= win) { a.misses += miss; a.tests++; }
       a.run = miss ? 0 : a.run + 1; a.w = w; a.ever = (a.ever || 0) + miss; agg.set(k, a);
     }
-    const top = [...agg.values()].filter((a) => a.misses && a.run < CLEAR_RUN).sort((a, b) => b.misses - a.misses || b.tests - a.tests).slice(0, 10);
+    const top = [...agg.values()].filter((a) => a.misses && a.run < CLEAR_RUN).sort((a, b) => b.misses - a.misses || b.tests - a.tests);
     // The panel stays while any word is still on the list, so the window can be widened again.
     $("#hLovePanel").hidden = ![...agg.values()].some((a) => a.ever && a.run < CLEAR_RUN);
     S.toughIds = top.map((a) => a.w.id);
-    const live = new Set(S.sets.flatMap((s) => s.words.map((w) => w.id)));
-    $("#hPractise").hidden = !S.toughIds.some((id) => live.has(id));
+    const n = toughWords().length;
+    $("#hPractise").hidden = !n; $("#hPractise").textContent = n === 1 ? "Practice this word" : `Practice these ${n}`;
     $("#hLove").innerHTML = top.map((a) => `<li><span class="tries">${a.misses}</span><div><div class="w">${esc(a.w.jp)}<small>${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</small></div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${win >= byTime.length ? `all ${byTime.length} session${byTime.length === 1 ? "" : "s"}` : `the last ${win} sessions`}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`).join("") || `<li class="none"><p>No misses in the last ${win} sessions.</p></li>`;
   }
   S.loveWin = String(store.get("loveWin", "all"));
   if (!["5", "10", "20", "50", "all"].includes(S.loveWin)) S.loveWin = "all";
   $("#loveWin").onclick = (e) => { const b = e.target.closest("[data-win]"); if (!b) return; S.loveWin = b.dataset.win; store.set("loveWin", S.loveWin); renderToughest(); };
-  $("#hPractise").onclick = () => {
+  // Every word on the list that's still in a set and can be asked.
+  function toughWords() {
     const ids = new Set(S.toughIds), words = [];
     for (const s of S.sets) for (const w of s.words) if (ids.has(w.id) && (w.en || "").trim() && (w.kana || w.kanji)) words.push({ ...w, set: setName(s) });
+    return words;
+  }
+  $("#hPractise").onclick = () => {
+    const words = toughWords();
     if (!words.length) return;
     // These are whole words (verb forms never come back here), so Verb forms, which would have nothing to ask, gives way to Default.
     if (S.mode === "verb") { S.mode = "default"; saveSetup(); }
     startTest(words);
   };
 
+  const PAGE = 20; // practice sessions per page, newest first
   function renderTests() {
-    const shown = S.history.slice(0, S.hShown || 20);
-    $("#hMore").hidden = shown.length >= S.history.length;
-    $("#hMore").textContent = `Show ${Math.min(20, S.history.length - shown.length)} more`;
+    const pages = Math.max(1, Math.ceil(S.history.length / PAGE));
+    S.hPage = Math.min(S.hPage || 0, pages - 1); // a delete can empty the last page
+    const shown = S.history.slice(S.hPage * PAGE, (S.hPage + 1) * PAGE);
+    $("#hPager").hidden = pages < 2;
+    $("#hPageLbl").textContent = `Page ${S.hPage + 1} of ${pages}`;
+    $("#hNewer").disabled = S.hPage === 0; $("#hOlder").disabled = S.hPage === pages - 1;
     $("#hList").innerHTML = shown.map((t) => {
       const { n, first } = firstTry(t), del = S.hConfirm === t.id;
       const ws = (t.words || []).slice().sort((a, b) => b.tries - a.tries);
@@ -237,7 +246,8 @@
       </details></li>`;
     }).join("");
   }
-  $("#hMore").onclick = () => { S.hShown = (S.hShown || 20) + 20; renderTests(); };
+  const turnPage = (by) => { S.hPage += by; renderTests(); $("#hList").closest(".panel").scrollIntoView({ block: "start" }); };
+  $("#hNewer").onclick = () => turnPage(-1); $("#hOlder").onclick = () => turnPage(1);
   $("#hList").addEventListener("toggle", (e) => { const d = e.target; if (d.dataset && d.dataset.id) d.open ? S.hOpen.add(d.dataset.id) : S.hOpen.delete(d.dataset.id); }, true);
   $("#hList").addEventListener("click", async (e) => {
     const b = e.target.closest("button"); if (!b) return;
