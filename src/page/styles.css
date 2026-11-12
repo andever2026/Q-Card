@@ -217,6 +217,14 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .love .w { font-family: var(--font-jp); font-size: 1.15rem; font-weight: 600; }
 .love .w small { font-family: var(--font-ui); font-weight: 400; color: var(--muted); font-size: .85rem; margin-left: 6px; }
 .love p { font-size: .88rem; color: var(--muted); }
+/* Admin: the words of this round, under the progress bar */
+.roundlist { font-size: .85rem; color: var(--muted); }
+.roundlist summary { cursor: pointer; }
+.roundlist ol { margin: 6px 0 0; padding-left: 1.6em; max-height: 12rem; overflow: auto; }
+.roundlist li { font-family: var(--font-jp); color: var(--ink); }
+.roundlist li small { font-family: var(--font-ui); color: var(--muted); }
+.roundlist li.now { font-weight: 700; }
+.roundlist li.missed { color: var(--shu); }
 .firsts { font-family: var(--font-jp); line-height: 2; }
 
 /* Table */

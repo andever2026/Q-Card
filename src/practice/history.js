@@ -1,5 +1,5 @@
   // ---------- history ----------
-  S.history = []; S.hOpen = new Set(); S.hConfirm = null; S.toughIds = [];
+  S.history = []; S.hOpen = new Set(); S.hConfirm = null; S.tough = [];
   // Test history is opt-in: data/users/<id>/settings {history: true|false}; missing = not asked yet.
   S.histOn = null; S.histReady = false; S.histBlocked = false;
   // The owner's history lives in the database (the morning check-in reads it). Everyone else's stays in their own
@@ -189,8 +189,9 @@
   // A word leaves the list after CLEAR_RUN sessions in a row where it was right on the first try; a miss resets the run,
   // and a word that comes back keeps its old miss count.
   const CLEAR_RUN = 3;
-  // A saved word as it is in the sets now, for its reading (the session keeps only how it was written).
-  const savedWord = (h) => { for (const s of S.sets) for (const w of s.words) if (w.id === h.id && jpForm(w) === h.jp) return w; return { kanji: h.jp }; };
+  // A word a session saved, as it is in the sets now: the same id and written the same (ids repeat across sets, so the id
+  // alone could be another set's word). { w, s } or null when it's gone or changed.
+  const liveWord = (h) => { for (const s of S.sets) for (const w of s.words) if (w.id === h.id && jpForm(w) === h.jp) return { w, s }; return null; };
   function renderToughest() {
     const agg = new Map();
     // Oldest session first, so each word's run counts the sessions since its latest miss.
@@ -210,19 +211,19 @@
     $("#hLovePanel").hidden = !all.length;
     $("#loveCount").textContent = pages > 1 ? `${top.length > 1 ? `${from + 1}–${from + top.length}` : from + 1} of ${all.length}` : "";
     pager($("#lovePager"), S.lovePage, pages, (i) => { S.lovePage = i; renderToughest(); });
-    S.toughIds = top.map((a) => a.w.id);
+    S.tough = top.map((a) => a.w);
     const n = toughWords().length;
     $("#hPractise").hidden = !n; $("#hPractise").textContent = n === 1 ? "Practice this word" : `Practice these ${n}`;
-    $("#hLove").innerHTML = top.map((a) => `<li><span class="tries">${a.misses}</span><div><div class="w">${jpRuby(savedWord(a.w))}<small>${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</small></div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${a.tests} session${a.tests === 1 ? "" : "s"}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`).join("");
+    $("#hLove").innerHTML = top.map((a) => `<li><span class="tries">${a.misses}</span><div><div class="w">${jpRuby(liveWord(a.w)?.w || { kanji: a.w.jp })}<small>${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</small></div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${a.tests} session${a.tests === 1 ? "" : "s"}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`).join("");
   }
   S.loveWin = String(store.get("loveWin", "10"));
   if (!["5", "10", "20", "50", "all"].includes(S.loveWin)) S.loveWin = "10";
   $("#loveWin").onclick = (e) => { const b = e.target.closest("[data-win]"); if (!b) return; S.loveWin = b.dataset.win; S.lovePage = 0; store.set("loveWin", S.loveWin); renderToughest(); };
   // Every word on the list that's still in a set and can be asked.
   function toughWords() {
-    const ids = new Set(S.toughIds), words = [];
-    for (const s of S.sets) for (const w of s.words) if (ids.has(w.id) && (w.en || "").trim() && (w.kana || w.kanji)) words.push({ ...w, set: setName(s) });
-    return words;
+    const words = new Map();
+    for (const h of S.tough) { const l = liveWord(h); if (l && (l.w.en || "").trim() && (l.w.kana || l.w.kanji)) words.set(l.w, { ...l.w, set: setName(l.s) }); }
+    return [...words.values()];
   }
   $("#hPractise").onclick = () => {
     const words = toughWords();

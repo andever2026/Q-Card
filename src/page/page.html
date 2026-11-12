@@ -122,6 +122,9 @@ colours.apply(...colours.saved()); // before anything is drawn
       <button class="ghost" id="quitBtn">← Quit</button>
       <div class="prog"><span id="progLbl"></span><div class="meter"><i id="meterFill"></i></div></div>
     </div>
+<!--#if public-->
+    <details class="roundlist" id="roundList" hidden><summary id="roundHead"></summary><ol id="roundItems"></ol></details>
+<!--#endif-->
     <div class="prompt">
       <div class="tag" id="qTag"></div>
       <div class="qtext" id="qText"></div>
@@ -315,6 +318,9 @@ colours.apply(...colours.saved()); // before anything is drawn
             <p class="muted small">Only developers see this tab. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
             <div class="tactions"><button class="btn" type="button" id="devAsk1">First time</button><button class="btn" type="button" id="devAsk2">Later times</button></div>
           </section>
+          <section><h3>Practice</h3>
+            <label class="checkrow"><input type="checkbox" id="roundListOn"> Show the words of this round during a practice: the one on screen, the ones still to come, and the ones missed (in this browser)</label>
+          </section>
         </div>
 <!--#endif-->
       </div>
@@ -410,6 +416,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   //#include account/account.js
   //#include tour/tour.js
   //#include account/share.js
+  //#include practice/round-list.js
   //#endif
   //#include page/boot.js
 })();

@@ -762,6 +762,17 @@ await op.click("#shareNo"); await op.click("#devAsk2"); await op.waitForTimeout(
 ok(await vis(op, "#shareNeverRow") && /finished 20 practices/.test(await text(op, "#shareCount")), "dev tools: Later times opens it with \"Don't ask me again\"");
 await op.click("#shareNo");
 ok((await asked()) === askedBefore, "dev tools: opening it doesn't count as being asked");
+// Admin: the words of this round, during a practice
+await op.check("#roundListOn"); await op.click("#settingsClose"); await op.waitForTimeout(200);
+if (await vis(op, "#results")) { await op.click("#newBtn"); await op.waitForTimeout(200); }
+await op.click("#startBtn"); await op.waitForTimeout(300);
+const round = () => op.evaluate(() => [document.querySelector("#roundHead").textContent, document.querySelectorAll("#roundItems li").length, document.querySelector("#roundItems li.now")?.textContent].join("|"));
+const nWords = await op.evaluate(() => +document.querySelector("#progLbl").textContent.match(/of (\d+)/)[1]);
+ok(await vis(op, "#quiz") && await op.evaluate(() => !document.querySelector("#roundList").hidden) && (await round()).startsWith(`Round 1: ${nWords} to go|`), "admin: the round's words show under the progress bar", await round());
+const [, nLi, nowLi] = (await round()).split("|"), q = await text(op, "#qText");
+ok(nLi === String(nWords) && nowLi.includes(q), "admin: the round list has every word of the round, the one on screen first", `${await round()} / ${q}`);
+await op.click("#quitBtn"); await op.waitForTimeout(300);
+await settings(op, "admin"); await op.uncheck("#roundListOn"); await op.click("#settingsClose");
 ok(op.errors.length === 0, "dev tools: no page errors", op.errors.join(" | "));
 // guests are never asked: their handwriting stays in the browser
 const gp = await newPage(await browser.newContext(), { init: () => {
@@ -793,6 +804,10 @@ await np.click("#settingsClose"); await np.click("#newBtn"); await np.waitForTim
 await np.evaluate(() => localStorage.setItem("jpq:share", JSON.stringify({ on: true, at: "2026-10-01T00:00:00Z" })));
 await npPractice();
 ok(!Object.keys(await fsData(np)).some((k) => k.startsWith("users/n1/training/")), "share: a yes from before saves nothing for an account that isn't a developer");
+await np.evaluate(() => localStorage.setItem("jpq:roundList", "true"));
+await np.click("#newBtn"); await np.waitForTimeout(200); await np.click("#startBtn"); await np.waitForTimeout(300);
+ok(await vis(np, "#quiz") && await np.evaluate(() => document.querySelector("#roundList").hidden), "admin: an account that isn't a developer never sees the round list, even with it switched on");
+await np.click("#quitBtn"); await np.waitForTimeout(300);
 ok(np.errors.length === 0, "share (not a developer): no page errors", np.errors.join(" | "));
 
 // ---------- 15. sample sets: an offer cut short is finished next time; an account with its own sets gets none ----------
@@ -883,6 +898,8 @@ const hp = await newPage(hctx, { init: () => {
   localStorage.setItem("qcard:mode", "local"); put("meta/samples", { offeredAt: "x" });
   const words = Array.from({ length: 12 }, (_, i) => ({ id: "w" + i, en: "word " + i, kana: "かな" + i }));
   put("sets/h", { collection: "C", unit: "U", name: "H", words });
+  // another set whose words are numbered the same way: they aren't the hard words and never come up with them
+  put("sets/h2", { collection: "C", unit: "U", name: "H2", words: [0, 1, 2].map((i) => ({ id: "w" + i, en: "other " + i, kana: "べつ" + i })) });
   put("data/users/local/settings", { history: true });
   for (let i = 0; i < 45; i++) put("data/users/local/t" + (100 + i), { finishedAt: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString(), dir: "ej", mode: "default", sets: ["U › H"],
     words: i ? [{ id: "w0", en: "word 0", jp: "かな0", dir: "ej", tries: 1 }] : words.map((w) => ({ id: w.id, en: w.en, jp: w.kana, dir: "ej", tries: 2 })) });

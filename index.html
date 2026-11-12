@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-tWLXfiJOvdc4i9j3ZucJvBmEoYjcJtQOZ6o5DirX5ok=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-I3hKv192yaY3C3A31MG32auyk4P3o6N9PEv1U8t/fAA=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -293,6 +293,14 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .love .w { font-family: var(--font-jp); font-size: 1.15rem; font-weight: 600; }
 .love .w small { font-family: var(--font-ui); font-weight: 400; color: var(--muted); font-size: .85rem; margin-left: 6px; }
 .love p { font-size: .88rem; color: var(--muted); }
+/* Admin: the words of this round, under the progress bar */
+.roundlist { font-size: .85rem; color: var(--muted); }
+.roundlist summary { cursor: pointer; }
+.roundlist ol { margin: 6px 0 0; padding-left: 1.6em; max-height: 12rem; overflow: auto; }
+.roundlist li { font-family: var(--font-jp); color: var(--ink); }
+.roundlist li small { font-family: var(--font-ui); color: var(--muted); }
+.roundlist li.now { font-weight: 700; }
+.roundlist li.missed { color: var(--shu); }
 .firsts { font-family: var(--font-jp); line-height: 2; }
 
 /* Table */
@@ -562,6 +570,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       <button class="ghost" id="quitBtn">← Quit</button>
       <div class="prog"><span id="progLbl"></span><div class="meter"><i id="meterFill"></i></div></div>
     </div>
+    <details class="roundlist" id="roundList" hidden><summary id="roundHead"></summary><ol id="roundItems"></ol></details>
     <div class="prompt">
       <div class="tag" id="qTag"></div>
       <div class="qtext" id="qText"></div>
@@ -737,6 +746,9 @@ colours.apply(...colours.saved()); // before anything is drawn
           <section><h3>The sharing question</h3>
             <p class="muted small">Only developers see this tab. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
             <div class="tactions"><button class="btn" type="button" id="devAsk1">First time</button><button class="btn" type="button" id="devAsk2">Later times</button></div>
+          </section>
+          <section><h3>Practice</h3>
+            <label class="checkrow"><input type="checkbox" id="roundListOn"> Show the words of this round during a practice: the one on screen, the ones still to come, and the ones missed (in this browser)</label>
           </section>
         </div>
       </div>
@@ -1752,6 +1764,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#meterFill").style.width = (Q.done.size / Q.total) * 100 + "%";
     syncCheck();
     saveResume();
+    showRound();
     requestAnimationFrame(() => pads.forEach((p) => p.resize()));
   }
   // Claude's transcription is the reliable part: when what it read is exactly the expected answer, the answer is right.
@@ -2047,7 +2060,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     try { await db.collection("data/users/" + uid).doc(id).set(doc); } catch { if (again) banner("Couldn't save that change. Try again."); }
   }
   // ---------- history ----------
-  S.history = []; S.hOpen = new Set(); S.hConfirm = null; S.toughIds = [];
+  S.history = []; S.hOpen = new Set(); S.hConfirm = null; S.tough = [];
   // Test history is opt-in: data/users/<id>/settings {history: true|false}; missing = not asked yet.
   S.histOn = null; S.histReady = false; S.histBlocked = false;
   // The owner's history lives in the database (the morning check-in reads it). Everyone else's stays in their own
@@ -2237,8 +2250,9 @@ colours.apply(...colours.saved()); // before anything is drawn
   // A word leaves the list after CLEAR_RUN sessions in a row where it was right on the first try; a miss resets the run,
   // and a word that comes back keeps its old miss count.
   const CLEAR_RUN = 3;
-  // A saved word as it is in the sets now, for its reading (the session keeps only how it was written).
-  const savedWord = (h) => { for (const s of S.sets) for (const w of s.words) if (w.id === h.id && jpForm(w) === h.jp) return w; return { kanji: h.jp }; };
+  // A word a session saved, as it is in the sets now: the same id and written the same (ids repeat across sets, so the id
+  // alone could be another set's word). { w, s } or null when it's gone or changed.
+  const liveWord = (h) => { for (const s of S.sets) for (const w of s.words) if (w.id === h.id && jpForm(w) === h.jp) return { w, s }; return null; };
   function renderToughest() {
     const agg = new Map();
     // Oldest session first, so each word's run counts the sessions since its latest miss.
@@ -2258,19 +2272,19 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#hLovePanel").hidden = !all.length;
     $("#loveCount").textContent = pages > 1 ? `${top.length > 1 ? `${from + 1}–${from + top.length}` : from + 1} of ${all.length}` : "";
     pager($("#lovePager"), S.lovePage, pages, (i) => { S.lovePage = i; renderToughest(); });
-    S.toughIds = top.map((a) => a.w.id);
+    S.tough = top.map((a) => a.w);
     const n = toughWords().length;
     $("#hPractise").hidden = !n; $("#hPractise").textContent = n === 1 ? "Practice this word" : `Practice these ${n}`;
-    $("#hLove").innerHTML = top.map((a) => `<li><span class="tries">${a.misses}</span><div><div class="w">${jpRuby(savedWord(a.w))}<small>${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</small></div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${a.tests} session${a.tests === 1 ? "" : "s"}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`).join("");
+    $("#hLove").innerHTML = top.map((a) => `<li><span class="tries">${a.misses}</span><div><div class="w">${jpRuby(liveWord(a.w)?.w || { kanji: a.w.jp })}<small>${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</small></div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${a.tests} session${a.tests === 1 ? "" : "s"}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`).join("");
   }
   S.loveWin = String(store.get("loveWin", "10"));
   if (!["5", "10", "20", "50", "all"].includes(S.loveWin)) S.loveWin = "10";
   $("#loveWin").onclick = (e) => { const b = e.target.closest("[data-win]"); if (!b) return; S.loveWin = b.dataset.win; S.lovePage = 0; store.set("loveWin", S.loveWin); renderToughest(); };
   // Every word on the list that's still in a set and can be asked.
   function toughWords() {
-    const ids = new Set(S.toughIds), words = [];
-    for (const s of S.sets) for (const w of s.words) if (ids.has(w.id) && (w.en || "").trim() && (w.kana || w.kanji)) words.push({ ...w, set: setName(s) });
-    return words;
+    const words = new Map();
+    for (const h of S.tough) { const l = liveWord(h); if (l && (l.w.en || "").trim() && (l.w.kana || l.w.kanji)) words.set(l.w, { ...l.w, set: setName(l.s) }); }
+    return [...words.values()];
   }
   $("#hPractise").onclick = () => {
     const words = toughWords();
@@ -3418,6 +3432,21 @@ colours.apply(...colours.saved()); // before anything is drawn
     } catch { banner("Some shared answers couldn't be deleted. Try again."); }
     e.target.disabled = false; shareDelAsk = false; renderShare();
   };
+  // ---------- public site, Admin: the words of this round, during a practice ----------
+  // A developer's look at what's left (Settings → Admin, off until turned on, in this browser): the word on screen, the
+  // ones still to come this round, and the ones missed this round, which come back in the next.
+  const roundOn = () => isDev && !!store.get("roundList", false);
+  function showRound() {
+    const box = $("#roundList");
+    box.hidden = !roundOn() || !Q.cur;
+    if (box.hidden) return;
+    const both = Q.meta?.dir === "both";
+    const li = (it, cls) => `<li${cls ? ` class="${cls}"` : ""}>${esc(jpForm(it.w))} <small>${esc(it.w.en)} · ${esc(it.w.set)}${both ? (it.dir === "ej" ? " · EN→JP" : " · JP→EN") : ""}</small></li>`;
+    $("#roundHead").textContent = `Round ${Q.round}: ${Q.queue.length + 1} to go${Q.wrong.length ? `, ${Q.wrong.length} missed so far` : ""}`;
+    $("#roundItems").innerHTML = [li(Q.cur, "now"), ...Q.queue.map((it) => li(it)), ...Q.wrong.map((it) => li(it, "missed"))].join("");
+  }
+  $("#roundListOn").checked = !!store.get("roundList", false);
+  $("#roundListOn").onchange = (e) => { store.set("roundList", e.target.checked); showRound(); };
   // ---------- boot ----------
   renderSetup();
   (() => {

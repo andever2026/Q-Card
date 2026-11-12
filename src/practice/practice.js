@@ -117,5 +117,8 @@
     $("#meterFill").style.width = (Q.done.size / Q.total) * 100 + "%";
     syncCheck();
     saveResume();
+    //#if public
+    showRound();
+    //#endif
     requestAnimationFrame(() => pads.forEach((p) => p.resize()));
   }
