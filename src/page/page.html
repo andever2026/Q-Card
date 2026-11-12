@@ -227,12 +227,13 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div class="head"><h3>Words that need the most love overall</h3><div class="headr">
           <span class="muted small" id="loveCount"></span><span class="muted small" aria-hidden="true">Show</span><div class="seg mini" id="loveWin" role="group" aria-label="Words to show"><button type="button" data-win="5">5</button><button type="button" data-win="10">10</button><button type="button" data-win="20">20</button><button type="button" data-win="50">50</button><button type="button" data-win="all">All</button></div></div></div>
         <ul class="love" id="hLove"></ul>
+        <nav class="pager" id="lovePager" aria-label="Word pages" hidden></nav>
         <div class="tactions" style="justify-content: flex-end"><button class="btn primary" type="button" id="hPractise">Practice these</button></div>
       </div>
       <div class="panel">
         <div class="head"><h3>All practice sessions</h3><span class="tactions" id="delAllWrap"></span></div>
         <ul class="tests" id="hList"></ul>
-        <div class="pager" id="hPager" hidden><button class="btn" type="button" id="hNewer">← Newer</button><span class="muted small" id="hPageLbl"></span><button class="btn" type="button" id="hOlder">Older →</button></div>
+        <nav class="pager" id="hPager" aria-label="Practice session pages" hidden></nav>
       </div>
     </div>
   </section>

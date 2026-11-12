@@ -299,7 +299,15 @@ td.c { text-align: center; padding-inline: 0; }
 .heatlegend { display: flex; gap: 4px; align-items: center; font-size: .75rem; color: var(--muted); }
 .heatlegend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
 .tests { list-style: none; margin: 0; padding: 0; display: grid; }
-.pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; }
+.pg { min-width: 34px; height: 34px; padding: 0 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+.pg:not(:disabled):not([aria-current]):not(.gap):hover { background: var(--sunk); }
+.pg:disabled { opacity: .4; cursor: default; }
+.pgnums { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.pgnums .pg { border: none; border-right: 1px solid var(--line); border-radius: 0; }
+.pgnums .pg:last-child { border-right: none; }
+.pg[aria-current] { background: var(--ai); color: var(--surface); font-weight: 700; }
+.pg.gap { color: var(--muted); }
 .test { border-bottom: 1px dashed var(--line); }
 .test summary { display: grid; grid-template-columns: 9rem minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; cursor: pointer; align-items: baseline; list-style: none; }
 .test summary::-webkit-details-marker { display: none; }

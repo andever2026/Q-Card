@@ -88,7 +88,7 @@
   }
   $("#histAll").onclick = () => openHistory();
   $("#histOff").onclick = async () => { if (await setHistory(false)) histChanged(); };
-  const openHistory = () => { S.hConfirm = null; S.hPage = 0; show("history"); renderHistory(); };
+  const openHistory = () => { S.hConfirm = null; S.hPage = S.lovePage = 0; show("history"); renderHistory(); };
   // Settings → Practice history: the same choice as on the practice page, where it can be found again later.
   function renderHistSet() {
     const on = S.histOn === true, n = S.history.length;
@@ -193,7 +193,6 @@
     const agg = new Map();
     // Oldest session first, so each word's run counts the sessions since its latest miss.
     const byTime = S.history.slice().sort((a, b) => String(a.finishedAt || "").localeCompare(String(b.finishedAt || "")));
-    const show = S.loveWin === "all" ? Infinity : +S.loveWin; // how many words to list
     document.querySelectorAll("#loveWin [data-win]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.win === S.loveWin));
     for (const t of byTime) for (const w of t.words || []) {
       if (w.skip) continue; // left off the list on the results page
@@ -202,17 +201,21 @@
       a.misses += miss; a.tests++; a.run = miss ? 0 : a.run + 1; a.w = w; agg.set(k, a);
     }
     const all = [...agg.values()].filter((a) => a.misses && a.run < CLEAR_RUN).sort((a, b) => b.misses - a.misses || b.tests - a.tests);
-    const top = all.slice(0, show);
+    const per = S.loveWin === "all" ? all.length || 1 : +S.loveWin; // words to a page
+    const pages = Math.max(1, Math.ceil(all.length / per));
+    S.lovePage = Math.min(S.lovePage || 0, pages - 1);
+    const from = S.lovePage * per, top = all.slice(from, from + per);
     $("#hLovePanel").hidden = !all.length;
-    $("#loveCount").textContent = top.length < all.length ? `Top ${top.length} of ${all.length}` : "";
+    $("#loveCount").textContent = pages > 1 ? `${top.length > 1 ? `${from + 1}–${from + top.length}` : from + 1} of ${all.length}` : "";
+    pager($("#lovePager"), S.lovePage, pages, (i) => { S.lovePage = i; renderToughest(); });
     S.toughIds = top.map((a) => a.w.id);
     const n = toughWords().length;
     $("#hPractise").hidden = !n; $("#hPractise").textContent = n === 1 ? "Practice this word" : `Practice these ${n}`;
     $("#hLove").innerHTML = top.map((a) => `<li><span class="tries">${a.misses}</span><div><div class="w">${esc(a.w.jp)}<small>${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</small></div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${a.tests} session${a.tests === 1 ? "" : "s"}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`).join("");
   }
-  S.loveWin = String(store.get("loveWin", "all"));
-  if (!["5", "10", "20", "50", "all"].includes(S.loveWin)) S.loveWin = "all";
-  $("#loveWin").onclick = (e) => { const b = e.target.closest("[data-win]"); if (!b) return; S.loveWin = b.dataset.win; store.set("loveWin", S.loveWin); renderToughest(); };
+  S.loveWin = String(store.get("loveWin", "10"));
+  if (!["5", "10", "20", "50", "all"].includes(S.loveWin)) S.loveWin = "10";
+  $("#loveWin").onclick = (e) => { const b = e.target.closest("[data-win]"); if (!b) return; S.loveWin = b.dataset.win; S.lovePage = 0; store.set("loveWin", S.loveWin); renderToughest(); };
   // Every word on the list that's still in a set and can be asked.
   function toughWords() {
     const ids = new Set(S.toughIds), words = [];
@@ -227,14 +230,27 @@
     startTest(words);
   };
 
+  // Page buttons under a list: ‹ 1 2 3 › with the current page marked, and … standing in for runs of pages when
+  // there are many. go(i) shows page i (counted from 0).
+  function pager(box, page, pages, go) {
+    box.hidden = pages < 2;
+    if (pages < 2) { box.innerHTML = ""; return; }
+    const keep = [...Array(pages).keys()].filter((i) => pages <= 7 || i === 0 || i === pages - 1 || Math.abs(i - page) <= 1 || (page < 3 && i < 4) || (page > pages - 4 && i > pages - 5));
+    let nums = "", last = -1;
+    for (const i of keep) {
+      if (i > last + 1) nums += `<span class="pg gap" aria-hidden="true">…</span>`;
+      nums += `<button type="button" class="pg" data-pg="${i}"${i === page ? ' aria-current="page"' : ""}>${i + 1}</button>`; last = i;
+    }
+    const arrow = (to, label, d) => `<button type="button" class="pg arrow" data-pg="${to}" aria-label="${label}"${to < 0 || to >= pages ? " disabled" : ""}><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+    box.innerHTML = `${arrow(page - 1, "Previous page", "M10 3 5 8l5 5")}<span class="pgnums">${nums}</span>${arrow(page + 1, "Next page", "M6 3l5 5-5 5")}`;
+    box.onclick = (e) => { const b = e.target.closest("[data-pg]"); if (b && !b.disabled && +b.dataset.pg !== page) go(+b.dataset.pg); };
+  }
   const PAGE = 20; // practice sessions per page, newest first
   function renderTests() {
     const pages = Math.max(1, Math.ceil(S.history.length / PAGE));
     S.hPage = Math.min(S.hPage || 0, pages - 1); // a delete can empty the last page
     const shown = S.history.slice(S.hPage * PAGE, (S.hPage + 1) * PAGE);
-    $("#hPager").hidden = pages < 2;
-    $("#hPageLbl").textContent = `Page ${S.hPage + 1} of ${pages}`;
-    $("#hNewer").disabled = S.hPage === 0; $("#hOlder").disabled = S.hPage === pages - 1;
+    pager($("#hPager"), S.hPage, pages, (i) => { S.hPage = i; renderTests(); $("#hList").closest(".panel").scrollIntoView({ block: "start" }); });
     $("#hList").innerHTML = shown.map((t) => {
       const { n, first } = firstTry(t), del = S.hConfirm === t.id;
       const ws = (t.words || []).slice().sort((a, b) => b.tries - a.tries);
@@ -245,8 +261,6 @@
       </details></li>`;
     }).join("");
   }
-  const turnPage = (by) => { S.hPage += by; renderTests(); $("#hList").closest(".panel").scrollIntoView({ block: "start" }); };
-  $("#hNewer").onclick = () => turnPage(-1); $("#hOlder").onclick = () => turnPage(1);
   $("#hList").addEventListener("toggle", (e) => { const d = e.target; if (d.dataset && d.dataset.id) d.open ? S.hOpen.add(d.dataset.id) : S.hOpen.delete(d.dataset.id); }, true);
   $("#hList").addEventListener("click", async (e) => {
     const b = e.target.closest("button"); if (!b) return;

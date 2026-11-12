@@ -875,7 +875,7 @@ await cp.click(await vis(cp, "#quiz") ? "#quitBtn" : "#newBtn"); await cp.waitFo
 ok(await cp.$eval("#mode-default", (b) => b.getAttribute("aria-pressed") === "true") && await cp.evaluate(() => Object.keys(localStorage).filter((k) => /data\/users\/local\/t\d/.test(k)).length) === 1,
   "Practice these with Verb forms picked: Default is picked after, and no empty session is saved");
 ok(cp.errors.length === 0, "quit while checking: no page errors", cp.errors.join(" | "));
-// History: 20 sessions to a page; the hard-words list shows as many words as picked (5 to All), and "Practice these" takes those.
+// History: page buttons under the sessions (20 to a page) and under the hard words (5 to All a page); "Practice these" takes the words shown.
 const hctx = await browser.newContext();
 const hp = await newPage(hctx, { init: () => {
   if (localStorage.getItem("qcard:mode")) return;
@@ -888,19 +888,24 @@ const hp = await newPage(hctx, { init: () => {
     words: i ? [{ id: "w0", en: "word 0", jp: "かな0", dir: "ej", tries: 1 }] : words.map((w) => ({ id: w.id, en: w.en, jp: w.kana, dir: "ej", tries: 2 })) });
 } });
 await hp.click("#histAll"); await hp.waitForTimeout(300);
-const hPage = () => hp.evaluate(() => [document.querySelectorAll("#hList > li").length, document.querySelector("#hPageLbl").textContent, document.querySelector("#hNewer").disabled, document.querySelector("#hOlder").disabled].join(","));
-ok(await vis(hp, "#hPager") && (await hPage()) === "20,Page 1 of 3,true,false", "history pages: 20 sessions on the first page", await hPage());
-await hp.click("#hOlder"); await hp.click("#hOlder");
-ok((await hPage()) === "5,Page 3 of 3,false,true", "history pages: the last page has the oldest 5", await hPage());
-await hp.click("#hNewer");
-ok((await hPage()) === "20,Page 2 of 3,false,false", "history pages: Newer goes back a page", await hPage());
-ok((await hp.$$eval("#hLove > li", (l) => l.length)) === 11 && (await text(hp, "#hPractise")) === "Practice these 11", "hard words: every word on the list is shown, not only 10", await text(hp, "#hPractise"));
+const hPage = () => hp.evaluate(() => [document.querySelectorAll("#hList > li").length, document.querySelector('#hPager [aria-current="page"]')?.textContent,
+  [...document.querySelectorAll("#hPager .pgnums .pg")].map((b) => b.textContent).join(" "), [...document.querySelectorAll("#hPager .arrow")].map((b) => b.disabled).join("/")].join(","));
+ok(await vis(hp, "#hPager") && (await hPage()) === "20,1,1 2 3,true/false", "history pages: 20 sessions on page 1 of 3, Previous off", await hPage());
+await hp.click('#hPager [data-pg="2"]');
+ok((await hPage()) === "5,3,1 2 3,false/true", "history pages: page 3 has the oldest 5, Next off", await hPage());
+await hp.click('#hPager .arrow[aria-label="Previous page"]');
+ok((await hPage()) === "20,2,1 2 3,false/false", "history pages: Previous goes back a page", await hPage());
+const love = () => hp.evaluate(() => [document.querySelectorAll("#hLove > li").length, document.querySelector("#hPractise").textContent, document.querySelector("#loveCount").textContent,
+  document.querySelector('#lovePager [aria-current="page"]')?.textContent || "-"].join(","));
+ok((await love()) === "10,Practice these 10,1–10 of 11,1", "hard words: 10 to a page by default, with pages", await love());
+await hp.click('#lovePager [data-pg="1"]');
+ok((await love()) === "1,Practice this word,11 of 11,2", "hard words: page 2 has the last word, and Practice takes that page", await love());
 await hp.click('#loveWin [data-win="5"]');
-ok((await hp.$$eval("#hLove > li", (l) => l.length)) === 5 && (await text(hp, "#hPractise")) === "Practice these 5" && (await text(hp, "#loveCount")) === "Top 5 of 11",
-  "hard words: Show 5 lists the 5 most missed words", `${await text(hp, "#hPractise")} / ${await text(hp, "#loveCount")}`);
+ok((await love()) === "5,Practice these 5,1–5 of 11,1", "hard words: Show 5 starts again at page 1 with 5 words", await love());
 await hp.click('#loveWin [data-win="all"]');
+ok((await love()) === "11,Practice these 11,,-" && !(await vis(hp, "#lovePager")), "hard words: Show All lists every word on one page", await love());
 await hp.click("#hPractise"); await hp.waitForTimeout(300);
-ok(await vis(hp, "#quiz") && /^0 of 11 done/.test(await text(hp, "#progLbl")), "hard words: Practice these practices all of them", await text(hp, "#progLbl"));
+ok(await vis(hp, "#quiz") && /^0 of 11 done/.test(await text(hp, "#progLbl")), "hard words: Practice these practices the words shown", await text(hp, "#progLbl"));
 ok(hp.errors.length === 0, "history pages: no page errors", hp.errors.join(" | "));
 await hctx.close();
 // The welcome pop-up closed with Escape is remembered like its X.
