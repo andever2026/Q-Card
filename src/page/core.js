@@ -56,20 +56,6 @@
   };
 
   // ---------- views ----------
-  const views = ["setup", "quiz", "results", "table", "history"];
-  // Settings pop-up (the gear in the header): colours, the vocab counts, export / import, and on the public site light or dark,
-  // the account and deleting.
-  function openSettings() { renderSettings(); $("#settings").showModal(); }
-  $("#settingsBtn").onclick = openSettings;
-  $("#settingsClose").onclick = () => $("#settings").close();
-  $("#settings").addEventListener("click", (e) => { if (e.target === $("#settings")) $("#settings").close(); });
-  function renderSettings() {
-    const n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`, words = S.sets.reduce((a, s) => a + readyCount(s.words || []), 0);
-    $("#setStats").textContent = [n(S.sets.length, "set"), n(words, "word"), n(S.kanjiLists.length, "kanji list"), ...(S.history?.length ? [n(S.history.length, "practice session") + " saved"] : [])].join(" · ");
-    renderPort();
-    //#if public
-    renderAccount(); renderShare();
-    //#endif
-  }
+  const views = ["setup", "quiz", "results", "table", "history", "settings"];
   function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
   function banner(msg) { const b = $("#banner"); b.hidden = !msg; b.textContent = msg || ""; }

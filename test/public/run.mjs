@@ -81,11 +81,21 @@ await page.evaluate(() => { window.__signInError = null; });
 await page.click("#signInBtn"); await page.waitForTimeout(500);
 ok(await vis(page, "#setup") && !(await vis(page, "#welcome")), "signed in: practice page shows, pop-up gone");
 ok(!(await page.$("#acct")) && !(await page.$("#palPick:not(#settings *)")), "header: no account line or colour dots, just the settings gear");
+// Settings is a page of its own with tabs: open it (unless it's open) and pick the tab that has what's wanted.
+const setOpen = (p) => p.evaluate(() => !document.querySelector("#settings").hidden);
+const settings = async (p, tab) => { if (!(await setOpen(p))) await p.click("#settingsBtn"); if (tab) await p.click(`#setNav [data-set-tab="${tab}"]`); };
 await page.click("#settingsBtn");
-const setOpen = (p) => p.evaluate(() => document.querySelector("#settings").open);
-ok(await setOpen(page) && /student@example\.com/.test(await text(page, "#acctName")) && (await text(page, "#signOutBtn")) === "Sign out" && (await text(page, "#delStart")) === "Delete my account", "settings: shows the signed-in account, Sign out and Delete my account", await text(page, "#acctName"));
+ok(await setOpen(page) && !(await vis(page, "#setup")) && await page.evaluate(() => document.querySelector('#setNav [aria-current="page"]')?.dataset.setTab === "look" && getComputedStyle(document.querySelector("#palPick")).display !== "none" && !document.querySelector("#acctName").getClientRects().length),
+  "settings: the gear opens a page with tabs down the side, Appearance first, the other tabs' parts not shown");
+ok(await page.evaluate(() => [...document.querySelectorAll("#setNav [data-set-tab]")].filter((b) => !b.hidden).map((b) => b.textContent).join(", ")) === "Appearance, Account, Your vocab, Practice history, Developer tools",
+  "settings: the tabs (no Handwriting sharing where it isn't offered)");
+await settings(page, "account");
+
+ok(await page.evaluate(() => document.querySelector("#acctName").getClientRects().length > 0 && !document.querySelector("#palPick").getClientRects().length) && /student@example\.com/.test(await text(page, "#acctName")) && (await text(page, "#signOutBtn")) === "Sign out" && (await text(page, "#delStart")) === "Delete my account", "settings: shows the signed-in account, Sign out and Delete my account", await text(page, "#acctName"));
 await page.click("#settingsClose");
-ok(!(await setOpen(page)), "settings: ✕ closes it");
+ok(!(await setOpen(page)) && await vis(page, "#setup"), "settings: ← Back closes it, back to the page it was opened from");
+await page.click("#settingsBtn"); await page.click("#settingsBtn");
+ok(!(await setOpen(page)) && await vis(page, "#setup"), "settings: the gear closes it too");
 ok(await vis(page, '[data-set="samples-greetings"]') && await vis(page, "#sampleNote"), "new account: starts with the sample sets");
 ok((await page.$eval("#uptoSel", (s) => s.value)) === "auto", "samples: 'Kanji learned up to' starts at Highest picked unit", await page.$eval("#uptoSel", (s) => s.value));
 const sampleDocs = (d) => Object.keys(d).filter((p) => /^users\/u1\/(sets|kanji)\/samples-/.test(p));
@@ -117,7 +127,7 @@ await page.screenshot({ path: join(out, "2-empty.png"), fullPage: true });
 const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("#emptyImport")]);
 await chooser.setFiles(join(root, "test/public/fixtures/sample-export.json"));
 await page.waitForTimeout(300);
-ok(await setOpen(page) && await vis(page, "#importPreview"), "import: the empty state's Import opens Settings with the preview");
+ok(await setOpen(page) && await page.evaluate(() => document.querySelector('#setNav [aria-current="page"]')?.dataset.setTab === "vocab") && await vis(page, "#importPreview"), "import: the empty state's Import opens Settings on Your vocab with the preview");
 await page.click("#importGo"); await page.waitForTimeout(800);
 data = await fsData(page);
 ok(!!data["users/u1/sets/sample-ch1-a"] && !!data["users/u1/kanji/sample-ch1"] && !!data["users/u1/meta/books"], "import: sets, kanji list and book order saved under users/u1/");
@@ -166,7 +176,7 @@ if (entry.length > 1) {
     }
   };
   // Settings → Developer tools (everyone has it, all off at first): live reading and character boxes, used on the 2nd word
-  await page.click("#settingsBtn"); await page.waitForTimeout(200);
+  await settings(page, "tools"); await page.waitForTimeout(200);
   ok(await vis(page, "#toolsSet") && !(await page.isChecked("#liveReadOn")) && !(await page.isChecked("#charBoxesOn")), "developer tools: in Settings, everything off at first");
   await page.check("#liveReadOn"); await page.check("#charBoxesOn"); await page.click("#settingsClose");
   // pixels of the box colours (--ok, --shu) on a writing box
@@ -336,7 +346,7 @@ ok(JSON.stringify(data["users/u1/sets/sample-ch1-a"]?.tags) === '["Quiz 1","Food
 ok((await page.$$eval(`${tset} .tag`, (xs) => xs.map((x) => x.textContent).join("|"))) === "Quiz 1|Food and drink", "tags: shown on the set in the vocab table");
 await page.click(`${tset} [data-editset]`); await page.locator(tset).screenshot({ path: join(out, "5-tags-table.png") }); await page.click(`${tset} [data-editcancel]`);
 ok(!(await page.$("#table #exportBtn")), "export / import: no longer in the vocab table");
-await page.click("#settingsBtn");
+await settings(page, "vocab");
 const [dl] = await Promise.all([page.waitForEvent("download"), page.click("#exportBtn")]);
 await page.click("#settingsClose");
 ok(/\.json$/.test(dl.suggestedFilename()), "export downloads a .json file", dl.suggestedFilename());
@@ -356,7 +366,7 @@ const pressed = (sel) => page.$eval(sel, (b) => b.getAttribute("aria-pressed") =
 await page.click("#dir-je"); await page.click("#mode-kana");
 if (!(await pressed('[data-set="sample-ch1-a"]'))) await page.click('[data-set="sample-ch1-a"]');
 await page.click('#pickTags [data-tag="quiz 1"]');
-await page.click("#settingsBtn"); await page.click('#themePick [data-theme-pick="dark"]'); await page.click('#palPick [data-pal="claude"]'); await page.click("#settingsClose");
+await settings(page, "look"); await page.click('#themePick [data-theme-pick="dark"]'); await page.click('#palPick [data-pal="claude"]'); await page.click("#settingsClose");
 await page.waitForTimeout(1300);
 data = await fsData(page);
 const prefs = data["users/u1/data/prefs"] || {};
@@ -366,17 +376,17 @@ await page.reload(); await page.waitForTimeout(1200);
 ok(await pressed("#dir-je") && await pressed("#mode-kana") && await pressed('[data-set="sample-ch1-a"]') && await pressed('#pickTags [data-tag="quiz 1"]'), "choices: direction, mode, picked set and filter come back on another device");
 ok(await page.evaluate(() => document.documentElement.dataset.theme === "dark" && document.documentElement.dataset.palette === "claude"), "choices: light or dark and colours come back too");
 await page.click("#tagClear"); await page.click("#dir-ej"); await page.click("#mode-default");
-await page.click("#settingsBtn"); await page.click('#themePick [data-theme-pick=""]'); await page.click('#palPick [data-pal="indigo"]'); await page.click("#settingsClose");
+await settings(page, "look"); await page.click('#themePick [data-theme-pick=""]'); await page.click('#palPick [data-pal="indigo"]'); await page.click("#settingsClose");
 await page.waitForTimeout(1300);
 ok((await fsData(page))["users/u1/data/prefs"]?.dir === "ej", "choices: later changes are saved again");
 ok(!apiCalls.length, "nothing is ever sent to Anthropic", apiCalls.join(" "));
 ok(!(await page.evaluate(() => window.__csp)).length, "no Content-Security-Policy violations", (await page.evaluate(() => window.__csp)).join(", "));
 
 // ---------- 7. sign out, another person sees none of it ----------
-await page.click("#settingsBtn"); await page.click("#signOutBtn"); await page.waitForTimeout(800);
+await settings(page, "account"); await page.click("#signOutBtn"); await page.waitForTimeout(800);
 ok(!(await page.evaluate(() => document.querySelector("#welcome").open)) && await vis(page, "#setup"), "sign out from Settings: no welcome pop-up after the first visit");
 await page.evaluate(() => { window.__nextUser = { uid: "u2", displayName: "Other", email: "other@example.com" }; });
-await page.click("#settingsBtn"); await page.click("#signOutBtn"); await page.waitForTimeout(600);
+await settings(page, "account"); await page.click("#signOutBtn"); await page.waitForTimeout(600);
 ok(await vis(page, '[data-set="samples-greetings"]') && !(await vis(page, '[data-set="sample-ch1-a"]')), "another account starts with only the sample sets");
 ok(page.errors.length === 0, "no page errors", page.errors.join(" | "));
 ok(!allRequests.some((r) => /fonts\.(googleapis|gstatic)\.com/.test(r.url)), "fonts: nothing requested from Google Fonts");
@@ -388,9 +398,18 @@ const wide = await phone.evaluate(() => document.documentElement.scrollWidth);
 ok(wide <= 375, "phone: no sideways scrolling", String(wide));
 await phone.screenshot({ path: join(out, "8-phone.png"), fullPage: true });
 await phone.click("#settingsBtn");
-const sw = await phone.$eval("#settings", (d) => d.getBoundingClientRect().width);
-ok(sw <= 375 - 24 && (await phone.evaluate(() => document.documentElement.scrollWidth)) <= 375, "phone: the settings pop-up fits", String(sw));
+const onPhone = () => phone.evaluate(() => ({ nav: document.querySelector("#setNav").getClientRects().length > 0, body: document.querySelector(".setbody").getClientRects().length > 0, back: document.querySelector("#settingsClose").textContent, wide: document.documentElement.scrollWidth }));
+let ph = await onPhone();
+ok(ph.nav && !ph.body && ph.back === "← Back" && ph.wide <= 375, "phone: Settings opens as a list of its tabs", JSON.stringify(ph));
 await phone.screenshot({ path: join(out, "8-settings-phone.png") });
+await phone.click('#setNav [data-set-tab="account"]'); ph = await onPhone();
+ok(!ph.nav && ph.body && ph.back === "← Settings" && ph.wide <= 375 && await phone.evaluate(() => document.querySelector("#signOutBtn").getClientRects().length > 0), "phone: picking a tab opens it in the list's place", JSON.stringify(ph));
+await phone.screenshot({ path: join(out, "8-settings-phone-tab.png") });
+await phone.click("#settingsClose"); ph = await onPhone();
+ok(ph.nav && !ph.body && await setOpen(phone), "phone: ← Settings goes back to the list");
+await phone.click("#settingsClose");
+ok(!(await setOpen(phone)) && await vis(phone, "#setup"), "phone: ← Back from the list closes Settings");
+
 await phone.close();
 
 // ---------- 8b. delete an account: its data, then the Google account ----------
@@ -398,7 +417,7 @@ await page.click('#histAsk [data-hist="on"]'); await page.waitForTimeout(300);
 ok(!!(await fsData(page))["users/u2/data/settings"], "delete: (history setting saved, so there's something under data/)");
 await page.click('[data-set="samples-greetings"]'); await page.click("#startBtn"); await page.waitForTimeout(300); await scribble(page); await page.click("#quitBtn"); await page.waitForTimeout(200);
 ok(await vis(page, "#resumeBtn"), "delete: (a practice left midway, with writing, to resume)");
-await page.click("#settingsBtn"); await page.click("#delStart");
+await settings(page, "account"); await page.click("#delStart");
 ok(/deletes your account/.test(await text(page, "#delAcct")) && await vis(page, "#delYes"), "delete: asks before deleting");
 await page.screenshot({ path: join(out, "8-delete.png") });
 await page.click("#delNo");
@@ -424,18 +443,26 @@ await lp.setViewportSize({ width: 900, height: 1000 });
 await lp.click("#welcomeClose"); await lp.waitForTimeout(400); // the X works like Continue as a guest
 ok(await vis(lp, "#setup") && !(await lp.evaluate(() => document.querySelector("#welcome").open)) && !(await lp.evaluate(() => document.body.textContent.includes("Guest: saved"))), "guest: the X closes the pop-up as a guest, no guest line in the header");
 ok(await lp.evaluate(() => localStorage.getItem("qcard:mode")) === "local", "guest: closing with the X is remembered like Continue as a guest");
-await lp.click("#settingsBtn");
+await settings(lp, "account");
 ok(/Not signed in/.test(await text(lp, "#acctName")) && (await text(lp, "#signOutBtn")) === "Sign in with Google" && (await text(lp, "#delStart")) === "Delete local storage", "settings (guest): not signed in, offers Sign in and Delete local storage");
 ok(!(await vis(lp, "#delTip")) && (await lp.hover("#delAcct .qtip"), await vis(lp, "#delTip")) && /treats you as a new user/.test(await text(lp, "#delTip")), "settings (guest): the ? beside Delete local storage explains it on hover");
 await lp.screenshot({ path: join(out, "9-settings-delete-tip.png") });
 ok((await text(lp, "#setStats")) === "6 sets · 55 words · 3 kanji lists", "settings: counts the sets, words and kanji lists", await text(lp, "#setStats"));
-await lp.click('#themePick [data-theme-pick="dark"]'); await lp.click('#palPick [data-pal="claude"]');
+await settings(lp, "look"); await lp.click('#themePick [data-theme-pick="dark"]'); await lp.click('#palPick [data-pal="claude"]');
 ok(await lp.evaluate(() => document.documentElement.dataset.theme === "dark" && document.documentElement.dataset.palette === "claude" && localStorage.getItem("jpq:theme") === '"dark"'), "settings: Dark and Warm apply and are remembered");
 await lp.screenshot({ path: join(out, "9-settings-dark.png") });
 await lp.click('#themePick [data-theme-pick="light"]'); await lp.click('#palPick [data-pal="indigo"]');
 await lp.screenshot({ path: join(out, "9-settings.png") });
-await lp.mouse.click(8, 8);
-ok(!(await setOpen(lp)), "settings: clicking outside closes it");
+await settings(lp, "account"); await lp.click("#delStart"); await settings(lp, "look"); await settings(lp, "account");
+ok((await text(lp, "#delStart")) === "Delete local storage", "settings: a Delete left waiting for its confirmation is dropped on leaving the tab");
+await settings(lp, "history");
+ok(/^Off, so finished practice sessions aren't saved/.test(await text(lp, "#histSetInfo")) && /saved only in this browser/.test(await text(lp, "#histSetWhere")) && (await text(lp, "#histSetToggle")) === "Turn on" && !(await vis(lp, "#histSetAll")), "settings (guest): Practice history says it's off and where it would be kept", await text(lp, "#histSetInfo"));
+await lp.click("#histSetToggle"); await lp.waitForTimeout(200);
+ok(/^On\./.test(await text(lp, "#histSetInfo")) && (await text(lp, "#histSetToggle")) === "Turn off" && await lp.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:data/users/local/settings") || "null")?.history) === true, "settings: Practice history can be turned on there", await text(lp, "#histSetInfo"));
+await lp.click("#histSetToggle"); await lp.waitForTimeout(200);
+ok(/^Off/.test(await text(lp, "#histSetInfo")) && await lp.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:data/users/local/settings") || "null")?.history) === false, "settings: and off again");
+await lp.evaluate(() => localStorage.removeItem("qcard:local:data/users/local/settings")); await lp.reload(); await lp.waitForTimeout(500); // as before the choice was made
+
 ok(await vis(lp, '[data-set="samples-greetings"]'), "guest: starts with the sample sets");
 await lp.click("#sampleRemove"); await lp.click("#sampleNo");
 ok(await vis(lp, '[data-set="samples-greetings"]'), "samples: 'Keep them' keeps them");
@@ -462,20 +489,20 @@ await lp.waitForTimeout(300);
 ok(await vis(lp, "#setup") && await vis(lp, '[data-set="sample-ch1-a"]') && !(await vis(lp, "#welcome")), "guest: coming back goes straight to the saved sets, no pop-up");
 ok(!(await vis(lp, '[data-set="samples-greetings"]')), "samples: removed ones don't come back");
 ok(await lp.evaluate(() => document.documentElement.dataset.theme === "light"), "settings: Light is still on after coming back");
-await lp.click("#settingsBtn"); await lp.click('#themePick [data-theme-pick=""]');
+await settings(lp, "look"); await lp.click('#themePick [data-theme-pick=""]');
 ok(await lp.evaluate(() => !("theme" in document.documentElement.dataset)), "settings: Match device follows the device again");
 await lp.evaluate(() => { window.__signInError = "auth/popup-blocked"; });
-await lp.click("#signOutBtn"); await lp.waitForTimeout(200);
+await settings(lp, "account"); await lp.click("#signOutBtn"); await lp.waitForTimeout(200);
 ok(await setOpen(lp) && !(await lp.evaluate(() => document.querySelector("#welcome").open)) && /blocked the sign-in window/.test(await text(lp, "#acctErr")), "guest: Sign in with Google in Settings goes straight to Google (a blocked pop-up is explained there)");
 await lp.evaluate(() => { window.__signInError = null; });
 await lp.click("#signOutBtn"); await lp.waitForTimeout(1000);
-await lp.click("#settingsBtn");
-ok(/student@example\.com/.test(await text(lp, "#acctName")) && await vis(lp, '[data-set="samples-greetings"]') && !(await vis(lp, '[data-set="sample-ch1-a"]')), "Sign in from local: switches to the new account, which starts with the samples");
+await settings(lp, "account"); const acctNow = await text(lp, "#acctName"); await lp.click("#settingsClose");
+ok(/student@example\.com/.test(acctNow) && await vis(lp, '[data-set="samples-greetings"]') && !(await vis(lp, '[data-set="sample-ch1-a"]')), "Sign in from local: switches to the new account, which starts with the samples");
 ok(await lp.evaluate(() => localStorage.getItem("qcard:mode")) === null, "signed in: no longer remembered as local");
-await lp.click("#signOutBtn"); await lp.waitForTimeout(1000);
+await settings(lp, "account"); await lp.click("#signOutBtn"); await lp.waitForTimeout(1000);
 ok(!(await lp.evaluate(() => document.querySelector("#welcome").open)) && await vis(lp, "#setup"), "signed out: straight back to this browser's data, no pop-up");
 ok(await vis(lp, '[data-set="sample-ch1-a"]'), "local data is still there after using an account");
-await lp.click("#settingsBtn"); await lp.click('#palPick [data-pal="claude"]'); await lp.click("#delStart");
+await settings(lp, "look"); await lp.click('#palPick [data-pal="claude"]'); await settings(lp, "account"); await lp.click("#delStart");
 ok(/saved in this browser/.test(await text(lp, "#delAcct")), "delete (guest): asks before deleting this browser's data");
 await lp.click("#delYes"); await lp.waitForTimeout(1200);
 ok(await lp.evaluate(() => !("palette" in document.documentElement.dataset) && localStorage.getItem("jpq:palette") !== '"claude"'), "delete (guest): this browser's choices go too (back to Blue)");
@@ -657,7 +684,7 @@ const rec = tr[0]?.[1], st = rec?.main?.s?.[0];
 ok(tr.length === 1 && rec.word.kanji === "水" && rec.dir === "je" && rec.checker.verdict === "unmatched" && rec.student === "right", "share: an answer is saved to users/<uid>/training with the word, the checker's verdict and the student's own call", JSON.stringify(rec && { ...rec, main: undefined, furi: undefined }));
 ok(rec?.main?.s?.length === 2 && st.xy.every((n) => typeof n === "number") && st.xy.length === 2 * st.t.length && st.t.length === st.f.length && st.dev === "mouse" && rec.main.s[1].at > 0,
   "share: each stroke keeps its points (a flat list), timing, pressure and pointer kind", JSON.stringify(st).slice(0, 160));
-await sp.click("#settingsBtn"); await sp.waitForTimeout(200);
+await settings(sp, "share"); await sp.waitForTimeout(200);
 ok(await vis(sp, "#shareSet") && /^On since .*1 answer shared/.test(await text(sp, "#shareInfo")), "share: Settings shows it's on and how many answers were shared", await text(sp, "#shareInfo"));
 await sp.locator("#shareSet").screenshot({ path: join(out, "14-share-settings.png") });
 const [hdl] = await Promise.all([sp.waitForEvent("download"), sp.click("#shareDl")]);
@@ -676,14 +703,14 @@ await sp.click("#newBtn"); await sp.waitForTimeout(200);
 await sp.click("#startBtn"); await sp.waitForTimeout(300); await scribble(sp); await sp.click("#quitBtn"); await sp.waitForTimeout(1300);
 const rink = (await fsData(sp))["users/t1/data/prefs"]?.resume?.ink?.main?.s?.[0]?.p;
 ok(Array.isArray(rink) && rink.length > 4 && rink.every((n) => typeof n === "number"), "resume: the writing saved for Resume reaches the account (flat list of numbers)", JSON.stringify(rink)?.slice(0, 80));
-await sp.click("#settingsBtn"); await sp.click("#shareToggle"); await sp.waitForTimeout(200);
+await settings(sp, "share"); await sp.click("#shareToggle"); await sp.waitForTimeout(200);
 ok(await shareOpen() && !(await vis(sp, "#shareNeverRow")) && !(await text(sp, "#shareCount")), "share: Turn on… in Settings asks the same question, without the count or the checkbox");
 await sp.click("#shareNo");
 await sp.click("#settingsClose");
 ok(sp.errors.length === 0, "share: no page errors", sp.errors.join(" | "));
 // a developer (dev/<uid>, made in the Firebase console) gets Dev tools in Settings to open the question themselves
 const op = await newPage(sctx);
-await op.waitForTimeout(600); await op.click("#settingsBtn"); await op.waitForTimeout(200);
+await op.waitForTimeout(600); await settings(op, "tools"); await op.waitForTimeout(200);
 ok(await vis(op, "#devSet"), "dev tools: a developer sees them in Settings");
 await op.locator("#devSet").screenshot({ path: join(out, "14-dev-tools.png") });
 const asked = () => op.evaluate(() => JSON.parse(localStorage.getItem("jpq:share"))?.asked);
@@ -719,7 +746,7 @@ await np.waitForTimeout(600);
 const npPractice = async () => { await np.click("#startBtn"); await np.waitForTimeout(300); await scribble(np); await np.click("#checkBtn"); await np.waitForTimeout(200); await np.click("#selfGot"); await np.waitForTimeout(1500); };
 await npPractice();
 ok(await vis(np, "#results") && !(await np.evaluate(() => document.querySelector("#shareAsk").open)), "share: an account that isn't a developer isn't asked on its 10th practice (developers only for now)");
-await np.click("#settingsBtn"); await np.waitForTimeout(200);
+await settings(np, "tools"); await np.waitForTimeout(200);
 ok(!(await vis(np, "#shareSet")) && !(await vis(np, "#devSet")) && await vis(np, "#toolsSet"), "share: its Settings has no sharing section and no developer-only buttons (Developer tools itself is there)");
 await np.click("#settingsClose"); await np.click("#newBtn"); await np.waitForTimeout(200);
 await np.evaluate(() => localStorage.setItem("jpq:share", JSON.stringify({ on: true, at: "2026-10-01T00:00:00Z" })));
@@ -830,13 +857,13 @@ const ap = await newPage(actx, { init: () => {
   }));
 } });
 await ap.waitForTimeout(600);
-const signOut = async () => { await ap.click("#settingsBtn"); await ap.click("#signOutBtn"); await ap.waitForTimeout(800); };
-const signIn = async (u) => { await ap.evaluate((u) => { window.__nextUser = u; }, u); await ap.click("#settingsBtn"); await ap.click("#signOutBtn"); await ap.waitForTimeout(1200); };
-await ap.click("#settingsBtn");
+const signOut = async () => { await settings(ap, "account"); await ap.click("#signOutBtn"); await ap.waitForTimeout(800); };
+const signIn = async (u) => { await ap.evaluate((u) => { window.__nextUser = u; }, u); await settings(ap, "account"); await ap.click("#signOutBtn"); await ap.waitForTimeout(1200); };
+await settings(ap);
 ok(/^On since/.test(await text(ap, "#shareInfo")), "share, another account: (the first account shares its handwriting)", await text(ap, "#shareInfo"));
 await ap.click("#settingsClose");
 await signOut(); await signIn({ uid: "b1", displayName: "B", email: "b@example.com" });
-await ap.click("#settingsBtn");
+await settings(ap);
 ok(/b@example\.com/.test(await text(ap, "#acctName")) && /^Off\./.test(await text(ap, "#shareInfo")), "share, another account: an account that never said yes isn't sharing", await text(ap, "#shareInfo"));
 await ap.click("#settingsClose");
 await ap.click("#startBtn"); await ap.waitForTimeout(300); await scribble(ap); await ap.click("#checkBtn"); await ap.waitForTimeout(200); await ap.click("#selfGot"); await ap.waitForTimeout(1500);
@@ -848,7 +875,7 @@ ok((await fsData(ap))["users/b1/data/prefs"]?.dir === "ej", "no collection: choi
 await signOut();
 await ap.evaluate(() => localStorage.setItem("jpq:share", JSON.stringify({ on: true, at: "2026-10-01T00:00:00Z" }))); // another account said yes on this browser
 await signIn({ uid: "c1", displayName: "C", email: "c@example.com" });
-await ap.click("#settingsBtn");
+await settings(ap);
 ok(/c@example\.com/.test(await text(ap, "#acctName")) && /^Off\./.test(await text(ap, "#shareInfo")) && !(await fsData(ap))["users/c1/data/prefs"]?.share,
   "share, another account: a first sign-in doesn't take this browser's yes along", await text(ap, "#shareInfo"));
 ok(ap.errors.length === 0, "another account: no page errors", ap.errors.join(" | "));
@@ -986,7 +1013,7 @@ await aipctx.close();
 const ictx = await browser.newContext();
 const ip = await newPage(ictx);
 await ip.click("#guestBtn"); await ip.waitForTimeout(400);
-await ip.click("#settingsBtn");
+await settings(ip, "vocab");
 ok(await ip.evaluate(() => { const a = document.querySelector("#aiHelp a"); return !!a && a.getAttribute("href") === "ai/" && a.target === "_blank"; }) && await vis(ip, "#aiHelp"), "settings: links to the AI page beside Import, in a new tab");
 const exPath = join(out, "18-ai-example.json"); writeFileSync(exPath, example);
 const [ichooser] = await Promise.all([ip.waitForEvent("filechooser"), ip.click("#importBtn")]);
@@ -1015,7 +1042,7 @@ await ictx.close();
   const lctx = await browser.newContext();
   const lp = await newPage(lctx);
   await lp.click("#guestBtn"); await lp.waitForTimeout(400);
-  await lp.click("#settingsBtn");
+  await settings(lp, "account");
   ok(await lp.evaluate(() => { const a = document.querySelector("#privacyLink a"); return !!a && a.getAttribute("href") === "privacy/" && a.target === "_blank"; }) && await vis(lp, "#privacyLink"),
     "settings: links to the privacy page, in a new tab");
   await lp.click("#settingsClose");

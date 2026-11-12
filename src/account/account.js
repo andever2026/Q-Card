@@ -25,7 +25,7 @@
   $("#signInBtn").onclick = () => signIn($("#signInBtn"), welcome);
   // Settings → Account and Delete. account is the signed-in person ({uid, email, name}), or null for a guest.
   let account = null, delAsk = false, stopPrefs = () => {};
-  $("#settings").addEventListener("close", () => { delAsk = false; });
+  $("#settings").addEventListener("leave", () => { delAsk = false; });
   function renderAccount() {
     $("#acctName").innerHTML = account ? `Signed in with Google as <b>${esc(account.email || account.name || "")}</b>.`
       : "Not signed in. As a guest, everything is kept in this browser on this device.";

@@ -6,12 +6,13 @@
   // browser (S.local): only that device has it, and clearing site data or a private window loses it.
   S.local = false;
   const LOCAL_MAX = 300; // sessions kept in the browser; the oldest go first
+  // History changed, or the choice to keep it: every place that shows it.
+  function histChanged() { renderRecent(); renderHistSet(); if (!$("#history").hidden) renderHistory(); }
   function loadLocal() {
     const v = store.get("histOn", null);
     S.histOn = typeof v === "boolean" ? v : null; S.histReady = true;
     S.history = (store.get("hist", []) || []).filter((t) => t && /^t\d/.test(t.id)).sort((a, b) => String(b.finishedAt || "").localeCompare(String(a.finishedAt || "")));
-    renderRecent();
-    if (!$("#history").hidden) renderHistory();
+    histChanged();
   }
   function saveLocal(list) {
     if (!store.set("hist", list.slice(0, LOCAL_MAX))) banner("This browser couldn't save that practice session.");
@@ -27,13 +28,13 @@
     if (S.local) {
       // A private window or blocked site data can refuse even this.
       if (store.set("histOn", on)) { S.histOn = on; return true; }
-      S.histBlocked = true; renderRecent(); if (!$("#history").hidden) renderHistory();
+      S.histBlocked = true; histChanged();
       return false;
     }
     try { await settingsDoc().set({ history: on, updatedAt: new Date().toISOString() }); S.histOn = on; return true; }
     catch (e) {
       // View-only visitors (including anyone outside the owner's organization) can't write their own subtree.
-      if (e?.code === "invalid_argument") { S.histBlocked = true; renderRecent(); if (!$("#history").hidden) renderHistory(); }
+      if (e?.code === "invalid_argument") { S.histBlocked = true; histChanged(); }
       else banner("Couldn't save that choice. Try again.");
       return false;
     }
@@ -50,15 +51,17 @@
     settingsDoc().onSnapshot((snap) => {
       const v = snap.exists ? snap.data().history : undefined;
       S.histOn = typeof v === "boolean" ? v : null; S.histReady = true;
-      renderRecent();
-      if (!$("#history").hidden) renderHistory();
+      histChanged();
     }, () => {});
     db.collection("data/users/" + uid).orderBy("finishedAt", "desc").limit(1000).onSnapshot((snap) => {
       S.history = snap.docs.filter((d) => /^t\d/.test(d.id)).map((d) => ({ id: d.id, ...d.data() }));
-      renderRecent();
-      if (!$("#history").hidden) renderHistory();
+      histChanged();
     }, () => {});
   }
+  const histBlockedText = () => `${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so practice history is off." : "Your access to this page doesn't allow saving practice history."} You can still practice as much as you like.`;
+  const histWhereText = () => S.local || uid === "local"
+    ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it in History at any time."
+    : "Only you and the site maintainers can see this data, and you can delete it from the server at any time.";
   function renderRecent() {
     const h = S.history, on = S.histOn, ask = $("#histAsk");
     $("#histPanel").hidden = !S.histReady;
@@ -69,11 +72,9 @@
     const earlier = h.length ? `<p class="muted small">${h.length} earlier practice session${h.length === 1 ? " is" : "s are"} still saved. Open “See all” to look at or delete ${h.length === 1 ? "it" : "them"}.</p>` : "";
     ask.hidden = on === true && h.length > 0;
     ask.innerHTML = S.histBlocked
-      ? `<p class="muted">${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so practice history is off." : "Your access to this page doesn't allow saving practice history."} You can still practice as much as you like.</p>`
+      ? `<p class="muted">${histBlockedText()}</p>`
       : on === null
-      ? `<p>Turn on data collection? Each finished practice session would be saved so you can see fun stats about your practice, like graphs, streaks and the words that need more work. ${S.local || uid === "local"
-          ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it here at any time."
-          : "Only you and the site maintainers can see this data, and you can delete it from the server at any time."}</p>${earlier}
+      ? `<p>Turn on data collection? Each finished practice session would be saved so you can see fun stats about your practice, like graphs, streaks and the words that need more work. ${histWhereText()}</p>${earlier}
          <div class="tactions"><button class="btn primary" data-hist="on">Turn on data collection</button><button class="btn" data-hist="off">No thanks</button></div>`
       : on === false
       ? `<p class="muted">Data collection is off, so finished sessions aren't saved.</p>${earlier}<div class="tactions"><button class="btn" data-hist="on">Turn on data collection</button></div>`
@@ -85,8 +86,22 @@
       return `<li><span>${esc((t.sets || []).join(", "))}</span><span>${esc(fmtWhen(t.finishedAt))} · ${first}/${n} first try</span></li>`;
     }).join("");
   }
-  $("#histAll").onclick = () => { S.hConfirm = null; show("history"); renderHistory(); };
-  $("#histOff").onclick = async () => { if (await setHistory(false)) renderRecent(); };
+  $("#histAll").onclick = () => openHistory();
+  $("#histOff").onclick = async () => { if (await setHistory(false)) histChanged(); };
+  const openHistory = () => { S.hConfirm = null; show("history"); renderHistory(); };
+  // Settings → Practice history: the same choice as on the practice page, where it can be found again later.
+  function renderHistSet() {
+    const on = S.histOn === true, n = S.history.length;
+    $("#histSet").hidden = !S.histReady; syncSetTabs();
+    $("#histSetInfo").textContent = S.histBlocked ? histBlockedText()
+      : on ? "On. Each finished practice session is saved."
+      : "Off, so finished practice sessions aren't saved. Turn it on to see stats about your practice, like graphs, streaks and the words that need more work.";
+    $("#histSetWhere").hidden = S.histBlocked; $("#histSetWhere").textContent = histWhereText();
+    $("#histSetToggle").hidden = S.histBlocked; $("#histSetToggle").textContent = on ? "Turn off" : "Turn on";
+    $("#histSetAll").hidden = !n; $("#histSetAll").textContent = `See all ${n} →`;
+  }
+  $("#histSetToggle").onclick = async (e) => { e.target.disabled = true; if (await setHistory(S.histOn !== true)) histChanged(); e.target.disabled = false; };
+  $("#histSetAll").onclick = () => { closeSettings(); openHistory(); };
   $("#histBack").onclick = () => show("setup");
 
   function renderHistory() {

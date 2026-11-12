@@ -62,10 +62,10 @@
 
   // Settings → Help train the checker (wherever it's offered).
   let shareDelAsk = false;
-  $("#settings").addEventListener("close", () => { shareDelAsk = false; });
+  $("#settings").addEventListener("leave", () => { shareDelAsk = false; });
   function renderShare() {
     $("#devSet").hidden = !isDev;
-    $("#shareSet").hidden = !offered();
+    $("#shareSet").hidden = !offered(); syncSetTabs();
     if (!offered()) return;
     const s = shareState(), n = s.n || 0, when = s.at && !isNaN(new Date(s.at)) ? new Date(s.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
     $("#shareInfo").textContent = s.on
