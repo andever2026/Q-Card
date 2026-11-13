@@ -14,9 +14,11 @@
    quiet text). The page includes this file (page/styles.css); the side pages ai/, privacy/ and study-tools/ link it as css/theme.css.
    Colours: Blue (the default) and Warm (data-palette="claude"), each light and dark (data-theme, else the device's setting). */
 /* The site's widths, set here only. The content column: 720px on a laptop or iPad, growing with the window on a big
-   monitor. Beside the page's sidebar (on a big screen, page/styles.css sets --sidew and --fill) it fills more of the room
-   that's left. Practice: never under 1000px, so the writing boxes stay big on a laptop. */
-:root { --sidew: 0px; --fill: .76; --pagew: clamp(720px, calc((100vw - var(--sidew)) * var(--fill)), 1360px); --practicew: max(1000px, var(--pagew)); }
+   monitor up to --pagemax. Beside the page's sidebar (a big screen) it takes all the room there is (trying it out,
+   2026-11-13): page/styles.css turns the sidebar on with --side, and the column's width follows from it here.
+   Practice: never under 1000px, so the writing boxes stay big on a laptop. */
+:root { --sidebar: 232px; --topbar: 56px; --side: 0; --sidew: calc(var(--side) * var(--sidebar)); --fill: calc(.76 + var(--side) * .24); --pagemax: calc(1360px + var(--side) * 100vw);
+  --pagew: clamp(720px, calc((100vw - var(--sidew)) * var(--fill)), var(--pagemax)); --practicew: max(1000px, var(--pagew)); }
 :root {
   --bg: #fdfdfd;
   --surface: #ffffff;
@@ -84,7 +86,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ai); outlin
 body {
   background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.55;
   padding-left: calc(var(--sidew) + max(16px, env(safe-area-inset-left, 0px))); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 20px 48px;
+  padding-block: calc(var(--side) * var(--topbar) + 20px) 48px;
 }
 /* The scrollbar's room is kept on short pages too (Settings), so every page's column sits at the same place and width. */
 html { scrollbar-gutter: stable; }
@@ -117,8 +119,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .iconbtn { border: none; background: none; color: var(--muted); padding: 6px; border-radius: 8px; display: inline-flex; align-self: center; margin-left: auto; }
 .iconbtn:hover { color: var(--ink); background: var(--sunk); }
 /* The menu (page/nav.js). On a smaller screen the header is a top bar, ☰ · title · gear, and ☰ slides the menu in from
-   the left over the page. From 1000px wide (the same width as in nav.js) the header is a sidebar down the left instead:
-   the title, the pages, and Settings at the bottom with its tabs under it while it's open. */
+   the left over the page. From 1000px wide (the same width as in nav.js) the title has a bar across the top and the menu
+   is a sidebar down the left under it: the pages, and Settings at the bottom with its tabs under it while it's open. */
 #menuBtn { margin-left: -6px; }
 .sidenav { display: grid; gap: 2px; align-content: start; }
 .sidenav > * { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
@@ -137,10 +139,11 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 }
 @media (max-width: 480px) { .side { flex-wrap: nowrap; gap: 8px; } .side h1 { font-size: 1.2rem; min-width: 0; } }
 @media (min-width: 1000px) {
-  :root:has(> body:not(.writing)) { --sidew: 232px; --fill: .9; }
-  body:not(.writing) > .wrap > .side { position: fixed; z-index: 10; inset: 0 auto 0 0; width: var(--sidew); max-width: none; margin: 0; overflow-y: auto;
-    flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 2px; padding: 22px 12px 14px max(12px, env(safe-area-inset-left, 0px)); background: var(--sunk); border-right: 1px solid var(--line); }
-  .side h1 { font-size: 1.15rem; padding: 0 10px 16px; }
+  :root:has(> body:not(.writing)) { --side: 1; scroll-padding-top: calc(var(--topbar) + 12px); } /* the widths follow, theme/theme.css */
+  body:not(.writing) > .wrap > .side { position: fixed; z-index: 10; inset: var(--topbar) auto 0 0; width: var(--sidew); max-width: none; margin: 0; overflow-y: auto;
+    flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 2px; padding: 14px 12px 14px max(12px, env(safe-area-inset-left, 0px)); background: var(--sunk); border-right: 1px solid var(--line); }
+  .side h1 { position: fixed; inset: 0 0 auto; height: var(--topbar); display: flex; align-items: center; gap: 8px; padding: 0 22px 0 max(22px, env(safe-area-inset-left, 0px));
+    font-size: 1.2rem; background: var(--sunk); border-bottom: 1px solid var(--line); }
   #menuBtn, .sideshade { display: none; }
   #settingsBtn { margin: auto 0 0; padding: 8px 10px; gap: 10px; align-items: center; align-self: stretch; color: var(--ink); font-weight: 500; }
   #settingsBtn svg { width: 20px; height: 20px; color: var(--muted); }

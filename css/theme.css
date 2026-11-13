@@ -3,9 +3,11 @@
    quiet text). The page includes this file (page/styles.css); the side pages ai/, privacy/ and study-tools/ link it as css/theme.css.
    Colours: Blue (the default) and Warm (data-palette="claude"), each light and dark (data-theme, else the device's setting). */
 /* The site's widths, set here only. The content column: 720px on a laptop or iPad, growing with the window on a big
-   monitor. Beside the page's sidebar (on a big screen, page/styles.css sets --sidew and --fill) it fills more of the room
-   that's left. Practice: never under 1000px, so the writing boxes stay big on a laptop. */
-:root { --sidew: 0px; --fill: .76; --pagew: clamp(720px, calc((100vw - var(--sidew)) * var(--fill)), 1360px); --practicew: max(1000px, var(--pagew)); }
+   monitor up to --pagemax. Beside the page's sidebar (a big screen) it takes all the room there is (trying it out,
+   2026-11-13): page/styles.css turns the sidebar on with --side, and the column's width follows from it here.
+   Practice: never under 1000px, so the writing boxes stay big on a laptop. */
+:root { --sidebar: 232px; --topbar: 56px; --side: 0; --sidew: calc(var(--side) * var(--sidebar)); --fill: calc(.76 + var(--side) * .24); --pagemax: calc(1360px + var(--side) * 100vw);
+  --pagew: clamp(720px, calc((100vw - var(--sidew)) * var(--fill)), var(--pagemax)); --practicew: max(1000px, var(--pagew)); }
 :root {
   --bg: #fdfdfd;
   --surface: #ffffff;
