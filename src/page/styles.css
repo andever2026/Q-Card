@@ -312,7 +312,6 @@ td.c { text-align: center; padding-inline: 0; }
 .listfoot { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 14px; }
 .listfoot:not(:has(> :not([hidden]):not(:empty))) { display: none; }
 .listfoot > .btn { margin-left: auto; padding: 7px 18px; }
-.listfoot .perpage { height: 36px; padding: 0 8px; font-size: .9rem; }
 @media (max-width: 480px) { .listfoot > .btn { flex: 1 0 100%; } }
 .pager { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
 .pg { min-width: 34px; height: 34px; padding: 0 6px; border: none; border-right: 1px solid var(--line); border-radius: 0; background: none; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
@@ -321,6 +320,16 @@ td.c { text-align: center; padding-inline: 0; }
 .pg:disabled { color: var(--muted); opacity: .45; cursor: default; }
 .pg[aria-current] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
 .pg.gap { color: var(--muted); }
+.dd { position: relative; display: inline-block; }
+.dd-btn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: .9rem; }
+.dd-btn:hover, .dd-btn[aria-expanded="true"] { background: var(--sunk); }
+.dd-btn svg { color: var(--muted); }
+.dd-list { position: absolute; left: 0; top: calc(100% + 4px); z-index: 20; min-width: 100%; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgb(0 0 0 / .14); }
+.dd.up .dd-list { top: auto; bottom: calc(100% + 4px); }
+.dd-list:focus { outline: none; }
+.dd-list li { padding: 6px 10px; border-radius: 6px; white-space: nowrap; font-size: .9rem; cursor: pointer; }
+.dd-list li.on { background: var(--sunk); }
+.dd-list li[aria-selected="true"] { color: var(--ai); font-weight: 700; }
 .test { border-bottom: 1px dashed var(--line); }
 .test summary { display: grid; grid-template-columns: 9rem minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; cursor: pointer; align-items: baseline; list-style: none; }
 .test summary::-webkit-details-marker { display: none; }

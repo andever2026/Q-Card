@@ -917,9 +917,9 @@ const love = () => hp.evaluate(() => [document.querySelectorAll("#hLove > li").l
 ok((await love()) === "10,Practice these 10,1–10 of 11,1", "hard words: 10 to a page by default, with pages", await love());
 await hp.click('#lovePager [data-pg="1"]');
 ok((await love()) === "1,Practice this word,11 of 11,2", "hard words: page 2 has the last word, and Practice takes that page", await love());
-await hp.selectOption("#loveWin", "5");
+await hp.click("#loveWin .dd-btn"); await hp.click('#loveWin [data-v="5"]');
 ok((await love()) === "5,Practice these 5,1–5 of 11,1", "hard words: Show 5 starts again at page 1 with 5 words", await love());
-await hp.selectOption("#loveWin", "all");
+await hp.click("#loveWin .dd-btn"); await hp.click('#loveWin [data-v="all"]');
 ok((await love()) === "11,Practice these 11,,-" && !(await vis(hp, "#lovePager")), "hard words: Show All lists every word on one page", await love());
 await hp.click("#hPractise"); await hp.waitForTimeout(300);
 ok(await vis(hp, "#quiz") && /^0 of 11 done/.test(await text(hp, "#progLbl")), "hard words: Practice these practices the words shown", await text(hp, "#progLbl"));

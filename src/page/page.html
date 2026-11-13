@@ -229,7 +229,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       <div class="panel" id="hLovePanel">
         <div class="head"><h3>Words that need the most love overall</h3></div>
         <ul class="love" id="hLove"></ul>
-        <div class="listfoot"><nav class="pager" id="lovePager" aria-label="Word pages" hidden></nav><span class="muted small" id="loveCount"></span><select class="sel perpage" id="loveWin" aria-label="Words per page"><option value="5">5 per page</option><option value="10">10 per page</option><option value="20">20 per page</option><option value="50">50 per page</option><option value="all">All</option></select><button class="btn primary" type="button" id="hPractise">Practice these</button></div>
+        <div class="listfoot"><nav class="pager" id="lovePager" aria-label="Word pages" hidden></nav><span class="muted small" id="loveCount"></span><div id="loveWin"></div><button class="btn primary" type="button" id="hPractise">Practice these</button></div>
       </div>
       <div class="panel">
         <div class="head"><h3>All practice sessions</h3><span class="tactions" id="delAllWrap"></span></div>
@@ -379,6 +379,7 @@ colours.apply(...colours.saved()); // before anything is drawn
 <script>
 (() => {
   //#include page/dom.js
+  //#include page/dropdown.js
   //#include page/core.js
   //#include page/settings.js
   //#include theme/pick.js

@@ -196,7 +196,7 @@
     const agg = new Map();
     // Oldest session first, so each word's run counts the sessions since its latest miss.
     const byTime = S.history.slice().sort((a, b) => String(a.finishedAt || "").localeCompare(String(b.finishedAt || "")));
-    $("#loveWin").value = S.loveWin;
+    perPage.set(S.loveWin);
     for (const t of byTime) for (const w of t.words || []) {
       if (w.skip) continue; // left off the list on the results page
       const k = w.id + ":" + w.dir, a = agg.get(k) || { w, misses: 0, tests: 0, run: 0 };
@@ -210,7 +210,7 @@
     const from = S.lovePage * per, top = all.slice(from, from + per);
     $("#hLovePanel").hidden = !all.length;
     $("#loveCount").textContent = shownOf(from, top.length, all.length, pages);
-    pager($("#lovePager"), S.lovePage, pages, (i) => { S.lovePage = i; renderToughest(); });
+    pager($("#lovePager"), S.lovePage, pages, (i) => keepInView($("#lovePager"), () => { S.lovePage = i; renderToughest(); }));
     S.tough = top.map((a) => a.w);
     const n = toughWords().length;
     $("#hPractise").hidden = !n; $("#hPractise").textContent = n === 1 ? "Practice this word" : `Practice these ${n}`;
@@ -218,7 +218,8 @@
   }
   S.loveWin = String(store.get("loveWin", "10"));
   if (!["5", "10", "20", "50", "all"].includes(S.loveWin)) S.loveWin = "10";
-  $("#loveWin").onchange = (e) => { S.loveWin = e.target.value; S.lovePage = 0; store.set("loveWin", S.loveWin); renderToughest(); };
+  const perPage = makeDropdown($("#loveWin"), "Words per page", [["5", "5 per page"], ["10", "10 per page"], ["20", "20 per page"], ["50", "50 per page"], ["all", "All"]],
+    (v) => keepInView($("#loveWin"), () => { S.loveWin = v; S.lovePage = 0; store.set("loveWin", v); renderToughest(); }));
   // Every word on the list that's still in a set and can be asked.
   function toughWords() {
     const words = new Map();
@@ -248,6 +249,13 @@
     box.innerHTML = arrow(page - 1, "Previous page", "M10 3 5 8l5 5") + nums + arrow(page + 1, "Next page", "M6 3l5 5-5 5");
     box.onclick = (e) => { const b = e.target.closest("[data-pg]"); if (b && !b.disabled && +b.dataset.pg !== page) go(+b.dataset.pg); };
   }
+  // A list changing length (another page, more to a page) keeps el, the control just used, where it was on screen.
+  function keepInView(el, change) {
+    const y = el.getBoundingClientRect().top;
+    change();
+    const d = el.getBoundingClientRect().top - y;
+    if (d) window.scrollBy({ top: d, behavior: "instant" });
+  }
   // "11–20 of 26" beside the page buttons; nothing when everything fits on one page.
   const shownOf = (from, n, total, pages) => pages < 2 ? "" : `${n > 1 ? `${from + 1}–${from + n}` : from + 1} of ${total}`;
   const PAGE = 20; // practice sessions per page, newest first
@@ -256,7 +264,7 @@
     S.hPage = Math.min(S.hPage || 0, pages - 1); // a delete can empty the last page
     const shown = S.history.slice(S.hPage * PAGE, (S.hPage + 1) * PAGE);
     $("#hCount").textContent = shownOf(S.hPage * PAGE, shown.length, S.history.length, pages);
-    pager($("#hPager"), S.hPage, pages, (i) => { S.hPage = i; renderTests(); $("#hList").closest(".panel").scrollIntoView({ block: "start" }); });
+    pager($("#hPager"), S.hPage, pages, (i) => keepInView($("#hPager"), () => { S.hPage = i; renderTests(); }));
     $("#hList").innerHTML = shown.map((t) => {
       const { n, first } = firstTry(t), del = S.hConfirm === t.id;
       const ws = (t.words || []).slice().sort((a, b) => b.tries - a.tries);
