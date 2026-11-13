@@ -6,14 +6,15 @@ body {
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 20px 48px;
 }
-/* The content column: 720px on a laptop or iPad, growing with the window on a big monitor. */
-:root { --pagew: clamp(720px, 76vw, 1360px); }
+/* The page's widths, set here only. The content column: 720px on a laptop or iPad, growing with the window on a big
+   monitor. Practice: never under 1000px, so the writing boxes stay big on a laptop. */
+:root { --pagew: clamp(720px, 76vw, 1360px); --practicew: max(1000px, var(--pagew)); }
 /* The scrollbar's room is kept on short pages too (Settings), so every page's column sits at the same place and width. */
 html { scrollbar-gutter: stable; }
 .wrap { max-width: var(--pagew); width: 100%; margin: 0 auto; display: grid; gap: 18px; }
-body > .wrap { max-width: max(1000px, var(--pagew)); }
+body > .wrap { max-width: var(--practicew); }
 body > .wrap > header, body > .wrap > .banner { width: 100%; max-width: var(--pagew); margin-inline: auto; }
-#quiz { max-width: max(1000px, var(--pagew)); }
+#quiz { max-width: var(--practicew); }
 h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 700; }
 h1 { font-size: 1.5rem; letter-spacing: .01em; }
 h2 { font-size: 1.15rem; }
