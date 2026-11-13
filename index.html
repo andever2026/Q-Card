@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-Lj+arYxMXB3daX28DzIi1FidMhQPUSFqySZNogb3dII=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-nbbgRsx9BCRwNRNIMVkhZmcTUtD8dHYkVDZxm/uuyC0=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -16,10 +16,9 @@
 /* The site's widths, set here only. The content column: 720px on a laptop or iPad, growing with the window on a big
    monitor up to --pagemax. Beside the page's sidebar (a big screen) it takes all the room there is (trying it out,
    2026-11-13): page/styles.css turns the sidebar on with --side, and the column's width follows from it here.
-   Practice: never under 1000px, so the writing boxes stay big on a laptop. Settings: narrow enough that each setting's
-   name stays near its control, and never wider than the other pages. */
+   Practice: never under 1000px, so the writing boxes stay big on a laptop. Settings spans the column like the others. */
 :root { --sidebar: 232px; --topbar: 56px; --side: 0; --sidew: calc(var(--side) * var(--sidebar)); --fill: calc(.76 + var(--side) * .24); --pagemax: calc(1360px + var(--side) * 100vw);
-  --pagew: clamp(720px, calc((100vw - var(--sidew)) * var(--fill)), var(--pagemax)); --practicew: max(1000px, var(--pagew)); --setw: 760px; }
+  --pagew: clamp(720px, calc((100vw - var(--sidew)) * var(--fill)), var(--pagemax)); --practicew: max(1000px, var(--pagew)); }
 :root {
   --bg: #fdfdfd;
   --surface: #ffffff;
@@ -125,8 +124,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
    take the sidebar and ☰ brings the menu in over the page, as on a smaller screen (html.drawer). */
 #menuBtn { margin-left: -6px; }
 .sidenav { display: grid; gap: 2px; align-content: start; }
-.sidenav > *, .side .setnav button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
-.sidenav > :hover, .side .setnav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.sidenav > :not(.foot), .side .setnav button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
+.sidenav > :not(.foot):hover, .side .setnav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
 .sidenav svg { flex: none; color: var(--muted); }
 .sidenav > [aria-current="page"] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
 .sidenav > [aria-current="page"] svg { color: inherit; }
@@ -153,7 +152,7 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .drawer .side.open .sidenav { transform: none; visibility: visible; transition: transform .2s ease; }
 .drawer .sideshade { display: block; position: fixed; z-index: 39; inset: 0; background: rgba(17, 20, 26, .4); opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
 .drawer .side.open .sideshade { opacity: 1; visibility: visible; transition: opacity .2s; }
-@media not all and (min-width: 1000px) { .sidenav > * { padding-block: 11px; } }
+@media not all and (min-width: 1000px) { .sidenav > :not(.foot) { padding-block: 11px; } }
 @media (max-width: 480px) { .side { flex-wrap: nowrap; gap: 8px; } .side h1 { font-size: 1.2rem; min-width: 0; } .acctname, .acctbtn .chev { display: none; } .acctbtn { padding-right: 3px; } }
 @media (min-width: 1000px) {
   :root:has(> body:not(.writing)) { --side: 1; scroll-padding-top: calc(var(--topbar) + 12px); } /* the widths follow, theme/theme.css */
@@ -175,14 +174,11 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
   .side .setnav h2 { padding: 4px 10px 12px; }
   .setpage:not(:has(> .setnav)) { grid-template-columns: minmax(0, 1fr); min-height: 0; }
   .setpage:not(:has(> .setnav)) .setbody { border-left: none; }
-  #settings, .setview .foot { margin-left: 0; } /* narrower than the pages beside the sidebar, so it starts where they do */
-  .setview .foot { max-width: min(var(--pagew), var(--setw)); }
   /* The sidebar goes everywhere these went back from. */
   #history > .qbar, #table > .qbar, #settings > .qbar { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .sidenav, .sideshade { transition: none !important; } }
 /* Settings: a page of its own, tabs down the left and the picked tab's part beside them. */
-#settings { max-width: min(var(--pagew), var(--setw)); }
 .setpage { grid-template-columns: 11.5rem minmax(0, 1fr); gap: 0; padding: 0; min-height: 24rem; }
 .setnav { display: grid; gap: 2px; align-content: start; padding: 18px 10px; }
 .setnav h2 { padding: 0 10px 10px; }
@@ -197,7 +193,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .nickform { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .nickform input { width: 16rem; max-width: 100%; font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 .setpane p { overflow-wrap: anywhere; } /* a long email address wraps instead of widening the page */
-.setpane .setrow { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+.setpane .setrow { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; }
+.setpane .setrow h3 { min-width: 10rem; } /* the controls stay beside their names however wide the page is */
 /* On a phone the tabs are a list, and picking one opens it in the list's place. */
 @media (max-width: 640px) {
   .setpage { grid-template-columns: minmax(0, 1fr); min-height: 0; }
@@ -221,7 +218,7 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 @media (max-width: 480px) { .delrow { position: relative; } .delrow .qtip { position: static; } .delrow .qtipbody { left: 0; transform: none; } }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
-body:not(.ready) section, body:not(.ready) #banner, body:not(.ready) .topr, body:not(.ready) .sidenav, body:not(.ready) #menuBtn { display: none !important; }
+body:not(.ready) section, body:not(.ready) #banner, body:not(.ready) .topr, body:not(.ready) .sidenav, body:not(.ready) #menuBtn, body:not(.ready) .foot { display: none !important; }
 body.ready #gate { display: none; }
 .gate { margin-top: 10vh; text-align: center; color: var(--muted); }
 .gate b { display: block; color: var(--ink); font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
@@ -469,6 +466,7 @@ td.c { text-align: center; padding-inline: 0; }
 /* Under a paged list: the page buttons, which ones are shown, and the list's own button pushed to the right. */
 .listfoot { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 14px; }
 .listfoot:not(:has(> :not([hidden]):not(:empty))) { display: none; }
+.listfoot > :empty { display: none; } /* a count with nothing to say takes no room, so what's left starts at the edge */
 .listfoot > .btn { margin-left: auto; padding: 7px 18px; }
 @media (max-width: 480px) { .listfoot > .btn { flex: 1 0 100%; } }
 .pager { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
@@ -599,10 +597,12 @@ body { margin: 0; }
 .keyerr { color: var(--shu); }
 .fb.self { border-color: var(--ai); }
 .fb.self .stamp { color: var(--ai); border-color: var(--ai); }
-.foot { max-width: var(--pagew); margin: 40px auto 0; text-align: center; color: var(--muted); font-size: .8rem; display: grid; gap: 4px; }
+/* The footer: at the bottom of the sidebar, or of the menu that slides in on a smaller screen (page/nav.js puts it there). */
+.foot { margin-top: auto; padding: 18px 10px 2px; color: var(--muted); font-size: .72rem; line-height: 1.45; display: grid; gap: 6px; }
+.foot p { margin: 0; }
 .foot a { color: inherit; }
-body.writing .foot { display: none; }
-body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits near the bottom edge */
+.drawer .sidenav { display: flex; flex-direction: column; }
+.sidemini:not(.drawer) .foot { display: none; }
 </style>
 <script>
 // The one place the page's colours are set, for the page itself and for the side pages (ai/, privacy/).
@@ -658,6 +658,11 @@ colours.apply(...colours.saved()); // before anything is drawn
       </div>
     </div>
     <div class="setslot" id="setNavSlot" hidden></div>
+    <footer class="foot">
+      <p>Japanese Vocab Practice is free and open source under the AGPL-3.0: <a href="https://github.com/andever2026/Q-Card" rel="noopener">source code on GitHub</a>.</p>
+      <p>Handwriting templates from <a href="https://kanjivg.tagaini.net" rel="noopener">KanjiVG</a> (CC BY-SA 3.0) and the Hershey fonts (Dr. A. V. Hershey, U. S. National Bureau of Standards). Kanji readings from <a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project" rel="noopener">KANJIDIC</a> (EDRDG, CC BY-SA 4.0).</p>
+      <p><a href="privacy/">Privacy Policy</a></p>
+    </footer>
   </header>
   <div class="banner" id="banner" hidden></div>
   <div class="gate" id="gate" role="status">Loading…</div>
@@ -957,11 +962,6 @@ colours.apply(...colours.saved()); // before anything is drawn
   </section>
   <div class="tip" id="tip" role="tooltip" hidden></div>
 </div>
-<footer class="foot">
-  <p>Japanese Vocab Practice is free and open source under the AGPL-3.0: <a href="https://github.com/andever2026/Q-Card" rel="noopener">source code on GitHub</a>.</p>
-  <p>Handwriting templates from <a href="https://kanjivg.tagaini.net" rel="noopener">KanjiVG</a> (CC BY-SA 3.0) and the Hershey fonts (Dr. A. V. Hershey, U. S. National Bureau of Standards). Kanji readings from <a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project" rel="noopener">KANJIDIC</a> (EDRDG, CC BY-SA 4.0).</p>
-  <p><a href="study-tools/">Study tools</a> · <a href="privacy/">Privacy Policy</a></p>
-</footer>
 <script src="js/platform.js"></script>
 
 <script>
@@ -1238,6 +1238,9 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (!drawer) menu(false);
     htmlCls().toggle("drawer", drawer); syncMenuBtn();
     if ($("#setNav").parentElement !== tabsIn) tabsIn.prepend($("#setNav"));
+    // The footer (public site): at the bottom of the sidebar, or of the menu that slides in.
+    const foot = $(".foot"), footIn = isWide() ? $("header.side") : $("#sideNav");
+    if (foot && foot.parentElement !== footIn) footIn.append(foot);
   }
   // The drawer: picking a page, Escape, a tap beside it or leaving it with Tab closes it.
   function menu(open, refocus) {
@@ -1249,7 +1252,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // The sidebar shrunk to its icons, each named when pointed at. Kept for this device only.
   function shrink(on) {
     htmlCls().toggle("sidemini", on);
-    [...$("#sideNav").children].forEach((b) => (on ? (b.title = b.textContent.trim()) : b.removeAttribute("title")));
+    $("#sideNav").querySelectorAll(":scope > :not(.foot)").forEach((b) => (on ? (b.title = b.textContent.trim()) : b.removeAttribute("title")));
     syncMenuBtn();
   }
   function syncMenuBtn() { $("#menuBtn").setAttribute("aria-expanded", htmlCls().contains("drawer") ? $("header.side").classList.contains("open") : !htmlCls().contains("sidemini")); }
@@ -2556,7 +2559,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   function drawHeat() {
     const counts = new Map();
     for (const t of S.history) { const k = dayKey(new Date(t.finishedAt)); counts.set(k, (counts.get(k) || 0) + 1); }
-    // Like GitHub's graph: squares stay one size and the graph shows as many weeks as fit (up to a year).
+    // Like GitHub's graph: as many weeks as fit (up to a year), stretched to the card's width (bigger squares on a wide one).
     const c = 14, g = 3, left = 28, top = 16, scale = 1.1, avail = $("#heat").clientWidth;
     const weeks = avail ? Math.max(8, Math.min(53, Math.floor((avail / scale - left) / (c + g)))) : 16;
     const end = new Date(); end.setHours(0, 0, 0, 0);
@@ -2574,7 +2577,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const W = left + weeks * (c + g), H = top + 7 * (c + g);
     $("#heatTitle").textContent = `Practice sessions per day, last ${weeks} weeks`;
     const wd = [[1, "Mon"], [3, "Wed"], [5, "Fri"]].map(([i, l]) => `<text class="ax" x="0" y="${top + i * (c + g) + c - 3}">${l}</text>`).join("");
-    $("#heat").innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:${Math.round(W * scale)}px;max-width:100%;height:auto;display:block" role="img" aria-label="Practice sessions per day over the last ${weeks} weeks">${months}${wd}${cells}</svg>`;
+    $("#heat").innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Practice sessions per day over the last ${weeks} weeks">${months}${wd}${cells}</svg>`;
   }
   $("#heat").addEventListener("pointermove", (e) => { const t = e.target.closest("[data-tip]"); t ? showTip(t.dataset.tip, e.clientX, e.clientY) : hideTip(); });
   $("#heat").addEventListener("pointerleave", hideTip);

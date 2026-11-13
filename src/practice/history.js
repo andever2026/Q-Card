@@ -136,7 +136,7 @@
   function drawHeat() {
     const counts = new Map();
     for (const t of S.history) { const k = dayKey(new Date(t.finishedAt)); counts.set(k, (counts.get(k) || 0) + 1); }
-    // Like GitHub's graph: squares stay one size and the graph shows as many weeks as fit (up to a year).
+    // Like GitHub's graph: as many weeks as fit (up to a year), stretched to the card's width (bigger squares on a wide one).
     const c = 14, g = 3, left = 28, top = 16, scale = 1.1, avail = $("#heat").clientWidth;
     const weeks = avail ? Math.max(8, Math.min(53, Math.floor((avail / scale - left) / (c + g)))) : 16;
     const end = new Date(); end.setHours(0, 0, 0, 0);
@@ -154,7 +154,7 @@
     const W = left + weeks * (c + g), H = top + 7 * (c + g);
     $("#heatTitle").textContent = `Practice sessions per day, last ${weeks} weeks`;
     const wd = [[1, "Mon"], [3, "Wed"], [5, "Fri"]].map(([i, l]) => `<text class="ax" x="0" y="${top + i * (c + g) + c - 3}">${l}</text>`).join("");
-    $("#heat").innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:${Math.round(W * scale)}px;max-width:100%;height:auto;display:block" role="img" aria-label="Practice sessions per day over the last ${weeks} weeks">${months}${wd}${cells}</svg>`;
+    $("#heat").innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Practice sessions per day over the last ${weeks} weeks">${months}${wd}${cells}</svg>`;
   }
   $("#heat").addEventListener("pointermove", (e) => { const t = e.target.closest("[data-tip]"); t ? showTip(t.dataset.tip, e.clientX, e.clientY) : hideTip(); });
   $("#heat").addEventListener("pointerleave", hideTip);

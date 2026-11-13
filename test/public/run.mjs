@@ -468,7 +468,7 @@ ok(!(await setOpen(phone)) && await vis(phone, "#setup"), "phone: ← Back from 
 const menuOpen = () => phone.evaluate(() => { const n = document.querySelector("#sideNav"), r = n.getBoundingClientRect(); return document.querySelector("#menuBtn").getAttribute("aria-expanded") === "true" && getComputedStyle(n).visibility === "visible" && r.left >= 0 && r.right <= innerWidth; });
 ok(await vis(phone, "#menuBtn") && !(await menuOpen()), "phone: a ☰ button, the menu closed");
 await phone.click("#menuBtn"); await phone.waitForTimeout(300);
-ok(await menuOpen() && await phone.evaluate(() => [...document.querySelectorAll("#sideNav > *")].map((b) => b.textContent.trim()).join(", ")) === "Practice, Vocab table, History, Study tools" && await phone.evaluate(() => document.activeElement?.dataset.go === "setup"),
+ok(await menuOpen() && await phone.evaluate(() => [...document.querySelectorAll("#sideNav > :not(.foot)")].map((b) => b.textContent.trim()).join(", ")) === "Practice, Vocab table, History, Study tools" && await phone.evaluate(() => document.activeElement?.dataset.go === "setup"),
   "phone: ☰ slides in the menu (Practice, Vocab table, History, Study tools) and moves to it");
 await phone.screenshot({ path: join(out, "8-menu-phone.png") });
 await phone.click('#sideNav [data-go="history"]'); await phone.waitForTimeout(300);
@@ -934,6 +934,11 @@ const hp = await newPage(hctx, { init: () => {
     words: i ? [{ id: "w0", en: "word 0", jp: "かな0", dir: "ej", tries: 1 }] : words.map((w) => ({ id: w.id, en: w.en, jp: w.kana, dir: "ej", tries: 2 })) });
 } });
 await hp.click("#histAll"); await hp.waitForTimeout(300);
+{ const fill = () => hp.evaluate(() => [Math.round(document.querySelector("#heat svg").getBoundingClientRect().width), document.querySelector("#heat").clientWidth]);
+  let [svgW, boxW] = await fill(); const narrow = svgW === boxW;
+  await hp.setViewportSize({ width: 2000, height: 1000 }); await hp.waitForTimeout(300); [svgW, boxW] = await fill();
+  ok(narrow && svgW === boxW && boxW > 1500 && /last 53 weeks/.test(await text(hp, "#heatTitle")), "history: the practice graph fills its card, however wide the window", `${svgW}/${boxW}`);
+  await hp.setViewportSize({ width: 900, height: 1000 }); await hp.waitForTimeout(200); }
 const hPage = () => hp.evaluate(() => [document.querySelectorAll("#hList > li").length, document.querySelector('#hPager [aria-current="page"]')?.textContent,
   [...document.querySelectorAll("#hPager .pg:not(.arrow):not(.gap)")].map((b) => b.textContent).join(" "), [...document.querySelectorAll("#hPager .arrow")].map((b) => b.disabled).join("/")].join(","));
 ok(await vis(hp, "#hPager") && (await hPage()) === "20,1,1 2 3,true/false", "history pages: 20 sessions on page 1 of 3, Previous off", await hPage());
@@ -953,6 +958,8 @@ await hp.click("#loveWin .dd-btn"); await hp.click('#loveWin [data-v="5"]');
 ok((await love()) === "5,Practice these 5,1–5 of 11,1", "hard words: Show 5 starts again at page 1 with 5 words", await love());
 await hp.click("#loveWin .dd-btn"); await hp.click('#loveWin [data-v="all"]');
 ok((await love()) === "11,Practice these 11,,-" && !(await vis(hp, "#lovePager")), "hard words: Show All lists every word on one page", await love());
+{ const edge = await hp.evaluate(() => Math.round(document.querySelector("#loveWin").getBoundingClientRect().left - document.querySelector("#hLove").getBoundingClientRect().left));
+  ok(edge === 0, "hard words: with no pages to flip through, the per-page choice lines up with the list's edge", `${edge}px`); }
 const firstLine = () => hp.$eval("#hLove > li .pair > :first-child", (e) => e.className);
 ok((await firstLine()) === "jp", "hard words: Japanese first by default", await firstLine());
 await hp.click('#loveTopSeg [data-top="en"]');
@@ -1184,7 +1191,9 @@ await ictx.close();
   ok(await lp.evaluate(() => { const a = document.querySelector("#privacyLink a"); return !!a && a.getAttribute("href") === "privacy/" && a.target === "_blank"; }) && await vis(lp, "#privacyLink"),
     "settings: links to the privacy page, in a new tab");
   await lp.click("#settingsClose");
-  ok(await vis(lp, '.foot a[href="privacy/"]'), "footer: links to the privacy page");
+  await lp.click("#menuBtn"); await lp.waitForTimeout(300);
+  ok(await lp.locator('#sideNav > .foot a[href="privacy/"]').isVisible() && await lp.evaluate(() => { const f = document.querySelector(".foot").getBoundingClientRect(), n = document.querySelector("#sideNav").getBoundingClientRect(); return n.bottom - f.bottom < 30 && f.left >= n.left; })
+    && !(await lp.$('.foot a[href="study-tools/"]')), "footer: at the bottom of the menu that slides in, linking to the privacy page (Study tools is in the menu above)");
   await Promise.all([lp.waitForURL("**/privacy/"), lp.click('.foot a[href="privacy/"]')]);
   ok(/^Privacy Policy/.test(await lp.title()), "footer: the link opens the privacy page");
   ok(lp.errors.length === 0, "privacy links: no page errors", lp.errors.join(" | "));
@@ -1352,6 +1361,9 @@ if (entry.length > 1) {
   await bp.screenshot({ path: join(out, "22-guest-menu.png"), clip: { x: 640, y: 0, width: 640, height: 220 } });
   await bp.keyboard.press("Escape");
   await bp.screenshot({ path: join(out, "22-sidebar.png") });
+  const footAt = () => bp.evaluate(() => { const f = document.querySelector(".foot"), r = f.getBoundingClientRect(); return { inSide: f.parentElement.matches("header.side"), shown: r.height > 0, gap: Math.round(innerHeight - r.bottom), left: Math.round(r.left), right: Math.round(r.right) }; });
+  let ft = await footAt();
+  ok(ft.inSide && ft.shown && ft.gap >= 0 && ft.gap < 30 && ft.left >= 0 && ft.right <= 232, "footer: at the bottom of the sidebar", JSON.stringify(ft));
   await bp.click('#sideNav [data-go="history"]'); await bp.waitForTimeout(300);
   ok(await vis(bp, "#history") && (await at()) === "history" && !(await shown("#histBack")), "sidebar: History opens from it and is marked; no ← Back beside the sidebar");
   await bp.click('#sideNav [data-go="table"]'); await bp.waitForTimeout(300);
@@ -1370,12 +1382,14 @@ if (entry.length > 1) {
   await bp.click("#leaveAsk [data-ldiscard]"); await bp.waitForTimeout(300);
   ok(await setOpen(bp) && (await bsaved()) === "cold water" && (await at()) === "settingsBtn", "sidebar: Discard all saves nothing and opens Settings", await bsaved());
   const setInfo = () => bp.evaluate(() => ({ inSide: !!document.querySelector("#setNavSlot > #setNav") && document.querySelector("#setNavSlot").getClientRects().length > 0, tabs: [...document.querySelectorAll("#setNav [data-set-tab]")].filter((b) => b.getClientRects().length).map((b) => b.textContent).join(", "),
-    on: document.querySelector('#setNav [aria-current="page"]')?.dataset.setTab, body: Math.round(document.querySelector(".setbody").getBoundingClientRect().width), panel: Math.round(document.querySelector(".setpage").getBoundingClientRect().width) }));
+    on: document.querySelector('#setNav [aria-current="page"]')?.dataset.setTab, body: Math.round(document.querySelector(".setbody").getBoundingClientRect().width), panel: Math.round(document.querySelector(".setpage").getBoundingClientRect().width), full: Math.round(document.querySelector(".wrap").getBoundingClientRect().width) }));
   let st = await setInfo();
   // On Settings its tabs take the sidebar (as on YouTube), and ☰ brings the menu in over the page.
   const drawerOpen = () => bp.evaluate(() => { const n = document.querySelector("#sideNav"), r = n.getBoundingClientRect(); return getComputedStyle(n).position === "fixed" && getComputedStyle(n).visibility === "visible" && r.left >= 0 && getComputedStyle(document.querySelector("#sideShade")).opacity === "1"; });
-  ok(st.inSide && st.tabs === "Appearance, Account, Data, Practice history, Developer tools" && st.on === "look" && st.body >= st.panel - 2 && st.panel <= 762 && !(await drawerOpen()) && await shown("#settingsBtn"),
-    "sidebar: on Settings its tabs take the sidebar, the page and its menu out of the way, and the tab is a narrower column", JSON.stringify(st));
+  ok(st.inSide && st.tabs === "Appearance, Account, Data, Practice history, Developer tools" && st.on === "look" && st.body >= st.panel - 2 && st.panel >= st.full - 2 && st.full > 900 && !(await drawerOpen()) && await shown("#settingsBtn"),
+    "sidebar: on Settings its tabs take the sidebar, the page and its menu out of the way, and the tab spans the page like the others do", JSON.stringify(st));
+  ft = await footAt();
+  ok(ft.inSide && ft.shown && ft.gap >= 0 && ft.gap < 30, "footer: on Settings, at the bottom of the sidebar under its tabs", JSON.stringify(ft));
   await bp.click('#setNav [data-set-tab="data"]');
   ok((await setInfo()).on === "data" && await vis(bp, "#portPanel"), "sidebar: a tab in the sidebar opens it");
   await bp.screenshot({ path: join(out, "22-sidebar-settings.png") });
@@ -1398,7 +1412,7 @@ if (entry.length > 1) {
   const names = () => bp.evaluate(() => [...document.querySelectorAll("#sideNav > *")].map((b) => `${b.title}:${Math.round(b.querySelector("span").getBoundingClientRect().width)}`).join(","));
   await bp.click("#menuBtn"); await bp.waitForTimeout(200);
   si = await sideInfo();
-  ok(si.side[1] === 64 && si.col < 100 && (await names()) === "Practice:0,Vocab table:0,History:0,Study tools:0" && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "false" && await barBtn(),
+  ok(si.side[1] === 64 && si.col < 100 && !(await footAt()).shown && (await names()) === "Practice:0,Vocab table:0,History:0,Study tools:0" && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "false" && await barBtn(),
     "sidebar: ☰ shrinks it to icons, named when pointed at, and the page takes the room", JSON.stringify(si) + " " + await names());
   await bp.screenshot({ path: join(out, "22-sidebar-icons.png") });
   await bp.click('#sideNav [data-go="history"]'); await bp.waitForTimeout(300);

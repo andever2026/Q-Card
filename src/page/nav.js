@@ -41,6 +41,9 @@
     if (!drawer) menu(false);
     htmlCls().toggle("drawer", drawer); syncMenuBtn();
     if ($("#setNav").parentElement !== tabsIn) tabsIn.prepend($("#setNav"));
+    // The footer (public site): at the bottom of the sidebar, or of the menu that slides in.
+    const foot = $(".foot"), footIn = isWide() ? $("header.side") : $("#sideNav");
+    if (foot && foot.parentElement !== footIn) footIn.append(foot);
   }
   // The drawer: picking a page, Escape, a tap beside it or leaving it with Tab closes it.
   function menu(open, refocus) {
@@ -52,7 +55,7 @@
   // The sidebar shrunk to its icons, each named when pointed at. Kept for this device only.
   function shrink(on) {
     htmlCls().toggle("sidemini", on);
-    [...$("#sideNav").children].forEach((b) => (on ? (b.title = b.textContent.trim()) : b.removeAttribute("title")));
+    $("#sideNav").querySelectorAll(":scope > :not(.foot)").forEach((b) => (on ? (b.title = b.textContent.trim()) : b.removeAttribute("title")));
     syncMenuBtn();
   }
   function syncMenuBtn() { $("#menuBtn").setAttribute("aria-expanded", htmlCls().contains("drawer") ? $("header.side").classList.contains("open") : !htmlCls().contains("sidemini")); }

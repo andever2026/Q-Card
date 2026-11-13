@@ -42,8 +42,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
    take the sidebar and ☰ brings the menu in over the page, as on a smaller screen (html.drawer). */
 #menuBtn { margin-left: -6px; }
 .sidenav { display: grid; gap: 2px; align-content: start; }
-.sidenav > *, .side .setnav button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
-.sidenav > :hover, .side .setnav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.sidenav > :not(.foot), .side .setnav button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
+.sidenav > :not(.foot):hover, .side .setnav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
 .sidenav svg { flex: none; color: var(--muted); }
 .sidenav > [aria-current="page"] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
 .sidenav > [aria-current="page"] svg { color: inherit; }
@@ -70,7 +70,7 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .drawer .side.open .sidenav { transform: none; visibility: visible; transition: transform .2s ease; }
 .drawer .sideshade { display: block; position: fixed; z-index: 39; inset: 0; background: rgba(17, 20, 26, .4); opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
 .drawer .side.open .sideshade { opacity: 1; visibility: visible; transition: opacity .2s; }
-@media not all and (min-width: 1000px) { .sidenav > * { padding-block: 11px; } }
+@media not all and (min-width: 1000px) { .sidenav > :not(.foot) { padding-block: 11px; } }
 @media (max-width: 480px) { .side { flex-wrap: nowrap; gap: 8px; } .side h1 { font-size: 1.2rem; min-width: 0; } .acctname, .acctbtn .chev { display: none; } .acctbtn { padding-right: 3px; } }
 @media (min-width: 1000px) {
   :root:has(> body:not(.writing)) { --side: 1; scroll-padding-top: calc(var(--topbar) + 12px); } /* the widths follow, theme/theme.css */
@@ -92,14 +92,11 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
   .side .setnav h2 { padding: 4px 10px 12px; }
   .setpage:not(:has(> .setnav)) { grid-template-columns: minmax(0, 1fr); min-height: 0; }
   .setpage:not(:has(> .setnav)) .setbody { border-left: none; }
-  #settings, .setview .foot { margin-left: 0; } /* narrower than the pages beside the sidebar, so it starts where they do */
-  .setview .foot { max-width: min(var(--pagew), var(--setw)); }
   /* The sidebar goes everywhere these went back from. */
   #history > .qbar, #table > .qbar, #settings > .qbar { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .sidenav, .sideshade { transition: none !important; } }
 /* Settings: a page of its own, tabs down the left and the picked tab's part beside them. */
-#settings { max-width: min(var(--pagew), var(--setw)); }
 .setpage { grid-template-columns: 11.5rem minmax(0, 1fr); gap: 0; padding: 0; min-height: 24rem; }
 .setnav { display: grid; gap: 2px; align-content: start; padding: 18px 10px; }
 .setnav h2 { padding: 0 10px 10px; }
@@ -114,7 +111,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .nickform { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .nickform input { width: 16rem; max-width: 100%; font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 .setpane p { overflow-wrap: anywhere; } /* a long email address wraps instead of widening the page */
-.setpane .setrow { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+.setpane .setrow { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; }
+.setpane .setrow h3 { min-width: 10rem; } /* the controls stay beside their names however wide the page is */
 /* On a phone the tabs are a list, and picking one opens it in the list's place. */
 @media (max-width: 640px) {
   .setpage { grid-template-columns: minmax(0, 1fr); min-height: 0; }
@@ -138,7 +136,7 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 @media (max-width: 480px) { .delrow { position: relative; } .delrow .qtip { position: static; } .delrow .qtipbody { left: 0; transform: none; } }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
-body:not(.ready) section, body:not(.ready) #banner, body:not(.ready) .topr, body:not(.ready) .sidenav, body:not(.ready) #menuBtn { display: none !important; }
+body:not(.ready) section, body:not(.ready) #banner, body:not(.ready) .topr, body:not(.ready) .sidenav, body:not(.ready) #menuBtn, body:not(.ready) .foot { display: none !important; }
 body.ready #gate { display: none; }
 .gate { margin-top: 10vh; text-align: center; color: var(--muted); }
 .gate b { display: block; color: var(--ink); font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
@@ -383,6 +381,7 @@ td.c { text-align: center; padding-inline: 0; }
 /* Under a paged list: the page buttons, which ones are shown, and the list's own button pushed to the right. */
 .listfoot { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 14px; }
 .listfoot:not(:has(> :not([hidden]):not(:empty))) { display: none; }
+.listfoot > :empty { display: none; } /* a count with nothing to say takes no room, so what's left starts at the edge */
 .listfoot > .btn { margin-left: auto; padding: 7px 18px; }
 @media (max-width: 480px) { .listfoot > .btn { flex: 1 0 100%; } }
 .pager { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
@@ -514,8 +513,10 @@ body { margin: 0; }
 .keyerr { color: var(--shu); }
 .fb.self { border-color: var(--ai); }
 .fb.self .stamp { color: var(--ai); border-color: var(--ai); }
-.foot { max-width: var(--pagew); margin: 40px auto 0; text-align: center; color: var(--muted); font-size: .8rem; display: grid; gap: 4px; }
+/* The footer: at the bottom of the sidebar, or of the menu that slides in on a smaller screen (page/nav.js puts it there). */
+.foot { margin-top: auto; padding: 18px 10px 2px; color: var(--muted); font-size: .72rem; line-height: 1.45; display: grid; gap: 6px; }
+.foot p { margin: 0; }
 .foot a { color: inherit; }
-body.writing .foot { display: none; }
-body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits near the bottom edge */
+.drawer .sidenav { display: flex; flex-direction: column; }
+.sidemini:not(.drawer) .foot { display: none; }
 /*#endif*/
