@@ -38,7 +38,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .iconbtn:hover { color: var(--ink); background: var(--sunk); }
 /* The menu (page/nav.js). On a smaller screen the header is a top bar, ☰ · title · gear, and ☰ slides the menu in from
    the left over the page. From 1000px wide (the same width as in nav.js) the title has a bar across the top and the menu
-   is a sidebar down the left under it: the pages, and Settings at the bottom with its tabs under it while it's open. */
+   is a sidebar down the left under it: the pages, and Settings at the bottom with its tabs under it while it's open.
+   ☰, left of the title, shrinks it to icons there. */
 #menuBtn { margin-left: -6px; }
 .sidenav { display: grid; gap: 2px; align-content: start; }
 .sidenav > * { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
@@ -60,9 +61,14 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
   :root:has(> body:not(.writing)) { --side: 1; scroll-padding-top: calc(var(--topbar) + 12px); } /* the widths follow, theme/theme.css */
   body:not(.writing) > .wrap > .side { position: fixed; z-index: 10; inset: var(--topbar) auto 0 0; width: var(--sidew); max-width: none; margin: 0; overflow-y: auto;
     flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 2px; padding: 14px 12px 14px max(12px, env(safe-area-inset-left, 0px)); background: var(--sunk); border-right: 1px solid var(--line); }
-  .side h1 { position: fixed; inset: 0 0 auto; height: var(--topbar); display: flex; align-items: center; gap: 8px; padding: 0 22px 0 max(22px, env(safe-area-inset-left, 0px));
+  .side h1 { position: fixed; inset: 0 0 auto; height: var(--topbar); display: flex; align-items: center; gap: 8px; padding: 0 22px 0 62px;
     font-size: 1.2rem; background: var(--sunk); border-bottom: 1px solid var(--line); }
-  #menuBtn, .sideshade { display: none; }
+  .sideshade { display: none; }
+  #menuBtn { position: fixed; z-index: 1; top: calc((var(--topbar) - 34px) / 2); left: 15px; margin: 0; } /* in the bar, over the sidebar's icons */
+  /* ☰ shrinks the sidebar to its icons; the names stay for screen readers, and pointing at an icon shows its name. */
+  :root.sidemini { --sidebar: 64px; }
+  .sidemini .sidenav > *, .sidemini #settingsBtn { justify-content: center; padding-inline: 0; }
+  .sidemini .sidenav span, .sidemini #settingsBtn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   #settingsBtn { margin: auto 0 0; padding: 8px 10px; gap: 10px; align-items: center; align-self: stretch; color: var(--ink); font-weight: 500; }
   #settingsBtn svg { width: 20px; height: 20px; color: var(--muted); }
   #settingsBtn[aria-current] { font-weight: 700; }

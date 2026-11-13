@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-dX5UTGXM9nVngVA+9IRLwgrEYIFEwFXGlhi3jWnWEHs=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-4qbpGfc1MIxgNZSyA0FVuH6GK7FVVxmAWMrwmX/syuo=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -120,7 +120,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .iconbtn:hover { color: var(--ink); background: var(--sunk); }
 /* The menu (page/nav.js). On a smaller screen the header is a top bar, ☰ · title · gear, and ☰ slides the menu in from
    the left over the page. From 1000px wide (the same width as in nav.js) the title has a bar across the top and the menu
-   is a sidebar down the left under it: the pages, and Settings at the bottom with its tabs under it while it's open. */
+   is a sidebar down the left under it: the pages, and Settings at the bottom with its tabs under it while it's open.
+   ☰, left of the title, shrinks it to icons there. */
 #menuBtn { margin-left: -6px; }
 .sidenav { display: grid; gap: 2px; align-content: start; }
 .sidenav > * { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
@@ -142,9 +143,14 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
   :root:has(> body:not(.writing)) { --side: 1; scroll-padding-top: calc(var(--topbar) + 12px); } /* the widths follow, theme/theme.css */
   body:not(.writing) > .wrap > .side { position: fixed; z-index: 10; inset: var(--topbar) auto 0 0; width: var(--sidew); max-width: none; margin: 0; overflow-y: auto;
     flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 2px; padding: 14px 12px 14px max(12px, env(safe-area-inset-left, 0px)); background: var(--sunk); border-right: 1px solid var(--line); }
-  .side h1 { position: fixed; inset: 0 0 auto; height: var(--topbar); display: flex; align-items: center; gap: 8px; padding: 0 22px 0 max(22px, env(safe-area-inset-left, 0px));
+  .side h1 { position: fixed; inset: 0 0 auto; height: var(--topbar); display: flex; align-items: center; gap: 8px; padding: 0 22px 0 62px;
     font-size: 1.2rem; background: var(--sunk); border-bottom: 1px solid var(--line); }
-  #menuBtn, .sideshade { display: none; }
+  .sideshade { display: none; }
+  #menuBtn { position: fixed; z-index: 1; top: calc((var(--topbar) - 34px) / 2); left: 15px; margin: 0; } /* in the bar, over the sidebar's icons */
+  /* ☰ shrinks the sidebar to its icons; the names stay for screen readers, and pointing at an icon shows its name. */
+  :root.sidemini { --sidebar: 64px; }
+  .sidemini .sidenav > *, .sidemini #settingsBtn { justify-content: center; padding-inline: 0; }
+  .sidemini .sidenav span, .sidemini #settingsBtn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   #settingsBtn { margin: auto 0 0; padding: 8px 10px; gap: 10px; align-items: center; align-self: stretch; color: var(--ink); font-weight: 500; }
   #settingsBtn svg { width: 20px; height: 20px; color: var(--muted); }
   #settingsBtn[aria-current] { font-weight: 700; }
@@ -571,10 +577,10 @@ colours.apply(...colours.saved()); // before anything is drawn
       <div class="tactions shareact"><button class="btn" type="button" id="shareNo">Not now</button><button class="btn primary" type="button" id="shareYes">Yes, share my handwriting</button></div>
     </div></dialog>
     <nav class="sidenav" id="sideNav" aria-label="Pages">
-      <button type="button" data-go="setup"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z M13.6 7.4 L16.6 10.4"/></svg>Practice</button>
-      <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg>Vocab table</button>
-      <button type="button" data-go="history"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.8 12 a8.2 8.2 0 1 0 2.4 -5.8 L3.8 8.6 M3.8 4.2 V8.6 H8.2 M12 7.6 V12 L15 13.8"/></svg>History</button>
-      <a href="study-tools/"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>Study tools</a>
+      <button type="button" data-go="setup"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z M13.6 7.4 L16.6 10.4"/></svg><span>Practice</span></button>
+      <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg><span>Vocab table</span></button>
+      <button type="button" data-go="history"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.8 12 a8.2 8.2 0 1 0 2.4 -5.8 L3.8 8.6 M3.8 4.2 V8.6 H8.2 M12 7.6 V12 L15 13.8"/></svg><span>History</span></button>
+      <a href="study-tools/"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg><span>Study tools</span></a>
     </nav>
     <div class="sideshade" id="sideShade"></div>
     <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg><span>Settings</span></button>
@@ -1039,9 +1045,9 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   // ---------- the menu: a sidebar on a big screen, ☰ on a smaller one ----------
   // Practice, Vocab table, History (and Study tools, a page of its own, on the public site), with Settings at the bottom.
-  // On a big screen it's a sidebar down the left, and while Settings is open its tabs sit under it there. On a smaller
-  // screen the header is a top bar: ☰ slides the same menu in from the left, and the gear opens and closes Settings.
-  // It steps aside while writing, like the rest of the header.
+  // On a big screen it's a sidebar down the left, and while Settings is open its tabs sit under it there; ☰ beside the
+  // title shrinks it to its icons. On a smaller screen the header is a top bar: ☰ slides the same menu in from the left,
+  // and the gear opens and closes Settings. It steps aside while writing, like the rest of the header.
   const wide = matchMedia("(min-width: 1000px)"); // where page/styles.css turns the sidebar on
   const side = $("header.side"), goBtns = () => [...document.querySelectorAll("#sideNav [data-go]")];
   const viewNow = () => views.find((v) => !$("#" + v).hidden) || "setup";
@@ -1070,21 +1076,31 @@ colours.apply(...colours.saved()); // before anything is drawn
   goBtns().forEach((b) => (b.onclick = () => go(b.dataset.go)));
   $("#settingsBtn").onclick = () => (viewNow() === "settings" && !wide.matches ? closeSettings() : go("settings"));
 
-  // ☰: the menu slides in over the page; picking a page, Escape, a tap beside it or leaving it with Tab closes it.
+  // ☰ on a smaller screen: the menu slides in over the page; picking a page, Escape, a tap beside it or leaving it with
+  // Tab closes it.
   function menu(open, refocus) {
     if (open === side.classList.contains("open")) return;
-    side.classList.toggle("open", open); $("#menuBtn").setAttribute("aria-expanded", open);
+    side.classList.toggle("open", open); syncMenuBtn();
     if (open) $("#sideNav > *").focus(); else if (refocus) $("#menuBtn").focus();
   }
-  $("#menuBtn").onclick = () => menu(!side.classList.contains("open"));
+  // ☰ on a big screen: the sidebar shrinks to its icons, each named when pointed at. Kept for this device only.
+  let mini = store.get("sideMini", false) === true;
+  function shrink(on) {
+    mini = on; document.documentElement.classList.toggle("sidemini", mini);
+    [...$("#sideNav").children].forEach((b) => (mini ? (b.title = b.textContent.trim()) : b.removeAttribute("title")));
+    syncMenuBtn(); placeSetTabs();
+  }
+  const syncMenuBtn = () => $("#menuBtn").setAttribute("aria-expanded", wide.matches ? !mini : side.classList.contains("open"));
+  $("#menuBtn").onclick = () => { if (!wide.matches) return menu(!side.classList.contains("open")); shrink(!mini); store.set("sideMini", mini); };
   $("#sideShade").onclick = () => menu(false, true);
   side.addEventListener("keydown", (e) => { if (e.key === "Escape" && side.classList.contains("open")) menu(false, true); });
   $("#sideNav").addEventListener("focusout", (e) => { if (e.relatedTarget && !$("#sideNav").contains(e.relatedTarget)) menu(false); });
 
-  // Settings' tabs: in the sidebar on a big screen, at the side of the Settings page (a list on a phone) otherwise.
-  function placeSetTabs() { if (wide.matches) $("#setNavSlot").append($("#setNav")); else $("#settings .setpage").prepend($("#setNav")); }
-  wide.addEventListener("change", () => { menu(false); placeSetTabs(); });
-  placeSetTabs(); markNav(viewNow());
+  // Settings' tabs: in the sidebar on a big screen (unless it's shrunk to icons), at the side of the Settings page
+  // otherwise (a list on a phone).
+  function placeSetTabs() { if (wide.matches && !mini) $("#setNavSlot").append($("#setNav")); else $("#settings .setpage").prepend($("#setNav")); }
+  wide.addEventListener("change", () => { menu(false); syncMenuBtn(); placeSetTabs(); });
+  shrink(mini); markNav(viewNow());
   // ---------- colours: the two choices in Settings ----------
   // Blue or Warm, and light, dark or the device's setting: per viewer, remembered in this browser (and in the account,
   // see account/choices.js). colours.apply (theme/apply.js) is what changes the page.
@@ -3416,7 +3432,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       get text() { return vis($("#backBtn")) ? "Tap ← Back to practice." : "Tap Practice in the menu on the left to go back. It takes you to History and Study tools too."; },
       done: () => vis($("#setup")), act: () => $("#backBtn").click() },
     { view: "setup", at: () => $("#settingsBtn"), title: "Settings",
-      get text() { return `${vis($("#menuBtn")) ? "☰ opens the menu: History, Study tools and the vocab table. " : ""}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data.`; } },
+      get text() { return `${wide.matches ? "" : "☰ opens the menu: History, Study tools and the vocab table. "}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data.`; } },
     { title: "That's the tour!", end: true,
       text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and history on all your devices." },
   ];

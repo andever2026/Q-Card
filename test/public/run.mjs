@@ -1325,8 +1325,9 @@ if (entry.length > 1) {
   const sideInfo = () => bp.evaluate(() => { const h = document.querySelector("header.side").getBoundingClientRect(), v = [...document.querySelectorAll("section")].find((s) => !s.hidden).getBoundingClientRect();
     return { fixed: getComputedStyle(document.querySelector("header.side")).position === "fixed", side: [Math.round(h.left), Math.round(h.width)], col: Math.round(v.left), wide: document.documentElement.scrollWidth }; });
   let si = await sideInfo();
-  ok(si.fixed && si.side[0] === 0 && si.side[1] === 232 && si.col > 232 && si.wide <= 1280 && !(await vis(bp, "#menuBtn")) && (await at()) === "setup" && await vis(bp, "#settingsBtn span"),
-    "sidebar: on a big screen the menu is a sidebar down the left, Practice marked, the page beside it, no ☰", JSON.stringify(si));
+  const barBtn = () => bp.evaluate(() => { const m = document.querySelector("#menuBtn").getBoundingClientRect(), h = document.querySelector("header h1").getBoundingClientRect(); return m.bottom <= h.bottom && m.right < h.left + 70 && m.left < 40; });
+  ok(si.fixed && si.side[0] === 0 && si.side[1] === 232 && si.col > 232 && si.wide <= 1280 && (await at()) === "setup" && await vis(bp, "#settingsBtn span") && await barBtn() && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "true",
+    "sidebar: on a big screen the menu is a sidebar down the left under the title's bar, Practice marked, the page beside it, ☰ left of the title", JSON.stringify(si));
   await bp.screenshot({ path: join(out, "22-sidebar.png") });
   await bp.click('#sideNav [data-go="history"]'); await bp.waitForTimeout(300);
   ok(await vis(bp, "#history") && (await at()) === "history" && !(await shown("#histBack")), "sidebar: History opens from it and is marked; no ← Back beside the sidebar");
@@ -1360,6 +1361,23 @@ if (entry.length > 1) {
   ok(!(await shown("header h1")) && !(await shown("#sideNav")) && (await bp.evaluate(() => getComputedStyle(document.body).paddingLeft)) === "16px", "sidebar: steps aside while writing, and practice gets the whole width");
   await bp.click("#quitBtn"); await bp.waitForTimeout(200);
   ok((await sideInfo()).fixed && await vis(bp, "#sideNav"), "sidebar: back after quitting");
+  // ☰ shrinks it to its icons, on this device, until ☰ again.
+  const names = () => bp.evaluate(() => [...document.querySelectorAll("#sideNav > *")].map((b) => `${b.title}:${Math.round(b.querySelector("span").getBoundingClientRect().width)}`).join(","));
+  await bp.click("#menuBtn"); await bp.waitForTimeout(200);
+  si = await sideInfo();
+  ok(si.side[1] === 64 && si.col < 100 && (await names()) === "Practice:1,Vocab table:1,History:1,Study tools:1" && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "false" && await barBtn(),
+    "sidebar: ☰ shrinks it to icons, named when pointed at, and the page takes the room", JSON.stringify(si) + " " + await names());
+  await bp.screenshot({ path: join(out, "22-sidebar-icons.png") });
+  await bp.click('#sideNav [data-go="history"]'); await bp.waitForTimeout(300);
+  ok(await vis(bp, "#history") && (await at()) === "history", "sidebar: an icon still goes to its page");
+  await bp.click("#settingsBtn"); await bp.waitForTimeout(300);
+  ok(await setOpen(bp) && await bp.evaluate(() => !!document.querySelector("#settings .setpage > #setNav") && document.querySelector("#setNav").getClientRects().length > 0), "sidebar: shrunk, Settings' tabs are on the Settings page instead");
+  await bp.reload(); await bp.waitForTimeout(600);
+  ok((await sideInfo()).side[1] === 64, "sidebar: still shrunk after reloading");
+  await bp.click("#settingsBtn"); await bp.waitForTimeout(200); await bp.click("#menuBtn"); await bp.waitForTimeout(200);
+  ok((await sideInfo()).side[1] === 232 && (await names()).split(",").every((x) => x.startsWith(":") && +x.slice(1) > 20) && await bp.evaluate(() => !!document.querySelector("#setNavSlot > #setNav")),
+    "sidebar: ☰ again brings the names back, and Settings' tabs go back under Settings", await names());
+  await bp.click('#sideNav [data-go="setup"]'); await bp.waitForTimeout(200);
   await bp.setViewportSize({ width: 900, height: 1000 }); await bp.click("#settingsBtn"); await bp.waitForTimeout(200);
   ok(!(await sideInfo()).fixed && await vis(bp, "#menuBtn") && await bp.evaluate(() => !!document.querySelector("#settings .setpage > #setNav")), "sidebar: a narrower window has ☰ again, and Settings' tabs go back beside the tab");
   ok(bp.errors.length === 0, "sidebar: no page errors", bp.errors.join(" | "));
