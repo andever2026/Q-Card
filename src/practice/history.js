@@ -98,7 +98,7 @@
       : "Off, so finished practice sessions aren't saved. Turn it on to see stats about your practice, like graphs, streaks and the words that need more work.";
     $("#histSetWhere").hidden = S.histBlocked; $("#histSetWhere").textContent = histWhereText();
     $("#histSetToggle").hidden = S.histBlocked; $("#histSetToggle").textContent = on ? "Turn off" : "Turn on";
-    $("#histSetAll").hidden = !n; $("#histSetAll").textContent = `See all ${n} →`;
+    $("#histSetAll").hidden = !n; showLoveTop(); $("#histSetAll").textContent = `See all ${n} →`;
   }
   $("#histSetToggle").onclick = async (e) => { e.target.disabled = true; if (await setHistory(S.histOn !== true)) histChanged(); e.target.disabled = false; };
   $("#histSetAll").onclick = () => { closeSettings(); openHistory(); };
@@ -214,8 +214,20 @@
     S.tough = top.map((a) => a.w);
     const n = toughWords().length;
     $("#hPractise").hidden = !n; $("#hPractise").textContent = n === 1 ? "Practice this word" : `Practice these ${n}`;
-    $("#hLove").innerHTML = top.map((a) => `<li><span class="tries">${a.misses}</span><div><div class="w">${jpRuby(liveWord(a.w)?.w || { kanji: a.w.jp })}<small>${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</small></div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${a.tests} session${a.tests === 1 ? "" : "s"}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`).join("");
+    showLoveTop();
+    $("#hLove").innerHTML = top.map((a) => {
+      const jp = `<div class="jp">${jpRuby(liveWord(a.w)?.w || { kanji: a.w.jp })}</div>`, en = `<div class="en">${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</div>`;
+      return `<li><span class="tries">${a.misses}</span><div><div class="pair ${S.loveTop}">${S.loveTop === "en" ? en + jp : jp + en}</div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${a.tests} session${a.tests === 1 ? "" : "s"}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`;
+    }).join("");
   }
+  // Which language comes first on each hard word, so the list can be gone down as a self-test. Set on the list or
+  // in Settings → Practice history.
+  S.loveTop = store.get("loveTop", "jp") === "en" ? "en" : "jp";
+  function showLoveTop() { document.querySelectorAll("#loveTopSeg [data-top], #histSetTop [data-top]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.top === S.loveTop)); }
+  for (const id of ["#loveTopSeg", "#histSetTop"]) $(id).onclick = (e) => {
+    const b = e.target.closest("[data-top]"); if (!b) return;
+    S.loveTop = b.dataset.top; store.set("loveTop", S.loveTop); showLoveTop(); if (!$("#history").hidden) renderToughest();
+  };
   S.loveWin = String(store.get("loveWin", "10"));
   if (!["5", "10", "20", "50", "all"].includes(S.loveWin)) S.loveWin = "10";
   const perPage = makeDropdown($("#loveWin"), "Words per page", [["5", "5 per page"], ["10", "10 per page"], ["20", "20 per page"], ["50", "50 per page"], ["all", "All"]],

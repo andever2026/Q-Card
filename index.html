@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-OrheLhJTOlRux5Dxkuns3Z1LsAIyyMRmic0VGrWr8n4=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-DsDb4xW8rF8h86Ylo0Ac6zipfGHzRlbUUJTCnGf6lbI=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -292,6 +292,10 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .love .tries { font-size: 1.4rem; font-weight: 700; color: var(--shu); text-align: center; font-variant-numeric: tabular-nums; }
 .love .w { font-family: var(--font-jp); font-size: 1.15rem; font-weight: 600; }
 .love .w small { font-family: var(--font-ui); font-weight: 400; color: var(--muted); font-size: .85rem; margin-left: 6px; }
+.love .pair .jp { font-family: var(--font-jp); }
+.love .pair > :first-child { font-size: 1.15rem; font-weight: 600; }
+.love .pair > :last-child { font-size: .95rem; color: var(--muted); }
+.love .pair .jp rt { font-size: .55em; color: var(--muted); font-weight: 400; }
 .love p { font-size: .88rem; color: var(--muted); }
 /* Admin: the words of this round, under the progress bar */
 .roundlist { font-size: .85rem; color: var(--muted); }
@@ -678,7 +682,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div id="acc"></div>
       </div>
       <div class="panel" id="hLovePanel">
-        <div class="head"><h3>Words that need the most love overall</h3></div>
+        <div class="head"><h3>Words that need the most love overall</h3><div class="headr"><div class="seg mini" id="loveTopSeg" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div></div></div>
         <ul class="love" id="hLove"></ul>
         <div class="listfoot"><nav class="pager" id="lovePager" aria-label="Word pages" hidden></nav><span class="muted small" id="loveCount"></span><div id="loveWin"></div><button class="btn primary" type="button" id="hPractise">Practice these</button></div>
       </div>
@@ -737,6 +741,9 @@ colours.apply(...colours.saved()); // before anything is drawn
             <p id="histSetInfo"></p>
             <p class="muted small" id="histSetWhere"></p>
             <div class="tactions"><button class="btn" type="button" id="histSetToggle"></button><button class="link" type="button" id="histSetAll">See all history</button></div>
+            <h3>Words that need the most love</h3>
+            <p class="muted small">Which comes first on each word, so you can go down the list and test yourself on the other.</p>
+            <div class="seg mini" id="histSetTop" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div>
           </section>
         </div>
         <div class="setpane" data-set-pane="share" id="shareSet" hidden><h2>Handwriting sharing</h2>
@@ -865,7 +872,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   // Choices people make on the page. They're kept in this browser and, for someone signed in, in their account
   // too (data/users/<id>/prefs, see syncPrefs in account/choices.js), so they come along to other devices.
-  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "sessPer", "palette", "theme", "resume", "share", "practices"];
+  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "sessPer", "loveTop", "palette", "theme", "resume", "share", "practices"];
   let prefsChanged = () => {};
   const store = {
     get(k, d) { try { const v = localStorage.getItem("jpq:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
@@ -2211,7 +2218,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       : "Off, so finished practice sessions aren't saved. Turn it on to see stats about your practice, like graphs, streaks and the words that need more work.";
     $("#histSetWhere").hidden = S.histBlocked; $("#histSetWhere").textContent = histWhereText();
     $("#histSetToggle").hidden = S.histBlocked; $("#histSetToggle").textContent = on ? "Turn off" : "Turn on";
-    $("#histSetAll").hidden = !n; $("#histSetAll").textContent = `See all ${n} →`;
+    $("#histSetAll").hidden = !n; showLoveTop(); $("#histSetAll").textContent = `See all ${n} →`;
   }
   $("#histSetToggle").onclick = async (e) => { e.target.disabled = true; if (await setHistory(S.histOn !== true)) histChanged(); e.target.disabled = false; };
   $("#histSetAll").onclick = () => { closeSettings(); openHistory(); };
@@ -2327,8 +2334,20 @@ colours.apply(...colours.saved()); // before anything is drawn
     S.tough = top.map((a) => a.w);
     const n = toughWords().length;
     $("#hPractise").hidden = !n; $("#hPractise").textContent = n === 1 ? "Practice this word" : `Practice these ${n}`;
-    $("#hLove").innerHTML = top.map((a) => `<li><span class="tries">${a.misses}</span><div><div class="w">${jpRuby(liveWord(a.w)?.w || { kanji: a.w.jp })}<small>${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</small></div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${a.tests} session${a.tests === 1 ? "" : "s"}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`).join("");
+    showLoveTop();
+    $("#hLove").innerHTML = top.map((a) => {
+      const jp = `<div class="jp">${jpRuby(liveWord(a.w)?.w || { kanji: a.w.jp })}</div>`, en = `<div class="en">${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</div>`;
+      return `<li><span class="tries">${a.misses}</span><div><div class="pair ${S.loveTop}">${S.loveTop === "en" ? en + jp : jp + en}</div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${a.tests} session${a.tests === 1 ? "" : "s"}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`;
+    }).join("");
   }
+  // Which language comes first on each hard word, so the list can be gone down as a self-test. Set on the list or
+  // in Settings → Practice history.
+  S.loveTop = store.get("loveTop", "jp") === "en" ? "en" : "jp";
+  function showLoveTop() { document.querySelectorAll("#loveTopSeg [data-top], #histSetTop [data-top]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.top === S.loveTop)); }
+  for (const id of ["#loveTopSeg", "#histSetTop"]) $(id).onclick = (e) => {
+    const b = e.target.closest("[data-top]"); if (!b) return;
+    S.loveTop = b.dataset.top; store.set("loveTop", S.loveTop); showLoveTop(); if (!$("#history").hidden) renderToughest();
+  };
   S.loveWin = String(store.get("loveWin", "10"));
   if (!["5", "10", "20", "50", "all"].includes(S.loveWin)) S.loveWin = "10";
   const perPage = makeDropdown($("#loveWin"), "Words per page", [["5", "5 per page"], ["10", "10 per page"], ["20", "20 per page"], ["50", "50 per page"], ["all", "All"]],
@@ -2464,7 +2483,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     S.groupBy = store.get("groupBy", "book");
     S.pickTags = new Set(store.get("pickTags", []));
     S.dir = store.get("dir", "ej"); S.mode = store.get("mode", "default"); S.upto = store.get("uptoPick", "auto");
-    S.loveWin = String(store.get("loveWin", "10")); S.sessPer = String(store.get("sessPer", "20"));
+    S.loveWin = String(store.get("loveWin", "10")); S.sessPer = String(store.get("sessPer", "20")); S.loveTop = store.get("loveTop", "jp") === "en" ? "en" : "jp";
     setPalette(store.get("palette", "indigo"));
     setTheme(store.get("theme", ""));
     renderSetup(); renderTable();

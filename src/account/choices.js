@@ -35,7 +35,7 @@
     S.groupBy = store.get("groupBy", "book");
     S.pickTags = new Set(store.get("pickTags", []));
     S.dir = store.get("dir", "ej"); S.mode = store.get("mode", "default"); S.upto = store.get("uptoPick", "auto");
-    S.loveWin = String(store.get("loveWin", "10")); S.sessPer = String(store.get("sessPer", "20"));
+    S.loveWin = String(store.get("loveWin", "10")); S.sessPer = String(store.get("sessPer", "20")); S.loveTop = store.get("loveTop", "jp") === "en" ? "en" : "jp";
     setPalette(store.get("palette", "indigo"));
     setTheme(store.get("theme", ""));
     renderSetup(); renderTable();

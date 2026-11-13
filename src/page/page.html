@@ -227,7 +227,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div id="acc"></div>
       </div>
       <div class="panel" id="hLovePanel">
-        <div class="head"><h3>Words that need the most love overall</h3></div>
+        <div class="head"><h3>Words that need the most love overall</h3><div class="headr"><div class="seg mini" id="loveTopSeg" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div></div></div>
         <ul class="love" id="hLove"></ul>
         <div class="listfoot"><nav class="pager" id="lovePager" aria-label="Word pages" hidden></nav><span class="muted small" id="loveCount"></span><div id="loveWin"></div><button class="btn primary" type="button" id="hPractise">Practice these</button></div>
       </div>
@@ -294,6 +294,9 @@ colours.apply(...colours.saved()); // before anything is drawn
             <p id="histSetInfo"></p>
             <p class="muted small" id="histSetWhere"></p>
             <div class="tactions"><button class="btn" type="button" id="histSetToggle"></button><button class="link" type="button" id="histSetAll">See all history</button></div>
+            <h3>Words that need the most love</h3>
+            <p class="muted small">Which comes first on each word, so you can go down the list and test yourself on the other.</p>
+            <div class="seg mini" id="histSetTop" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div>
           </section>
         </div>
 <!--#if public-->
