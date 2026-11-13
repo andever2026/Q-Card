@@ -13,9 +13,10 @@ layout, the build and the tests; this file is what README doesn't say.
 - Branch `beta` deploys to https://andever2026.github.io/Q-Card/beta/, `main` to the live site. Changes go to `beta`
   first; `main` only through a pull request from `beta` (merge method: merge, never squash or force-push).
 - Claude may push to `beta` (the owner tests there). Never push to `main` or merge into it until the owner says so.
-- Before calling something done, run `node test/public/run.mjs` and `node test/claude/run.mjs` (each ends with
-  "All passed") and add checks there for what changed. Changes to `src/checking/checker.js` also get
-  `test/checker/eval.mjs` run before and after, and the numbers compared.
+- Add checks to `test/public/run.mjs` / `test/claude/run.mjs` for what changed. Small changes go to `beta` after
+  `npm run build` and `npm run check` only, without the full suites (the owner's call: they take ~10 minutes). Run both
+  suites (each ends with "All passed") before a pull request into `main`, which also runs them in CI. Changes to
+  `src/checking/checker.js` also get `test/checker/eval.mjs` run before and after, and the numbers compared.
 - Keep README.md's file list in step with the files.
 - A version is looked up when it's chosen or changed (Node in `.nvmrc`, the actions and test tools in
   `.github/workflows/`, packages in `package.json`), never taken from memory: what a session remembers is often a year old.
