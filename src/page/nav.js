@@ -1,10 +1,14 @@
   // ---------- the menu: a sidebar on a big screen, ☰ on a smaller one ----------
   // Practice, Vocab table, History (and Study tools, a page of its own, on the public site), with Settings at the bottom.
-  // On a big screen it's a sidebar down the left, and while Settings is open its tabs sit under it there; ☰ beside the
-  // title shrinks it to its icons. On a smaller screen the header is a top bar: ☰ slides the same menu in from the left,
-  // and the gear opens and closes Settings. It steps aside while writing, like the rest of the header.
-  const wide = matchMedia("(min-width: 1000px)"); // where page/styles.css turns the sidebar on
-  const side = $("header.side"), goBtns = () => [...document.querySelectorAll("#sideNav [data-go]")];
+  // On a big screen it's a sidebar down the left, and ☰ beside the title shrinks it to its icons. On Settings, Settings'
+  // tabs take the sidebar and ☰ brings the menu in over the page (as YouTube does). On a smaller screen the header is a
+  // top bar: ☰ slides the menu in from the left, the gear opens and closes Settings, and Settings' tabs stay on its page.
+  // It steps aside while writing, like the rest of the header. What show() reaches (markNav and the functions it calls)
+  // only uses the page, so it works before this file has run.
+  function htmlCls() { return document.documentElement.classList; }
+  function wideScreen() { return matchMedia("(min-width: 1000px)"); } // where page/styles.css turns the sidebar on
+  function isWide() { return wideScreen().matches; }
+  const goBtns = [...document.querySelectorAll("#sideNav [data-go]")];
   const viewNow = () => views.find((v) => !$("#" + v).hidden) || "setup";
   function openView(v) {
     if (v === "settings") openSettings();
@@ -21,38 +25,44 @@
     if (from === "settings") leaveTab();
     openView(v);
   }
-  // Called by show() for every view (so a function, ready before this file has run): a practice's results count as Practice.
+  // Called by show() for every view: a practice's results count as Practice.
   function markNav(v) {
     const at = v === "results" ? "setup" : v;
-    markCurrent(goBtns(), (b) => b.dataset.go === at);
+    markCurrent([...document.querySelectorAll("#sideNav [data-go]")], (b) => b.dataset.go === at);
     markCurrent([$("#settingsBtn")], () => at === "settings");
     $("#setNavSlot").hidden = at !== "settings";
+    htmlCls().toggle("setview", at === "settings"); layMenu();
   }
-  goBtns().forEach((b) => (b.onclick = () => go(b.dataset.go)));
-  $("#settingsBtn").onclick = () => (viewNow() === "settings" && !wide.matches ? closeSettings() : go("settings"));
-
-  // ☰ on a smaller screen: the menu slides in over the page; picking a page, Escape, a tap beside it or leaving it with
-  // Tab closes it.
+  // The menu is a drawer (html.drawer: ☰ slides it in over the page) on a smaller screen and on Settings, else the sidebar.
+  // Settings' tabs: in the sidebar on a big screen, at the side of the Settings page otherwise (a list on a phone).
+  function layMenu() {
+    const drawer = !isWide() || htmlCls().contains("setview"), tabsIn = isWide() ? $("#setNavSlot") : $("#settings .setpage");
+    if (!drawer) menu(false);
+    htmlCls().toggle("drawer", drawer); syncMenuBtn();
+    if ($("#setNav").parentElement !== tabsIn) tabsIn.prepend($("#setNav"));
+  }
+  // The drawer: picking a page, Escape, a tap beside it or leaving it with Tab closes it.
   function menu(open, refocus) {
+    const side = $("header.side");
     if (open === side.classList.contains("open")) return;
     side.classList.toggle("open", open); syncMenuBtn();
     if (open) $("#sideNav > *").focus(); else if (refocus) $("#menuBtn").focus();
   }
-  // ☰ on a big screen: the sidebar shrinks to its icons, each named when pointed at. Kept for this device only.
-  let mini = store.get("sideMini", false) === true;
+  // The sidebar shrunk to its icons, each named when pointed at. Kept for this device only.
   function shrink(on) {
-    mini = on; document.documentElement.classList.toggle("sidemini", mini);
-    [...$("#sideNav").children].forEach((b) => (mini ? (b.title = b.textContent.trim()) : b.removeAttribute("title")));
-    syncMenuBtn(); placeSetTabs();
+    htmlCls().toggle("sidemini", on);
+    [...$("#sideNav").children].forEach((b) => (on ? (b.title = b.textContent.trim()) : b.removeAttribute("title")));
+    syncMenuBtn();
   }
-  const syncMenuBtn = () => $("#menuBtn").setAttribute("aria-expanded", wide.matches ? !mini : side.classList.contains("open"));
-  $("#menuBtn").onclick = () => { if (!wide.matches) return menu(!side.classList.contains("open")); shrink(!mini); store.set("sideMini", mini); };
+  function syncMenuBtn() { $("#menuBtn").setAttribute("aria-expanded", htmlCls().contains("drawer") ? $("header.side").classList.contains("open") : !htmlCls().contains("sidemini")); }
+  goBtns.forEach((b) => (b.onclick = () => go(b.dataset.go)));
+  $("#settingsBtn").onclick = () => (viewNow() === "settings" && !isWide() ? closeSettings() : go("settings"));
+  $("#menuBtn").onclick = () => {
+    if (htmlCls().contains("drawer")) return menu(!$("header.side").classList.contains("open"));
+    shrink(!htmlCls().contains("sidemini")); store.set("sideMini", htmlCls().contains("sidemini"));
+  };
   $("#sideShade").onclick = () => menu(false, true);
-  side.addEventListener("keydown", (e) => { if (e.key === "Escape" && side.classList.contains("open")) menu(false, true); });
+  $("header.side").addEventListener("keydown", (e) => { if (e.key === "Escape" && $("header.side").classList.contains("open")) menu(false, true); });
   $("#sideNav").addEventListener("focusout", (e) => { if (e.relatedTarget && !$("#sideNav").contains(e.relatedTarget)) menu(false); });
-
-  // Settings' tabs: in the sidebar on a big screen (unless it's shrunk to icons), at the side of the Settings page
-  // otherwise (a list on a phone).
-  function placeSetTabs() { if (wide.matches && !mini) $("#setNavSlot").append($("#setNav")); else $("#settings .setpage").prepend($("#setNav")); }
-  wide.addEventListener("change", () => { menu(false); syncMenuBtn(); placeSetTabs(); });
-  shrink(mini); markNav(viewNow());
+  wideScreen().addEventListener("change", layMenu);
+  shrink(store.get("sideMini", false) === true); markNav(viewNow());

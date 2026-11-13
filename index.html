@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-4qbpGfc1MIxgNZSyA0FVuH6GK7FVVxmAWMrwmX/syuo=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-2tr6NT4OeVOFOqFRn5So0lerY3ho02J1D0IIeZ0tv4M=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -16,9 +16,10 @@
 /* The site's widths, set here only. The content column: 720px on a laptop or iPad, growing with the window on a big
    monitor up to --pagemax. Beside the page's sidebar (a big screen) it takes all the room there is (trying it out,
    2026-11-13): page/styles.css turns the sidebar on with --side, and the column's width follows from it here.
-   Practice: never under 1000px, so the writing boxes stay big on a laptop. */
+   Practice: never under 1000px, so the writing boxes stay big on a laptop. Settings: narrow enough that each setting's
+   name stays near its control, and never wider than the other pages. */
 :root { --sidebar: 232px; --topbar: 56px; --side: 0; --sidew: calc(var(--side) * var(--sidebar)); --fill: calc(.76 + var(--side) * .24); --pagemax: calc(1360px + var(--side) * 100vw);
-  --pagew: clamp(720px, calc((100vw - var(--sidew)) * var(--fill)), var(--pagemax)); --practicew: max(1000px, var(--pagew)); }
+  --pagew: clamp(720px, calc((100vw - var(--sidew)) * var(--fill)), var(--pagemax)); --practicew: max(1000px, var(--pagew)); --setw: 760px; }
 :root {
   --bg: #fdfdfd;
   --surface: #ffffff;
@@ -120,22 +121,23 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .iconbtn:hover { color: var(--ink); background: var(--sunk); }
 /* The menu (page/nav.js). On a smaller screen the header is a top bar, ☰ · title · gear, and ☰ slides the menu in from
    the left over the page. From 1000px wide (the same width as in nav.js) the title has a bar across the top and the menu
-   is a sidebar down the left under it: the pages, and Settings at the bottom with its tabs under it while it's open.
-   ☰, left of the title, shrinks it to icons there. */
+   is a sidebar down the left under it: the pages, and Settings at the bottom; ☰ shrinks it to icons. On Settings its tabs
+   take the sidebar and ☰ brings the menu in over the page, as on a smaller screen (html.drawer). */
 #menuBtn { margin-left: -6px; }
 .sidenav { display: grid; gap: 2px; align-content: start; }
-.sidenav > * { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
+.sidenav > *, .side .setnav button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
 .sidenav > :hover, .side .setnav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
 .sidenav svg { flex: none; color: var(--muted); }
 .sidenav > [aria-current="page"] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
 .sidenav > [aria-current="page"] svg { color: inherit; }
+.sideshade { display: none; }
+.drawer .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--surface); box-shadow: 0 0 40px rgba(0, 0, 0, .25);
+  padding: max(18px, env(safe-area-inset-top, 0px)) 12px 18px max(12px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
+.drawer .side.open .sidenav { transform: none; visibility: visible; transition: transform .2s ease; }
+.drawer .sideshade { display: block; position: fixed; z-index: 39; inset: 0; background: rgba(17, 20, 26, .4); opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
+.drawer .side.open .sideshade { opacity: 1; visibility: visible; transition: opacity .2s; }
 @media not all and (min-width: 1000px) {
-  .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--surface); box-shadow: 0 0 40px rgba(0, 0, 0, .25);
-    padding: max(18px, env(safe-area-inset-top, 0px)) 12px 18px max(12px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
   .sidenav > * { padding-block: 11px; }
-  .side.open .sidenav { transform: none; visibility: visible; transition: transform .2s ease; }
-  .sideshade { position: fixed; z-index: 39; inset: 0; background: rgba(17, 20, 26, .4); opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
-  .side.open .sideshade { opacity: 1; visibility: visible; transition: opacity .2s; }
   #settingsBtn span { display: none; }
 }
 @media (max-width: 480px) { .side { flex-wrap: nowrap; gap: 8px; } .side h1 { font-size: 1.2rem; min-width: 0; } }
@@ -145,25 +147,29 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
     flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 2px; padding: 14px 12px 14px max(12px, env(safe-area-inset-left, 0px)); background: var(--sunk); border-right: 1px solid var(--line); }
   .side h1 { position: fixed; inset: 0 0 auto; height: var(--topbar); display: flex; align-items: center; gap: 8px; padding: 0 22px 0 62px;
     font-size: 1.2rem; background: var(--sunk); border-bottom: 1px solid var(--line); }
-  .sideshade { display: none; }
   #menuBtn { position: fixed; z-index: 1; top: calc((var(--topbar) - 34px) / 2); left: 15px; margin: 0; } /* in the bar, over the sidebar's icons */
-  /* ☰ shrinks the sidebar to its icons; the names stay for screen readers, and pointing at an icon shows its name. */
-  :root.sidemini { --sidebar: 64px; }
-  .sidemini .sidenav > *, .sidemini #settingsBtn { justify-content: center; padding-inline: 0; }
-  .sidemini .sidenav span, .sidemini #settingsBtn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   #settingsBtn { margin: auto 0 0; padding: 8px 10px; gap: 10px; align-items: center; align-self: stretch; color: var(--ink); font-weight: 500; }
   #settingsBtn svg { width: 20px; height: 20px; color: var(--muted); }
-  #settingsBtn[aria-current] { font-weight: 700; }
-  .side .setnav { padding: 2px 0 0; }
-  .side .setnav h2 { display: none; }
-  .side .setnav button { padding: 6px 10px 6px 40px; font-size: .92rem; }
-  .setpage:not(:has(> .setnav)) { grid-template-columns: minmax(0, 1fr); }
+  /* ☰ shrinks the sidebar to its icons; the names stay for screen readers, and pointing at an icon shows its name. */
+  :root.sidemini:not(.drawer) { --sidebar: 64px; }
+  .sidemini:not(.drawer) .sidenav > *, .sidemini:not(.drawer) #settingsBtn { justify-content: center; padding-inline: 0; }
+  .sidemini:not(.drawer) .sidenav span, .sidemini:not(.drawer) #settingsBtn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* On Settings: its tabs fill the sidebar, and the menu comes in over the page under the title's bar. */
+  .drawer #settingsBtn { display: none; }
+  .drawer .sidenav, .drawer .sideshade { top: var(--topbar); }
+  .drawer .sidenav { width: var(--sidebar); padding: 14px 12px; }
+  .side .setnav { padding: 0; }
+  .side .setnav h2 { padding: 4px 10px 12px; }
+  .setpage:not(:has(> .setnav)) { grid-template-columns: minmax(0, 1fr); min-height: 0; }
   .setpage:not(:has(> .setnav)) .setbody { border-left: none; }
+  #settings, .setview .foot { margin-left: 0; } /* narrower than the pages beside the sidebar, so it starts where they do */
+  .setview .foot { max-width: min(var(--pagew), var(--setw)); }
   /* The sidebar goes everywhere these went back from. */
   #history > .qbar, #table > .qbar, #settings > .qbar { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .sidenav, .sideshade { transition: none !important; } }
 /* Settings: a page of its own, tabs down the left and the picked tab's part beside them. */
+#settings { max-width: min(var(--pagew), var(--setw)); }
 .setpage { grid-template-columns: 11.5rem minmax(0, 1fr); gap: 0; padding: 0; min-height: 24rem; }
 .setnav { display: grid; gap: 2px; align-content: start; padding: 18px 10px; }
 .setnav h2 { padding: 0 10px 10px; }
@@ -1045,11 +1051,15 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   // ---------- the menu: a sidebar on a big screen, ☰ on a smaller one ----------
   // Practice, Vocab table, History (and Study tools, a page of its own, on the public site), with Settings at the bottom.
-  // On a big screen it's a sidebar down the left, and while Settings is open its tabs sit under it there; ☰ beside the
-  // title shrinks it to its icons. On a smaller screen the header is a top bar: ☰ slides the same menu in from the left,
-  // and the gear opens and closes Settings. It steps aside while writing, like the rest of the header.
-  const wide = matchMedia("(min-width: 1000px)"); // where page/styles.css turns the sidebar on
-  const side = $("header.side"), goBtns = () => [...document.querySelectorAll("#sideNav [data-go]")];
+  // On a big screen it's a sidebar down the left, and ☰ beside the title shrinks it to its icons. On Settings, Settings'
+  // tabs take the sidebar and ☰ brings the menu in over the page (as YouTube does). On a smaller screen the header is a
+  // top bar: ☰ slides the menu in from the left, the gear opens and closes Settings, and Settings' tabs stay on its page.
+  // It steps aside while writing, like the rest of the header. What show() reaches (markNav and the functions it calls)
+  // only uses the page, so it works before this file has run.
+  function htmlCls() { return document.documentElement.classList; }
+  function wideScreen() { return matchMedia("(min-width: 1000px)"); } // where page/styles.css turns the sidebar on
+  function isWide() { return wideScreen().matches; }
+  const goBtns = [...document.querySelectorAll("#sideNav [data-go]")];
   const viewNow = () => views.find((v) => !$("#" + v).hidden) || "setup";
   function openView(v) {
     if (v === "settings") openSettings();
@@ -1066,41 +1076,47 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (from === "settings") leaveTab();
     openView(v);
   }
-  // Called by show() for every view (so a function, ready before this file has run): a practice's results count as Practice.
+  // Called by show() for every view: a practice's results count as Practice.
   function markNav(v) {
     const at = v === "results" ? "setup" : v;
-    markCurrent(goBtns(), (b) => b.dataset.go === at);
+    markCurrent([...document.querySelectorAll("#sideNav [data-go]")], (b) => b.dataset.go === at);
     markCurrent([$("#settingsBtn")], () => at === "settings");
     $("#setNavSlot").hidden = at !== "settings";
+    htmlCls().toggle("setview", at === "settings"); layMenu();
   }
-  goBtns().forEach((b) => (b.onclick = () => go(b.dataset.go)));
-  $("#settingsBtn").onclick = () => (viewNow() === "settings" && !wide.matches ? closeSettings() : go("settings"));
-
-  // ☰ on a smaller screen: the menu slides in over the page; picking a page, Escape, a tap beside it or leaving it with
-  // Tab closes it.
+  // The menu is a drawer (html.drawer: ☰ slides it in over the page) on a smaller screen and on Settings, else the sidebar.
+  // Settings' tabs: in the sidebar on a big screen, at the side of the Settings page otherwise (a list on a phone).
+  function layMenu() {
+    const drawer = !isWide() || htmlCls().contains("setview"), tabsIn = isWide() ? $("#setNavSlot") : $("#settings .setpage");
+    if (!drawer) menu(false);
+    htmlCls().toggle("drawer", drawer); syncMenuBtn();
+    if ($("#setNav").parentElement !== tabsIn) tabsIn.prepend($("#setNav"));
+  }
+  // The drawer: picking a page, Escape, a tap beside it or leaving it with Tab closes it.
   function menu(open, refocus) {
+    const side = $("header.side");
     if (open === side.classList.contains("open")) return;
     side.classList.toggle("open", open); syncMenuBtn();
     if (open) $("#sideNav > *").focus(); else if (refocus) $("#menuBtn").focus();
   }
-  // ☰ on a big screen: the sidebar shrinks to its icons, each named when pointed at. Kept for this device only.
-  let mini = store.get("sideMini", false) === true;
+  // The sidebar shrunk to its icons, each named when pointed at. Kept for this device only.
   function shrink(on) {
-    mini = on; document.documentElement.classList.toggle("sidemini", mini);
-    [...$("#sideNav").children].forEach((b) => (mini ? (b.title = b.textContent.trim()) : b.removeAttribute("title")));
-    syncMenuBtn(); placeSetTabs();
+    htmlCls().toggle("sidemini", on);
+    [...$("#sideNav").children].forEach((b) => (on ? (b.title = b.textContent.trim()) : b.removeAttribute("title")));
+    syncMenuBtn();
   }
-  const syncMenuBtn = () => $("#menuBtn").setAttribute("aria-expanded", wide.matches ? !mini : side.classList.contains("open"));
-  $("#menuBtn").onclick = () => { if (!wide.matches) return menu(!side.classList.contains("open")); shrink(!mini); store.set("sideMini", mini); };
+  function syncMenuBtn() { $("#menuBtn").setAttribute("aria-expanded", htmlCls().contains("drawer") ? $("header.side").classList.contains("open") : !htmlCls().contains("sidemini")); }
+  goBtns.forEach((b) => (b.onclick = () => go(b.dataset.go)));
+  $("#settingsBtn").onclick = () => (viewNow() === "settings" && !isWide() ? closeSettings() : go("settings"));
+  $("#menuBtn").onclick = () => {
+    if (htmlCls().contains("drawer")) return menu(!$("header.side").classList.contains("open"));
+    shrink(!htmlCls().contains("sidemini")); store.set("sideMini", htmlCls().contains("sidemini"));
+  };
   $("#sideShade").onclick = () => menu(false, true);
-  side.addEventListener("keydown", (e) => { if (e.key === "Escape" && side.classList.contains("open")) menu(false, true); });
+  $("header.side").addEventListener("keydown", (e) => { if (e.key === "Escape" && $("header.side").classList.contains("open")) menu(false, true); });
   $("#sideNav").addEventListener("focusout", (e) => { if (e.relatedTarget && !$("#sideNav").contains(e.relatedTarget)) menu(false); });
-
-  // Settings' tabs: in the sidebar on a big screen (unless it's shrunk to icons), at the side of the Settings page
-  // otherwise (a list on a phone).
-  function placeSetTabs() { if (wide.matches && !mini) $("#setNavSlot").append($("#setNav")); else $("#settings .setpage").prepend($("#setNav")); }
-  wide.addEventListener("change", () => { menu(false); syncMenuBtn(); placeSetTabs(); });
-  shrink(mini); markNav(viewNow());
+  wideScreen().addEventListener("change", layMenu);
+  shrink(store.get("sideMini", false) === true); markNav(viewNow());
   // ---------- colours: the two choices in Settings ----------
   // Blue or Warm, and light, dark or the device's setting: per viewer, remembered in this browser (and in the account,
   // see account/choices.js). colours.apply (theme/apply.js) is what changes the page.
@@ -3432,7 +3448,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       get text() { return vis($("#backBtn")) ? "Tap ← Back to practice." : "Tap Practice in the menu on the left to go back. It takes you to History and Study tools too."; },
       done: () => vis($("#setup")), act: () => $("#backBtn").click() },
     { view: "setup", at: () => $("#settingsBtn"), title: "Settings",
-      get text() { return `${wide.matches ? "" : "☰ opens the menu: History, Study tools and the vocab table. "}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data.`; } },
+      get text() { return `${isWide() ? "" : "☰ opens the menu: History, Study tools and the vocab table. "}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data.`; } },
     { title: "That's the tour!", end: true,
       text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and history on all your devices." },
   ];

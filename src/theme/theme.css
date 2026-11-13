@@ -4,9 +4,10 @@
 /* The site's widths, set here only. The content column: 720px on a laptop or iPad, growing with the window on a big
    monitor up to --pagemax. Beside the page's sidebar (a big screen) it takes all the room there is (trying it out,
    2026-11-13): page/styles.css turns the sidebar on with --side, and the column's width follows from it here.
-   Practice: never under 1000px, so the writing boxes stay big on a laptop. */
+   Practice: never under 1000px, so the writing boxes stay big on a laptop. Settings: narrow enough that each setting's
+   name stays near its control, and never wider than the other pages. */
 :root { --sidebar: 232px; --topbar: 56px; --side: 0; --sidew: calc(var(--side) * var(--sidebar)); --fill: calc(.76 + var(--side) * .24); --pagemax: calc(1360px + var(--side) * 100vw);
-  --pagew: clamp(720px, calc((100vw - var(--sidew)) * var(--fill)), var(--pagemax)); --practicew: max(1000px, var(--pagew)); }
+  --pagew: clamp(720px, calc((100vw - var(--sidew)) * var(--fill)), var(--pagemax)); --practicew: max(1000px, var(--pagew)); --setw: 760px; }
 :root {
   --bg: #fdfdfd;
   --surface: #ffffff;

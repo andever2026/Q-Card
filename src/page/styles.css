@@ -38,22 +38,23 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .iconbtn:hover { color: var(--ink); background: var(--sunk); }
 /* The menu (page/nav.js). On a smaller screen the header is a top bar, ☰ · title · gear, and ☰ slides the menu in from
    the left over the page. From 1000px wide (the same width as in nav.js) the title has a bar across the top and the menu
-   is a sidebar down the left under it: the pages, and Settings at the bottom with its tabs under it while it's open.
-   ☰, left of the title, shrinks it to icons there. */
+   is a sidebar down the left under it: the pages, and Settings at the bottom; ☰ shrinks it to icons. On Settings its tabs
+   take the sidebar and ☰ brings the menu in over the page, as on a smaller screen (html.drawer). */
 #menuBtn { margin-left: -6px; }
 .sidenav { display: grid; gap: 2px; align-content: start; }
-.sidenav > * { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
+.sidenav > *, .side .setnav button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
 .sidenav > :hover, .side .setnav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
 .sidenav svg { flex: none; color: var(--muted); }
 .sidenav > [aria-current="page"] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
 .sidenav > [aria-current="page"] svg { color: inherit; }
+.sideshade { display: none; }
+.drawer .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--surface); box-shadow: 0 0 40px rgba(0, 0, 0, .25);
+  padding: max(18px, env(safe-area-inset-top, 0px)) 12px 18px max(12px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
+.drawer .side.open .sidenav { transform: none; visibility: visible; transition: transform .2s ease; }
+.drawer .sideshade { display: block; position: fixed; z-index: 39; inset: 0; background: rgba(17, 20, 26, .4); opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
+.drawer .side.open .sideshade { opacity: 1; visibility: visible; transition: opacity .2s; }
 @media not all and (min-width: 1000px) {
-  .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--surface); box-shadow: 0 0 40px rgba(0, 0, 0, .25);
-    padding: max(18px, env(safe-area-inset-top, 0px)) 12px 18px max(12px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
   .sidenav > * { padding-block: 11px; }
-  .side.open .sidenav { transform: none; visibility: visible; transition: transform .2s ease; }
-  .sideshade { position: fixed; z-index: 39; inset: 0; background: rgba(17, 20, 26, .4); opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
-  .side.open .sideshade { opacity: 1; visibility: visible; transition: opacity .2s; }
   #settingsBtn span { display: none; }
 }
 @media (max-width: 480px) { .side { flex-wrap: nowrap; gap: 8px; } .side h1 { font-size: 1.2rem; min-width: 0; } }
@@ -63,25 +64,29 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
     flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 2px; padding: 14px 12px 14px max(12px, env(safe-area-inset-left, 0px)); background: var(--sunk); border-right: 1px solid var(--line); }
   .side h1 { position: fixed; inset: 0 0 auto; height: var(--topbar); display: flex; align-items: center; gap: 8px; padding: 0 22px 0 62px;
     font-size: 1.2rem; background: var(--sunk); border-bottom: 1px solid var(--line); }
-  .sideshade { display: none; }
   #menuBtn { position: fixed; z-index: 1; top: calc((var(--topbar) - 34px) / 2); left: 15px; margin: 0; } /* in the bar, over the sidebar's icons */
-  /* ☰ shrinks the sidebar to its icons; the names stay for screen readers, and pointing at an icon shows its name. */
-  :root.sidemini { --sidebar: 64px; }
-  .sidemini .sidenav > *, .sidemini #settingsBtn { justify-content: center; padding-inline: 0; }
-  .sidemini .sidenav span, .sidemini #settingsBtn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   #settingsBtn { margin: auto 0 0; padding: 8px 10px; gap: 10px; align-items: center; align-self: stretch; color: var(--ink); font-weight: 500; }
   #settingsBtn svg { width: 20px; height: 20px; color: var(--muted); }
-  #settingsBtn[aria-current] { font-weight: 700; }
-  .side .setnav { padding: 2px 0 0; }
-  .side .setnav h2 { display: none; }
-  .side .setnav button { padding: 6px 10px 6px 40px; font-size: .92rem; }
-  .setpage:not(:has(> .setnav)) { grid-template-columns: minmax(0, 1fr); }
+  /* ☰ shrinks the sidebar to its icons; the names stay for screen readers, and pointing at an icon shows its name. */
+  :root.sidemini:not(.drawer) { --sidebar: 64px; }
+  .sidemini:not(.drawer) .sidenav > *, .sidemini:not(.drawer) #settingsBtn { justify-content: center; padding-inline: 0; }
+  .sidemini:not(.drawer) .sidenav span, .sidemini:not(.drawer) #settingsBtn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* On Settings: its tabs fill the sidebar, and the menu comes in over the page under the title's bar. */
+  .drawer #settingsBtn { display: none; }
+  .drawer .sidenav, .drawer .sideshade { top: var(--topbar); }
+  .drawer .sidenav { width: var(--sidebar); padding: 14px 12px; }
+  .side .setnav { padding: 0; }
+  .side .setnav h2 { padding: 4px 10px 12px; }
+  .setpage:not(:has(> .setnav)) { grid-template-columns: minmax(0, 1fr); min-height: 0; }
   .setpage:not(:has(> .setnav)) .setbody { border-left: none; }
+  #settings, .setview .foot { margin-left: 0; } /* narrower than the pages beside the sidebar, so it starts where they do */
+  .setview .foot { max-width: min(var(--pagew), var(--setw)); }
   /* The sidebar goes everywhere these went back from. */
   #history > .qbar, #table > .qbar, #settings > .qbar { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .sidenav, .sideshade { transition: none !important; } }
 /* Settings: a page of its own, tabs down the left and the picked tab's part beside them. */
+#settings { max-width: min(var(--pagew), var(--setw)); }
 .setpage { grid-template-columns: 11.5rem minmax(0, 1fr); gap: 0; padding: 0; min-height: 24rem; }
 .setnav { display: grid; gap: 2px; align-content: start; padding: 18px 10px; }
 .setnav h2 { padding: 0 10px 10px; }
