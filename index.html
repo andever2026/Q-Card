@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-E55/T7UJKqPsDMzrxu/1RZQ7uM9yMP9ltAOeNrAh+DI=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-dX5UTGXM9nVngVA+9IRLwgrEYIFEwFXGlhi3jWnWEHs=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -14,8 +14,9 @@
    quiet text). The page includes this file (page/styles.css); the side pages ai/, privacy/ and study-tools/ link it as css/theme.css.
    Colours: Blue (the default) and Warm (data-palette="claude"), each light and dark (data-theme, else the device's setting). */
 /* The site's widths, set here only. The content column: 720px on a laptop or iPad, growing with the window on a big
-   monitor. Practice: never under 1000px, so the writing boxes stay big on a laptop. */
-:root { --pagew: clamp(720px, 76vw, 1360px); --practicew: max(1000px, var(--pagew)); }
+   monitor. Beside the page's sidebar (on a big screen, page/styles.css sets --sidew and --fill) it fills more of the room
+   that's left. Practice: never under 1000px, so the writing boxes stay big on a laptop. */
+:root { --sidew: 0px; --fill: .76; --pagew: clamp(720px, calc((100vw - var(--sidew)) * var(--fill)), 1360px); --practicew: max(1000px, var(--pagew)); }
 :root {
   --bg: #fdfdfd;
   --surface: #ffffff;
@@ -82,7 +83,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ai); outlin
 * { box-sizing: border-box; }
 body {
   background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.55;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-left: calc(var(--sidew) + max(16px, env(safe-area-inset-left, 0px))); padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 20px 48px;
 }
 /* The scrollbar's room is kept on short pages too (Settings), so every page's column sits at the same place and width. */
@@ -115,6 +116,44 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .head .jp { font-family: var(--font-jp); font-size: 1rem; color: var(--muted); }
 .iconbtn { border: none; background: none; color: var(--muted); padding: 6px; border-radius: 8px; display: inline-flex; align-self: center; margin-left: auto; }
 .iconbtn:hover { color: var(--ink); background: var(--sunk); }
+/* The menu (page/nav.js). On a smaller screen the header is a top bar, ☰ · title · gear, and ☰ slides the menu in from
+   the left over the page. From 1000px wide (the same width as in nav.js) the header is a sidebar down the left instead:
+   the title, the pages, and Settings at the bottom with its tabs under it while it's open. */
+#menuBtn { margin-left: -6px; }
+.sidenav { display: grid; gap: 2px; align-content: start; }
+.sidenav > * { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
+.sidenav > :hover, .side .setnav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.sidenav svg { flex: none; color: var(--muted); }
+.sidenav > [aria-current="page"] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
+.sidenav > [aria-current="page"] svg { color: inherit; }
+@media not all and (min-width: 1000px) {
+  .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--surface); box-shadow: 0 0 40px rgba(0, 0, 0, .25);
+    padding: max(18px, env(safe-area-inset-top, 0px)) 12px 18px max(12px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
+  .sidenav > * { padding-block: 11px; }
+  .side.open .sidenav { transform: none; visibility: visible; transition: transform .2s ease; }
+  .sideshade { position: fixed; z-index: 39; inset: 0; background: rgba(17, 20, 26, .4); opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
+  .side.open .sideshade { opacity: 1; visibility: visible; transition: opacity .2s; }
+  #settingsBtn span { display: none; }
+}
+@media (max-width: 480px) { .side { flex-wrap: nowrap; gap: 8px; } .side h1 { font-size: 1.2rem; min-width: 0; } }
+@media (min-width: 1000px) {
+  :root:has(> body:not(.writing)) { --sidew: 232px; --fill: .9; }
+  body:not(.writing) > .wrap > .side { position: fixed; z-index: 10; inset: 0 auto 0 0; width: var(--sidew); max-width: none; margin: 0; overflow-y: auto;
+    flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 2px; padding: 22px 12px 14px max(12px, env(safe-area-inset-left, 0px)); background: var(--sunk); border-right: 1px solid var(--line); }
+  .side h1 { font-size: 1.15rem; padding: 0 10px 16px; }
+  #menuBtn, .sideshade { display: none; }
+  #settingsBtn { margin: auto 0 0; padding: 8px 10px; gap: 10px; align-items: center; align-self: stretch; color: var(--ink); font-weight: 500; }
+  #settingsBtn svg { width: 20px; height: 20px; color: var(--muted); }
+  #settingsBtn[aria-current] { font-weight: 700; }
+  .side .setnav { padding: 2px 0 0; }
+  .side .setnav h2 { display: none; }
+  .side .setnav button { padding: 6px 10px 6px 40px; font-size: .92rem; }
+  .setpage:not(:has(> .setnav)) { grid-template-columns: minmax(0, 1fr); }
+  .setpage:not(:has(> .setnav)) .setbody { border-left: none; }
+  /* The sidebar goes everywhere these went back from. */
+  #history > .qbar, #table > .qbar, #settings > .qbar { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .sidenav, .sideshade { transition: none !important; } }
 /* Settings: a page of its own, tabs down the left and the picked tab's part beside them. */
 .setpage { grid-template-columns: 11.5rem minmax(0, 1fr); gap: 0; padding: 0; min-height: 24rem; }
 .setnav { display: grid; gap: 2px; align-content: start; padding: 18px 10px; }
@@ -152,7 +191,7 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 @media (max-width: 480px) { .delrow { position: relative; } .delrow .qtip { position: static; } .delrow .qtipbody { left: 0; transform: none; } }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
-body:not(.ready) section, body:not(.ready) #banner, body:not(.ready) #settingsBtn { display: none !important; }
+body:not(.ready) section, body:not(.ready) #banner, body:not(.ready) #settingsBtn, body:not(.ready) .sidenav, body:not(.ready) #menuBtn { display: none !important; }
 body.ready #gate { display: none; }
 .gate { margin-top: 10vh; text-align: center; color: var(--muted); }
 .gate b { display: block; color: var(--ink); font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
@@ -228,9 +267,9 @@ body.ready #gate { display: none; }
   .mode:not([aria-pressed="true"]) span { display: none; }
   #setup .sel { padding-block: 6px; }
 }
-/* While writing, the page is just the practice: the title and the settings gear step aside. */
+/* While writing, the page is just the practice: the title and the menu step aside. */
 body.writing > .wrap > header { display: contents; }
-body.writing > .wrap > header > :not(dialog) { display: none; }
+body.writing > .wrap > header > :not(dialog) { display: none !important; }
 .hist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .hist li { display: flex; justify-content: space-between; gap: 12px; font-size: .9rem; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
 .hist li span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -507,7 +546,8 @@ colours.apply(...colours.saved()); // before anything is drawn
 </head>
 <body>
 <div class="wrap">
-  <header class="head">
+  <header class="head side">
+    <button class="iconbtn" type="button" id="menuBtn" aria-label="Menu" title="Menu" aria-expanded="false" aria-controls="sideNav"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7 H20 M4 12 H20 M4 17 H20"/></svg></button>
     <h1>Japanese Vocab Practice</h1>
     <dialog id="welcome" aria-label="Welcome to Japanese Vocab Practice">
       <button class="dlgx" type="button" id="welcomeClose" aria-label="Close and continue as a guest" title="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18"/></svg></button>
@@ -527,7 +567,15 @@ colours.apply(...colours.saved()); // before anything is drawn
       <label class="checkrow" id="shareNeverRow" hidden><input type="checkbox" id="shareNever"> Don't ask me again</label>
       <div class="tactions shareact"><button class="btn" type="button" id="shareNo">Not now</button><button class="btn primary" type="button" id="shareYes">Yes, share my handwriting</button></div>
     </div></dialog>
-    <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
+    <nav class="sidenav" id="sideNav" aria-label="Pages">
+      <button type="button" data-go="setup"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z M13.6 7.4 L16.6 10.4"/></svg>Practice</button>
+      <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg>Vocab table</button>
+      <button type="button" data-go="history"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.8 12 a8.2 8.2 0 1 0 2.4 -5.8 L3.8 8.6 M3.8 4.2 V8.6 H8.2 M12 7.6 V12 L15 13.8"/></svg>History</button>
+      <a href="study-tools/"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>Study tools</a>
+    </nav>
+    <div class="sideshade" id="sideShade"></div>
+    <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg><span>Settings</span></button>
+    <div class="setslot" id="setNavSlot" hidden></div>
   </header>
   <div class="banner" id="banner" hidden></div>
   <div class="gate" id="gate" role="status">Loading…</div>
@@ -835,6 +883,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   // A one-line message under a control: sayIn(el)("…") shows it, sayIn(el)("") takes it away.
   const sayIn = (el) => (m) => { el.hidden = !m; el.textContent = m || ""; };
+  // Marks which of a menu's buttons is the one showing (the styles key on aria-current).
+  const markCurrent = (els, on) => els.forEach((b) => (on(b) ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
   // ---------- a dropdown in the page's own style ----------
   // A button showing the picked option; clicking it opens a short list under it (over it, near the bottom of the
   // screen). Arrow keys, Enter and Escape work, and a click anywhere else closes it.
@@ -921,6 +971,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     drafts: new Map(),   // setId -> {words, vals}: the set being edited in the vocab table (vocab/table.js)
     editNew: null,       // a set just added, to open ready for typing
     leaveAsk: false,     // leaving the vocab table with unsaved changes: asking what to do with them
+    leaveTo: "setup",    // and where to go after (a view, see page/nav.js)
     confirmDel: null,
     tableCh: store.get("tableCh", null), // chapter shown in the vocab table
     tq: "",              // vocab table search text
@@ -936,12 +987,13 @@ colours.apply(...colours.saved()); // before anything is drawn
 
   // ---------- views ----------
   const views = ["setup", "quiz", "results", "table", "history", "settings"];
-  function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
+  function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); markNav(v); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
   function banner(msg) { const b = $("#banner"); b.hidden = !msg; b.textContent = msg || ""; }
-  // ---------- Settings (the gear in the header) ----------
+  // ---------- Settings (the gear in the menu, page/nav.js) ----------
   // A page of its own: tabs down the left, the picked tab's part beside them. Each part is drawn by the code it belongs
   // to (theme/pick.js, account/account.js, import-export/panel.js, practice/history.js, account/share.js); this file is
   // the page around them. On a phone the tabs are a list and picking one opens it, so there no tab is picked at first.
+  // Beside the sidebar of a big screen the tabs move into the sidebar, under Settings (nav.js).
   const phone = matchMedia("(max-width: 640px)");
   let setFrom = "setup", setTab = null;
   const setNav = [...document.querySelectorAll("#setNav [data-set-tab]")], setPane = (tab) => $(`[data-set-pane="${tab}"]`);
@@ -958,7 +1010,6 @@ colours.apply(...colours.saved()); // before anything is drawn
     // What Settings changed (history off, an import) shows on the page it was opened from.
     if (setFrom === "history") renderHistory(); else if (setFrom === "table") renderTable();
   }
-  $("#settingsBtn").onclick = () => ($("#settings").hidden ? openSettings() : closeSettings());
   $("#settingsClose").onclick = () => {
     if (!phone.matches || setTab == null) return closeSettings();
     leaveTab(); setTab = null; renderSettings(); window.scrollTo(0, 0);
@@ -971,7 +1022,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     setNav.forEach((b) => (b.hidden = setPane(b.dataset.setTab).hidden));
     const open = setNav.filter((b) => !b.hidden).map((b) => b.dataset.setTab);
     if (!open.includes(setTab)) setTab = phone.matches ? null : open[0];
-    setNav.forEach((b) => (b.dataset.setTab === setTab ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
+    markCurrent(setNav, (b) => b.dataset.setTab === setTab);
     open.forEach((t) => setPane(t).classList.toggle("on", t === setTab));
     $("#settings .setpage").classList.toggle("intab", setTab != null);
     $("#settingsClose").textContent = phone.matches && setTab != null ? "← Settings" : "← Back";
@@ -983,6 +1034,54 @@ colours.apply(...colours.saved()); // before anything is drawn
     renderAccount(); renderShare();
     syncSetTabs();
   }
+  // ---------- the menu: a sidebar on a big screen, ☰ on a smaller one ----------
+  // Practice, Vocab table, History (and Study tools, a page of its own, on the public site), with Settings at the bottom.
+  // On a big screen it's a sidebar down the left, and while Settings is open its tabs sit under it there. On a smaller
+  // screen the header is a top bar: ☰ slides the same menu in from the left, and the gear opens and closes Settings.
+  // It steps aside while writing, like the rest of the header.
+  const wide = matchMedia("(min-width: 1000px)"); // where page/styles.css turns the sidebar on
+  const side = $("header.side"), goBtns = () => [...document.querySelectorAll("#sideNav [data-go]")];
+  const viewNow = () => views.find((v) => !$("#" + v).hidden) || "setup";
+  function openView(v) {
+    if (v === "settings") openSettings();
+    else if (v === "history") openHistory();
+    else if (v === "table") { renderTable(); show("table"); }
+    else { show("setup"); renderSetup(); }
+  }
+  // Going somewhere from the menu. Unsaved changes in the vocab table are asked about first, wherever to (vocab/table.js).
+  function go(v) {
+    menu(false);
+    const from = viewNow();
+    if (from === v) return;
+    if (from === "table") return leaveTable(v);
+    if (from === "settings") leaveTab();
+    openView(v);
+  }
+  // Called by show() for every view (so a function, ready before this file has run): a practice's results count as Practice.
+  function markNav(v) {
+    const at = v === "results" ? "setup" : v;
+    markCurrent(goBtns(), (b) => b.dataset.go === at);
+    markCurrent([$("#settingsBtn")], () => at === "settings");
+    $("#setNavSlot").hidden = at !== "settings";
+  }
+  goBtns().forEach((b) => (b.onclick = () => go(b.dataset.go)));
+  $("#settingsBtn").onclick = () => (viewNow() === "settings" && !wide.matches ? closeSettings() : go("settings"));
+
+  // ☰: the menu slides in over the page; picking a page, Escape, a tap beside it or leaving it with Tab closes it.
+  function menu(open, refocus) {
+    if (open === side.classList.contains("open")) return;
+    side.classList.toggle("open", open); $("#menuBtn").setAttribute("aria-expanded", open);
+    if (open) $("#sideNav > *").focus(); else if (refocus) $("#menuBtn").focus();
+  }
+  $("#menuBtn").onclick = () => menu(!side.classList.contains("open"));
+  $("#sideShade").onclick = () => menu(false, true);
+  side.addEventListener("keydown", (e) => { if (e.key === "Escape" && side.classList.contains("open")) menu(false, true); });
+  $("#sideNav").addEventListener("focusout", (e) => { if (e.relatedTarget && !$("#sideNav").contains(e.relatedTarget)) menu(false); });
+
+  // Settings' tabs: in the sidebar on a big screen, at the side of the Settings page (a list on a phone) otherwise.
+  function placeSetTabs() { if (wide.matches) $("#setNavSlot").append($("#setNav")); else $("#settings .setpage").prepend($("#setNav")); }
+  wide.addEventListener("change", () => { menu(false); placeSetTabs(); });
+  placeSetTabs(); markNav(viewNow());
   // ---------- colours: the two choices in Settings ----------
   // Blue or Warm, and light, dark or the device's setting: per viewer, remembered in this browser (and in the account,
   // see account/choices.js). colours.apply (theme/apply.js) is what changes the page.
@@ -2686,12 +2785,13 @@ colours.apply(...colours.saved()); // before anything is drawn
   // Unsaved changes are asked about before they can be lost: on leaving the vocab table, and by the browser on leaving the page.
   const unsavedSets = () => S.sets.filter(dirtySet), unsavedLists = () => S.kanjiLists.filter((k) => S.kdrafts.has(k.id));
   addEventListener("beforeunload", (e) => { if (unsavedSets().length || unsavedLists().length) { e.preventDefault(); e.returnValue = ""; } });
-  function leaveTable() {
+  // to: the view to go to (page/nav.js), once the changes are saved or let go.
+  function leaveTable(to = "setup") {
     // Whatever was opened for editing and left as it was just closes.
     for (const s of S.sets) if (!dirtySet(s)) S.drafts.delete(s.id);
     S.kEdit = S.confirmDel = S.kConfirmDel = null;
-    S.leaveAsk = true; renderLeave();
-    if (!S.leaveAsk) show("setup"); else window.scrollTo(0, 0);
+    S.leaveTo = to; S.leaveAsk = true; renderLeave();
+    if (!S.leaveAsk) openView(to); else window.scrollTo(0, 0);
   }
   function renderLeave(why = "") {
     const sets = unsavedSets(), lists = unsavedLists(), n = sets.length + lists.length, box = $("#leaveAsk");
@@ -2702,14 +2802,14 @@ colours.apply(...colours.saved()); // before anything is drawn
     box.innerHTML = `<span>${[...count(sets.length, "set"), ...count(lists.length, "kanji list")].join(" and ")} ${n === 1 ? "has" : "have"} unsaved changes.${why ? ` <span class="keyerr">${esc(why)}</span>` : ""}</span>
       <span class="tactions"><button class="btn primary" type="button" data-lsave>Save all</button><button class="btn" type="button" data-ldiscard>Discard all</button><button class="link" type="button" data-lkeep>Keep editing</button></span>`;
     box.querySelector("[data-lkeep]").onclick = () => { S.leaveAsk = false; renderLeave(); };
-    box.querySelector("[data-ldiscard]").onclick = () => { S.drafts.clear(); S.kdrafts.clear(); renderTable(); show("setup"); };
+    box.querySelector("[data-ldiscard]").onclick = () => { S.drafts.clear(); S.kdrafts.clear(); renderTable(); openView(S.leaveTo); };
     box.querySelector("[data-lsave]").onclick = async (e) => {
       e.target.disabled = true; e.target.textContent = "Saving…";
       let bad = "";
       for (const s of sets) if (!bad && !(await saveSet(s, (m) => { bad = `${setName(s)}: ${m}`; })) && !bad) bad = "Couldn't save. Try again.";
       for (const k of lists) if (!bad && !(await saveKanji(k.id))) bad = "Couldn't save. Try again.";
       renderTable();
-      if (bad) renderLeave(bad); else show("setup");
+      if (bad) renderLeave(bad); else openView(S.leaveTo);
     };
   }
 
@@ -3308,10 +3408,12 @@ colours.apply(...colours.saved()); // before anything is drawn
       text: "Give a new set its collection (a textbook or course), its unit (like Ch. 3 or Week 1) and a name, then type in the words. You can also import a file from Settings." },
     { view: "table", at: () => firstVis("#kanjiLists")?.closest(".panel"), title: "Kanji lists",
       text: "One list per unit with the kanji it teaches. Kanji learned up to counts these." },
-    { view: "table", at: () => $("#backBtn"), title: "Back to practice", text: "Tap ← Back to practice.",
+    // Beside the sidebar of a big screen there's no ← Back: Practice in the sidebar goes back.
+    { view: "table", at: () => firstVis("#backBtn", '#sideNav [data-go="setup"]'), title: "Back to practice",
+      get text() { return vis($("#backBtn")) ? "Tap ← Back to practice." : "Tap Practice in the menu on the left to go back. It takes you to History and Study tools too."; },
       done: () => vis($("#setup")), act: () => $("#backBtn").click() },
     { view: "setup", at: () => $("#settingsBtn"), title: "Settings",
-      text: "The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data." },
+      get text() { return `${vis($("#menuBtn")) ? "☰ opens the menu: History, Study tools and the vocab table. " : ""}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data.`; } },
     { title: "That's the tour!", end: true,
       text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and history on all your devices." },
   ];

@@ -43,6 +43,7 @@
     drafts: new Map(),   // setId -> {words, vals}: the set being edited in the vocab table (vocab/table.js)
     editNew: null,       // a set just added, to open ready for typing
     leaveAsk: false,     // leaving the vocab table with unsaved changes: asking what to do with them
+    leaveTo: "setup",    // and where to go after (a view, see page/nav.js)
     confirmDel: null,
     tableCh: store.get("tableCh", null), // chapter shown in the vocab table
     tq: "",              // vocab table search text
@@ -58,5 +59,5 @@
 
   // ---------- views ----------
   const views = ["setup", "quiz", "results", "table", "history", "settings"];
-  function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
+  function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); markNav(v); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
   function banner(msg) { const b = $("#banner"); b.hidden = !msg; b.textContent = msg || ""; }

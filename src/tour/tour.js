@@ -53,10 +53,12 @@
       text: "Give a new set its collection (a textbook or course), its unit (like Ch. 3 or Week 1) and a name, then type in the words. You can also import a file from Settings." },
     { view: "table", at: () => firstVis("#kanjiLists")?.closest(".panel"), title: "Kanji lists",
       text: "One list per unit with the kanji it teaches. Kanji learned up to counts these." },
-    { view: "table", at: () => $("#backBtn"), title: "Back to practice", text: "Tap ← Back to practice.",
+    // Beside the sidebar of a big screen there's no ← Back: Practice in the sidebar goes back.
+    { view: "table", at: () => firstVis("#backBtn", '#sideNav [data-go="setup"]'), title: "Back to practice",
+      get text() { return vis($("#backBtn")) ? "Tap ← Back to practice." : "Tap Practice in the menu on the left to go back. It takes you to History and Study tools too."; },
       done: () => vis($("#setup")), act: () => $("#backBtn").click() },
     { view: "setup", at: () => $("#settingsBtn"), title: "Settings",
-      text: "The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data." },
+      get text() { return `${vis($("#menuBtn")) ? "☰ opens the menu: History, Study tools and the vocab table. " : ""}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data.`; } },
     { title: "That's the tour!", end: true,
       text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and history on all your devices." },
   ];

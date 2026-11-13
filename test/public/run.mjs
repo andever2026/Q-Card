@@ -449,6 +449,20 @@ await phone.click("#settingsClose"); ph = await onPhone();
 ok(ph.nav && !ph.body && await setOpen(phone), "phone: ← Settings goes back to the list");
 await phone.click("#settingsClose");
 ok(!(await setOpen(phone)) && await vis(phone, "#setup"), "phone: ← Back from the list closes Settings");
+// The menu: ☰ slides it in over the page.
+const menuOpen = () => phone.evaluate(() => { const n = document.querySelector("#sideNav"), r = n.getBoundingClientRect(); return document.querySelector("#menuBtn").getAttribute("aria-expanded") === "true" && getComputedStyle(n).visibility === "visible" && r.left >= 0 && r.right <= innerWidth; });
+ok(await vis(phone, "#menuBtn") && !(await menuOpen()), "phone: a ☰ button, the menu closed");
+await phone.click("#menuBtn"); await phone.waitForTimeout(300);
+ok(await menuOpen() && await phone.evaluate(() => [...document.querySelectorAll("#sideNav > *")].map((b) => b.textContent.trim()).join(", ")) === "Practice, Vocab table, History, Study tools" && await phone.evaluate(() => document.activeElement?.dataset.go === "setup"),
+  "phone: ☰ slides in the menu (Practice, Vocab table, History, Study tools) and moves to it");
+await phone.screenshot({ path: join(out, "8-menu-phone.png") });
+await phone.click('#sideNav [data-go="history"]'); await phone.waitForTimeout(300);
+ok(await vis(phone, "#history") && !(await menuOpen()), "phone: picking History in the menu goes there and closes the menu");
+await phone.click("#menuBtn"); await phone.waitForTimeout(300); await phone.keyboard.press("Escape"); await phone.waitForTimeout(300);
+ok(!(await menuOpen()) && await phone.evaluate(() => document.activeElement?.id === "menuBtn"), "phone: Escape closes the menu");
+await phone.click("#menuBtn"); await phone.waitForTimeout(300); await phone.mouse.click(320, 500); await phone.waitForTimeout(300);
+ok(!(await menuOpen()) && await vis(phone, "#history"), "phone: a tap beside the menu closes it");
+await phone.click("#histBack");
 
 await phone.close();
 
@@ -653,19 +667,19 @@ ok(await vis(rp, "#resumeBtn") && /3 left/.test(await text(rp, "#resumeBtn")), "
 ok(rp.errors.length === 0, "resume: no page errors", rp.errors.join(" | "));
 
 // ---------- 13. the 5-minute tour from the welcome pop-up ----------
-for (const width of [900, 375]) {
+for (const width of [1280, 900, 375]) {
   const tctx = await browser.newContext();
   const tp = await newPage(tctx, { width });
-  const tag = width < 500 ? "phone" : "wide";
+  const tag = width < 500 ? "phone" : width < 1000 ? "wide" : "sidebar";
   ok(await vis(tp, "#tourBtn") && /5-minute tour/.test(await text(tp, "#tourBtn")), `tour (${tag}): the welcome pop-up offers the tour`);
-  if (width > 500) await tp.locator("#welcome").screenshot({ path: join(out, "13-welcome-tour.png") });
+  if (tag === "wide") await tp.locator("#welcome").screenshot({ path: join(out, "13-welcome-tour.png") });
   await tp.click("#tourBtn"); await tp.waitForTimeout(400);
   ok(!(await tp.evaluate(() => document.querySelector("#welcome").open)) && await tp.evaluate(() => localStorage.getItem("qcard:mode")) === "local" && await vis(tp, ".tourcard"), `tour (${tag}): starts as a guest with the tour card`);
   const titles = [];
   for (let i = 0; i < 40 && await vis(tp, ".tourcard"); i++) {
     const title = await text(tp, ".tourcard .tourtitle");
     if (titles.at(-1) !== title) titles.push(title);
-    if (["Pick a set", "Your turn", "The result", "Kanji lists"].includes(title) || (width < 500 && ["The answer box", "Settings"].includes(title)))
+    if (["Pick a set", "Your turn", "The result", "Kanji lists"].includes(title) || (tag !== "wide" && ["The answer box", "Back to practice", "Settings"].includes(title)))
       await tp.screenshot({ path: join(out, `13-tour-${tag}-${title.toLowerCase().replace(/[^a-z]+/g, "-")}.png`) });
     if (title === "That's the tour!") break;
     if (title === "Your turn") { await scribble(tp); await tp.waitForTimeout(100); }
@@ -1286,7 +1300,7 @@ if (entry.length > 1) {
   ok(got.aquarium2 === "ok", "furigana: すいぞく over 水族 in 水族かん passes", got.aquarium2);
   ok(got["year before last"] === "ok", "furigana: おととし over 一昨年, a reading of the whole word, passes", got["year before last"]);
   // the words that need more love show their reading over the kanji, on the results and in History
-  const loveRuby = (sel) => fp.evaluate((q) => [...document.querySelectorAll(q + " .w ruby")].map((r) => r.firstChild.textContent + "/" + r.querySelector("rt").textContent).join(","), sel);
+  const loveRuby = (sel) => fp.evaluate((q) => [...document.querySelectorAll(q + " li ruby")].map((r) => r.firstChild.textContent + "/" + r.querySelector("rt").textContent).join(","), sel);
   ok(await vis(fp, "#results") && (await loveRuby("#loveList")) === "水族館/すいぞくかん", "results: a word that needs more love has its reading over the kanji", await loveRuby("#loveList"));
   await fp.screenshot({ path: join(out, "21-results-furigana.png") });
   await fp.click("#newBtn"); await fp.waitForTimeout(300); await fp.click("#histAll"); await fp.waitForTimeout(300);
@@ -1294,6 +1308,62 @@ if (entry.length > 1) {
   await fp.screenshot({ path: join(out, "21-history-furigana.png") });
   ok(fp.errors.length === 0, "furigana: no page errors", fp.errors.join(" | "));
   await fctx.close();
+}
+
+// ---------- 22. the menu on a big screen: a sidebar, with Settings' tabs under Settings ----------
+{
+  const bctx = await browser.newContext();
+  const bp = await newPage(bctx, { width: 1280, init: () => {
+    if (localStorage.getItem("qcard:mode")) return;
+    const put = (k, v) => localStorage.setItem("qcard:local:" + k, JSON.stringify(v));
+    localStorage.setItem("qcard:mode", "local"); put("meta/samples", { offeredAt: "x" });
+    put("sets/b-a", { collection: "B", unit: "Week 1", name: "Two", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }, { id: "b", en: "tea", kana: "おちゃ", kanji: "お茶" }] });
+  } });
+  await bp.waitForTimeout(400);
+  const shown = (sel) => bp.evaluate((s) => document.querySelector(s)?.getClientRects().length > 0, sel);
+  const at = () => bp.evaluate(() => [...document.querySelectorAll("#sideNav [aria-current], #settingsBtn[aria-current]")].map((b) => b.dataset.go || b.id).join(","));
+  const sideInfo = () => bp.evaluate(() => { const h = document.querySelector("header.side").getBoundingClientRect(), v = [...document.querySelectorAll("section")].find((s) => !s.hidden).getBoundingClientRect();
+    return { fixed: getComputedStyle(document.querySelector("header.side")).position === "fixed", side: [Math.round(h.left), Math.round(h.width)], col: Math.round(v.left), wide: document.documentElement.scrollWidth }; });
+  let si = await sideInfo();
+  ok(si.fixed && si.side[0] === 0 && si.side[1] === 232 && si.col > 232 && si.wide <= 1280 && !(await vis(bp, "#menuBtn")) && (await at()) === "setup" && await vis(bp, "#settingsBtn span"),
+    "sidebar: on a big screen the menu is a sidebar down the left, Practice marked, the page beside it, no ☰", JSON.stringify(si));
+  await bp.screenshot({ path: join(out, "22-sidebar.png") });
+  await bp.click('#sideNav [data-go="history"]'); await bp.waitForTimeout(300);
+  ok(await vis(bp, "#history") && (await at()) === "history" && !(await shown("#histBack")), "sidebar: History opens from it and is marked; no ← Back beside the sidebar");
+  await bp.click('#sideNav [data-go="table"]'); await bp.waitForTimeout(300);
+  const bset = '[data-sid="b-a"]', ben = `${bset} tr:first-child textarea[data-f="en"]`, bsaved = () => bp.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:sets/b-a")).words[0].en);
+  ok(await vis(bp, "#table") && (await at()) === "table" && !(await shown("#backBtn")), "sidebar: the vocab table opens from it");
+  if (!(await vis(bp, `${bset} [data-edit]`))) await bp.click(`${bset} [data-toggle]`);
+  await bp.click(`${bset} [data-edit]`); await bp.fill(ben, "cold water");
+  await bp.click('#sideNav [data-go="history"]'); await bp.waitForTimeout(200);
+  ok(await vis(bp, "#table") && /^1 set has unsaved changes\./.test(await text(bp, "#leaveAsk")), "sidebar: leaving the vocab table with unsaved changes asks first", await text(bp, "#leaveAsk"));
+  await bp.click("#leaveAsk [data-lsave]"); await bp.waitForTimeout(400);
+  ok(await vis(bp, "#history") && (await bsaved()) === "cold water", "sidebar: Save all saves, then goes where was clicked", await bsaved());
+  await bp.click('#sideNav [data-go="table"]'); await bp.waitForTimeout(300);
+  await bp.click(`${bset} [data-edit]`); await bp.fill(ben, "hot water");
+  await bp.click("#settingsBtn"); await bp.waitForTimeout(200);
+  ok(await vis(bp, "#leaveAsk"), "sidebar: Settings asks about unsaved changes too");
+  await bp.click("#leaveAsk [data-ldiscard]"); await bp.waitForTimeout(300);
+  ok(await setOpen(bp) && (await bsaved()) === "cold water" && (await at()) === "settingsBtn", "sidebar: Discard all saves nothing and opens Settings", await bsaved());
+  const setInfo = () => bp.evaluate(() => ({ inSide: !!document.querySelector("#setNavSlot > #setNav") && document.querySelector("#setNavSlot").getClientRects().length > 0, tabs: [...document.querySelectorAll("#setNav [data-set-tab]")].filter((b) => b.getClientRects().length).map((b) => b.textContent).join(", "),
+    on: document.querySelector('#setNav [aria-current="page"]')?.dataset.setTab, body: Math.round(document.querySelector(".setbody").getBoundingClientRect().width), panel: Math.round(document.querySelector(".setpage").getBoundingClientRect().width) }));
+  let st = await setInfo();
+  ok(st.inSide && st.tabs === "Appearance, Account, Data, Practice history, Developer tools" && st.on === "look" && st.body >= st.panel - 2, "sidebar: Settings' tabs sit under Settings in the sidebar, and the tab takes the whole panel", JSON.stringify(st));
+  await bp.click('#setNav [data-set-tab="data"]');
+  ok((await setInfo()).on === "data" && await vis(bp, "#portPanel"), "sidebar: a tab under Settings opens it");
+  await bp.screenshot({ path: join(out, "22-sidebar-settings.png") });
+  await bp.click("#settingsBtn");
+  ok(await setOpen(bp), "sidebar: Settings in the sidebar doesn't close Settings (the pages above leave it)");
+  await bp.click('#sideNav [data-go="setup"]'); await bp.waitForTimeout(300);
+  ok(await vis(bp, "#setup") && (await at()) === "setup" && !(await bp.evaluate(() => document.querySelector("#setNavSlot").getClientRects().length)), "sidebar: Practice leaves Settings, and its tabs go away");
+  await bp.click('[data-set="b-a"]'); await bp.click("#startBtn"); await bp.waitForTimeout(300);
+  ok(!(await shown("header h1")) && !(await shown("#sideNav")) && (await bp.evaluate(() => getComputedStyle(document.body).paddingLeft)) === "16px", "sidebar: steps aside while writing, and practice gets the whole width");
+  await bp.click("#quitBtn"); await bp.waitForTimeout(200);
+  ok((await sideInfo()).fixed && await vis(bp, "#sideNav"), "sidebar: back after quitting");
+  await bp.setViewportSize({ width: 900, height: 1000 }); await bp.click("#settingsBtn"); await bp.waitForTimeout(200);
+  ok(!(await sideInfo()).fixed && await vis(bp, "#menuBtn") && await bp.evaluate(() => !!document.querySelector("#settings .setpage > #setNav")), "sidebar: a narrower window has ☰ again, and Settings' tabs go back beside the tab");
+  ok(bp.errors.length === 0, "sidebar: no page errors", bp.errors.join(" | "));
+  await bctx.close();
 }
 
 await browser.close(); server.close();

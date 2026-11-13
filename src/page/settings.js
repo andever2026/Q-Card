@@ -1,7 +1,8 @@
-  // ---------- Settings (the gear in the header) ----------
+  // ---------- Settings (the gear in the menu, page/nav.js) ----------
   // A page of its own: tabs down the left, the picked tab's part beside them. Each part is drawn by the code it belongs
   // to (theme/pick.js, account/account.js, import-export/panel.js, practice/history.js, account/share.js); this file is
   // the page around them. On a phone the tabs are a list and picking one opens it, so there no tab is picked at first.
+  // Beside the sidebar of a big screen the tabs move into the sidebar, under Settings (nav.js).
   const phone = matchMedia("(max-width: 640px)");
   let setFrom = "setup", setTab = null;
   const setNav = [...document.querySelectorAll("#setNav [data-set-tab]")], setPane = (tab) => $(`[data-set-pane="${tab}"]`);
@@ -18,7 +19,6 @@
     // What Settings changed (history off, an import) shows on the page it was opened from.
     if (setFrom === "history") renderHistory(); else if (setFrom === "table") renderTable();
   }
-  $("#settingsBtn").onclick = () => ($("#settings").hidden ? openSettings() : closeSettings());
   $("#settingsClose").onclick = () => {
     if (!phone.matches || setTab == null) return closeSettings();
     leaveTab(); setTab = null; renderSettings(); window.scrollTo(0, 0);
@@ -31,7 +31,7 @@
     setNav.forEach((b) => (b.hidden = setPane(b.dataset.setTab).hidden));
     const open = setNav.filter((b) => !b.hidden).map((b) => b.dataset.setTab);
     if (!open.includes(setTab)) setTab = phone.matches ? null : open[0];
-    setNav.forEach((b) => (b.dataset.setTab === setTab ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
+    markCurrent(setNav, (b) => b.dataset.setTab === setTab);
     open.forEach((t) => setPane(t).classList.toggle("on", t === setTab));
     $("#settings .setpage").classList.toggle("intab", setTab != null);
     $("#settingsClose").textContent = phone.matches && setTab != null ? "← Settings" : "← Back";

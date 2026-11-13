@@ -3,7 +3,7 @@
 * { box-sizing: border-box; }
 body {
   background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.55;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-left: calc(var(--sidew) + max(16px, env(safe-area-inset-left, 0px))); padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 20px 48px;
 }
 /* The scrollbar's room is kept on short pages too (Settings), so every page's column sits at the same place and width. */
@@ -36,6 +36,44 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .head .jp { font-family: var(--font-jp); font-size: 1rem; color: var(--muted); }
 .iconbtn { border: none; background: none; color: var(--muted); padding: 6px; border-radius: 8px; display: inline-flex; align-self: center; margin-left: auto; }
 .iconbtn:hover { color: var(--ink); background: var(--sunk); }
+/* The menu (page/nav.js). On a smaller screen the header is a top bar, ☰ · title · gear, and ☰ slides the menu in from
+   the left over the page. From 1000px wide (the same width as in nav.js) the header is a sidebar down the left instead:
+   the title, the pages, and Settings at the bottom with its tabs under it while it's open. */
+#menuBtn { margin-left: -6px; }
+.sidenav { display: grid; gap: 2px; align-content: start; }
+.sidenav > * { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
+.sidenav > :hover, .side .setnav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.sidenav svg { flex: none; color: var(--muted); }
+.sidenav > [aria-current="page"] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
+.sidenav > [aria-current="page"] svg { color: inherit; }
+@media not all and (min-width: 1000px) {
+  .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--surface); box-shadow: 0 0 40px rgba(0, 0, 0, .25);
+    padding: max(18px, env(safe-area-inset-top, 0px)) 12px 18px max(12px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
+  .sidenav > * { padding-block: 11px; }
+  .side.open .sidenav { transform: none; visibility: visible; transition: transform .2s ease; }
+  .sideshade { position: fixed; z-index: 39; inset: 0; background: rgba(17, 20, 26, .4); opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
+  .side.open .sideshade { opacity: 1; visibility: visible; transition: opacity .2s; }
+  #settingsBtn span { display: none; }
+}
+@media (max-width: 480px) { .side { flex-wrap: nowrap; gap: 8px; } .side h1 { font-size: 1.2rem; min-width: 0; } }
+@media (min-width: 1000px) {
+  :root:has(> body:not(.writing)) { --sidew: 232px; --fill: .9; }
+  body:not(.writing) > .wrap > .side { position: fixed; z-index: 10; inset: 0 auto 0 0; width: var(--sidew); max-width: none; margin: 0; overflow-y: auto;
+    flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 2px; padding: 22px 12px 14px max(12px, env(safe-area-inset-left, 0px)); background: var(--sunk); border-right: 1px solid var(--line); }
+  .side h1 { font-size: 1.15rem; padding: 0 10px 16px; }
+  #menuBtn, .sideshade { display: none; }
+  #settingsBtn { margin: auto 0 0; padding: 8px 10px; gap: 10px; align-items: center; align-self: stretch; color: var(--ink); font-weight: 500; }
+  #settingsBtn svg { width: 20px; height: 20px; color: var(--muted); }
+  #settingsBtn[aria-current] { font-weight: 700; }
+  .side .setnav { padding: 2px 0 0; }
+  .side .setnav h2 { display: none; }
+  .side .setnav button { padding: 6px 10px 6px 40px; font-size: .92rem; }
+  .setpage:not(:has(> .setnav)) { grid-template-columns: minmax(0, 1fr); }
+  .setpage:not(:has(> .setnav)) .setbody { border-left: none; }
+  /* The sidebar goes everywhere these went back from. */
+  #history > .qbar, #table > .qbar, #settings > .qbar { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .sidenav, .sideshade { transition: none !important; } }
 /* Settings: a page of its own, tabs down the left and the picked tab's part beside them. */
 .setpage { grid-template-columns: 11.5rem minmax(0, 1fr); gap: 0; padding: 0; min-height: 24rem; }
 .setnav { display: grid; gap: 2px; align-content: start; padding: 18px 10px; }
@@ -73,7 +111,7 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 @media (max-width: 480px) { .delrow { position: relative; } .delrow .qtip { position: static; } .delrow .qtipbody { left: 0; transform: none; } }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
-body:not(.ready) section, body:not(.ready) #banner, body:not(.ready) #settingsBtn { display: none !important; }
+body:not(.ready) section, body:not(.ready) #banner, body:not(.ready) #settingsBtn, body:not(.ready) .sidenav, body:not(.ready) #menuBtn { display: none !important; }
 body.ready #gate { display: none; }
 .gate { margin-top: 10vh; text-align: center; color: var(--muted); }
 .gate b { display: block; color: var(--ink); font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
@@ -149,9 +187,9 @@ body.ready #gate { display: none; }
   .mode:not([aria-pressed="true"]) span { display: none; }
   #setup .sel { padding-block: 6px; }
 }
-/* While writing, the page is just the practice: the title and the settings gear step aside. */
+/* While writing, the page is just the practice: the title and the menu step aside. */
 body.writing > .wrap > header { display: contents; }
-body.writing > .wrap > header > :not(dialog) { display: none; }
+body.writing > .wrap > header > :not(dialog) { display: none !important; }
 .hist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .hist li { display: flex; justify-content: space-between; gap: 12px; font-size: .9rem; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
 .hist li span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
