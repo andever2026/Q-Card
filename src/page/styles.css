@@ -7,7 +7,9 @@ body {
   padding-block: 20px 48px;
 }
 /* The content column: 720px on a laptop or iPad, growing with the window on a big monitor. */
-:root { --pagew: clamp(720px, 64vw, 1040px); }
+:root { --pagew: clamp(720px, 76vw, 1360px); }
+/* The scrollbar's room is kept on short pages too (Settings), so every page's column sits at the same place and width. */
+html { scrollbar-gutter: stable; }
 .wrap { max-width: var(--pagew); width: 100%; margin: 0 auto; display: grid; gap: 18px; }
 body > .wrap { max-width: max(1000px, var(--pagew)); }
 body > .wrap > header, body > .wrap > .banner { width: 100%; max-width: var(--pagew); margin-inline: auto; }
