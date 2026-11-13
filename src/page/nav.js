@@ -63,6 +63,7 @@
   };
   $("#sideShade").onclick = () => menu(false, true);
   $("header.side").addEventListener("keydown", (e) => { if (e.key === "Escape" && $("header.side").classList.contains("open")) menu(false, true); });
-  $("#sideNav").addEventListener("focusout", (e) => { if (e.relatedTarget && !$("#sideNav").contains(e.relatedTarget)) menu(false); });
+  // (Not when the focus goes to ☰: its click closes the menu itself.)
+  $("#sideNav").addEventListener("focusout", (e) => { if (e.relatedTarget && e.relatedTarget.id !== "menuBtn" && !$("#sideNav").contains(e.relatedTarget)) menu(false); });
   wideScreen().addEventListener("change", layMenu);
   shrink(store.get("sideMini", false) === true); markNav(viewNow());

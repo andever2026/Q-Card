@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-2tr6NT4OeVOFOqFRn5So0lerY3ho02J1D0IIeZ0tv4M=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-84gRqUlndVBTDhLe7pHBtWMXSn9VLZpiwJZuIqwgRWw=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -131,7 +131,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .sidenav > [aria-current="page"] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
 .sidenav > [aria-current="page"] svg { color: inherit; }
 .sideshade { display: none; }
-.drawer .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--surface); box-shadow: 0 0 40px rgba(0, 0, 0, .25);
+.drawer .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--sunk); border-right: 1px solid var(--line);
+  box-shadow: 0 0 28px rgba(0, 0, 0, .22); clip-path: inset(0 -40px 0 0); /* a shadow on the right side only */
   padding: max(18px, env(safe-area-inset-top, 0px)) 12px 18px max(12px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
 .drawer .side.open .sidenav { transform: none; visibility: visible; transition: transform .2s ease; }
 .drawer .sideshade { display: block; position: fixed; z-index: 39; inset: 0; background: rgba(17, 20, 26, .4); opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
@@ -1114,7 +1115,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   };
   $("#sideShade").onclick = () => menu(false, true);
   $("header.side").addEventListener("keydown", (e) => { if (e.key === "Escape" && $("header.side").classList.contains("open")) menu(false, true); });
-  $("#sideNav").addEventListener("focusout", (e) => { if (e.relatedTarget && !$("#sideNav").contains(e.relatedTarget)) menu(false); });
+  // (Not when the focus goes to ☰: its click closes the menu itself.)
+  $("#sideNav").addEventListener("focusout", (e) => { if (e.relatedTarget && e.relatedTarget.id !== "menuBtn" && !$("#sideNav").contains(e.relatedTarget)) menu(false); });
   wideScreen().addEventListener("change", layMenu);
   shrink(store.get("sideMini", false) === true); markNav(viewNow());
   // ---------- colours: the two choices in Settings ----------

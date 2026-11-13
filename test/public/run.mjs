@@ -1359,8 +1359,11 @@ if (entry.length > 1) {
   await bp.click("#menuBtn"); await bp.waitForTimeout(300);
   ok(await drawerOpen() && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "true" && await bp.evaluate(() => document.activeElement?.dataset.go === "setup"), "sidebar: on Settings, ☰ brings the menu in over the page");
   await bp.screenshot({ path: join(out, "22-sidebar-settings-menu.png") });
-  await bp.keyboard.press("Escape"); await bp.waitForTimeout(300);
-  ok(!(await drawerOpen()) && await setOpen(bp), "sidebar: Escape puts it away again");
+  ok(await bp.evaluate(() => getComputedStyle(document.querySelector("#sideNav")).backgroundColor === getComputedStyle(document.querySelector("header.side")).backgroundColor), "sidebar: the menu over the page looks like the sidebar");
+  await bp.click("#menuBtn"); await bp.waitForTimeout(300);
+  ok(!(await drawerOpen()) && await setOpen(bp), "sidebar: ☰ again puts it away");
+  await bp.click("#menuBtn"); await bp.waitForTimeout(300); await bp.keyboard.press("Escape"); await bp.waitForTimeout(300);
+  ok(!(await drawerOpen()) && await setOpen(bp), "sidebar: Escape puts it away too");
   await bp.click("#menuBtn"); await bp.waitForTimeout(300); await bp.click('#sideNav [data-go="setup"]'); await bp.waitForTimeout(300);
   si = await sideInfo();
   ok(await vis(bp, "#setup") && (await at()) === "setup" && si.side[1] === 232 && !(await drawerOpen()) && await shown('#sideNav [data-go="history"]') && !(await shown("#setNav")), "sidebar: Practice from it leaves Settings, and the sidebar is the menu again", JSON.stringify(si));
