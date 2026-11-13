@@ -13,7 +13,7 @@ html { scrollbar-gutter: stable; }
 .wrap { max-width: var(--pagew); width: 100%; margin: 0 auto; display: grid; gap: 18px; }
 body > .wrap { max-width: max(1000px, var(--pagew)); }
 body > .wrap > header, body > .wrap > .banner { width: 100%; max-width: var(--pagew); margin-inline: auto; }
-#quiz { max-width: 1000px; }
+#quiz { max-width: max(1000px, var(--pagew)); }
 h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 700; }
 h1 { font-size: 1.5rem; letter-spacing: .01em; }
 h2 { font-size: 1.15rem; }
