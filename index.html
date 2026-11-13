@@ -82,9 +82,11 @@ body {
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 20px 48px;
 }
-.wrap { max-width: 720px; width: 100%; margin: 0 auto; display: grid; gap: 18px; }
-body > .wrap { max-width: 1000px; }
-body > .wrap > header, body > .wrap > .banner { width: 100%; max-width: 720px; margin-inline: auto; }
+/* The content column: 720px on a laptop or iPad, growing with the window on a big monitor. */
+:root { --pagew: clamp(720px, 64vw, 1040px); }
+.wrap { max-width: var(--pagew); width: 100%; margin: 0 auto; display: grid; gap: 18px; }
+body > .wrap { max-width: max(1000px, var(--pagew)); }
+body > .wrap > header, body > .wrap > .banner { width: 100%; max-width: var(--pagew); margin-inline: auto; }
 #quiz { max-width: 1000px; }
 h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 700; }
 h1 { font-size: 1.5rem; letter-spacing: .01em; }
@@ -479,7 +481,7 @@ body { margin: 0; }
 .keyerr { color: var(--shu); }
 .fb.self { border-color: var(--ai); }
 .fb.self .stamp { color: var(--ai); border-color: var(--ai); }
-.foot { max-width: 720px; margin: 40px auto 0; text-align: center; color: var(--muted); font-size: .8rem; display: grid; gap: 4px; }
+.foot { max-width: var(--pagew); margin: 40px auto 0; text-align: center; color: var(--muted); font-size: .8rem; display: grid; gap: 4px; }
 .foot a { color: inherit; }
 body.writing .foot { display: none; }
 body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits near the bottom edge */
