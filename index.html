@@ -292,9 +292,10 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .love .tries { font-size: 1.4rem; font-weight: 700; color: var(--shu); text-align: center; font-variant-numeric: tabular-nums; }
 .love .w { font-family: var(--font-jp); font-size: 1.15rem; font-weight: 600; }
 .love .w small { font-family: var(--font-ui); font-weight: 400; color: var(--muted); font-size: .85rem; margin-left: 6px; }
-.love .pair .jp { font-family: var(--font-jp); }
-.love .pair > :first-child { font-size: 1.15rem; font-weight: 600; }
-.love .pair > :last-child { font-size: .95rem; color: var(--muted); }
+/* Each language keeps its own size wherever it sits; only the colour says which comes first. */
+.love .pair .jp { font-family: var(--font-jp); font-size: 1.2rem; font-weight: 500; }
+.love .pair .en { font-size: 1rem; }
+.love .pair > :last-child { color: var(--muted); }
 .love .pair .jp rt { font-size: .55em; color: var(--muted); font-weight: 400; }
 .love p { font-size: .88rem; color: var(--muted); }
 /* Admin: the words of this round, under the progress bar */
