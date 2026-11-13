@@ -57,8 +57,8 @@
     { view: "table", at: () => firstVis("#backBtn", '#sideNav [data-go="setup"]'), title: "Back to practice",
       get text() { return vis($("#backBtn")) ? "Tap ← Back to practice." : "Tap Practice in the menu on the left to go back. It takes you to History and Study tools too."; },
       done: () => vis($("#setup")), act: () => $("#backBtn").click() },
-    { view: "setup", at: () => $("#settingsBtn"), title: "Settings",
-      get text() { return `${isWide() ? "" : "☰ opens the menu: History, Study tools and the vocab table. "}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data.`; } },
+    { view: "setup", at: () => [$("#settingsBtn"), $("#acctBtn")], title: "Settings and your account",
+      get text() { return `${isWide() ? "" : "☰ opens the menu: History, Study tools and the vocab table. "}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data. Beside it, Guest is where you sign in.`; } },
     { title: "That's the tour!", end: true,
       text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and history on all your devices." },
   ];

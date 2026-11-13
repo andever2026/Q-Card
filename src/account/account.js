@@ -27,6 +27,7 @@
   let account = null, delAsk = false, stopPrefs = () => {};
   $("#settings").addEventListener("leave", () => { delAsk = false; });
   function renderAccount() {
+    renderNick();
     $("#acctName").innerHTML = account ? `Signed in with Google as <b>${esc(account.email || account.name || "")}</b>.`
       : "Not signed in. As a guest, everything is kept in this browser on this device.";
     $("#signOutBtn").textContent = account ? "Sign out" : "Sign in with Google";

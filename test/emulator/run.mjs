@@ -185,6 +185,8 @@ const clean = async (page, label) => {
   const problems = [...page.errors, ...await page.evaluate(() => window.__csp).catch(() => ["(page gone)"])].filter((m) => !harmless(m));
   ok(!problems.length, `${label}: no page errors or CSP violations`, problems.join(" | "));
 };
+// Signed in, Settings opens from the account menu at the top right (src/account/menu.js).
+async function openSettings(page) { await page.click("#acctBtn"); await page.click('#acctList [data-acct="settings"]'); }
 // One part of the tests; an exception fails it and the rest still run.
 async function part(name, fn) {
   console.log(`\n${name}`);
@@ -197,8 +199,12 @@ await part("1. First visit and sign in", async () => {
   const page = await openSite("first");
   ok(await until(() => welcomeOpen(page)), "first visit: the welcome pop-up opens");
   const uid = await signIn(page);
-  await page.click("#settingsBtn");
+  await openSettings(page);
   ok(!!uid && /first@example\.com/.test(await text(page, "#acctName")), "sign in with Google (Auth emulator): the page reloads into the account", await text(page, "#acctName"));
+  await page.click("#settingsClose");
+  await openSettings(page); await page.click('#setNav [data-set-tab="account"]'); await page.fill("#nickIn", "Kumo"); await page.click("#nickSave");
+  const prof = await until(async () => { const p = await getDoc(`users/${uid}/data/profile`); return p?.nickname === "Kumo" && p; });
+  ok(!!prof && (await text(page, "#acctLabel")) === "Kumo", "nickname: saved to users/<uid>/data/profile (the rules allow it) and shown at the top right", JSON.stringify(prof || {}));
   await page.click("#settingsClose");
   const d = await until(async () => { const d = await docsOf(uid); return d[`users/${uid}/meta/samples`] && d; });
   const ids = (col) => Object.keys(d || {}).filter((p) => p.startsWith(`users/${uid}/${col}/samples-`));
@@ -206,7 +212,7 @@ await part("1. First visit and sign in", async () => {
     "samples: 6 sample sets and 3 kanji lists saved in the account, the offer recorded in meta/samples", Object.keys(d || {}).map((p) => p.split("/").slice(2).join("/")).join(", "));
   ok(await until(() => vis(page, '[data-set="samples-greetings"]')), "samples: the page lists them");
   await page.click('[data-set="samples-food"]'); await page.click("#dir-je"); await page.click("#mode-kana");
-  await page.click("#settingsBtn"); await page.click('#setNav [data-set-tab="look"]'); await page.click('#themePick [data-theme-pick="dark"]'); await page.click("#settingsClose");
+  await openSettings(page); await page.click('#setNav [data-set-tab="look"]'); await page.click('#themePick [data-theme-pick="dark"]'); await page.click("#settingsClose");
   const prefs = await until(async () => { const p = await getDoc(`users/${uid}/data/prefs`); return p?.dir === "je" && p.mode === "kana" && p.theme === "dark" && p; });
   ok(!!prefs && prefs.selected?.includes("samples-food"), "choices: saved to users/<uid>/data/prefs", JSON.stringify(prefs || {}).slice(0, 160));
   await asAnotherDevice(page);
@@ -240,12 +246,12 @@ await part("2. Resume with writing", async () => {
 // ---------- 3. sharing handwriting (developers only for now): each checked answer saved to training/, Settings deletes them ----------
 await part("3. Sharing handwriting", async () => {
   const { page, uid } = await newAccount("share");
-  await page.click("#settingsBtn");
+  await openSettings(page);
   await page.waitForTimeout(1000); // the page has asked about dev/<uid> by now
   ok(!(await vis(page, "#shareSet")), "share: not offered to an account that isn't a developer");
   await page.click("#settingsClose");
   ok(await makeDev(page, uid), "share: (dev/<uid> made with admin access)");
-  await page.click("#settingsBtn"); await page.click('#setNav [data-set-tab="share"]'); // the tab is listed once the page knows this is a developer
+  await openSettings(page); await page.click('#setNav [data-set-tab="share"]'); // the tab is listed once the page knows this is a developer
   ok(await until(() => vis(page, "#shareSet")) && /^Off\./.test(await text(page, "#shareInfo")), "share: offered to a developer, off to begin with", await text(page, "#shareInfo"));
   await page.click("#shareToggle");
   await until(() => page.evaluate(() => document.querySelector("#shareAsk").open));
@@ -266,7 +272,7 @@ await part("3. Sharing handwriting", async () => {
     "share: its strokes are stored as flat lists (points, timing, pressure)", JSON.stringify(st)?.slice(0, 120));
   await page.waitForTimeout(1500); // a right answer, then the next question
   await page.click("#quitBtn");
-  await page.click("#settingsBtn"); await page.click('#setNav [data-set-tab="share"]');
+  await openSettings(page); await page.click('#setNav [data-set-tab="share"]');
   ok(await until(async () => /1 answer shared/.test(await text(page, "#shareInfo")) && vis(page, "#shareDel")), "share: Settings counts the shared answer", await text(page, "#shareInfo"));
   await page.click("#shareDel"); await page.click("#shareDelYes");
   ok(await until(async () => !(await training()).length && /0 answers shared/.test(await text(page, "#shareInfo"))), "share: Settings → Delete what I've shared removes them from Firestore", (await training()).map(([p]) => p).join(", "));
@@ -278,12 +284,12 @@ await part("3. Sharing handwriting", async () => {
 // ---------- 4. Dev tools: only when dev/<uid> exists ----------
 await part("4. Dev tools", async () => {
   const { page, uid } = await newAccount("dev");
-  await page.click("#settingsBtn");
+  await openSettings(page);
   await page.waitForTimeout(1000); // the page has asked about dev/<uid> by now
   ok(!(await vis(page, '[data-set-tab="admin"]')), "admin: no Admin tab for a normal account");
   await page.click("#settingsClose");
   ok(await makeDev(page, uid), "dev tools: (dev/<uid> made with admin access)");
-  await page.click("#settingsBtn");
+  await openSettings(page);
   await page.click('#setNav [data-set-tab="admin"]'); // listed once the page knows this is a developer
   ok(await until(() => vis(page, "#devSet")), "admin: the Admin tab is there once dev/<uid> exists (read under the real rules)");
   await clean(page, "dev tools");
@@ -298,7 +304,7 @@ await part("5. Delete my account", async () => {
   await makeDev(page, uid);
   await until(() => vis(page, '#histAsk [data-hist="on"]'));
   await page.click('#histAsk [data-hist="on"]');
-  await page.click("#settingsBtn"); await page.click('#setNav [data-set-tab="share"]'); await page.click("#shareToggle");
+  await openSettings(page); await page.click('#setNav [data-set-tab="share"]'); await page.click("#shareToggle");
   await until(() => page.evaluate(() => document.querySelector("#shareAsk").open));
   await page.click("#shareYes"); await page.click("#settingsClose");
   await page.click('[data-set="samples-greetings"]'); await page.click("#dir-je"); await page.click("#startBtn");
@@ -311,7 +317,7 @@ await part("5. Delete my account", async () => {
   const before = await until(async () => { const d = await docsOf(uid); return want.every((c) => cols(d).has(c)) && d; }) || await docsOf(uid);
   ok(want.every((c) => cols(before).has(c)), "delete: (the account has sets, kanji lists, meta, data and training)", [...cols(before)].join(", "));
   ok((await authUsers()).some((u) => u.localId === uid), "delete: (the account is in Auth)");
-  await page.click("#settingsBtn"); await page.click('#setNav [data-set-tab="account"]'); await page.click("#delStart"); await page.click("#delYes");
+  await openSettings(page); await page.click('#setNav [data-set-tab="account"]'); await page.click("#delStart"); await page.click("#delYes");
   ok(await until(async () => !Object.keys(await docsOf(uid)).length), "delete: every document under users/<uid> is gone", Object.keys(await docsOf(uid)).join(", "));
   ok(await until(async () => !(await authUsers()).some((u) => u.localId === uid)), "delete: the account is deleted from Auth too");
   ok(await until(() => welcomeOpen(page)), "delete: the page starts over at the welcome pop-up");

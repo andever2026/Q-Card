@@ -64,7 +64,15 @@ colours.apply(...colours.saved()); // before anything is drawn
 <!--#endif-->
     </nav>
     <div class="sideshade" id="sideShade"></div>
-    <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg><span>Settings</span></button>
+    <div class="topr">
+      <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
+<!--#if public-->
+      <div class="acct" id="acct">
+        <button type="button" class="acctbtn" id="acctBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="acctList"><span class="pfp" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="12" cy="8.6" r="4.1"/><path d="M4.2 20.2c.6-4 3.9-6.4 7.8-6.4s7.2 2.4 7.8 6.4z"/></svg></span><span class="acctname" id="acctLabel">Guest</span><svg class="chev" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="acctlist" id="acctList" role="menu" aria-labelledby="acctBtn" hidden></div>
+      </div>
+<!--#endif-->
+    </div>
     <div class="setslot" id="setNavSlot" hidden></div>
   </header>
   <div class="banner" id="banner" hidden></div>
@@ -285,6 +293,10 @@ colours.apply(...colours.saved()); // before anything is drawn
             <p class="keyerr small" id="acctErr" hidden></p>
             <p class="muted small" id="privacyLink"><a href="privacy/" target="_blank" rel="noopener">Privacy Policy</a></p>
           </section>
+          <section id="nickRow" hidden><h3>Nickname</h3>
+            <form class="nickform" id="nickForm"><input type="text" id="nickIn" maxlength="40" autocomplete="nickname" aria-label="Nickname"><button class="btn primary" type="submit" id="nickSave" disabled>Save</button><span class="muted small" id="nickMsg" role="status"></span></form>
+            <p class="muted small">Shown at the top right of the page. Leave it empty to show your Google name.</p>
+          </section>
           <section><h3>Delete</h3><div id="delAcct"></div></section>
         </div>
 <!--#endif-->
@@ -430,6 +442,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   //#include vocab/samples.js
   //#include checking/builtin.js
   //#include account/account.js
+  //#include account/menu.js
   //#include tour/tour.js
   //#include account/share.js
   //#include practice/round-list.js

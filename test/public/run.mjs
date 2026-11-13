@@ -80,22 +80,37 @@ ok(/blocked the sign-in window/.test(await text(page, "#welcomeErr")), "popup bl
 await page.evaluate(() => { window.__signInError = null; });
 await page.click("#signInBtn"); await page.waitForTimeout(500);
 ok(await vis(page, "#setup") && !(await vis(page, "#welcome")), "signed in: practice page shows, pop-up gone");
-ok(!(await page.$("#acct")) && !(await page.$("#palPick:not(#settings *)")), "header: no account line or colour dots, just the settings gear");
-// Settings is a page of its own with tabs: open it (unless it's open) and pick the tab that has what's wanted.
+ok(!(await page.$("#palPick:not(#settings *)")) && !(await vis(page, "#settingsBtn")) && (await text(page, "#acctLabel")) === "Test Student",
+  "top bar: signed in, the gear steps aside and the account shows the Google name (no colour dots)", await text(page, "#acctLabel"));
+// Settings is a page of its own with tabs: open it (unless it's open: from the gear, or signed in the account menu) and pick the tab that has what's wanted.
 const setOpen = (p) => p.evaluate(() => !document.querySelector("#settings").hidden);
-const settings = async (p, tab) => { if (!(await setOpen(p))) await p.click("#settingsBtn"); if (tab) await p.click(`#setNav [data-set-tab="${tab}"]`); };
-await page.click("#settingsBtn");
+const settings = async (p, tab) => {
+  if (!(await setOpen(p))) { if (await vis(p, "#settingsBtn")) await p.click("#settingsBtn"); else { await p.click("#acctBtn"); await p.click('#acctList [data-acct="settings"]'); } }
+  if (tab) await p.click(`#setNav [data-set-tab="${tab}"]`);
+};
+await page.click("#acctBtn");
+ok(await vis(page, "#acctList") && /Signed in as student@example\.com/.test(await text(page, "#acctList")) && (await page.$$eval("#acctList [role=menuitem]", (bs) => bs.map((b) => b.textContent.trim()).join(", "))) === "Settings, Sign out"
+  && await page.evaluate(() => document.activeElement.dataset.acct === "settings"), "account menu: who's signed in, then Settings and Sign out", await text(page, "#acctList"));
+await page.keyboard.press("ArrowDown");
+ok(await page.evaluate(() => document.activeElement.dataset.acct === "signout"), "account menu: arrow keys move between its items");
+await page.keyboard.press("Escape");
+ok(!(await vis(page, "#acctList")) && await page.evaluate(() => document.activeElement.id === "acctBtn"), "account menu: Escape closes it");
+await page.click("#acctBtn"); await page.mouse.click(300, 600);
+ok(!(await vis(page, "#acctList")), "account menu: a click elsewhere closes it");
+await page.click("#acctBtn"); await page.click('#acctList [data-acct="settings"]');
 ok(await setOpen(page) && !(await vis(page, "#setup")) && await page.evaluate(() => document.querySelector('#setNav [aria-current="page"]')?.dataset.setTab === "look" && getComputedStyle(document.querySelector("#palPick")).display !== "none" && !document.querySelector("#acctName").getClientRects().length),
-  "settings: the gear opens a page with tabs down the side, Appearance first, the other tabs' parts not shown");
+  "settings: the account menu's Settings opens a page with tabs down the side, Appearance first, the other tabs' parts not shown");
 ok(await page.evaluate(() => [...document.querySelectorAll("#setNav [data-set-tab]")].filter((b) => !b.hidden).map((b) => b.textContent).join(", ")) === "Appearance, Account, Data, Practice history, Developer tools",
   "settings: the tabs (no Handwriting sharing where it isn't offered, no Admin for an account that isn't a developer)");
 await settings(page, "account");
 
 ok(await page.evaluate(() => document.querySelector("#acctName").getClientRects().length > 0 && !document.querySelector("#palPick").getClientRects().length) && /student@example\.com/.test(await text(page, "#acctName")) && (await text(page, "#signOutBtn")) === "Sign out" && (await text(page, "#delStart")) === "Delete my account", "settings: shows the signed-in account, Sign out and Delete my account", await text(page, "#acctName"));
+ok(await vis(page, "#nickRow") && (await page.$eval("#nickIn", (i) => i.placeholder)) === "Test Student" && await page.$eval("#nickSave", (b) => b.disabled), "settings: signed in, Account has a nickname field");
+await page.fill("#nickIn", "  Kumo  "); await page.click("#nickSave"); await page.waitForTimeout(300);
+ok((await text(page, "#acctLabel")) === "Kumo" && JSON.stringify(await fsData(page)).includes('"nickname":"Kumo"') && /Saved/.test(await text(page, "#nickMsg")), "nickname: saved with the account and shown at the top right", await text(page, "#acctLabel"));
+await page.screenshot({ path: join(out, "1-nickname.png") });
 await page.click("#settingsClose");
 ok(!(await setOpen(page)) && await vis(page, "#setup"), "settings: ← Back closes it, back to the page it was opened from");
-await page.click("#settingsBtn"); await page.click("#settingsBtn");
-ok(!(await setOpen(page)) && await vis(page, "#setup"), "settings: the gear closes it too");
 ok(await vis(page, '[data-set="samples-greetings"]') && await vis(page, "#sampleNote"), "new account: starts with the sample sets");
 ok((await page.$eval("#uptoSel", (s) => s.value)) === "auto", "samples: 'Kanji learned up to' starts at Highest picked unit", await page.$eval("#uptoSel", (s) => s.value));
 const sampleDocs = (d) => Object.keys(d).filter((p) => /^users\/u1\/(sets|kanji)\/samples-/.test(p));
@@ -437,7 +452,7 @@ await phone.waitForTimeout(300);
 const wide = await phone.evaluate(() => document.documentElement.scrollWidth);
 ok(wide <= 375, "phone: no sideways scrolling", String(wide));
 await phone.screenshot({ path: join(out, "8-phone.png"), fullPage: true });
-await phone.click("#settingsBtn");
+await settings(phone);
 const onPhone = () => phone.evaluate(() => ({ nav: document.querySelector("#setNav").getClientRects().length > 0, body: document.querySelector(".setbody").getClientRects().length > 0, back: document.querySelector("#settingsClose").textContent, wide: document.documentElement.scrollWidth }));
 let ph = await onPhone();
 ok(ph.nav && !ph.body && ph.back === "← Back" && ph.wide <= 375, "phone: Settings opens as a list of its tabs", JSON.stringify(ph));
@@ -639,7 +654,7 @@ let rp = await newPage(rctx, { init: () => {
 const answer = async (got) => { await scribble(rp); await rp.click("#checkBtn"); await rp.waitForTimeout(150); if (got) { await rp.click("#selfGot"); await rp.waitForTimeout(1300); } else { await rp.click("#selfMiss"); await rp.waitForTimeout(150); } };
 ok(!(await vis(rp, "#resumeBtn")), "resume: no Resume button before any practice");
 await rp.click('[data-set="r-a"]'); await rp.click("#dir-je"); await rp.click("#startBtn"); await rp.waitForTimeout(300);
-ok(!(await vis(rp, "header h1")) && !(await vis(rp, "#settingsBtn")), "practice: the title and settings gear are hidden while writing");
+ok(!(await vis(rp, "header h1")) && !(await vis(rp, ".topr")), "practice: the title, the settings gear and the account are hidden while writing");
 await rp.screenshot({ path: join(out, "12-practice-no-header.png") });
 await answer(true); await answer(false); await rp.click("#nextBtn"); await rp.waitForTimeout(200);
 // the next word is written on but not checked when quitting
@@ -685,7 +700,7 @@ for (const width of [1280, 900, 375]) {
     if (title === "Your turn") { await scribble(tp); await tp.waitForTimeout(100); }
     await tp.click('.tourcard [data-tour="next"]'); await tp.waitForTimeout(500);
   }
-  const want = ["Welcome to the tour", "Pick a set", "Direction", "Modes", "Kanji learned up to", "Start practicing", "The question", "The answer box", "Furigana", "Writing tools", "Your turn", "The result", "Stop any time", "Pick up where you left off", "The vocab table", "Your sets", "Add your own sets", "Kanji lists", "Back to practice", "Settings", "That's the tour!"];
+  const want = ["Welcome to the tour", "Pick a set", "Direction", "Modes", "Kanji learned up to", "Start practicing", "The question", "The answer box", "Furigana", "Writing tools", "Your turn", "The result", "Stop any time", "Pick up where you left off", "The vocab table", "Your sets", "Add your own sets", "Kanji lists", "Back to practice", "Settings and your account", "That's the tour!"];
   ok(want.every((t) => titles.includes(t)), `tour (${tag}): goes from the welcome step through practice, the vocab table and Settings to the end`, titles.join(" › "));
   ok(await vis(tp, "#setup") && await vis(tp, "#resumeBtn"), `tour (${tag}): ends back on the practice page, with the practice left midway to resume`);
   await tp.click('.tourcard [data-tour="close"]'); await tp.waitForTimeout(200);
@@ -1326,8 +1341,16 @@ if (entry.length > 1) {
     return { fixed: getComputedStyle(document.querySelector("header.side")).position === "fixed", side: [Math.round(h.left), Math.round(h.width)], col: Math.round(v.left), wide: document.documentElement.scrollWidth }; });
   let si = await sideInfo();
   const barBtn = () => bp.evaluate(() => { const m = document.querySelector("#menuBtn").getBoundingClientRect(), h = document.querySelector("header h1").getBoundingClientRect(); return m.bottom <= h.bottom && m.right < h.left + 70 && m.left < 40; });
-  ok(si.fixed && si.side[0] === 0 && si.side[1] === 232 && si.col > 232 && si.wide <= 1280 && (await at()) === "setup" && await vis(bp, "#settingsBtn span") && await barBtn() && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "true",
+  ok(si.fixed && si.side[0] === 0 && si.side[1] === 232 && si.col > 232 && si.wide <= 1280 && (await at()) === "setup" && await barBtn() && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "true",
     "sidebar: on a big screen the menu is a sidebar down the left under the title's bar, Practice marked, the page beside it, ☰ left of the title", JSON.stringify(si));
+  const topR = () => bp.evaluate(() => { const g = document.querySelector("#settingsBtn").getBoundingClientRect(), a = document.querySelector("#acctBtn").getBoundingClientRect();
+    return { right: Math.round(document.querySelector("header h1").getBoundingClientRect().right - a.right), inBar: g.bottom <= 56 && a.bottom <= 56, order: g.right <= a.left, label: document.querySelector("#acctLabel").textContent }; });
+  const tr = await topR();
+  ok(tr.inBar && tr.order && tr.right >= 8 && tr.right <= 24 && tr.label === "Guest" && !(await shown("#sideNav #settingsBtn")), "top bar: the gear and then Guest at its right end, nothing for Settings in the sidebar", JSON.stringify(tr));
+  await bp.click("#acctBtn");
+  ok(/Not signed in/.test(await text(bp, "#acctList")) && (await bp.$$eval("#acctList [role=menuitem]", (bs) => bs.map((b) => b.textContent.trim()).join(", "))) === "Sign in with Google", "account menu: a guest's offers signing in");
+  await bp.screenshot({ path: join(out, "22-guest-menu.png"), clip: { x: 640, y: 0, width: 640, height: 220 } });
+  await bp.keyboard.press("Escape");
   await bp.screenshot({ path: join(out, "22-sidebar.png") });
   await bp.click('#sideNav [data-go="history"]'); await bp.waitForTimeout(300);
   ok(await vis(bp, "#history") && (await at()) === "history" && !(await shown("#histBack")), "sidebar: History opens from it and is marked; no ← Back beside the sidebar");
@@ -1351,7 +1374,7 @@ if (entry.length > 1) {
   let st = await setInfo();
   // On Settings its tabs take the sidebar (as on YouTube), and ☰ brings the menu in over the page.
   const drawerOpen = () => bp.evaluate(() => { const n = document.querySelector("#sideNav"), r = n.getBoundingClientRect(); return getComputedStyle(n).position === "fixed" && getComputedStyle(n).visibility === "visible" && r.left >= 0 && getComputedStyle(document.querySelector("#sideShade")).opacity === "1"; });
-  ok(st.inSide && st.tabs === "Appearance, Account, Data, Practice history, Developer tools" && st.on === "look" && st.body >= st.panel - 2 && st.panel <= 762 && !(await drawerOpen()) && !(await shown("#settingsBtn")),
+  ok(st.inSide && st.tabs === "Appearance, Account, Data, Practice history, Developer tools" && st.on === "look" && st.body >= st.panel - 2 && st.panel <= 762 && !(await drawerOpen()) && await shown("#settingsBtn"),
     "sidebar: on Settings its tabs take the sidebar, the page and its menu out of the way, and the tab is a narrower column", JSON.stringify(st));
   await bp.click('#setNav [data-set-tab="data"]');
   ok((await setInfo()).on === "data" && await vis(bp, "#portPanel"), "sidebar: a tab in the sidebar opens it");

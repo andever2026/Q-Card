@@ -38,7 +38,8 @@
       db.doc("meta/books").onSnapshot(onBookOrder, () => {});
       db.doc("meta/courses").onSnapshot(onCourses, () => {});
       watchHistory();
-      if (id !== "local") stopPrefs = syncPrefs();
+      if (id !== "local") { stopPrefs = syncPrefs(); watchProfile(); }
+      renderAcctMenu();
       offerSamples();
     };
     // As a guest, everything is kept in this browser (src/account/local.js); choosing it in the welcome pop-up is remembered.

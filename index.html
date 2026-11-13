@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-RuDzUwaW5rPQ7qL7h2cmRGK+nWNWmPDGTrU7asoTAEw=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-mF3puq2glAhHRByZ3OA9oleSVCFizqh5TFmBvbkQfTI=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -119,9 +119,9 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .head .jp { font-family: var(--font-jp); font-size: 1rem; color: var(--muted); }
 .iconbtn { border: none; background: none; color: var(--muted); padding: 6px; border-radius: 8px; display: inline-flex; align-self: center; margin-left: auto; }
 .iconbtn:hover { color: var(--ink); background: var(--sunk); }
-/* The menu (page/nav.js). On a smaller screen the header is a top bar, ☰ · title · gear, and ☰ slides the menu in from
-   the left over the page. From 1000px wide (the same width as in nav.js) the title has a bar across the top and the menu
-   is a sidebar down the left under it: the pages, and Settings at the bottom; ☰ shrinks it to icons. On Settings its tabs
+/* The menu (page/nav.js). On a smaller screen the header is a top bar, ☰ · title · gear · account, and ☰ slides the menu
+   in from the left over the page. From 1000px wide (the same width as in nav.js) the title has a bar across the top, the
+   gear and account at its right end, and the menu is a sidebar of the pages down the left under it; ☰ shrinks it to icons. On Settings its tabs
    take the sidebar and ☰ brings the menu in over the page, as on a smaller screen (html.drawer). */
 #menuBtn { margin-left: -6px; }
 .sidenav { display: grid; gap: 2px; align-content: start; }
@@ -131,17 +131,30 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .sidenav > [aria-current="page"] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
 .sidenav > [aria-current="page"] svg { color: inherit; }
 .sideshade { display: none; }
+/* The top bar's right end: the gear, and the account (a guest, or the signed-in person and their menu). */
+.topr { display: flex; align-items: center; align-self: center; gap: 8px; margin-left: auto; }
+.topr .iconbtn { margin: 0; }
+.acct { position: relative; }
+.acctbtn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 3px 10px 3px 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: .9rem; font-weight: 500; }
+.acctbtn:hover, .acctbtn[aria-expanded="true"] { background: var(--sunk); }
+.acctbtn .pfp { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--ai-soft); color: var(--ai); overflow: hidden; }
+.acctbtn .pfp svg { margin-top: 5px; width: 22px; height: 22px; }
+.acctname { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acctbtn .chev { color: var(--muted); }
+.acctlist { position: absolute; right: 0; top: calc(100% + 6px); z-index: 45; min-width: 230px; max-width: min(300px, calc(100vw - 32px)); padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / .14); }
+.acctlist p { margin: 0; padding: 6px 10px 8px; overflow-wrap: anywhere; }
+.acctlist p + button { border-top: 1px solid var(--line); border-top-left-radius: 0; border-top-right-radius: 0; margin-top: 2px; padding-top: 10px; }
+.acctlist button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 6px; background: none; color: var(--ink); font-size: .9rem; text-align: left; }
+.acctlist button:hover, .acctlist button:focus-visible { background: var(--sunk); outline: none; }
+.acctlist button svg { flex: none; color: var(--muted); }
 .drawer .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--sunk); border-right: 1px solid var(--line);
   box-shadow: 0 0 28px rgba(0, 0, 0, .22); clip-path: inset(0 -40px 0 0); /* a shadow on the right side only */
   padding: max(18px, env(safe-area-inset-top, 0px)) 12px 18px max(12px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
 .drawer .side.open .sidenav { transform: none; visibility: visible; transition: transform .2s ease; }
 .drawer .sideshade { display: block; position: fixed; z-index: 39; inset: 0; background: rgba(17, 20, 26, .4); opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
 .drawer .side.open .sideshade { opacity: 1; visibility: visible; transition: opacity .2s; }
-@media not all and (min-width: 1000px) {
-  .sidenav > * { padding-block: 11px; }
-  #settingsBtn span { display: none; }
-}
-@media (max-width: 480px) { .side { flex-wrap: nowrap; gap: 8px; } .side h1 { font-size: 1.2rem; min-width: 0; } }
+@media not all and (min-width: 1000px) { .sidenav > * { padding-block: 11px; } }
+@media (max-width: 480px) { .side { flex-wrap: nowrap; gap: 8px; } .side h1 { font-size: 1.2rem; min-width: 0; } .acctname, .acctbtn .chev { display: none; } .acctbtn { padding-right: 3px; } }
 @media (min-width: 1000px) {
   :root:has(> body:not(.writing)) { --side: 1; scroll-padding-top: calc(var(--topbar) + 12px); } /* the widths follow, theme/theme.css */
   body:not(.writing) > .wrap > .side { position: fixed; z-index: 10; inset: var(--topbar) auto 0 0; width: var(--sidew); max-width: none; margin: 0; overflow-y: auto;
@@ -149,15 +162,13 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
   .side h1 { position: fixed; inset: 0 0 auto; height: var(--topbar); display: flex; align-items: center; gap: 8px; padding: 0 22px 0 62px;
     font-size: 1.2rem; background: var(--sunk); border-bottom: 1px solid var(--line); }
   #menuBtn { position: fixed; z-index: 1; top: calc((var(--topbar) - 34px) / 2); left: 15px; margin: 0; } /* in the bar, over the sidebar's icons */
-  #settingsBtn { margin: auto 0 0; padding: 8px 10px; gap: 10px; align-items: center; align-self: stretch; color: var(--ink); font-weight: 500; }
-  #settingsBtn svg { width: 20px; height: 20px; color: var(--muted); }
+  .topr { position: fixed; z-index: 1; top: 0; right: max(16px, env(safe-area-inset-right, 0px)); height: var(--topbar); }
   /* ☰ shrinks the sidebar to its icons; the names stay for screen readers, and pointing at an icon shows its name. */
   :root.sidemini:not(.drawer) { --sidebar: 64px; }
   /* The names fold to nothing but keep their line, so the icons stay exactly where they are in the full sidebar. */
-  .sidemini:not(.drawer) .sidenav span, .sidemini:not(.drawer) #settingsBtn span { width: 0; overflow: hidden; white-space: nowrap; opacity: 0; }
-  .sidemini:not(.drawer) .sidenav > *, .sidemini:not(.drawer) #settingsBtn { gap: 0; } /* so the highlight is a square around the icon */
+  .sidemini:not(.drawer) .sidenav span { width: 0; overflow: hidden; white-space: nowrap; opacity: 0; }
+  .sidemini:not(.drawer) .sidenav > * { gap: 0; } /* so the highlight is a square around the icon */
   /* On Settings: its tabs fill the sidebar, and the menu comes in over the page under the title's bar. */
-  .drawer #settingsBtn { display: none; }
   .drawer .sidenav, .drawer .sideshade { top: var(--topbar); }
   .drawer .sidenav { width: var(--sidebar); padding: 14px 12px; }
   .side .setnav { padding: 0; }
@@ -183,6 +194,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .setpane:not(.on) { display: none; }
 .setpane section { display: grid; gap: 8px; }
 .setpane section + section { border-top: 1px solid var(--line); padding-top: 18px; }
+.nickform { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.nickform input { width: 16rem; max-width: 100%; font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 .setpane p { overflow-wrap: anywhere; } /* a long email address wraps instead of widening the page */
 .setpane .setrow { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
 /* On a phone the tabs are a list, and picking one opens it in the list's place. */
@@ -208,7 +221,7 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 @media (max-width: 480px) { .delrow { position: relative; } .delrow .qtip { position: static; } .delrow .qtipbody { left: 0; transform: none; } }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
-body:not(.ready) section, body:not(.ready) #banner, body:not(.ready) #settingsBtn, body:not(.ready) .sidenav, body:not(.ready) #menuBtn { display: none !important; }
+body:not(.ready) section, body:not(.ready) #banner, body:not(.ready) .topr, body:not(.ready) .sidenav, body:not(.ready) #menuBtn { display: none !important; }
 body.ready #gate { display: none; }
 .gate { margin-top: 10vh; text-align: center; color: var(--muted); }
 .gate b { display: block; color: var(--ink); font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
@@ -612,7 +625,13 @@ colours.apply(...colours.saved()); // before anything is drawn
       <a href="study-tools/"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg><span>Study tools</span></a>
     </nav>
     <div class="sideshade" id="sideShade"></div>
-    <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg><span>Settings</span></button>
+    <div class="topr">
+      <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
+      <div class="acct" id="acct">
+        <button type="button" class="acctbtn" id="acctBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="acctList"><span class="pfp" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="12" cy="8.6" r="4.1"/><path d="M4.2 20.2c.6-4 3.9-6.4 7.8-6.4s7.2 2.4 7.8 6.4z"/></svg></span><span class="acctname" id="acctLabel">Guest</span><svg class="chev" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="acctlist" id="acctList" role="menu" aria-labelledby="acctBtn" hidden></div>
+      </div>
+    </div>
     <div class="setslot" id="setNavSlot" hidden></div>
   </header>
   <div class="banner" id="banner" hidden></div>
@@ -815,6 +834,10 @@ colours.apply(...colours.saved()); // before anything is drawn
             <div class="tactions"><button class="btn" type="button" id="signOutBtn">Sign out</button></div>
             <p class="keyerr small" id="acctErr" hidden></p>
             <p class="muted small" id="privacyLink"><a href="privacy/" target="_blank" rel="noopener">Privacy Policy</a></p>
+          </section>
+          <section id="nickRow" hidden><h3>Nickname</h3>
+            <form class="nickform" id="nickForm"><input type="text" id="nickIn" maxlength="40" autocomplete="nickname" aria-label="Nickname"><button class="btn primary" type="submit" id="nickSave" disabled>Save</button><span class="muted small" id="nickMsg" role="status"></span></form>
+            <p class="muted small">Shown at the top right of the page. Leave it empty to show your Google name.</p>
           </section>
           <section><h3>Delete</h3><div id="delAcct"></div></section>
         </div>
@@ -1077,8 +1100,9 @@ colours.apply(...colours.saved()); // before anything is drawn
     syncSetTabs();
   }
   // ---------- the menu: a sidebar on a big screen, ☰ on a smaller one ----------
-  // Practice, Vocab table, History (and Study tools, a page of its own, on the public site), with Settings at the bottom.
-  // On a big screen it's a sidebar down the left, and ☰ beside the title shrinks it to its icons. On Settings, Settings'
+  // Practice, Vocab table, History (and Study tools, a page of its own, on the public site). The gear for Settings is at
+  // the right end of the top bar (beside the account on the public site, account/menu.js, whose menu has Settings too).
+  // On a big screen the menu is a sidebar down the left, and ☰ beside the title shrinks it to its icons. On Settings, Settings'
   // tabs take the sidebar and ☰ brings the menu in over the page (as YouTube does). On a smaller screen the header is a
   // top bar: ☰ slides the menu in from the left, the gear opens and closes Settings, and Settings' tabs stay on its page.
   // It steps aside while writing, like the rest of the header. What show() reaches (markNav and the functions it calls)
@@ -3467,6 +3491,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   let account = null, delAsk = false, stopPrefs = () => {};
   $("#settings").addEventListener("leave", () => { delAsk = false; });
   function renderAccount() {
+    renderNick();
     $("#acctName").innerHTML = account ? `Signed in with Google as <b>${esc(account.email || account.name || "")}</b>.`
       : "Not signed in. As a guest, everything is kept in this browser on this device.";
     $("#signOutBtn").textContent = account ? "Sign out" : "Sign in with Google";
@@ -3509,6 +3534,69 @@ colours.apply(...colours.saved()); // before anything is drawn
       }
     };
   }
+  // ---------- public site: the account at the top right ----------
+  // Beside the gear: a guest says so, and its menu offers signing in. Signed in, the gear steps aside and the person's
+  // nickname (or their Google name) opens a menu with Settings and Sign out. The nickname is the account's own,
+  // data/users/<uid>/profile, set in Settings → Account.
+  let nickname = "";
+  const shownName = () => nickname || account?.name || String(account?.email || "").split("@")[0] || "Account";
+  const acctOpen = () => !$("#acctList").hidden;
+  function acctMenu(open, refocus) {
+    $("#acctList").hidden = !open; $("#acctBtn").setAttribute("aria-expanded", open);
+    if (open) $("#acctList button").focus(); else if (refocus) $("#acctBtn").focus();
+  }
+  function renderAcctMenu() {
+    $("#settingsBtn").hidden = !!account;
+    $("#acctLabel").textContent = account ? shownName() : "Guest";
+    $("#acctBtn").setAttribute("aria-label", account ? `${shownName()}: account menu` : "Guest: account menu");
+    // The gear is the top bar's own, smaller.
+    const gear = () => $("#settingsBtn svg").outerHTML.replace('width="22" height="22"', 'width="18" height="18"');
+    const icon = (d) => `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+    $("#acctList").innerHTML = account
+      ? `<p class="small muted">Signed in as <b>${esc(account.email || account.name)}</b></p>
+        <button type="button" role="menuitem" data-acct="settings">${gear()}Settings</button>
+        <button type="button" role="menuitem" data-acct="signout">${icon("M14.5 4.5 H18.5 a1.5 1.5 0 0 1 1.5 1.5 V18 a1.5 1.5 0 0 1-1.5 1.5 H14.5 M10 8 L6 12 L10 16 M6 12 H15.5")}Sign out</button>`
+      : `<p class="small muted">Not signed in. Your sets and history are kept in this browser.</p>
+        <button type="button" role="menuitem" data-acct="signin">${icon("M9.5 4.5 H5.5 a1.5 1.5 0 0 0-1.5 1.5 V18 a1.5 1.5 0 0 0 1.5 1.5 H9.5 M14 8 L18 12 L14 16 M18 12 H8.5")}Sign in with Google</button>`;
+    const item = (k) => $(`#acctList [data-acct="${k}"]`);
+    if (account) {
+      item("settings").onclick = () => { acctMenu(false); go("settings"); };
+      item("signout").onclick = () => { acctMenu(false); platform.signOut(); };
+    } else item("signin").onclick = (e) => signIn(e.currentTarget, (m) => { acctMenu(false); banner(m); });
+  }
+  $("#acctBtn").onclick = () => acctMenu(!acctOpen());
+  // Arrow keys move between the items; Escape, Tab or a click anywhere else closes the menu.
+  $("#acct").addEventListener("keydown", (e) => {
+    if (!acctOpen()) return;
+    const items = [...$("#acctList").querySelectorAll("button")], i = items.indexOf(document.activeElement);
+    if (e.key === "Escape") acctMenu(false, true);
+    else if (e.key === "Tab") acctMenu(false);
+    else if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length].focus(); }
+  });
+  document.addEventListener("pointerdown", (e) => { if (acctOpen() && !$("#acct").contains(e.target)) acctMenu(false); });
+
+  // The nickname: kept with the account, shown at the top right, changed in Settings → Account.
+  const profileRef = () => db.doc(`data/users/${uid}/profile`);
+  function watchProfile() {
+    profileRef().onSnapshot((snap) => { nickname = tidy(snap.exists ? snap.data()?.nickname : "", 40); renderAcctMenu(); renderNick(); }, () => {});
+  }
+  function renderNick() {
+    $("#nickRow").hidden = !account;
+    if (!account || document.activeElement === $("#nickIn")) return;
+    $("#nickIn").value = nickname; $("#nickIn").placeholder = account.name || "Your name"; syncNick();
+  }
+  // msg: what saving said; left out, what's there stays.
+  const syncNick = (msg) => { $("#nickSave").disabled = tidy($("#nickIn").value, 40) === nickname; if (msg != null) $("#nickMsg").textContent = msg; };
+  $("#nickIn").addEventListener("input", () => syncNick(""));
+  $("#settings").addEventListener("leave", () => syncNick(""));
+  $("#nickForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const v = tidy($("#nickIn").value, 40), b = $("#nickSave");
+    b.disabled = true; b.textContent = "Saving…";
+    try { await profileRef().set({ nickname: v, updatedAt: new Date().toISOString() }); nickname = v; $("#nickIn").value = v; renderAcctMenu(); syncNick(v ? "Saved." : "Saved. Your Google name shows instead."); }
+    catch { syncNick("Couldn't save. Try again."); }
+    b.textContent = "Save";
+  };
   // ---------- public site: the tour ----------
   // "First time here? Take the 5-minute tour" in the welcome pop-up: a guided first practice as a guest. Each step rings
   // part of the page (the rest is dimmed but still works) and says what it's for. A step with `done` waits for the
@@ -3568,8 +3656,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     { view: "table", at: () => firstVis("#backBtn", '#sideNav [data-go="setup"]'), title: "Back to practice",
       get text() { return vis($("#backBtn")) ? "Tap ← Back to practice." : "Tap Practice in the menu on the left to go back. It takes you to History and Study tools too."; },
       done: () => vis($("#setup")), act: () => $("#backBtn").click() },
-    { view: "setup", at: () => $("#settingsBtn"), title: "Settings",
-      get text() { return `${isWide() ? "" : "☰ opens the menu: History, Study tools and the vocab table. "}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data.`; } },
+    { view: "setup", at: () => [$("#settingsBtn"), $("#acctBtn")], title: "Settings and your account",
+      get text() { return `${isWide() ? "" : "☰ opens the menu: History, Study tools and the vocab table. "}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data. Beside it, Guest is where you sign in.`; } },
     { title: "That's the tour!", end: true,
       text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and history on all your devices." },
   ];
@@ -3810,7 +3898,8 @@ colours.apply(...colours.saved()); // before anything is drawn
       db.doc("meta/books").onSnapshot(onBookOrder, () => {});
       db.doc("meta/courses").onSnapshot(onCourses, () => {});
       watchHistory();
-      if (id !== "local") stopPrefs = syncPrefs();
+      if (id !== "local") { stopPrefs = syncPrefs(); watchProfile(); }
+      renderAcctMenu();
       offerSamples();
     };
     // As a guest, everything is kept in this browser (src/account/local.js); choosing it in the welcome pop-up is remembered.

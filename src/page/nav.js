@@ -1,6 +1,7 @@
   // ---------- the menu: a sidebar on a big screen, ☰ on a smaller one ----------
-  // Practice, Vocab table, History (and Study tools, a page of its own, on the public site), with Settings at the bottom.
-  // On a big screen it's a sidebar down the left, and ☰ beside the title shrinks it to its icons. On Settings, Settings'
+  // Practice, Vocab table, History (and Study tools, a page of its own, on the public site). The gear for Settings is at
+  // the right end of the top bar (beside the account on the public site, account/menu.js, whose menu has Settings too).
+  // On a big screen the menu is a sidebar down the left, and ☰ beside the title shrinks it to its icons. On Settings, Settings'
   // tabs take the sidebar and ☰ brings the menu in over the page (as YouTube does). On a smaller screen the header is a
   // top bar: ☰ slides the menu in from the left, the gear opens and closes Settings, and Settings' tabs stay on its page.
   // It steps aside while writing, like the rest of the header. What show() reaches (markNav and the functions it calls)
