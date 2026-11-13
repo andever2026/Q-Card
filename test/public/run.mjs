@@ -468,8 +468,8 @@ ok(!(await setOpen(phone)) && await vis(phone, "#setup"), "phone: ← Back from 
 const menuOpen = () => phone.evaluate(() => { const n = document.querySelector("#sideNav"), r = n.getBoundingClientRect(); return document.querySelector("#menuBtn").getAttribute("aria-expanded") === "true" && getComputedStyle(n).visibility === "visible" && r.left >= 0 && r.right <= innerWidth; });
 ok(await vis(phone, "#menuBtn") && !(await menuOpen()), "phone: a ☰ button, the menu closed");
 await phone.click("#menuBtn"); await phone.waitForTimeout(300);
-ok(await menuOpen() && await phone.evaluate(() => [...document.querySelectorAll("#sideNav > :not(.foot)")].map((b) => b.textContent.trim()).join(", ")) === "Practice, Vocab table, History, Study tools" && await phone.evaluate(() => document.activeElement?.dataset.go === "setup"),
-  "phone: ☰ slides in the menu (Practice, Vocab table, History, Study tools) and moves to it");
+ok(await menuOpen() && await phone.evaluate(() => [...document.querySelectorAll("#sideNav > :not(.foot)")].map((b) => b.textContent.trim()).join(", ")) === "Practice, Vocabularies, History, Study tools" && await phone.evaluate(() => document.activeElement?.dataset.go === "setup"),
+  "phone: ☰ slides in the menu (Practice, Vocabularies, History, Study tools) and moves to it");
 await phone.screenshot({ path: join(out, "8-menu-phone.png") });
 await phone.click('#sideNav [data-go="history"]'); await phone.waitForTimeout(300);
 ok(await vis(phone, "#history") && !(await menuOpen()), "phone: picking History in the menu goes there and closes the menu");
@@ -624,6 +624,17 @@ await up.click('#groupSeg [data-view="Courses"]'); await up.waitForTimeout(200);
 rows = await rowsOf("#pickChs");
 ok(rows === "J1: All, Ch. 1, Ch. 2* | Other: All, Week 1*, Week 2*, Week 10*, Ch. 10", "units: an older course (chapters 1 to 2) covers units Ch. 1 and Ch. 2", rows);
 await up.click('#groupSeg [data-view=""]');
+// The sets card: its heading with edit at the right end, and the line under the rows, there even with nothing picked.
+const sumRow = () => up.evaluate(() => [document.querySelector("#pickSum").textContent, document.querySelector("#pickClear").textContent, document.querySelector("#pickClear").disabled].join("|"));
+ok((await text(up, "#setup .panel .head h3")) === "Vocabulary sets" && (await text(up, "#toTable")) === "edit"
+  && await up.evaluate(() => document.querySelector("#setup .panel .head").getBoundingClientRect().right - document.querySelector("#toTable").getBoundingClientRect().right < 2)
+  && await vis(up, "#pickSumRow") && (await sumRow()) === "0 sets picked|Pick all sets|false", "sets card: Vocabulary sets with edit at its right end; with no sets picked, Pick all sets", await sumRow());
+await up.click("#pickClear");
+ok((await sumRow()) === "5 sets picked|Clear all picks|false", "sets card: Pick all sets picks every set showing, then Clear all picks is offered", await sumRow());
+await up.click("#pickClear");
+await up.click('#pickChs .pchrow:nth-child(1) [data-k="all"]'); await up.click('#pickChs .pchrow:nth-child(2) [data-k="1"]');
+ok(/No units picked/.test(await text(up, "#setPicker")) && (await sumRow()) === "0 sets picked|Pick all sets|true", "sets card: with no units picked, Pick all sets is there but greyed out", await sumRow());
+await up.click('#pickChs .pchrow:nth-child(1) [data-k="all"]'); await up.click('#pickChs .pchrow:nth-child(2) [data-k="1"]');
 await up.click("#toTable"); await up.waitForTimeout(200);
 await up.fill("#nsCol", "mine"); await up.fill("#nsUnit", "week 2"); await up.fill("#nsName", "Weather");
 await up.click('#newSetForm [type="submit"]'); await up.waitForTimeout(400);
@@ -700,7 +711,7 @@ for (const width of [1280, 900, 375]) {
     if (title === "Your turn") { await scribble(tp); await tp.waitForTimeout(100); }
     await tp.click('.tourcard [data-tour="next"]'); await tp.waitForTimeout(500);
   }
-  const want = ["Welcome to the tour", "Pick a set", "Direction", "Modes", "Kanji learned up to", "Start practicing", "The question", "The answer box", "Furigana", "Writing tools", "Your turn", "The result", "Stop any time", "Pick up where you left off", "The vocab table", "Your sets", "Add your own sets", "Kanji lists", "Back to practice", "Settings and your account", "That's the tour!"];
+  const want = ["Welcome to the tour", "Pick a set", "Direction", "Modes", "Kanji learned up to", "Start practicing", "The question", "The answer box", "Furigana", "Writing tools", "Your turn", "The result", "Stop any time", "Pick up where you left off", "Vocabularies", "Your sets", "Add your own sets", "Kanji lists", "Back to practice", "Settings and your account", "That's the tour!"];
   ok(want.every((t) => titles.includes(t)), `tour (${tag}): goes from the welcome step through practice, the vocab table and Settings to the end`, titles.join(" › "));
   ok(await vis(tp, "#setup") && await vis(tp, "#resumeBtn"), `tour (${tag}): ends back on the practice page, with the practice left midway to resume`);
   await tp.click('.tourcard [data-tour="close"]'); await tp.waitForTimeout(200);
@@ -1412,7 +1423,7 @@ if (entry.length > 1) {
   const names = () => bp.evaluate(() => [...document.querySelectorAll("#sideNav > *")].map((b) => `${b.title}:${Math.round(b.querySelector("span").getBoundingClientRect().width)}`).join(","));
   await bp.click("#menuBtn"); await bp.waitForTimeout(200);
   si = await sideInfo();
-  ok(si.side[1] === 64 && si.col < 100 && !(await footAt()).shown && (await names()) === "Practice:0,Vocab table:0,History:0,Study tools:0" && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "false" && await barBtn(),
+  ok(si.side[1] === 64 && si.col < 100 && !(await footAt()).shown && (await names()) === "Practice:0,Vocabularies:0,History:0,Study tools:0" && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "false" && await barBtn(),
     "sidebar: ☰ shrinks it to icons, named when pointed at, and the page takes the room", JSON.stringify(si) + " " + await names());
   await bp.screenshot({ path: join(out, "22-sidebar-icons.png") });
   await bp.click('#sideNav [data-go="history"]'); await bp.waitForTimeout(300);

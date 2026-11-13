@@ -57,7 +57,7 @@ colours.apply(...colours.saved()); // before anything is drawn
 <!--#endif-->
     <nav class="sidenav" id="sideNav" aria-label="Pages">
       <button type="button" data-go="setup"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z M13.6 7.4 L16.6 10.4"/></svg><span>Practice</span></button>
-      <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg><span>Vocab table</span></button>
+      <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg><span>Vocabularies</span></button>
       <button type="button" data-go="history"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.8 12 a8.2 8.2 0 1 0 2.4 -5.8 L3.8 8.6 M3.8 4.2 V8.6 H8.2 M12 7.6 V12 L15 13.8"/></svg><span>History</span></button>
 <!--#if public-->
       <a href="study-tools/"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg><span>Study tools</span></a>
@@ -90,9 +90,9 @@ colours.apply(...colours.saved()); // before anything is drawn
   <!-- SETUP -->
   <section id="setup" class="wrap">
     <div class="panel">
-      <div class="head"><h3>Sets</h3>
-        <div class="headr"><button class="link" id="toTable">vocab table</button>
-          <div class="seg mini viewsw" id="groupSeg" role="group" aria-label="Unit rows by" hidden></div>
+      <div class="head"><h3>Vocabulary sets</h3>
+        <div class="headr"><div class="seg mini viewsw" id="groupSeg" role="group" aria-label="Unit rows by" hidden></div>
+          <button class="link" id="toTable" aria-label="Edit vocabulary sets">edit</button>
         </div>
       </div>
       <div class="pbar" id="pickBar" hidden>
@@ -100,7 +100,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div class="pkinds" id="pickTagRow" hidden><span class="muted small">Filter</span>
           <div class="chips" id="pickTags" role="group" aria-label="Show sets tagged"></div>
         </div>
-        <div class="tsum" id="pickSumRow" hidden><span class="muted small" id="pickSum"></span><button class="link" type="button" id="pickClear">Clear all picks</button></div>
+        <div class="tsum" id="pickSumRow"><span class="muted small" id="pickSum"></span><button class="link small" type="button" id="pickClear">Clear all picks</button></div>
       </div>
       <div id="setPicker"><div class="empty">Loading vocab sets…</div></div>
 <!--#if public-->
@@ -364,14 +364,14 @@ colours.apply(...colours.saved()); // before anything is drawn
     <div class="banner leaveask" id="leaveAsk" hidden></div>
     <div class="panel">
       <div class="ttop" id="tTop">
-        <div class="head"><h2>Vocab table</h2>
+        <div class="head"><h2>Vocabularies</h2>
           <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="editColBtn" hidden>Edit collections</button>
             <span class="colbtns" id="colBtns" hidden><span class="editerr" id="colErr" role="status"></span><span class="muted small" id="colState"></span><button class="btn" type="button" id="colDiscard">Discard</button><button class="btn primary" type="button" id="colSave" disabled>Save</button></span>
             <div class="seg mini viewsw" id="tGroupSeg" role="group" aria-label="Unit rows by" hidden></div>
           </div>
         </div>
         <div class="tbar">
-          <input type="search" class="tsearch" id="tSearch" placeholder="Search English, kana or kanji" aria-label="Search the vocab table in every unit">
+          <input type="search" class="tsearch" id="tSearch" placeholder="Search English, kana or kanji" aria-label="Search the vocabulary of every unit">
           <div class="viewed" id="viewEd" hidden></div>
           <div class="coled" id="colEd" hidden></div>
           <div class="pbar tpbar" id="tPickBar"><div class="pchs" id="tChs" role="group" aria-label="Units"></div></div>
@@ -389,7 +389,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     </div>
     <div class="panel">
       <div class="head"><h2>Kanji by unit</h2><span class="muted small" id="kanjiCount"></span></div>
-      <p class="muted small">The kanji each unit teaches, for Force kanji and “Kanji learned up to”. Paste them in any form; only kanji are kept. This follows the units picked in the vocab table.</p>
+      <p class="muted small">The kanji each unit teaches, for Force kanji and “Kanji learned up to”. Paste them in any form; only kanji are kept. This follows the units picked at the top of this page.</p>
       <div class="tsum"><span class="muted small" id="kSummary"></span><button class="link" id="kAllBtn" type="button"></button></div>
       <div id="kanjiLists"></div>
       <form class="newset" id="newKanjiForm" hidden>

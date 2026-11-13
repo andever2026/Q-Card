@@ -132,7 +132,7 @@ await page.click("#settingsClose");
 ok(await vis('[data-set="drinks"]'), "import: the new set shows on the page");
 
 // ---------- 4. the menu, the same as the public site's without Study tools (a page of the public site) ----------
-ok(await page.evaluate(() => [...document.querySelectorAll("#sideNav > *")].map((b) => b.textContent.trim()).join(", ")) === "Practice, Vocab table, History", "menu: Practice, Vocab table and History, without the public site's Study tools");
+ok(await page.evaluate(() => [...document.querySelectorAll("#sideNav > *")].map((b) => b.textContent.trim()).join(", ")) === "Practice, Vocabularies, History", "menu: Practice, Vocab table and History, without the public site's Study tools");
 await page.setViewportSize({ width: 1280, height: 1000 });
 await page.click('#sideNav [data-go="history"]'); await page.waitForTimeout(300);
 ok(await vis("#history") && await page.evaluate(() => getComputedStyle(document.querySelector("header.side")).position === "fixed"), "menu: a sidebar on a big screen, and History opens from it");

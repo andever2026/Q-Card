@@ -113,11 +113,15 @@
   const chShown = (s) => PP.has(unitKey(s));
   // Both pages share one choice of view.
   function syncGroupSegs() { renderViewSwitch($("#groupSeg")); renderViewSwitch($("#tGroupSeg")); $("#tGroupSeg").hidden ||= !!S.colEdit; }
-  function renderPickBar() {
+  // Under the rows: how many sets are picked, and Clear all picks, or, with none picked, Pick all sets (the sets showing
+  // that have words: canPick), greyed out while there are none to pick.
+  let canPick = [];
+  function renderPickBar(pickable) {
     PP.render(); syncGroupSegs();
-    const n = S.selected.size;
-    $("#pickSumRow").hidden = !n;
+    const n = S.selected.size, c = $("#pickClear");
+    canPick = pickable;
     $("#pickSum").textContent = `${n} set${n === 1 ? "" : "s"} picked`;
+    c.textContent = n ? "Clear all picks" : "Pick all sets"; c.disabled = !n && !pickable.length;
   }
   // The Filter row: every tag in use, each with how many sets picking it hides (the sets without it), most hidden first.
   // None is picked to start, so every set shows. It's left out when no tag would narrow anything.
@@ -133,7 +137,7 @@
     }));
     if (on.length) $("#tagClear").onclick = () => { S.pickTags.clear(); save(); };
   }
-  $("#pickClear").onclick = () => { S.selected.clear(); saveSetup(); renderSetup(); };
+  $("#pickClear").onclick = () => { if (S.selected.size) S.selected.clear(); else canPick.forEach((x) => S.selected.add(x.id)); saveSetup(); renderSetup(); };
   function renderSetup() {
     const box = $("#setPicker");
     if (!S.loaded) return;
@@ -145,13 +149,13 @@
       //#if public
       if (samplesState) box.innerHTML = `<div class="empty"><b>${samplesState === "adding" ? "Adding the sample sets…" : "Loading your sets…"}</b></div>`;
       else {
-        box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets into the vocab table.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open the vocab table</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
+        box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets in Vocabularies.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open Vocabularies</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
         $("#emptyImport").onclick = () => { openSettings("data"); $("#importBtn").click(); };
         $("#emptyTable").onclick = () => { renderTable(); show("table"); };
         $("#emptySamples").onclick = (e) => { e.target.disabled = true; addSamples().catch(() => { e.target.disabled = false; banner("The sample sets couldn't be added. Try again."); }); };
       }
       //#else
-      box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>${canWrite ? "Add your first set in the vocab table." : "The owner hasn't added any sets yet."}</span></div>`;
+      box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>${canWrite ? "Add your first set in Vocabularies." : "The owner hasn't added any sets yet."}</span></div>`;
       //#endif
     } else {
       // Sets with no ready words can't be picked.
@@ -182,7 +186,7 @@
       const tagged = (s) => !on.length || setTags(s, tags.kinds).some((t) => on.includes(tagKey(t)));
       const chs = new Set(S.sets.filter(chShown).map(unitKey)), shown = S.sets.filter((s) => chShown(s) && tagged(s));
       renderTagRow(tags.list, on);
-      renderPickBar();
+      renderPickBar(shown.filter((x) => readyCount(x.words)));
       const byCh = new Map();
       for (const s of shown) { if (!byCh.has(unitKey(s))) byCh.set(unitKey(s), []); byCh.get(unitKey(s)).push(s); }
       const groups = [...byCh.values()];
@@ -238,7 +242,7 @@
     sel.innerHTML = opts.map(opt).join("");
     const set = learnedSet(), key = uptoKey(), list = lists.find((k) => unitKey(k) === key);
     const upTo = S.upto !== "auto" ? "" : !S.selected.size ? "Follows the sets you pick" : list ? `Up to ${unitTitle(list)} · ` : "";
-    $("#uptoHint").textContent = !lists.length ? "Add kanji lists to units in the vocab table to choose a unit." : S.upto === "auto" && !S.selected.size ? upTo : set ? `${upTo}${set.size} kanji learned` : "";
+    $("#uptoHint").textContent = !lists.length ? "Add kanji lists to units in Vocabularies to choose a unit." : S.upto === "auto" && !S.selected.size ? upTo : set ? `${upTo}${set.size} kanji learned` : "";
   }
   $("#uptoSel").onchange = (e) => { S.upto = e.target.value; store.set("uptoPick", S.upto); renderUpto(); };
   // The list "Highest picked unit" stands for: the last kanji list at or before the furthest picked unit

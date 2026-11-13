@@ -45,7 +45,7 @@
       text: "Because you left midway, Resume last practice carries on where you stopped, even with what you'd written. Start practice begins a new one." },
     { view: "setup", at: () => firstVis("#histPanel"), title: "Your practice",
       text: "Your recent practice shows up here. Turn on history to see your progress and which words need the most love." },
-    { view: "setup", at: () => $("#toTable"), title: "The vocab table", text: "Tap vocab table to see the words in every set.",
+    { view: "setup", at: () => $("#toTable"), title: "Vocabularies", text: "Tap edit to see the words in every set, and to change them.",
       done: () => vis($("#table")), act: () => $("#toTable").click() },
     { view: "table", at: () => firstVis("#setTables"), title: "Your sets",
       text: "Open a set to see its words. You can edit them, and the set's details and tags." },
@@ -58,7 +58,7 @@
       get text() { return vis($("#backBtn")) ? "Tap ← Back to practice." : "Tap Practice in the menu on the left to go back. It takes you to History and Study tools too."; },
       done: () => vis($("#setup")), act: () => $("#backBtn").click() },
     { view: "setup", at: () => [$("#settingsBtn"), $("#acctBtn")], title: "Settings and your account",
-      get text() { return `${isWide() ? "" : "☰ opens the menu: History, Study tools and the vocab table. "}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data. Beside it, Guest is where you sign in.`; } },
+      get text() { return `${isWide() ? "" : "☰ opens the menu: Vocabularies, History and Study tools. "}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data. Beside it, Guest is where you sign in.`; } },
     { title: "That's the tour!", end: true,
       text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and history on all your devices." },
   ];

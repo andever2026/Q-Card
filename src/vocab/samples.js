@@ -35,7 +35,7 @@
     if (!n) { sampleAsk = false; return; }
     el.innerHTML = sampleAsk
       ? `Remove the ${n} sample ${n === 1 ? "set" : "sets"} and their kanji lists? <button class="link" type="button" id="sampleYes">Remove</button> · <button class="link" type="button" id="sampleNo">Keep them</button>`
-      : `The sample sets are here so you can try the page right away. Add your own in the vocab table, or import a file from Settings, whenever you're ready. <button class="link" type="button" id="sampleRemove">Remove the sample sets</button>`;
+      : `The sample sets are here so you can try the page right away. Add your own in Vocabularies, or import a file from Settings, whenever you're ready. <button class="link" type="button" id="sampleRemove">Remove the sample sets</button>`;
     if (!sampleAsk) { $("#sampleRemove").onclick = () => { sampleAsk = true; renderSampleNote(); }; return; }
     $("#sampleNo").onclick = () => { sampleAsk = false; renderSampleNote(); };
     $("#sampleYes").onclick = async () => {

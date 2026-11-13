@@ -307,7 +307,7 @@
     const w = $("#delAllWrap");
     if (state === "confirm") w.innerHTML = `<span class="small">Delete all ${S.history.length} practice sessions and stop saving new ones? This can't be undone.</span><button class="btn danger" id="delAllYes">Delete all and turn off</button><button class="btn" id="delAllNo">Keep</button>`;
     else if (state) w.innerHTML = `<span class="small muted">${esc(state)}</span>`;
-    else w.innerHTML = `<button class="ghost small" id="delAll">Delete all history and turn off data collection</button>`;
+    else w.innerHTML = `<button class="ghost small" id="delAll">Delete and turn off history</button>`;
   }
   let deletingAll = false;
   $("#delAllWrap").addEventListener("click", async (e) => {

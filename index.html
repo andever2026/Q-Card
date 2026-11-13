@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-6ZKtHoz205uGzXq7+wpRu3j21yCRU8Hx2cHhdSN5sEo=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-/naxG9NfLPF92JKXOfm5+hrhLLP6qswmmDqQVjZn4vc=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -80,6 +80,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ai); outlin
 .btn:not(.primary) ~ .btn.primary, .btn.primary:has(~ .btn:not(.primary)) { padding: 8px 14px; }
 .btn.danger { color: var(--shu); }
 .link { background: none; border: none; padding: 0; color: var(--ai); text-decoration: underline; text-underline-offset: 3px; font-size: .9rem; }
+.link:disabled { color: var(--muted); text-decoration: none; cursor: default; opacity: .6; }
 .muted { color: var(--muted); }
 .tactions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 * { box-sizing: border-box; }
@@ -643,7 +644,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     </div></dialog>
     <nav class="sidenav" id="sideNav" aria-label="Pages">
       <button type="button" data-go="setup"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z M13.6 7.4 L16.6 10.4"/></svg><span>Practice</span></button>
-      <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg><span>Vocab table</span></button>
+      <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg><span>Vocabularies</span></button>
       <button type="button" data-go="history"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.8 12 a8.2 8.2 0 1 0 2.4 -5.8 L3.8 8.6 M3.8 4.2 V8.6 H8.2 M12 7.6 V12 L15 13.8"/></svg><span>History</span></button>
       <a href="study-tools/"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg><span>Study tools</span></a>
     </nav>
@@ -670,9 +671,9 @@ colours.apply(...colours.saved()); // before anything is drawn
   <!-- SETUP -->
   <section id="setup" class="wrap">
     <div class="panel">
-      <div class="head"><h3>Sets</h3>
-        <div class="headr"><button class="link" id="toTable">vocab table</button>
-          <div class="seg mini viewsw" id="groupSeg" role="group" aria-label="Unit rows by" hidden></div>
+      <div class="head"><h3>Vocabulary sets</h3>
+        <div class="headr"><div class="seg mini viewsw" id="groupSeg" role="group" aria-label="Unit rows by" hidden></div>
+          <button class="link" id="toTable" aria-label="Edit vocabulary sets">edit</button>
         </div>
       </div>
       <div class="pbar" id="pickBar" hidden>
@@ -680,7 +681,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div class="pkinds" id="pickTagRow" hidden><span class="muted small">Filter</span>
           <div class="chips" id="pickTags" role="group" aria-label="Show sets tagged"></div>
         </div>
-        <div class="tsum" id="pickSumRow" hidden><span class="muted small" id="pickSum"></span><button class="link" type="button" id="pickClear">Clear all picks</button></div>
+        <div class="tsum" id="pickSumRow"><span class="muted small" id="pickSum"></span><button class="link small" type="button" id="pickClear">Clear all picks</button></div>
       </div>
       <div id="setPicker"><div class="empty">Loading vocab sets…</div></div>
       <p class="muted small" id="sampleNote" hidden></p>
@@ -922,14 +923,14 @@ colours.apply(...colours.saved()); // before anything is drawn
     <div class="banner leaveask" id="leaveAsk" hidden></div>
     <div class="panel">
       <div class="ttop" id="tTop">
-        <div class="head"><h2>Vocab table</h2>
+        <div class="head"><h2>Vocabularies</h2>
           <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="editColBtn" hidden>Edit collections</button>
             <span class="colbtns" id="colBtns" hidden><span class="editerr" id="colErr" role="status"></span><span class="muted small" id="colState"></span><button class="btn" type="button" id="colDiscard">Discard</button><button class="btn primary" type="button" id="colSave" disabled>Save</button></span>
             <div class="seg mini viewsw" id="tGroupSeg" role="group" aria-label="Unit rows by" hidden></div>
           </div>
         </div>
         <div class="tbar">
-          <input type="search" class="tsearch" id="tSearch" placeholder="Search English, kana or kanji" aria-label="Search the vocab table in every unit">
+          <input type="search" class="tsearch" id="tSearch" placeholder="Search English, kana or kanji" aria-label="Search the vocabulary of every unit">
           <div class="viewed" id="viewEd" hidden></div>
           <div class="coled" id="colEd" hidden></div>
           <div class="pbar tpbar" id="tPickBar"><div class="pchs" id="tChs" role="group" aria-label="Units"></div></div>
@@ -947,7 +948,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     </div>
     <div class="panel">
       <div class="head"><h2>Kanji by unit</h2><span class="muted small" id="kanjiCount"></span></div>
-      <p class="muted small">The kanji each unit teaches, for Force kanji and “Kanji learned up to”. Paste them in any form; only kanji are kept. This follows the units picked in the vocab table.</p>
+      <p class="muted small">The kanji each unit teaches, for Force kanji and “Kanji learned up to”. Paste them in any form; only kanji are kept. This follows the units picked at the top of this page.</p>
       <div class="tsum"><span class="muted small" id="kSummary"></span><button class="link" id="kAllBtn" type="button"></button></div>
       <div id="kanjiLists"></div>
       <form class="newset" id="newKanjiForm" hidden>
@@ -1868,11 +1869,15 @@ colours.apply(...colours.saved()); // before anything is drawn
   const chShown = (s) => PP.has(unitKey(s));
   // Both pages share one choice of view.
   function syncGroupSegs() { renderViewSwitch($("#groupSeg")); renderViewSwitch($("#tGroupSeg")); $("#tGroupSeg").hidden ||= !!S.colEdit; }
-  function renderPickBar() {
+  // Under the rows: how many sets are picked, and Clear all picks, or, with none picked, Pick all sets (the sets showing
+  // that have words: canPick), greyed out while there are none to pick.
+  let canPick = [];
+  function renderPickBar(pickable) {
     PP.render(); syncGroupSegs();
-    const n = S.selected.size;
-    $("#pickSumRow").hidden = !n;
+    const n = S.selected.size, c = $("#pickClear");
+    canPick = pickable;
     $("#pickSum").textContent = `${n} set${n === 1 ? "" : "s"} picked`;
+    c.textContent = n ? "Clear all picks" : "Pick all sets"; c.disabled = !n && !pickable.length;
   }
   // The Filter row: every tag in use, each with how many sets picking it hides (the sets without it), most hidden first.
   // None is picked to start, so every set shows. It's left out when no tag would narrow anything.
@@ -1888,7 +1893,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     }));
     if (on.length) $("#tagClear").onclick = () => { S.pickTags.clear(); save(); };
   }
-  $("#pickClear").onclick = () => { S.selected.clear(); saveSetup(); renderSetup(); };
+  $("#pickClear").onclick = () => { if (S.selected.size) S.selected.clear(); else canPick.forEach((x) => S.selected.add(x.id)); saveSetup(); renderSetup(); };
   function renderSetup() {
     const box = $("#setPicker");
     if (!S.loaded) return;
@@ -1897,7 +1902,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (!S.sets.length) {
       if (samplesState) box.innerHTML = `<div class="empty"><b>${samplesState === "adding" ? "Adding the sample sets…" : "Loading your sets…"}</b></div>`;
       else {
-        box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets into the vocab table.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open the vocab table</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
+        box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets in Vocabularies.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open Vocabularies</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
         $("#emptyImport").onclick = () => { openSettings("data"); $("#importBtn").click(); };
         $("#emptyTable").onclick = () => { renderTable(); show("table"); };
         $("#emptySamples").onclick = (e) => { e.target.disabled = true; addSamples().catch(() => { e.target.disabled = false; banner("The sample sets couldn't be added. Try again."); }); };
@@ -1931,7 +1936,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       const tagged = (s) => !on.length || setTags(s, tags.kinds).some((t) => on.includes(tagKey(t)));
       const chs = new Set(S.sets.filter(chShown).map(unitKey)), shown = S.sets.filter((s) => chShown(s) && tagged(s));
       renderTagRow(tags.list, on);
-      renderPickBar();
+      renderPickBar(shown.filter((x) => readyCount(x.words)));
       const byCh = new Map();
       for (const s of shown) { if (!byCh.has(unitKey(s))) byCh.set(unitKey(s), []); byCh.get(unitKey(s)).push(s); }
       const groups = [...byCh.values()];
@@ -1987,7 +1992,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     sel.innerHTML = opts.map(opt).join("");
     const set = learnedSet(), key = uptoKey(), list = lists.find((k) => unitKey(k) === key);
     const upTo = S.upto !== "auto" ? "" : !S.selected.size ? "Follows the sets you pick" : list ? `Up to ${unitTitle(list)} · ` : "";
-    $("#uptoHint").textContent = !lists.length ? "Add kanji lists to units in the vocab table to choose a unit." : S.upto === "auto" && !S.selected.size ? upTo : set ? `${upTo}${set.size} kanji learned` : "";
+    $("#uptoHint").textContent = !lists.length ? "Add kanji lists to units in Vocabularies to choose a unit." : S.upto === "auto" && !S.selected.size ? upTo : set ? `${upTo}${set.size} kanji learned` : "";
   }
   $("#uptoSel").onchange = (e) => { S.upto = e.target.value; store.set("uptoPick", S.upto); renderUpto(); };
   // The list "Highest picked unit" stands for: the last kanji list at or before the furthest picked unit
@@ -2728,7 +2733,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const w = $("#delAllWrap");
     if (state === "confirm") w.innerHTML = `<span class="small">Delete all ${S.history.length} practice sessions and stop saving new ones? This can't be undone.</span><button class="btn danger" id="delAllYes">Delete all and turn off</button><button class="btn" id="delAllNo">Keep</button>`;
     else if (state) w.innerHTML = `<span class="small muted">${esc(state)}</span>`;
-    else w.innerHTML = `<button class="ghost small" id="delAll">Delete all history and turn off data collection</button>`;
+    else w.innerHTML = `<button class="ghost small" id="delAll">Delete and turn off history</button>`;
   }
   let deletingAll = false;
   $("#delAllWrap").addEventListener("click", async (e) => {
@@ -3585,7 +3590,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (!n) { sampleAsk = false; return; }
     el.innerHTML = sampleAsk
       ? `Remove the ${n} sample ${n === 1 ? "set" : "sets"} and their kanji lists? <button class="link" type="button" id="sampleYes">Remove</button> · <button class="link" type="button" id="sampleNo">Keep them</button>`
-      : `The sample sets are here so you can try the page right away. Add your own in the vocab table, or import a file from Settings, whenever you're ready. <button class="link" type="button" id="sampleRemove">Remove the sample sets</button>`;
+      : `The sample sets are here so you can try the page right away. Add your own in Vocabularies, or import a file from Settings, whenever you're ready. <button class="link" type="button" id="sampleRemove">Remove the sample sets</button>`;
     if (!sampleAsk) { $("#sampleRemove").onclick = () => { sampleAsk = true; renderSampleNote(); }; return; }
     $("#sampleNo").onclick = () => { sampleAsk = false; renderSampleNote(); };
     $("#sampleYes").onclick = async () => {
@@ -3926,7 +3931,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       text: "Because you left midway, Resume last practice carries on where you stopped, even with what you'd written. Start practice begins a new one." },
     { view: "setup", at: () => firstVis("#histPanel"), title: "Your practice",
       text: "Your recent practice shows up here. Turn on history to see your progress and which words need the most love." },
-    { view: "setup", at: () => $("#toTable"), title: "The vocab table", text: "Tap vocab table to see the words in every set.",
+    { view: "setup", at: () => $("#toTable"), title: "Vocabularies", text: "Tap edit to see the words in every set, and to change them.",
       done: () => vis($("#table")), act: () => $("#toTable").click() },
     { view: "table", at: () => firstVis("#setTables"), title: "Your sets",
       text: "Open a set to see its words. You can edit them, and the set's details and tags." },
@@ -3939,7 +3944,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       get text() { return vis($("#backBtn")) ? "Tap ← Back to practice." : "Tap Practice in the menu on the left to go back. It takes you to History and Study tools too."; },
       done: () => vis($("#setup")), act: () => $("#backBtn").click() },
     { view: "setup", at: () => [$("#settingsBtn"), $("#acctBtn")], title: "Settings and your account",
-      get text() { return `${isWide() ? "" : "☰ opens the menu: History, Study tools and the vocab table. "}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data. Beside it, Guest is where you sign in.`; } },
+      get text() { return `${isWide() ? "" : "☰ opens the menu: Vocabularies, History and Study tools. "}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data. Beside it, Guest is where you sign in.`; } },
     { title: "That's the tour!", end: true,
       text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and history on all your devices." },
   ];
