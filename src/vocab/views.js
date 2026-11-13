@@ -48,7 +48,7 @@
     box.innerHTML = opts.map(([v, t]) => `<button type="button" data-view="${esc(v)}" aria-pressed="${v === on}">${esc(t.replace("\n", " "))}</button>`).join("");
     box.querySelectorAll("[data-view]").forEach((b) => (b.onclick = () => pick(b.dataset.view)));
     const head = box.closest(".head");
-    if (head && box.scrollWidth > head.clientWidth / 2) { box.className = "viewsw"; makeDropdown(box, "Unit rows by", opts.map(([v, t]) => [v, t.replace("\n", " ")]), pick).set(on); }
+    if (head && box.scrollWidth > head.clientWidth / 2) { box.className = "viewsw"; makeDropdown(box, "View", opts.map(([v, t]) => [v, t.replace("\n", " ")]), pick).set(on); }
   }
   // Redrawn when its header changes width, so it turns into a dropdown (or back) as the window does.
   const viewSwitchFit = new ResizeObserver((es) => es.forEach((e) => { const w = Math.round(e.contentRect.width), box = e.target.querySelector(".viewsw");

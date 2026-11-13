@@ -111,6 +111,8 @@
     dot: (k) => (S.sets.some((s) => S.selected.has(s.id) && unitKey(s) === k) ? `<span class="dot pick" title="Has picked sets">•</span>` : ""),
     onChange: () => renderSetup() });
   const chShown = (s) => PP.has(unitKey(s));
+  // Units are shown or hidden (their chips choose which sets appear); sets are picked (for practice).
+  const noUnitsShown = "No units shown. Tap All or a unit above to see its sets.";
   // Both pages share one choice of view.
   function syncGroupSegs() { renderViewSwitch($("#groupSeg")); renderViewSwitch($("#tGroupSeg")); $("#tGroupSeg").hidden ||= !!S.colEdit; }
   // Under the rows: how many sets are picked, and Clear all picks, or, with none picked, Pick all sets (the sets showing
@@ -193,7 +195,7 @@
       const onNames = tags.list.filter((t) => on.includes(t.key)).map((t) => `“${esc(t.name)}”`);
       const who = chs.size === 1 ? esc(keyUnit([...chs][0])) + " has" : states.every((x) => x === "all") ? "There are" : "These units have";
       box.innerHTML = !shown.length
-        ? !chs.size ? `<div class="empty"><span>No units picked. Tap All or a unit above to see its sets.</span></div>`
+        ? !chs.size ? `<div class="empty"><span>${noUnitsShown}</span></div>`
         : `<div class="empty"><b>No sets to show.</b><span>${who} no sets tagged ${onNames.join(" or ")}. Clear the filter above to see the rest.</span></div>`
         : groups.map((sets, i) => {
         const name = esc(sets[0].unit);
@@ -228,7 +230,7 @@
   function renderUpto() {
     const sel = $("#uptoSel"), lists = S.kanjiLists, multi = multiCol();
     const opts = lists.length
-      ? [["auto", ["Highest picked unit"]], ...new Map(lists.map((k) => [unitKey(k), [k.unit, colOf(k)]])), ["none", ["Nothing yet"]], ["all", ["Every kanji in the table"]]]
+      ? [["auto", ["Highest unit of the picked sets"]], ...new Map(lists.map((k) => [unitKey(k), [k.unit, colOf(k)]])), ["none", ["Nothing yet"]], ["all", ["Every kanji in the table"]]]
       : [["all", ["Every kanji in the table"]]];
     // Older pages stored a bare chapter number (read as that chapter of the first collection) or a chapter number after the book.
     const has = (k) => opts.some(([v]) => v === k);
@@ -245,7 +247,7 @@
     $("#uptoHint").textContent = !lists.length ? "Add kanji lists to units in Vocabularies to choose a unit." : S.upto === "auto" && !S.selected.size ? upTo : set ? `${upTo}${set.size} kanji learned` : "";
   }
   $("#uptoSel").onchange = (e) => { S.upto = e.target.value; store.set("uptoPick", S.upto); renderUpto(); };
-  // The list "Highest picked unit" stands for: the last kanji list at or before the furthest picked unit
+  // The list "Highest unit of the picked sets" stands for: the last kanji list at or before the furthest picked unit
   // (collection order, then unit). No picks = every list; picks before the first list = none.
   function uptoKey() {
     if (S.upto !== "auto") return S.upto;

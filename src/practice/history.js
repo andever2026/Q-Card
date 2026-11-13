@@ -136,9 +136,9 @@
   function drawHeat() {
     const counts = new Map();
     for (const t of S.history) { const k = dayKey(new Date(t.finishedAt)); counts.set(k, (counts.get(k) || 0) + 1); }
-    // Like GitHub's graph: as many weeks as fit (up to a year), stretched to the card's width (bigger squares on a wide one).
+    // Like GitHub's graph, with the squares kept one size: a wider card shows more weeks back (the leftover sliver is stretched).
     const c = 14, g = 3, left = 28, top = 16, scale = 1.1, avail = $("#heat").clientWidth;
-    const weeks = avail ? Math.max(8, Math.min(53, Math.floor((avail / scale - left) / (c + g)))) : 16;
+    const weeks = avail ? Math.max(8, Math.floor((avail / scale - left) / (c + g))) : 16;
     const end = new Date(); end.setHours(0, 0, 0, 0);
     const start = new Date(end); start.setDate(end.getDate() - end.getDay() - (weeks - 1) * 7);
     let cells = "", months = "", lastM = -1, lastX = -99;

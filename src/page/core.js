@@ -37,7 +37,7 @@
     dir: store.get("dir", "ej"),
     mode: store.get("mode", "default"),
     kanjiLists: [],      // [{id, collection, unit, kanji}]
-    upto: store.get("uptoPick", "auto"), // "auto" follows the highest picked unit; older manual picks lived under "upto"
+    upto: store.get("uptoPick", "auto"), // "auto" follows the highest unit of the picked sets; older manual picks lived under "upto"
     kdrafts: new Map(),  // listId -> edited kanji string
     kConfirmDel: null,
     drafts: new Map(),   // setId -> {words, vals}: the set being edited in the vocab table (vocab/table.js)

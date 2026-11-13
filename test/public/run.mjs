@@ -112,7 +112,7 @@ await page.screenshot({ path: join(out, "1-nickname.png") });
 await page.click("#settingsClose");
 ok(!(await setOpen(page)) && await vis(page, "#setup"), "settings: ← Back closes it, back to the page it was opened from");
 ok(await vis(page, '[data-set="samples-greetings"]') && await vis(page, "#sampleNote"), "new account: starts with the sample sets");
-ok((await page.$eval("#uptoSel", (s) => s.value)) === "auto", "samples: 'Kanji learned up to' starts at Highest picked unit", await page.$eval("#uptoSel", (s) => s.value));
+ok((await page.$eval("#uptoSel", (s) => s.value)) === "auto", "samples: 'Kanji learned up to' starts at Highest unit of the picked sets", await page.$eval("#uptoSel", (s) => s.value));
 const sampleDocs = (d) => Object.keys(d).filter((p) => /^users\/u1\/(sets|kanji)\/samples-/.test(p));
 let data = await fsData(page);
 ok(!!data["users/u1/meta/samples"] && sampleDocs(data).length === 9, "samples: 6 sets and 3 kanji lists saved, offer remembered", sampleDocs(data).join(", "));
@@ -633,7 +633,7 @@ await up.click("#pickClear");
 ok((await sumRow()) === "5 sets picked|Clear all picks|false", "sets card: Pick all sets picks every set showing, then Clear all picks is offered", await sumRow());
 await up.click("#pickClear");
 await up.click('#pickChs .pchrow:nth-child(1) [data-k="all"]'); await up.click('#pickChs .pchrow:nth-child(2) [data-k="1"]');
-ok(/No units picked/.test(await text(up, "#setPicker")) && (await sumRow()) === "0 sets picked|Pick all sets|true", "sets card: with no units picked, Pick all sets is there but greyed out", await sumRow());
+ok(/No units shown\. Tap All or a unit above/.test(await text(up, "#setPicker")) && (await sumRow()) === "0 sets picked|Pick all sets|true", "sets card: with no units shown, Pick all sets is there but greyed out", await sumRow());
 await up.click('#pickChs .pchrow:nth-child(1) [data-k="all"]'); await up.click('#pickChs .pchrow:nth-child(2) [data-k="1"]');
 await up.click("#toTable"); await up.waitForTimeout(200);
 await up.fill("#nsCol", "mine"); await up.fill("#nsUnit", "week 2"); await up.fill("#nsName", "Weather");
@@ -945,10 +945,11 @@ const hp = await newPage(hctx, { init: () => {
     words: i ? [{ id: "w0", en: "word 0", jp: "かな0", dir: "ej", tries: 1 }] : words.map((w) => ({ id: w.id, en: w.en, jp: w.kana, dir: "ej", tries: 2 })) });
 } });
 await hp.click("#histAll"); await hp.waitForTimeout(300);
-{ const fill = () => hp.evaluate(() => [Math.round(document.querySelector("#heat svg").getBoundingClientRect().width), document.querySelector("#heat").clientWidth]);
-  let [svgW, boxW] = await fill(); const narrow = svgW === boxW;
-  await hp.setViewportSize({ width: 2000, height: 1000 }); await hp.waitForTimeout(300); [svgW, boxW] = await fill();
-  ok(narrow && svgW === boxW && boxW > 1500 && /last 53 weeks/.test(await text(hp, "#heatTitle")), "history: the practice graph fills its card, however wide the window", `${svgW}/${boxW}`);
+{ const fill = () => hp.evaluate(() => [Math.round(document.querySelector("#heat svg").getBoundingClientRect().width), document.querySelector("#heat").clientWidth,
+    Math.round(document.querySelector("#heat rect").getBoundingClientRect().width), +document.querySelector("#heatTitle").textContent.match(/\d+/)[0]]);
+  let [svgW, boxW, sq, wk] = await fill(); const narrow = svgW === boxW, sq0 = sq, wk0 = wk;
+  await hp.setViewportSize({ width: 2000, height: 1000 }); await hp.waitForTimeout(300); [svgW, boxW, sq, wk] = await fill();
+  ok(narrow && svgW === boxW && boxW > 1500 && wk > 53 && wk > wk0 && Math.abs(sq - sq0) <= 1, "history: the practice graph fills its card with more weeks, squares the same size", `${svgW}/${boxW} ${wk0}→${wk} weeks, ${sq0}→${sq}px`);
   await hp.setViewportSize({ width: 900, height: 1000 }); await hp.waitForTimeout(200); }
 const hPage = () => hp.evaluate(() => [document.querySelectorAll("#hList > li").length, document.querySelector('#hPager [aria-current="page"]')?.textContent,
   [...document.querySelectorAll("#hPager .pg:not(.arrow):not(.gap)")].map((b) => b.textContent).join(" "), [...document.querySelectorAll("#hPager .arrow")].map((b) => b.disabled).join("/")].join(","));

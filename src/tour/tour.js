@@ -12,7 +12,7 @@
       text: "These are your vocab sets, grouped Collection › Unit › Set. The sample sets are here to try. Tap a set to pick it (you can pick more than one).",
       done: () => S.selected.size > 0, act: () => $("#setPicker [data-set]:not(:disabled)")?.click() },
     { view: "setup", at: () => firstVis("#pickBar"), title: "Units and filters",
-      text: "These chips show or hide whole units. When sets have tags, a Filter row narrows them down too." },
+      text: "Each row is a collection, and its chips show or hide whole units. When sets have tags, a Filter row narrows them down too." },
     { view: "setup", at: () => $("#dirSeg"), title: "Direction",
       text: "English → 日本語 shows the English and you write the Japanese. 日本語 → English is the other way round, and Both mixes them. We'll use English → 日本語.",
       leave: () => { if (S.dir !== "ej") $("#dir-ej").click(); } },

@@ -9,9 +9,9 @@
     $("#kanjiCount").textContent = lists.length ? `${new Set(lists.flatMap((k) => [...(k.kanji || "")])).size} kanji` : "";
     $("#kSummary").textContent = !all.length ? "" : every && all.length > 1 ? `All ${all.length} kanji lists` : lists.length === 1 ? name(lists[0]) : lists.length ? `${lists.length} kanji lists` : "";
     $("#kAllBtn").hidden = !all.length || picked.length === all.length;
-    $("#kAllBtn").textContent = S.kAll ? "Show only the picked units" : "Show all units";
+    $("#kAllBtn").textContent = S.kAll ? "Show only the units shown above" : "Show all units";
     if (!all.length) { box.innerHTML = `<div class="empty"><span>No kanji lists yet${canWrite ? ". Add a unit below and paste its kanji." : "."}</span></div>`; return; }
-    if (!lists.length) { box.innerHTML = `<div class="empty"><span>${TP.shownKeys().length ? "The picked units have no kanji lists" : "No units picked"}${canWrite ? ". Add one below if a unit teaches kanji." : "."}</span></div>`; return; }
+    if (!lists.length) { box.innerHTML = `<div class="empty"><span>${TP.shownKeys().length ? "The units shown have no kanji lists" : "No units shown"}${canWrite ? ". Add one below if a unit teaches kanji." : "."}</span></div>`; return; }
     box.innerHTML = lists.map((k) => {
       const dirty = S.kdrafts.has(k.id), v = dirty ? S.kdrafts.get(k.id) : k.kanji || "", del = S.kConfirmDel === k.id;
       const editing = canWrite && S.kEdit === k.id;
@@ -253,7 +253,7 @@
     const openAll = $("#tOpenAll"); openAll.hidden = ed || (q ? drawn >= total : !shown.length);
     openAll.textContent = q ? `Show all ${total}` : shown.every((x) => x.open) ? "Close all sets" : "Open all sets";
     if (q && !shown.length) { box.innerHTML = `<div class="empty"><b>No words match “${esc(q)}”.</b><span>Search looks at English, kana and kanji in every ${multiCol() ? "collection and unit" : "unit"}.</span></div>`; return; }
-    if (!keys.length) { box.innerHTML = `<div class="empty"><span>No units picked. Tap All or a unit above to see its sets.</span></div>`; return; }
+    if (!keys.length) { box.innerHTML = `<div class="empty"><span>${noUnitsShown}</span></div>`; return; }
     if (!shown.length) { box.innerHTML = `<div class="empty"><span>${esc(where)} ${keys.length === 1 ? "has" : "have"} no vocab sets yet${canWrite ? ". Add one below." : "."}</span></div>`; return; }
     const manyCols = new Set(shown.map(({ s }) => colOf(s))).size > 1;
     box.innerHTML = shown.map(({ s, words, idx, open }) => {

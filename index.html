@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-/naxG9NfLPF92JKXOfm5+hrhLLP6qswmmDqQVjZn4vc=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-lUYhGa9EyiKxv8MQA/OP4t1Cr/Qmh4JJbByCpfG4EkM=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -672,7 +672,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   <section id="setup" class="wrap">
     <div class="panel">
       <div class="head"><h3>Vocabulary sets</h3>
-        <div class="headr"><div class="seg mini viewsw" id="groupSeg" role="group" aria-label="Unit rows by" hidden></div>
+        <div class="headr"><div class="seg mini viewsw" id="groupSeg" role="group" aria-label="View" hidden></div>
           <button class="link" id="toTable" aria-label="Edit vocabulary sets">edit</button>
         </div>
       </div>
@@ -926,7 +926,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div class="head"><h2>Vocabularies</h2>
           <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="editColBtn" hidden>Edit collections</button>
             <span class="colbtns" id="colBtns" hidden><span class="editerr" id="colErr" role="status"></span><span class="muted small" id="colState"></span><button class="btn" type="button" id="colDiscard">Discard</button><button class="btn primary" type="button" id="colSave" disabled>Save</button></span>
-            <div class="seg mini viewsw" id="tGroupSeg" role="group" aria-label="Unit rows by" hidden></div>
+            <div class="seg mini viewsw" id="tGroupSeg" role="group" aria-label="View" hidden></div>
           </div>
         </div>
         <div class="tbar">
@@ -1124,7 +1124,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     dir: store.get("dir", "ej"),
     mode: store.get("mode", "default"),
     kanjiLists: [],      // [{id, collection, unit, kanji}]
-    upto: store.get("uptoPick", "auto"), // "auto" follows the highest picked unit; older manual picks lived under "upto"
+    upto: store.get("uptoPick", "auto"), // "auto" follows the highest unit of the picked sets; older manual picks lived under "upto"
     kdrafts: new Map(),  // listId -> edited kanji string
     kConfirmDel: null,
     drafts: new Map(),   // setId -> {words, vals}: the set being edited in the vocab table (vocab/table.js)
@@ -1867,6 +1867,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     dot: (k) => (S.sets.some((s) => S.selected.has(s.id) && unitKey(s) === k) ? `<span class="dot pick" title="Has picked sets">•</span>` : ""),
     onChange: () => renderSetup() });
   const chShown = (s) => PP.has(unitKey(s));
+  // Units are shown or hidden (their chips choose which sets appear); sets are picked (for practice).
+  const noUnitsShown = "No units shown. Tap All or a unit above to see its sets.";
   // Both pages share one choice of view.
   function syncGroupSegs() { renderViewSwitch($("#groupSeg")); renderViewSwitch($("#tGroupSeg")); $("#tGroupSeg").hidden ||= !!S.colEdit; }
   // Under the rows: how many sets are picked, and Clear all picks, or, with none picked, Pick all sets (the sets showing
@@ -1943,7 +1945,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       const onNames = tags.list.filter((t) => on.includes(t.key)).map((t) => `“${esc(t.name)}”`);
       const who = chs.size === 1 ? esc(keyUnit([...chs][0])) + " has" : states.every((x) => x === "all") ? "There are" : "These units have";
       box.innerHTML = !shown.length
-        ? !chs.size ? `<div class="empty"><span>No units picked. Tap All or a unit above to see its sets.</span></div>`
+        ? !chs.size ? `<div class="empty"><span>${noUnitsShown}</span></div>`
         : `<div class="empty"><b>No sets to show.</b><span>${who} no sets tagged ${onNames.join(" or ")}. Clear the filter above to see the rest.</span></div>`
         : groups.map((sets, i) => {
         const name = esc(sets[0].unit);
@@ -1978,7 +1980,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   function renderUpto() {
     const sel = $("#uptoSel"), lists = S.kanjiLists, multi = multiCol();
     const opts = lists.length
-      ? [["auto", ["Highest picked unit"]], ...new Map(lists.map((k) => [unitKey(k), [k.unit, colOf(k)]])), ["none", ["Nothing yet"]], ["all", ["Every kanji in the table"]]]
+      ? [["auto", ["Highest unit of the picked sets"]], ...new Map(lists.map((k) => [unitKey(k), [k.unit, colOf(k)]])), ["none", ["Nothing yet"]], ["all", ["Every kanji in the table"]]]
       : [["all", ["Every kanji in the table"]]];
     // Older pages stored a bare chapter number (read as that chapter of the first collection) or a chapter number after the book.
     const has = (k) => opts.some(([v]) => v === k);
@@ -1995,7 +1997,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#uptoHint").textContent = !lists.length ? "Add kanji lists to units in Vocabularies to choose a unit." : S.upto === "auto" && !S.selected.size ? upTo : set ? `${upTo}${set.size} kanji learned` : "";
   }
   $("#uptoSel").onchange = (e) => { S.upto = e.target.value; store.set("uptoPick", S.upto); renderUpto(); };
-  // The list "Highest picked unit" stands for: the last kanji list at or before the furthest picked unit
+  // The list "Highest unit of the picked sets" stands for: the last kanji list at or before the furthest picked unit
   // (collection order, then unit). No picks = every list; picks before the first list = none.
   function uptoKey() {
     if (S.upto !== "auto") return S.upto;
@@ -2562,9 +2564,9 @@ colours.apply(...colours.saved()); // before anything is drawn
   function drawHeat() {
     const counts = new Map();
     for (const t of S.history) { const k = dayKey(new Date(t.finishedAt)); counts.set(k, (counts.get(k) || 0) + 1); }
-    // Like GitHub's graph: as many weeks as fit (up to a year), stretched to the card's width (bigger squares on a wide one).
+    // Like GitHub's graph, with the squares kept one size: a wider card shows more weeks back (the leftover sliver is stretched).
     const c = 14, g = 3, left = 28, top = 16, scale = 1.1, avail = $("#heat").clientWidth;
-    const weeks = avail ? Math.max(8, Math.min(53, Math.floor((avail / scale - left) / (c + g)))) : 16;
+    const weeks = avail ? Math.max(8, Math.floor((avail / scale - left) / (c + g))) : 16;
     const end = new Date(); end.setHours(0, 0, 0, 0);
     const start = new Date(end); start.setDate(end.getDate() - end.getDay() - (weeks - 1) * 7);
     let cells = "", months = "", lastM = -1, lastX = -99;
@@ -2806,9 +2808,9 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#kanjiCount").textContent = lists.length ? `${new Set(lists.flatMap((k) => [...(k.kanji || "")])).size} kanji` : "";
     $("#kSummary").textContent = !all.length ? "" : every && all.length > 1 ? `All ${all.length} kanji lists` : lists.length === 1 ? name(lists[0]) : lists.length ? `${lists.length} kanji lists` : "";
     $("#kAllBtn").hidden = !all.length || picked.length === all.length;
-    $("#kAllBtn").textContent = S.kAll ? "Show only the picked units" : "Show all units";
+    $("#kAllBtn").textContent = S.kAll ? "Show only the units shown above" : "Show all units";
     if (!all.length) { box.innerHTML = `<div class="empty"><span>No kanji lists yet${canWrite ? ". Add a unit below and paste its kanji." : "."}</span></div>`; return; }
-    if (!lists.length) { box.innerHTML = `<div class="empty"><span>${TP.shownKeys().length ? "The picked units have no kanji lists" : "No units picked"}${canWrite ? ". Add one below if a unit teaches kanji." : "."}</span></div>`; return; }
+    if (!lists.length) { box.innerHTML = `<div class="empty"><span>${TP.shownKeys().length ? "The units shown have no kanji lists" : "No units shown"}${canWrite ? ". Add one below if a unit teaches kanji." : "."}</span></div>`; return; }
     box.innerHTML = lists.map((k) => {
       const dirty = S.kdrafts.has(k.id), v = dirty ? S.kdrafts.get(k.id) : k.kanji || "", del = S.kConfirmDel === k.id;
       const editing = canWrite && S.kEdit === k.id;
@@ -3050,7 +3052,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const openAll = $("#tOpenAll"); openAll.hidden = ed || (q ? drawn >= total : !shown.length);
     openAll.textContent = q ? `Show all ${total}` : shown.every((x) => x.open) ? "Close all sets" : "Open all sets";
     if (q && !shown.length) { box.innerHTML = `<div class="empty"><b>No words match “${esc(q)}”.</b><span>Search looks at English, kana and kanji in every ${multiCol() ? "collection and unit" : "unit"}.</span></div>`; return; }
-    if (!keys.length) { box.innerHTML = `<div class="empty"><span>No units picked. Tap All or a unit above to see its sets.</span></div>`; return; }
+    if (!keys.length) { box.innerHTML = `<div class="empty"><span>${noUnitsShown}</span></div>`; return; }
     if (!shown.length) { box.innerHTML = `<div class="empty"><span>${esc(where)} ${keys.length === 1 ? "has" : "have"} no vocab sets yet${canWrite ? ". Add one below." : "."}</span></div>`; return; }
     const manyCols = new Set(shown.map(({ s }) => colOf(s))).size > 1;
     box.innerHTML = shown.map(({ s, words, idx, open }) => {
@@ -3186,7 +3188,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     box.innerHTML = opts.map(([v, t]) => `<button type="button" data-view="${esc(v)}" aria-pressed="${v === on}">${esc(t.replace("\n", " "))}</button>`).join("");
     box.querySelectorAll("[data-view]").forEach((b) => (b.onclick = () => pick(b.dataset.view)));
     const head = box.closest(".head");
-    if (head && box.scrollWidth > head.clientWidth / 2) { box.className = "viewsw"; makeDropdown(box, "Unit rows by", opts.map(([v, t]) => [v, t.replace("\n", " ")]), pick).set(on); }
+    if (head && box.scrollWidth > head.clientWidth / 2) { box.className = "viewsw"; makeDropdown(box, "View", opts.map(([v, t]) => [v, t.replace("\n", " ")]), pick).set(on); }
   }
   // Redrawn when its header changes width, so it turns into a dropdown (or back) as the window does.
   const viewSwitchFit = new ResizeObserver((es) => es.forEach((e) => { const w = Math.round(e.contentRect.width), box = e.target.querySelector(".viewsw");
@@ -3898,7 +3900,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       text: "These are your vocab sets, grouped Collection › Unit › Set. The sample sets are here to try. Tap a set to pick it (you can pick more than one).",
       done: () => S.selected.size > 0, act: () => $("#setPicker [data-set]:not(:disabled)")?.click() },
     { view: "setup", at: () => firstVis("#pickBar"), title: "Units and filters",
-      text: "These chips show or hide whole units. When sets have tags, a Filter row narrows them down too." },
+      text: "Each row is a collection, and its chips show or hide whole units. When sets have tags, a Filter row narrows them down too." },
     { view: "setup", at: () => $("#dirSeg"), title: "Direction",
       text: "English → 日本語 shows the English and you write the Japanese. 日本語 → English is the other way round, and Both mixes them. We'll use English → 日本語.",
       leave: () => { if (S.dir !== "ej") $("#dir-ej").click(); } },
