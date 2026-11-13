@@ -379,8 +379,8 @@ ok((await page.$$eval(`${tset} .tag`, (xs) => xs.map((x) => x.textContent).join(
   ok(await vis(page, "#setup") && (await saved()) === w1 + "!", "vocab table: Save all on leaving saves, then goes back to practice", await saved());
   await page.click("#toTable");
   await page.dblclick(`${tset} tbody tr:nth-child(2) td[data-f="kana"]`);
-  ok(await page.evaluate(() => { const a = document.activeElement; return a?.dataset.f === "kana" && a.dataset.i === "1" && !!a.value && a.selectionStart === a.value.length && !!a.closest(".tset.editing"); }) && await page.$eval(`${tset} [data-save]`, (b) => b.disabled),
-    "vocab table: double-clicking a word opens its set for editing, with the cursor in that word");
+  ok(!(await page.$(`${tset} textarea`)), "vocab table: double-clicking a word doesn't start editing (only Edit does)");
+  await page.click(`${tset} [data-edit]`);
   await page.fill(en, w1);
   await page.click(`${tset} [data-add]`); await page.keyboard.type("spare"); await page.click(`${tset} tr:last-child [data-del]`);
   await page.click(`${tset} [data-save]`); await page.waitForTimeout(400);

@@ -298,10 +298,7 @@
       };
       const ed = el.querySelector("[data-edit]");
       if (ed) {
-        // Edit, or a double-click on a word, which puts the cursor at the end of that word's field: the quick way to fix one typo.
-        const edit = (at) => { startEdit(s); renderTable(); const f = at && document.getElementById(at) || document.querySelector(`[data-sid="${CSS.escape(sid)}"] textarea`); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } };
-        ed.onclick = () => edit();
-        el.querySelectorAll("tbody td[data-f]").forEach((td) => (td.ondblclick = () => { getSelection()?.removeAllRanges(); edit(`w-${sid}-${td.parentElement.dataset.w}-${td.dataset.f}`); }));
+        ed.onclick = () => { startEdit(s); renderTable(); const f = document.querySelector(`[data-sid="${CSS.escape(sid)}"] textarea`); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } };
       }
       if (!d || !el.classList.contains("open")) return;
       const was = new Map(s.words.map((w) => [w.id, w])), err = (m) => { el.querySelector("[data-editerr]").textContent = m; };

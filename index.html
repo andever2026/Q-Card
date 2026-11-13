@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-DsDb4xW8rF8h86Ylo0Ac6zipfGHzRlbUUJTCnGf6lbI=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-E55/T7UJKqPsDMzrxu/1RZQ7uM9yMP9ltAOeNrAh+DI=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -2794,10 +2794,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       };
       const ed = el.querySelector("[data-edit]");
       if (ed) {
-        // Edit, or a double-click on a word, which puts the cursor at the end of that word's field: the quick way to fix one typo.
-        const edit = (at) => { startEdit(s); renderTable(); const f = at && document.getElementById(at) || document.querySelector(`[data-sid="${CSS.escape(sid)}"] textarea`); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } };
-        ed.onclick = () => edit();
-        el.querySelectorAll("tbody td[data-f]").forEach((td) => (td.ondblclick = () => { getSelection()?.removeAllRanges(); edit(`w-${sid}-${td.parentElement.dataset.w}-${td.dataset.f}`); }));
+        ed.onclick = () => { startEdit(s); renderTable(); const f = document.querySelector(`[data-sid="${CSS.escape(sid)}"] textarea`); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } };
       }
       if (!d || !el.classList.contains("open")) return;
       const was = new Map(s.words.map((w) => [w.id, w])), err = (m) => { el.querySelector("[data-editerr]").textContent = m; };
