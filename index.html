@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-pkh12FhnJhWlvb2L1w/flsagtRaD3KDEL858qLK9GQY=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-6ZKtHoz205uGzXq7+wpRu3j21yCRU8Hx2cHhdSN5sEo=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -521,7 +521,7 @@ td.c { text-align: center; padding-inline: 0; }
 .viewbar label { display: flex; align-items: center; gap: 8px; color: var(--muted); }
 .viewbar input { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; width: 14rem; max-width: 100%; }
 .link.danger { color: var(--shu); }
-.coled { display: grid; grid-template-columns: auto minmax(8rem, 13rem) minmax(0, 1fr) auto; gap: 8px 10px; }
+.coled { display: grid; grid-template-columns: auto minmax(8rem, 13rem) minmax(0, 1fr); gap: 8px 10px; }
 .coled > * { grid-column: 1 / -1; }
 .coled .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .colrow { display: grid; grid-template-columns: subgrid; align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
@@ -529,6 +529,9 @@ td.c { text-align: center; padding-inline: 0; }
 .colctl { display: flex; align-items: center; height: 34px; }
 .colctl button { font-size: 1rem; padding: 4px 6px; color: var(--ink); }
 .colctl button:disabled { opacity: .3; }
+.colctl .cdel { display: inline-flex; color: var(--muted); }
+.colctl .cdel:not(:disabled):hover { color: var(--shu); }
+.colctl .cdel:disabled { cursor: not-allowed; }
 .grip { border: none; background: none; color: var(--muted); cursor: grab; font-size: 1.1rem; line-height: 1; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .colname { font: inherit; font-weight: 600; line-height: 1.35; color: var(--ink); resize: none; field-sizing: content; min-height: 34px; padding: 6px 8px; border: 1px solid transparent; border-radius: 6px; background: none; }
 textarea.colname:hover { border-color: var(--line); }
@@ -536,8 +539,6 @@ textarea.colname:focus { border-color: var(--ai); background: var(--surface); ou
 .colrow.other .colname { color: var(--muted); }
 .colunits { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 34px; padding: 2px; border-radius: 6px; }
 .colunits.dropon { background: var(--ai-soft); outline: 2px dashed var(--ai); outline-offset: 1px; }
-.colrow > .ghost { align-self: center; }
-.colrow > .ghost:disabled { opacity: .4; cursor: not-allowed; }
 .colrow.dropabove { box-shadow: 0 -3px 0 var(--ai); }
 .colrow.dropbelow { box-shadow: 0 3px 0 var(--ai); }
 .chip.unit { cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: transform .3s ease, box-shadow .3s ease; }
@@ -550,9 +551,8 @@ body.dragging { cursor: grabbing; -webkit-user-select: none; user-select: none; 
 .tlocked::after { content: attr(data-lock); position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; color: var(--muted); font-weight: 600; background: color-mix(in srgb, var(--sunk) 78%, transparent); border-radius: 8px; }
 .panel.tlocked::after { border-radius: var(--r); }
 @media (max-width: 640px) {
-  .coled { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .coled { grid-template-columns: auto minmax(0, 1fr); }
   .colunits { grid-column: 1 / -1; }
-  .colrow > :last-child { grid-area: 1 / 3; }
 }
 @media (prefers-reduced-motion: reduce) { .chip.unit { transition: none; } }
 .empty { text-align: center; padding: 28px 12px; color: var(--muted); display: grid; gap: 6px; }
@@ -3216,6 +3216,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     b.textContent = "Save";
     if (ok) renderTable(); else b.disabled = false;
   };
+  const binIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6.5 H19.5 M9.5 6.5 V4.5 H14.5 V6.5 M6.5 6.5 L7.5 19.5 H16.5 L17.5 6.5 M10.3 10.5 V16 M13.7 10.5 V16"/></svg>`;
   const viewCols = (e) => (e.at < 0 ? e.main : e.others[e.at].cols);
   // Which main-view collection each unit is in, by its position: other views list units in that order.
   const mainAt = (e) => { const m = {}; e.main.forEach((c, i) => c.units.forEach((u) => (m[u] = i))); return m; };
@@ -3239,11 +3240,10 @@ colours.apply(...colours.saved()); // before anything is drawn
         || `<span class="muted small">Drag units here</span>`;
     };
     cEd.innerHTML = list.map((c, i) => `<div class="colrow" data-col="${c.id}">
-        <span class="colctl"><button class="grip" type="button" aria-label="Drag to move ${esc(c.name || "this collection")}" title="Drag to move">⠿</button><button class="ghost" type="button" data-cmove="-1" aria-label="Move ${esc(c.name || "this collection")} up"${i ? "" : " disabled"}>↑</button><button class="ghost" type="button" data-cmove="1" aria-label="Move ${esc(c.name || "this collection")} down"${i < list.length - 1 ? "" : " disabled"}>↓</button></span>
+        <span class="colctl"><button class="grip" type="button" aria-label="Drag to move ${esc(c.name || "this collection")}" title="Drag to move">⠿</button><button class="ghost" type="button" data-cmove="-1" aria-label="Move ${esc(c.name || "this collection")} up"${i ? "" : " disabled"}>↑</button><button class="ghost" type="button" data-cmove="1" aria-label="Move ${esc(c.name || "this collection")} down"${i < list.length - 1 ? "" : " disabled"}>↓</button><button class="ghost cdel" type="button" data-cdel aria-label="Delete ${esc(c.name || "this collection")}"${main && c.units.length ? ` disabled title="Move its units to other collections first"` : ` title="Delete"`}>${binIcon}</button></span>
         <textarea class="colname" rows="${c.name.includes("\n") ? 2 : 1}" data-cname maxlength="100" placeholder="Collection name" aria-label="Name of collection ${i + 1}">${esc(c.name)}</textarea>
-        <div class="colunits" data-drop="${c.id}">${chips(c.units, c.name)}</div>
-        <button class="ghost small" type="button" data-cdel${main && c.units.length ? ` disabled title="Move its units to other collections first"` : ""}>Delete</button></div>`).join("")
-      + (main ? "" : `<div class="colrow other" data-col="other"><span class="colctl"></span><span class="colname">Other</span><div class="colunits" data-drop="other">${chips(inOther, "Other")}</div><span></span></div>`)
+        <div class="colunits" data-drop="${c.id}">${chips(c.units, c.name)}</div></div>`).join("")
+      + (main ? "" : `<div class="colrow other" data-col="other"><span class="colctl"></span><span class="colname">Other</span><div class="colunits" data-drop="other">${chips(inOther, "Other")}</div></div>`)
       + `<div class="row"><button class="btn" type="button" data-cadd>+ Add collection</button><span class="muted small">${main ? "" : "Units in no collection of this view show under “Other”."}${main ? "" : " Press Enter in a name to put it on two lines."}</span></div>`;
     syncColBtns(); tipTaps(vEd);
     const redo = (focus) => { renderColEdit(); renderLeave(); if (focus) document.querySelector(focus)?.focus(); };

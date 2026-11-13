@@ -27,6 +27,7 @@
     b.textContent = "Save";
     if (ok) renderTable(); else b.disabled = false;
   };
+  const binIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6.5 H19.5 M9.5 6.5 V4.5 H14.5 V6.5 M6.5 6.5 L7.5 19.5 H16.5 L17.5 6.5 M10.3 10.5 V16 M13.7 10.5 V16"/></svg>`;
   const viewCols = (e) => (e.at < 0 ? e.main : e.others[e.at].cols);
   // Which main-view collection each unit is in, by its position: other views list units in that order.
   const mainAt = (e) => { const m = {}; e.main.forEach((c, i) => c.units.forEach((u) => (m[u] = i))); return m; };
@@ -50,11 +51,10 @@
         || `<span class="muted small">Drag units here</span>`;
     };
     cEd.innerHTML = list.map((c, i) => `<div class="colrow" data-col="${c.id}">
-        <span class="colctl"><button class="grip" type="button" aria-label="Drag to move ${esc(c.name || "this collection")}" title="Drag to move">⠿</button><button class="ghost" type="button" data-cmove="-1" aria-label="Move ${esc(c.name || "this collection")} up"${i ? "" : " disabled"}>↑</button><button class="ghost" type="button" data-cmove="1" aria-label="Move ${esc(c.name || "this collection")} down"${i < list.length - 1 ? "" : " disabled"}>↓</button></span>
+        <span class="colctl"><button class="grip" type="button" aria-label="Drag to move ${esc(c.name || "this collection")}" title="Drag to move">⠿</button><button class="ghost" type="button" data-cmove="-1" aria-label="Move ${esc(c.name || "this collection")} up"${i ? "" : " disabled"}>↑</button><button class="ghost" type="button" data-cmove="1" aria-label="Move ${esc(c.name || "this collection")} down"${i < list.length - 1 ? "" : " disabled"}>↓</button><button class="ghost cdel" type="button" data-cdel aria-label="Delete ${esc(c.name || "this collection")}"${main && c.units.length ? ` disabled title="Move its units to other collections first"` : ` title="Delete"`}>${binIcon}</button></span>
         <textarea class="colname" rows="${c.name.includes("\n") ? 2 : 1}" data-cname maxlength="100" placeholder="Collection name" aria-label="Name of collection ${i + 1}">${esc(c.name)}</textarea>
-        <div class="colunits" data-drop="${c.id}">${chips(c.units, c.name)}</div>
-        <button class="ghost small" type="button" data-cdel${main && c.units.length ? ` disabled title="Move its units to other collections first"` : ""}>Delete</button></div>`).join("")
-      + (main ? "" : `<div class="colrow other" data-col="other"><span class="colctl"></span><span class="colname">Other</span><div class="colunits" data-drop="other">${chips(inOther, "Other")}</div><span></span></div>`)
+        <div class="colunits" data-drop="${c.id}">${chips(c.units, c.name)}</div></div>`).join("")
+      + (main ? "" : `<div class="colrow other" data-col="other"><span class="colctl"></span><span class="colname">Other</span><div class="colunits" data-drop="other">${chips(inOther, "Other")}</div></div>`)
       + `<div class="row"><button class="btn" type="button" data-cadd>+ Add collection</button><span class="muted small">${main ? "" : "Units in no collection of this view show under “Other”."}${main ? "" : " Press Enter in a name to put it on two lines."}</span></div>`;
     syncColBtns(); tipTaps(vEd);
     const redo = (focus) => { renderColEdit(); renderLeave(); if (focus) document.querySelector(focus)?.focus(); };
