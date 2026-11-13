@@ -36,6 +36,8 @@
       else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(at); }
       else if (e.key === "Escape" || e.key === "Tab") { open(false); btn.focus({ preventScroll: true }); }
     };
-    document.addEventListener("pointerdown", (e) => { if (!list.hidden && !box.contains(e.target)) open(false); });
+    // (A dropdown drawn over by its page lets go of the listener the next time anything is pressed.)
+    const away = (e) => { if (!box.isConnected) document.removeEventListener("pointerdown", away); else if (!list.hidden && !box.contains(e.target)) open(false); };
+    document.addEventListener("pointerdown", away);
     return { set };
   }

@@ -71,14 +71,7 @@
       groups() {
         const bs = o.cols();
         if (!courseMode()) return bs.map((b) => ({ name: colLabel(b), keys: o.keys(b) }));
-        const all = bs.flatMap(o.keys), used = new Set();
-        const inPart = (k, pt) => { const [b, u] = k.split("\u0001"); return b === pt.collection && byUnit(u, pt.from) >= 0 && byUnit(u, pt.to) <= 0; };
-        const gs = S.courses.map((c) => {
-          const keys = all.filter((k) => !used.has(k) && c.parts.some((pt) => inPart(k, pt)));
-          keys.forEach((k) => used.add(k));
-          return { name: c.name, keys };
-        }).filter((g) => g.keys.length);
-        const rest = all.filter((k) => !used.has(k));
+        const { rows, rest } = courseRows(bs.flatMap(o.keys), S.courses), gs = rows.filter((g) => g.keys.length);
         return rest.length ? [...gs, { name: "Other", keys: rest }] : gs;
       },
       render() {

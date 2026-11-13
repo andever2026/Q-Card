@@ -382,7 +382,7 @@ td.c { text-align: center; padding-inline: 0; }
 .dd-btn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: .9rem; }
 .dd-btn:hover, .dd-btn[aria-expanded="true"] { background: var(--sunk); }
 .dd-btn svg { color: var(--muted); }
-.dd-list { position: absolute; left: 0; top: calc(100% + 4px); z-index: 20; min-width: 100%; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgb(0 0 0 / .14); }
+.dd-list { position: absolute; left: 0; top: calc(100% + 4px); z-index: 20; min-width: 100%; max-height: min(320px, 60vh); overflow-y: auto; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgb(0 0 0 / .14); }
 .dd.up .dd-list { top: auto; bottom: calc(100% + 4px); }
 .dd-list:focus { outline: none; }
 .dd-list li { padding: 6px 10px; border-radius: 6px; white-space: nowrap; font-size: .9rem; cursor: pointer; }
@@ -415,6 +415,27 @@ td.c { text-align: center; padding-inline: 0; }
 .bookorder li button { font-size: 1rem; padding: 4px 8px; color: var(--ink); }
 .bookorder li button:disabled { opacity: .3; }
 .bookorder .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* The courses editor: one card per course, its ranges of units under its name. */
+.courseed { display: grid; gap: 10px; }
+.courseed .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.courses { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.courses > li { display: grid; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px 10px 12px; }
+.courses .chead { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.courses .n { color: var(--muted); font-size: .85rem; min-width: 1.2em; }
+.courses textarea { flex: 0 1 18rem; min-width: 8rem; resize: none; field-sizing: content; font: inherit; font-weight: 600; line-height: 1.35; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.courses .chead button { font-size: 1rem; padding: 4px 8px; color: var(--ink); }
+.courses .chead button:disabled { opacity: .3; }
+.courses .chead .small { font-size: .85rem; color: var(--muted); }
+.courses .csum { flex: 1; min-width: 0; padding-inline: 4px; }
+.courses .cpart, .courses .cfoot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: calc(1.2em + 6px); }
+.courses .cpart [data-pdel] { color: var(--muted); padding: 4px 8px; }
+.courses .crange { display: flex; align-items: center; gap: 8px; }
+/* On a phone the name takes the first line, and the ranges use the card's whole width. */
+@media (max-width: 480px) {
+  .courses .chead textarea { flex: 1 1 calc(100% - 2em); }
+  .courses .cpart, .courses .cfoot { margin-left: 0; }
+  .courses .crange { order: 1; flex-basis: 100%; } /* the ✕ stays beside its collection */
+}
 .empty { text-align: center; padding: 28px 12px; color: var(--muted); display: grid; gap: 6px; }
 @media (max-width: 480px) { .stats .big { font-size: 1.7rem; } }
 @media (prefers-reduced-motion: reduce) { .meter i { transition: none; } }

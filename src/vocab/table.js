@@ -124,7 +124,7 @@
     if (tp.size !== was || [...tp].some((k) => /\u0001\d+$/.test(k) && !all.has(k))) TP.replace(S.tpick.show, tp);
     $("#bookOrderBtn").hidden = !canWrite || cols().length < 2 || !!S.orderEdit;
     TP.render(); syncGroupSegs();
-    renderBookOrder();
+    renderBookOrder(); renderCourses();
   }
   $("#bookOrderBtn").onclick = () => { S.orderEdit = cols(); renderTable(); };
   // Collection order editor: move collections up or down, then Save. "Kanji learned up to" counts collections in this order.
@@ -188,30 +188,32 @@
   const fit = CSS.supports("field-sizing", "content") ? () => {} : (t) => { t.style.height = "auto"; t.style.height = t.scrollHeight + 2 + "px"; };
   // Unsaved changes are asked about before they can be lost: on leaving the vocab table, and by the browser on leaving the page.
   const unsavedSets = () => S.sets.filter(dirtySet), unsavedLists = () => S.kanjiLists.filter((k) => S.kdrafts.has(k.id));
-  addEventListener("beforeunload", (e) => { if (unsavedSets().length || unsavedLists().length) { e.preventDefault(); e.returnValue = ""; } });
+  addEventListener("beforeunload", (e) => { if (unsavedSets().length || unsavedLists().length || coursesDirty()) { e.preventDefault(); e.returnValue = ""; } });
   // to: the view to go to (page/nav.js), once the changes are saved or let go.
   function leaveTable(to = "setup") {
     // Whatever was opened for editing and left as it was just closes.
     for (const s of S.sets) if (!dirtySet(s)) S.drafts.delete(s.id);
+    if (!coursesDirty()) S.courseEdit = null;
     S.kEdit = S.confirmDel = S.kConfirmDel = null;
     S.leaveTo = to; S.leaveAsk = true; renderLeave();
     if (!S.leaveAsk) openView(to); else window.scrollTo(0, 0);
   }
   function renderLeave(why = "") {
-    const sets = unsavedSets(), lists = unsavedLists(), n = sets.length + lists.length, box = $("#leaveAsk");
+    const sets = unsavedSets(), lists = unsavedLists(), crs = coursesDirty(), n = sets.length + lists.length + crs, box = $("#leaveAsk");
     if (!n) S.leaveAsk = false;
     box.hidden = !S.leaveAsk;
     if (box.hidden) return;
     const count = (k, w) => (k ? [`${k} ${w}${k === 1 ? "" : "s"}`] : []);
-    box.innerHTML = `<span>${[...count(sets.length, "set"), ...count(lists.length, "kanji list")].join(" and ")} ${n === 1 ? "has" : "have"} unsaved changes.${why ? ` <span class="keyerr">${esc(why)}</span>` : ""}</span>
+    box.innerHTML = `<span>${[...count(sets.length, "set"), ...count(lists.length, "kanji list"), ...(crs ? ["the courses"] : [])].join(" and ")} ${n === 1 && !crs ? "has" : "have"} unsaved changes.${why ? ` <span class="keyerr">${esc(why)}</span>` : ""}</span>
       <span class="tactions"><button class="btn primary" type="button" data-lsave>Save all</button><button class="btn" type="button" data-ldiscard>Discard all</button><button class="link" type="button" data-lkeep>Keep editing</button></span>`;
     box.querySelector("[data-lkeep]").onclick = () => { S.leaveAsk = false; renderLeave(); };
-    box.querySelector("[data-ldiscard]").onclick = () => { S.drafts.clear(); S.kdrafts.clear(); renderTable(); openView(S.leaveTo); };
+    box.querySelector("[data-ldiscard]").onclick = () => { S.drafts.clear(); S.kdrafts.clear(); S.courseEdit = null; renderTable(); openView(S.leaveTo); };
     box.querySelector("[data-lsave]").onclick = async (e) => {
       e.target.disabled = true; e.target.textContent = "Saving…";
       let bad = "";
       for (const s of sets) if (!bad && !(await saveSet(s, (m) => { bad = `${setName(s)}: ${m}`; })) && !bad) bad = "Couldn't save. Try again.";
       for (const k of lists) if (!bad && !(await saveKanji(k.id))) bad = "Couldn't save. Try again.";
+      if (crs && !bad) await saveCourses((m) => { bad = `Courses: ${m}`; });
       renderTable();
       if (bad) renderLeave(bad); else openView(S.leaveTo);
     };

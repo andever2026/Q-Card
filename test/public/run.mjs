@@ -1392,6 +1392,64 @@ if (entry.length > 1) {
   await bctx.close();
 }
 
+// ---------- 23. courses are edited in the vocab table ----------
+{
+  const cctx = await browser.newContext();
+  const cp = await newPage(cctx, { width: 1280, init: () => {
+    if (localStorage.getItem("qcard:mode")) return;
+    const put = (k, v) => localStorage.setItem("qcard:local:" + k, JSON.stringify(v)), w = [{ id: "w1", en: "water", kana: "みず", kanji: "水" }];
+    localStorage.setItem("qcard:mode", "local"); put("meta/samples", { offeredAt: "x" });
+    for (let i = 1; i <= 12; i++) put(`sets/a${i}`, { collection: "Book A", unit: `Ch. ${i}`, name: "Words", words: w });
+    for (let i = 1; i <= 11; i++) put(`sets/b${i}`, { collection: "Book B", unit: `Ch. ${i}`, name: "Words", words: w });
+    put("meta/books", { order: ["Book A", "Book B"] });
+    put("meta/courses", { courses: [{ name: "Year 1", parts: [{ collection: "Book A", from: "Ch. 1", to: "Ch. 8" }] },
+      { name: "Year 2", parts: [{ collection: "Book A", from: "Ch. 9", to: "Ch. 12" }, { collection: "Book B", from: "Ch. 1", to: "Ch. 4" }] },
+      { name: "Book B\nExtras", parts: [{ collection: "Book B", from: "Ch. 9", to: "Ch. 11" }] }] });
+    localStorage.setItem("jpq:groupBy", JSON.stringify("course"));
+  } });
+  const rowsOf = () => cp.$$eval("#tChs .pchrow", (rs) => rs.map((r) => `${r.querySelector(".chbook")?.textContent ?? ""}: ${[...r.querySelectorAll(".chip:not([data-k=all])")].map((c) => c.textContent).join(",")}`).join(" | "));
+  const stored = () => cp.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:meta/courses")).courses);
+  const pick = async (dd, v) => { await cp.click(`${dd} .dd-btn`); await cp.click(`${dd} li[data-v="${v}"]`); await cp.waitForTimeout(150); };
+  await cp.click('#sideNav [data-go="table"]'); await cp.waitForTimeout(300);
+  ok(await vis(cp, "#courseBtn") && !(await vis(cp, "#courseEd")), "courses: the vocab table has Edit courses");
+  await cp.click("#courseBtn"); await cp.waitForTimeout(200);
+  ok((await cp.$$eval("#courseEd [data-cname]", (ts) => ts.map((t) => t.value).join("|"))) === "Year 1|Year 2|Book B\nExtras" && (await cp.$eval("#cdd-1-1-from .dd-btn", (b) => b.textContent.trim())) === "Ch. 1"
+    && await cp.$eval("#coSave", (b) => b.disabled) && /4 units in no course/.test(await text(cp, "#courseEd")), "courses: the editor shows each course, its ranges and the units in no course", await text(cp, "#courseEd"));
+  await cp.screenshot({ path: join(out, "23-courses.png"), fullPage: true });
+  // A new course after Year 1, its range overlapping Year 1's: those units stay in Year 1.
+  await cp.click("#courseEd [data-cadd]"); await cp.waitForTimeout(150);
+  ok(await cp.evaluate(() => document.activeElement.matches('[data-c="3"] [data-cname]')), "courses: Add a course puts the cursor in its name");
+  await cp.keyboard.type("Review");
+  ok(!(await cp.$eval("#coSave", (b) => b.disabled)) && /Unsaved changes/.test(await text(cp, "#courseEd")), "courses: typing a name shows unsaved changes");
+  await pick("#cdd-3-0-collection", "Book B"); await pick("#cdd-3-0-from", "Ch. 3"); await pick("#cdd-3-0-to", "Ch. 6");
+  ok(/2 units · 2 units already in “Year 2”/.test(await cp.$eval('[data-c="3"] .csum', (e) => e.textContent)), "courses: a range overlapping an earlier course says which units stay there", await cp.$eval('[data-c="3"] .csum', (e) => e.textContent));
+  await pick("#cdd-3-0-to", "Ch. 2");
+  ok((await cp.$eval("#cdd-3-0-from .dd-btn", (b) => b.textContent.trim())) === "Ch. 2", "courses: a last unit before the first moves the first along");
+  await pick("#cdd-3-0-from", "Ch. 5"); await pick("#cdd-3-0-to", "Ch. 8");
+  await cp.click('[data-c="3"] [data-cmove="-1"]'); await cp.waitForTimeout(150);
+  ok((await cp.$$eval("#courseEd [data-cname]", (ts) => ts.map((t) => t.value).join("|"))) === "Year 1|Year 2|Review|Book B\nExtras", "courses: ↑ moves a course up");
+  await cp.fill('[data-c="2"] [data-cname]', ""); await cp.click("#coSave"); await cp.waitForTimeout(150);
+  ok(/Give every course a name/.test(await text(cp, "#coErr")), "courses: a course with no name isn't saved", await text(cp, "#coErr"));
+  await cp.fill('[data-c="2"] [data-cname]', "Year 3"); await cp.click("#coSave"); await cp.waitForTimeout(400);
+  const saved = await stored();
+  ok(!(await vis(cp, "#courseEd")) && saved.map((c) => c.name).join("|") === "Year 1|Year 2|Year 3|Book B\nExtras" && JSON.stringify(saved[2].parts) === JSON.stringify([{ collection: "Book B", from: "Ch. 5", to: "Ch. 8" }]),
+    "courses: Save stores them in order", JSON.stringify(saved));
+  ok((await rowsOf()) === "Year 1: Ch. 1,Ch. 2,Ch. 3,Ch. 4,Ch. 5,Ch. 6,Ch. 7,Ch. 8 | Year 2: Ch. 9,Ch. 10,Ch. 11,Ch. 12,Ch. 1,Ch. 2,Ch. 3,Ch. 4 | Year 3: Ch. 5,Ch. 6,Ch. 7,Ch. 8 | Book B\nExtras: Ch. 9,Ch. 10,Ch. 11",
+    "courses: the unit rows follow at once", await rowsOf());
+  // Unsaved course edits are asked about on leaving; Discard all lets them go.
+  await cp.click("#courseBtn"); await cp.click('[data-c="3"] [data-cdel]'); await cp.waitForTimeout(100);
+  await cp.click('#sideNav [data-go="history"]'); await cp.waitForTimeout(200);
+  ok(await vis(cp, "#leaveAsk") && /the courses have unsaved changes/.test(await text(cp, "#leaveAsk")), "courses: leaving with unsaved courses asks first", await text(cp, "#leaveAsk"));
+  await cp.click("#leaveAsk [data-ldiscard]"); await cp.waitForTimeout(200);
+  ok((await stored()).length === 4 && !(await vis(cp, "#table")), "courses: Discard all keeps the stored courses");
+  await cp.click('#sideNav [data-go="table"]'); await cp.waitForTimeout(200);
+  await cp.click("#courseBtn"); await cp.setViewportSize({ width: 390, height: 900 }); await cp.waitForTimeout(200);
+  ok(await cp.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "courses: the editor fits a phone");
+  await cp.screenshot({ path: join(out, "23-courses-phone.png"), fullPage: true });
+  ok(cp.errors.length === 0, "courses: no page errors", cp.errors.join(" | "));
+  await cctx.close();
+}
+
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");
 process.exit(failures ? 1 : 0);

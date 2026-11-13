@@ -345,7 +345,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     <div class="banner leaveask" id="leaveAsk" hidden></div>
     <div class="panel">
       <div class="head"><h2>Vocab table</h2>
-        <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="bookOrderBtn" hidden>Change collection order</button>
+        <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="bookOrderBtn" hidden>Change collection order</button><button class="link" type="button" id="courseBtn" hidden>Edit courses</button>
           <div class="seg mini" id="tGroupSeg" role="group" aria-label="Unit rows by" hidden>
             <button type="button" data-group="book">Collection</button><button type="button" data-group="course">Course</button>
           </div>
@@ -354,6 +354,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       <div class="tbar">
         <input type="search" class="tsearch" id="tSearch" placeholder="Search English, kana or kanji" aria-label="Search the vocab table in every unit">
         <div class="bookorder setedit" id="bookOrderEd" hidden></div>
+        <div class="courseed setedit" id="courseEd" hidden></div>
         <div class="pbar tpbar" id="tPickBar"><div class="pchs" id="tChs" role="group" aria-label="Units"></div></div>
         <div class="tsum"><span class="muted small" id="tSummary"></span><button class="link" id="tOpenAll" type="button"></button></div>
       </div>
@@ -418,6 +419,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   //#include account/choices.js
 
   //#include vocab/table.js
+  //#include vocab/courses.js
 
   //#include import-export/import.js
   //#include import-export/export.js

@@ -55,6 +55,7 @@
     formCol: null,                 // collection last filled into the new set / new kanji forms
     colOrder: [],                  // saved book order (meta/books); books not in it come after, by name
     orderEdit: null,               // the collection order being edited in the vocab table, or null
+    courseEdit: null,              // the courses being edited in the vocab table (vocab/courses.js), or null
   };
 
   // ---------- views ----------
