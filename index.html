@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-gDG23XOB8gdXCgxdaMKFVFuSIQIS7UFtcTIQwwz00U4=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-/STT3wk/dAGPQWtM1XKp4Odz55ciX3hBZ2DvpkHVZKA=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -685,7 +685,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       <div class="panel">
         <div class="head"><h3>All practice sessions</h3><span class="tactions" id="delAllWrap"></span></div>
         <ul class="tests" id="hList"></ul>
-        <div class="listfoot"><nav class="pager" id="hPager" aria-label="Practice session pages" hidden></nav><span class="muted small" id="hCount"></span></div>
+        <div class="listfoot"><nav class="pager" id="hPager" aria-label="Practice session pages" hidden></nav><span class="muted small" id="hCount"></span><div id="sessPer"></div></div>
       </div>
     </div>
   </section>
@@ -865,7 +865,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   // Choices people make on the page. They're kept in this browser and, for someone signed in, in their account
   // too (data/users/<id>/prefs, see syncPrefs in account/choices.js), so they come along to other devices.
-  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "palette", "theme", "resume", "share", "practices"];
+  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "sessPer", "palette", "theme", "resume", "share", "practices"];
   let prefsChanged = () => {};
   const store = {
     get(k, d) { try { const v = localStorage.getItem("jpq:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
@@ -2371,12 +2371,17 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   // "11–20 of 26" beside the page buttons; nothing when everything fits on one page.
   const shownOf = (from, n, total, pages) => pages < 2 ? "" : `${n > 1 ? `${from + 1}–${from + n}` : from + 1} of ${total}`;
-  const PAGE = 20; // practice sessions per page, newest first
+  // Practice sessions, newest first, as many to a page as picked.
+  S.sessPer = String(store.get("sessPer", "20"));
+  if (!["10", "20", "50", "all"].includes(S.sessPer)) S.sessPer = "20";
+  const sessPer = makeDropdown($("#sessPer"), "Practice sessions per page", [["10", "10 per page"], ["20", "20 per page"], ["50", "50 per page"], ["all", "All"]],
+    (v) => keepInView($("#sessPer"), () => { S.sessPer = v; S.hPage = 0; store.set("sessPer", v); renderTests(); }));
   function renderTests() {
-    const pages = Math.max(1, Math.ceil(S.history.length / PAGE));
+    const n = S.history.length, per = S.sessPer === "all" ? n || 1 : +S.sessPer, pages = Math.max(1, Math.ceil(n / per));
     S.hPage = Math.min(S.hPage || 0, pages - 1); // a delete can empty the last page
-    const shown = S.history.slice(S.hPage * PAGE, (S.hPage + 1) * PAGE);
-    $("#hCount").textContent = shownOf(S.hPage * PAGE, shown.length, S.history.length, pages);
+    const shown = S.history.slice(S.hPage * per, (S.hPage + 1) * per);
+    $("#hCount").textContent = shownOf(S.hPage * per, shown.length, n, pages);
+    sessPer.set(S.sessPer); $("#sessPer").hidden = n <= 10; // nothing to choose while it all fits on the smallest page
     pager($("#hPager"), S.hPage, pages, (i) => keepInView($("#hPager"), () => { S.hPage = i; renderTests(); }));
     $("#hList").innerHTML = shown.map((t) => {
       const { n, first } = firstTry(t), del = S.hConfirm === t.id;
@@ -2459,7 +2464,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     S.groupBy = store.get("groupBy", "book");
     S.pickTags = new Set(store.get("pickTags", []));
     S.dir = store.get("dir", "ej"); S.mode = store.get("mode", "default"); S.upto = store.get("uptoPick", "auto");
-    S.loveWin = String(store.get("loveWin", "10"));
+    S.loveWin = String(store.get("loveWin", "10")); S.sessPer = String(store.get("sessPer", "20"));
     setPalette(store.get("palette", "indigo"));
     setTheme(store.get("theme", ""));
     renderSetup(); renderTable();

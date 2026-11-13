@@ -912,6 +912,9 @@ await hp.click('#hPager [data-pg="2"]');
 ok((await hPage()) === "5,3,1 2 3,false/true", "history pages: page 3 has the oldest 5, Next off", await hPage());
 await hp.click('#hPager .arrow[aria-label="Previous page"]');
 ok((await hPage()) === "20,2,1 2 3,false/false", "history pages: Previous goes back a page", await hPage());
+await hp.click("#sessPer .dd-btn"); await hp.click('#sessPer [data-v="10"]');
+ok((await hPage()) === "10,1,1 2 3 4 5,true/false", "history pages: 10 per page gives 5 pages, back at page 1", await hPage());
+await hp.click("#sessPer .dd-btn"); await hp.click('#sessPer [data-v="20"]');
 const love = () => hp.evaluate(() => [document.querySelectorAll("#hLove > li").length, document.querySelector("#hPractise").textContent, document.querySelector("#loveCount").textContent,
   document.querySelector('#lovePager [aria-current="page"]')?.textContent || "-"].join(","));
 ok((await love()) === "10,Practice these 10,1–10 of 11,1", "hard words: 10 to a page by default, with pages", await love());

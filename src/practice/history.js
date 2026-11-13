@@ -258,12 +258,17 @@
   }
   // "11–20 of 26" beside the page buttons; nothing when everything fits on one page.
   const shownOf = (from, n, total, pages) => pages < 2 ? "" : `${n > 1 ? `${from + 1}–${from + n}` : from + 1} of ${total}`;
-  const PAGE = 20; // practice sessions per page, newest first
+  // Practice sessions, newest first, as many to a page as picked.
+  S.sessPer = String(store.get("sessPer", "20"));
+  if (!["10", "20", "50", "all"].includes(S.sessPer)) S.sessPer = "20";
+  const sessPer = makeDropdown($("#sessPer"), "Practice sessions per page", [["10", "10 per page"], ["20", "20 per page"], ["50", "50 per page"], ["all", "All"]],
+    (v) => keepInView($("#sessPer"), () => { S.sessPer = v; S.hPage = 0; store.set("sessPer", v); renderTests(); }));
   function renderTests() {
-    const pages = Math.max(1, Math.ceil(S.history.length / PAGE));
+    const n = S.history.length, per = S.sessPer === "all" ? n || 1 : +S.sessPer, pages = Math.max(1, Math.ceil(n / per));
     S.hPage = Math.min(S.hPage || 0, pages - 1); // a delete can empty the last page
-    const shown = S.history.slice(S.hPage * PAGE, (S.hPage + 1) * PAGE);
-    $("#hCount").textContent = shownOf(S.hPage * PAGE, shown.length, S.history.length, pages);
+    const shown = S.history.slice(S.hPage * per, (S.hPage + 1) * per);
+    $("#hCount").textContent = shownOf(S.hPage * per, shown.length, n, pages);
+    sessPer.set(S.sessPer); $("#sessPer").hidden = n <= 10; // nothing to choose while it all fits on the smallest page
     pager($("#hPager"), S.hPage, pages, (i) => keepInView($("#hPager"), () => { S.hPage = i; renderTests(); }));
     $("#hList").innerHTML = shown.map((t) => {
       const { n, first } = firstTry(t), del = S.hConfirm === t.id;
