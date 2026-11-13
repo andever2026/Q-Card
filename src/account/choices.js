@@ -32,7 +32,7 @@
     S.selected = new Set(store.get("selected", []));
     Object.assign(S.pick, { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", [])) });
     Object.assign(S.tpick, { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) });
-    S.groupBy = store.get("groupBy", "book");
+    S.groupBy = store.get("groupBy", "main");
     S.pickTags = new Set(store.get("pickTags", []));
     S.dir = store.get("dir", "ej"); S.mode = store.get("mode", "default"); S.upto = store.get("uptoPick", "auto");
     S.loveWin = String(store.get("loveWin", "10")); S.sessPer = String(store.get("sessPer", "20")); S.loveTop = store.get("loveTop", "jp") === "en" ? "en" : "jp";

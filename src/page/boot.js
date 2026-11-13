@@ -16,10 +16,7 @@
     if (!db) { gate("Sign in to claude.ai to use this page", "Already signed in? Reload the page."); return; }
     document.body.classList.add("ready");
     cl.use("downloads").then((d) => { downloads = d; renderPort(); });
-    db.collection("kanji").onSnapshot(onKanji, () => {});
-    db.collection("sets").onSnapshot(onSets, () => banner("The vocab sets couldn't load. Reload the page to try again."));
-    db.doc("meta/books").onSnapshot(onBookOrder, () => {});
-    db.doc("meta/courses").onSnapshot(onCourses, () => {});
+    watchVocab("The vocab sets couldn't load. Reload the page to try again.");
     // Visitors by link can't write to the database, so their history stays in their own browser.
     if (owner) { watchHistory(); syncPrefs(); } else if (uid) watchLocal();
   })();
@@ -33,10 +30,7 @@
       db = store; user = platform.user(uid); owner = canWrite = true; downloads = platform.downloads;
       document.body.classList.add("ready");
       renderPort();
-      db.collection("kanji").onSnapshot(onKanji, () => {});
-      db.collection("sets").onSnapshot(onSets, () => banner("Your vocab sets couldn't load. Reload the page to try again."));
-      db.doc("meta/books").onSnapshot(onBookOrder, () => {});
-      db.doc("meta/courses").onSnapshot(onCourses, () => {});
+      watchVocab("Your vocab sets couldn't load. Reload the page to try again.");
       watchHistory();
       if (id !== "local") { stopPrefs = syncPrefs(); watchProfile(); }
       renderAcctMenu();

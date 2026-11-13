@@ -9,12 +9,18 @@
   const sayIn = (el) => (m) => { el.hidden = !m; el.textContent = m || ""; };
   // Marks which of a menu's buttons is the one showing (the styles key on aria-current).
   const markCurrent = (els, on) => els.forEach((b) => (on(b) ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
+  // A (?) that shows a short explanation in a bubble when pointed at, focused or (on a touch screen) tapped. qtip(id, label,
+  // text) is its HTML (id names the bubble, for aria-describedby); tipTaps(box) makes the ones in box open on a tap.
+  const qtip = (id, label, text) => `<span class="qtip" tabindex="0" role="button" aria-label="${esc(label)}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.4a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.7v.5"/><circle cx="12" cy="17.2" r=".4" fill="currentColor"/></svg><span class="qtipbody" role="tooltip" id="${id}">${esc(text)}</span></span>`;
+  const tipTaps = (box) => box.querySelectorAll(".qtip").forEach((q) => { q.onclick = () => q.classList.toggle("open"); q.onblur = q.onmouseleave = () => q.classList.remove("open"); });
   // ---------- vocab documents ----------
   // What's stored, and how each document is read. Nothing here looks at the page, so the AI page's import uses it too.
   //   sets/<id>      { collection, unit, name, tags?, words: [{ id, en, kana, kanji }] }
   //   kanji/<id>     { collection, unit, kanji }       the kanji a unit teaches, as one string
   //   meta/books     { order: [collection, …] }        the order the collections are studied in
-  //   meta/courses   { courses: [{ name, parts: [{ collection, from, to }] }] }
+  //   meta/views     { main, views: [{ name, collections: [{ name, units: [{ collection, unit }] }] }] }
+  //                  the main view's name, and other ways of grouping the same units into collections (vocab/views.js)
+  //   meta/courses   { courses: [{ name, parts: [{ collection, from, to }] }] }   what views replaced, read until views are saved
   // Vocab is grouped Collection › Unit › Set: a collection (a textbook, a course, any list of lists) has units (Ch. 3,
   // Week 1, any name), and each unit has sets; kanji lists go by unit. Documents saved before October 2026 name a book,
   // a numbered chapter and a section with an optional label: they're read as collection, unit "Ch. N" and set name "A · Label".
@@ -22,6 +28,9 @@
   const oldUnit = (v) => { const c = tidy(v, 60).replace(/^ch(apter)?\.?\s*(?=\d)/i, ""); return /^\d+$/.test(c) ? `Ch. ${+c}` : c; };
   const docCol = (d) => tidy(d.collection ?? d.book, 100);
   const docUnit = (d) => (d.unit != null ? tidy(d.unit, 60) : oldUnit(d.chapter)) || "No unit";
+  const coll = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+  // Units sort by name with numbers in order (Week 2 before Week 10).
+  const byUnit = (a, b) => coll.compare(String(a), String(b));
   const docName = (d) => tidy(d.name ?? [d.section, d.label].map((x) => tidy(x, 200)).filter(Boolean).join(" · "), 200) || "Untitled set";
   const colLabel = (b) => b || "No collection";
   // "Genki 1 › Lesson 3" and "Genki 1 › Lesson 3 › Food": the collection is named only where there's more than one (withCol).
@@ -46,11 +55,11 @@
   const dataOrNull = (snap) => (snap.exists ? snap.data() : null);
   // All four at once, for a page that doesn't keep them loaded (the AI page; the site itself listens to each, see boot).
   async function readVocab(db) {
-    const [sets, kanji, books, courses] = await Promise.all([db.collection("sets").get(), db.collection("kanji").get(), db.doc("meta/books").get(), db.doc("meta/courses").get()]);
-    return { sets: withIds(sets), kanji: withIds(kanji), books: dataOrNull(books), courses: dataOrNull(courses) };
+    const [sets, kanji, books, courses, views] = await Promise.all([db.collection("sets").get(), db.collection("kanji").get(), db.doc("meta/books").get(), db.doc("meta/courses").get(), db.doc("meta/views").get()]);
+    return { sets: withIds(sets), kanji: withIds(kanji), books: dataOrNull(books), courses: dataOrNull(courses), views: dataOrNull(views) };
   }
   // A vocab file (Export writes one, Import reads one, an AI can make one: see ai/) is those documents in one JSON object:
-  // { app: APP, version: 2, sets: [...], kanji: [...], collections: { order }, courses }.
+  // { app: APP, version: 2, sets: [...], kanji: [...], collections: { order }, views } (older files: courses instead of views).
   const APP = "jp-vocab-practice";
   // Each cleaner returns the document to store, in the current format, or null when what it's given isn't usable.
   // Files and older documents go through them, so their contents are never trusted.
@@ -68,13 +77,28 @@
     return Array.isArray(list) ? { courses: list.slice(0, 50).filter((c) => c && c.name && Array.isArray(c.parts)).map((c) => ({ name: str(c.name, 100),
       parts: c.parts.slice(0, 20).filter((x) => x && typeof x === "object").map(coursePart).filter((x) => x.from && x.to) })) } : null;
   }
+  // Courses read as one view, "Courses", each unit in the first course that covers it. units: every unit there is, as
+  // { collection, unit }; courses: [{ name, parts }] (cleanCourses).
+  function courseView(units, courses) {
+    const used = new Set(), inPart = (u, pt) => u.collection === pt.collection && byUnit(u.unit, pt.from) >= 0 && byUnit(u.unit, pt.to) <= 0;
+    return { name: "Courses", collections: courses.map((c) => { const us = units.filter((u) => !used.has(u) && c.parts.some((pt) => inPart(u, pt))); us.forEach((u) => used.add(u)); return { name: c.name, units: us }; }) };
+  }
+  // A name in a view other than the main one may hold one line break, which shows it on two lines beside its units.
+  const viewName = (v, n) => String(v ?? "").split("\n").map((t) => tidy(t, n)).filter(Boolean).slice(0, 2).join("\n").slice(0, n);
+  function cleanViews(d) {
+    if (!d || typeof d !== "object" || !Array.isArray(d.views)) return null;
+    const unit = (u) => ({ collection: tidy(u.collection, 100), unit: tidy(u.unit, 60) });
+    return { main: tidy(d.main, 60) || "Books", views: d.views.slice(0, 20).filter((v) => v && typeof v === "object" && Array.isArray(v.collections)).map((v) => ({ name: viewName(v.name, 60) || "View",
+      collections: v.collections.slice(0, 100).filter((c) => c && typeof c === "object").map((c) => ({ name: viewName(c.name, 100) || "Untitled",
+        units: (Array.isArray(c.units) ? c.units : []).slice(0, 1000).filter((u) => u && typeof u === "object" && u.unit).map(unit) })) })) };
+  }
   // ---------- importing a vocab file ----------
   // The one importer, used by Settings → Import and by the AI page (ai/). It reads the file, compares it with what's
   // stored, shows a preview, and on Import writes only what's new or changed, one document at a time. Sets that aren't
   // in the file are left alone. It doesn't know where the vocab is kept; whoever makes one says how to read and write it:
   //   button, input    the "Import a file…" button and its hidden file input
   //   box, say         where the preview goes, and how a one-line message is shown (say("") clears it)
-  //   stored()         the documents stored now, with their ids: { sets, kanji, books, courses } (it may be async)
+  //   stored()         the documents stored now, with their ids: { sets, kanji, books, courses, views } (it may be async)
   //   write(path, doc) saves one document
   //   where()          optional: a line for the preview, saying where the import will be saved
   //   hint             optional: what to do about a file that isn't one of ours, added to that message
@@ -101,7 +125,18 @@
       const withCol = new Set([...[...here.sets, ...here.kanji].map(docCol), ...[...sets, ...kanji].map((x) => x.doc.collection)]).size > 1;
       for (const x of sets) x.title = setPath(x.doc, withCol);
       for (const x of kanji) x.title = "Kanji " + unitPath(x.doc, withCol);
-      return { name, exportedAt: file.exportedAt, sets, kanji, books: meta(file.collections ?? file.books, here.books, cleanBooks), courses: meta(file.courses, here.courses, cleanCourses), skipped };
+      let courses = meta(file.courses, here.courses, cleanCourses), views = meta(file.views, here.views, cleanViews);
+      // An older file's courses, where views are saved already (which would hide them), come in as the view "Courses".
+      const hasViews = cleanViews(here.views);
+      if (courses && !views && hasViews) {
+        const units = new Map([...here.sets, ...here.kanji].map((d) => ({ collection: docCol(d), unit: docUnit(d) })).concat([...sets, ...kanji].map((x) => ({ collection: x.doc.collection, unit: x.doc.unit })))
+          .map((u) => [`${u.collection}\u0001${u.unit}`, u]));
+        const cv = courseView([...units.values()], courses.doc.courses);
+        if (cv.name.toLowerCase() === hasViews.main.toLowerCase()) cv.name = "Courses 2";
+        const doc = { ...hasViews, views: [...hasViews.views.filter((v) => v.name.toLowerCase() !== cv.name.toLowerCase()), cv] };
+        views = { doc, changed: !same(hasViews, doc) }; courses = null;
+      }
+      return { name, exportedAt: file.exportedAt, sets, kanji, books: meta(file.collections ?? file.books, here.books, cleanBooks), courses, views, skipped };
     }
 
     function render() {
@@ -117,10 +152,10 @@
       const metaLine = (m, noun) => `${noun}: ${!m ? "not in the file" : m.changed ? "will change" : "already the same"}`;
       const names = (st) => { const xs = [...p.sets, ...p.kanji].filter((x) => x.status === st).map((x) => x.title);
         return xs.length ? `<div class="names"><b>${st === "new" ? "New" : "Changed"}:</b> ${esc(xs.slice(0, 12).join(", "))}${xs.length > 12 ? `, and ${xs.length - 12} more` : ""}</div>` : ""; };
-      const todo = p.sets.length - count(p.sets, "same") + p.kanji.length - count(p.kanji, "same") + (p.books?.changed ? 1 : 0) + (p.courses?.changed ? 1 : 0);
+      const todo = p.sets.length - count(p.sets, "same") + p.kanji.length - count(p.kanji, "same") + [p.books, p.courses, p.views].filter((m) => m?.changed).length;
       const when = p.exportedAt && !isNaN(new Date(p.exportedAt)) ? ` · exported ${new Date(p.exportedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : "";
       box.innerHTML = `<div><b>${esc(p.name)}</b><span class="muted small">${esc(when)}</span></div>
-      <ul class="small"><li>${line(p.sets, "Vocab sets")}</li><li>${line(p.kanji, "Kanji lists")}</li><li>${metaLine(p.books, "Collection order")}</li><li>${metaLine(p.courses, "Courses")}</li>
+      <ul class="small"><li>${line(p.sets, "Vocab sets")}</li><li>${line(p.kanji, "Kanji lists")}</li><li>${metaLine(p.books, "Collection order")}</li><li>${p.courses && !p.views ? metaLine(p.courses, "Courses") : metaLine(p.views, "Views")}</li>
       ${p.skipped ? `<li>${p.skipped} ${p.skipped === 1 ? "entry isn't" : "entries aren't"} valid and will be skipped</li>` : ""}</ul>
       ${names("new")}${names("changed")}
       ${todo && where ? `<div class="muted small" data-where>${esc(where())}</div>` : ""}
@@ -134,14 +169,15 @@
     async function run() {
       const p = plan, now = new Date().toISOString(), todo = (xs) => xs.filter((x) => x.status !== "same");
       const jobs = [...todo(p.sets).map((x) => ["sets/" + x.id, { ...x.doc, updatedAt: now }]), ...todo(p.kanji).map((x) => ["kanji/" + x.id, { ...x.doc, updatedAt: now }]),
-        ...(p.books?.changed ? [["meta/books", { ...p.books.doc, updatedAt: now }]] : []), ...(p.courses?.changed ? [["meta/courses", p.courses.doc]] : [])];
+        ...(p.books?.changed ? [["meta/books", { ...p.books.doc, updatedAt: now }]] : []), ...(p.courses?.changed ? [["meta/courses", p.courses.doc]] : []),
+        ...(p.views?.changed ? [["meta/views", { ...p.views.doc, updatedAt: now }]] : [])];
       plan = null; render(); busy(true);
       let n = 0;
       try {
         for (const [path, doc] of jobs) { say(`Importing ${n + 1} of ${jobs.length}…`); await write(path, doc); n++; }
         const pl = (k, w) => k && `${k} ${w}${k === 1 ? "" : "s"}`;
         say(`Imported: ${[pl(count(p.sets, "new"), "new set"), pl(count(p.sets, "changed"), "updated set"), pl(todo(p.kanji).length, "kanji list"),
-          p.books?.changed && "collection order", p.courses?.changed && "courses"].filter(Boolean).join(", ")}.`);
+          p.books?.changed && "collection order", p.courses?.changed && "courses", p.views?.changed && "views"].filter(Boolean).join(", ")}.`);
       } catch (e) {
         say(`Stopped after ${n} of ${jobs.length}: ${e?.message || "the database refused the change"}. What was imported stays; import the file again to finish.`);
       }

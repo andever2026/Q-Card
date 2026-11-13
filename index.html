@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-mF3puq2glAhHRByZ3OA9oleSVCFizqh5TFmBvbkQfTI=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-Lj+arYxMXB3daX28DzIi1FidMhQPUSFqySZNogb3dII=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -507,38 +507,70 @@ td.c { text-align: center; padding-inline: 0; }
 .setedit [data-ef="unit"], .setedit [data-kunit] { width: 8rem; }
 .setedit [data-ef="label"], .setedit [data-ef="tags"] { width: 14rem; max-width: 100%; }
 .editerr { color: var(--shu); font-size: .85rem; align-self: center; }
-.bookorder { display: grid; gap: 10px; }
-.bookorder ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.bookorder li { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px 6px 12px; }
-.bookorder li .n { color: var(--muted); font-size: .85rem; min-width: 1.2em; }
-.bookorder li b { flex: 1; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-.bookorder li button { font-size: 1rem; padding: 4px 8px; color: var(--ink); }
-.bookorder li button:disabled { opacity: .3; }
-.bookorder .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-/* The courses editor: one card per course, its ranges of units under its name. */
-.courseed { display: grid; gap: 10px; }
-.courseed .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.courses { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.courses > li { display: grid; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px 10px 12px; }
-.courses .chead { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.courses .n { color: var(--muted); font-size: .85rem; min-width: 1.2em; }
-.courses textarea { flex: 0 1 18rem; min-width: 8rem; resize: none; field-sizing: content; font: inherit; font-weight: 600; line-height: 1.35; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
-.courses .chead button { font-size: 1rem; padding: 4px 8px; color: var(--ink); }
-.courses .chead button:disabled { opacity: .3; }
-.courses .chead .small { font-size: .85rem; color: var(--muted); }
-.courses .csum { flex: 1; min-width: 0; padding-inline: 4px; }
-.courses .cpart, .courses .cfoot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: calc(1.2em + 6px); }
-.courses .cpart [data-pdel] { color: var(--muted); padding: 4px 8px; }
-.courses .crange { display: flex; align-items: center; gap: 8px; }
-/* On a phone the name takes the first line, and the ranges use the card's whole width. */
-@media (max-width: 480px) {
-  .courses .chead textarea { flex: 1 1 calc(100% - 2em); }
-  .courses .cpart, .courses .cfoot { margin-left: 0; }
-  .courses .crange { order: 1; flex-basis: 100%; } /* the ✕ stays beside its collection */
+/* Edit collections (vocab/collections.js): the top of the vocab table becomes a card of its own, edge to edge, ending in a line. */
+.ttop { display: grid; gap: 14px; }
+.ttop.editing { margin: -18px -18px 0; padding: 18px; background: var(--sunk); border-bottom: 1px solid var(--line); border-radius: calc(var(--r) - 1px) calc(var(--r) - 1px) 0 0; }
+.ttop.editing .tsearch { background: var(--surface); opacity: .55; }
+.colbtns { display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.viewed { display: grid; gap: 10px; }
+.viewed .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.viewed .chip, .colrow .chip { padding: 4px 12px; font-size: .9rem; }
+.viewed .chip:not([aria-pressed="true"]) { background: var(--surface); }
+.chip.add { border-style: dashed; color: var(--muted); background: none; }
+.mainptr { display: inline-flex; align-items: center; gap: 2px; color: var(--muted); margin-right: 8px; }
+.mainptr .qtip svg { width: 17px; height: 17px; }
+.viewbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.viewbar label { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.viewbar input { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; width: 14rem; max-width: 100%; }
+.link.danger { color: var(--shu); }
+.coled { display: grid; grid-template-columns: auto minmax(8rem, 13rem) minmax(0, 1fr) auto; gap: 8px 10px; }
+.coled > * { grid-column: 1 / -1; }
+.coled .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.colrow { display: grid; grid-template-columns: subgrid; align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.colrow.other { background: none; border-style: dashed; }
+.colctl { display: flex; align-items: center; height: 34px; }
+.colctl button { font-size: 1rem; padding: 4px 6px; color: var(--ink); }
+.colctl button:disabled { opacity: .3; }
+.grip { border: none; background: none; color: var(--muted); cursor: grab; font-size: 1.1rem; line-height: 1; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.colname { font: inherit; font-weight: 600; line-height: 1.35; color: var(--ink); resize: none; field-sizing: content; min-height: 34px; padding: 6px 8px; border: 1px solid transparent; border-radius: 6px; background: none; }
+textarea.colname:hover { border-color: var(--line); }
+textarea.colname:focus { border-color: var(--ai); background: var(--surface); outline: none; }
+.colrow.other .colname { color: var(--muted); }
+.colunits { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 34px; padding: 2px; border-radius: 6px; }
+.colunits.dropon { background: var(--ai-soft); outline: 2px dashed var(--ai); outline-offset: 1px; }
+.colrow > .ghost { align-self: center; }
+.colrow > .ghost:disabled { opacity: .4; cursor: not-allowed; }
+.colrow.dropabove { box-shadow: 0 -3px 0 var(--ai); }
+.colrow.dropbelow { box-shadow: 0 3px 0 var(--ai); }
+.chip.unit { cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: transform .3s ease, box-shadow .3s ease; }
+.chip.unit.lifting { transform: scale(1.08); box-shadow: 0 6px 16px rgb(0 0 0 / .18); transition-duration: .38s; } /* a finger holding it: it grows as it's picked up */
+.ufrom { align-self: center; font-size: .75rem; color: var(--muted); padding-left: 4px; }
+.ufrom:first-child { padding-left: 0; }
+.dragsrc { opacity: .35; }
+.dragghost { position: fixed; z-index: 60; margin: 0; pointer-events: none; transform-origin: center; box-shadow: 0 10px 24px rgb(0 0 0 / .22); transition: none; }
+body.dragging { cursor: grabbing; -webkit-user-select: none; user-select: none; }
+/* What can't be used while collections are edited: folded, under a grey cover that says why. */
+.tlocked { position: relative; min-height: 64px; }
+.tlocked::after { content: attr(data-lock); position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; color: var(--muted); font-weight: 600; background: color-mix(in srgb, var(--sunk) 78%, transparent); border-radius: 8px; }
+.panel.tlocked::after { border-radius: var(--r); }
+@media (max-width: 640px) {
+  .coled { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .colunits { grid-column: 1 / -1; }
+  .colrow > :last-child { grid-area: 1 / 3; }
 }
+@media (prefers-reduced-motion: reduce) { .chip.unit { transition: none; } }
 .empty { text-align: center; padding: 28px 12px; color: var(--muted); display: grid; gap: 6px; }
 @media (max-width: 480px) { .stats .big { font-size: 1.7rem; } }
 @media (prefers-reduced-motion: reduce) { .meter i { transition: none; } }
+/* A pop-up asking first (page/ask.js), and on the public site the one asking to share handwriting. */
+:is(#askDlg, #shareAsk) { border: none; border-radius: 14px; padding: 22px 24px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--ink); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
+:is(#askDlg, #shareAsk)::backdrop { background: rgba(17, 20, 26, .5); }
+.shareask { display: grid; gap: 12px; }
+.shareask h2 { font-size: 1.2rem; }
+.shareask p, .shareask ul { margin: 0; text-wrap: pretty; }
+.shareask ul { padding-left: 1.2em; display: grid; gap: 4px; }
+.asktext { display: grid; gap: 8px; }
+.shareact { justify-content: flex-end; }
 body { margin: 0; }
 #welcome { border: none; border-radius: 14px; padding: 26px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--muted); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
 #welcome::backdrop { background: rgba(17, 20, 26, .5); }
@@ -549,14 +581,7 @@ body { margin: 0; }
 .welcome p { margin: 0; text-wrap: pretty; }
 .welcome .lead { color: var(--ink); font-weight: 500; }
 .signbtns { display: grid; gap: 10px; margin: 4px 0; }
-#shareAsk { border: none; border-radius: 14px; padding: 22px 24px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--ink); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
-#shareAsk::backdrop { background: rgba(17, 20, 26, .5); }
-.shareask { display: grid; gap: 12px; }
-.shareask h2 { font-size: 1.2rem; }
-.shareask p, .shareask ul { margin: 0; text-wrap: pretty; }
-.shareask ul { padding-left: 1.2em; display: grid; gap: 4px; }
 .checkrow { display: flex; align-items: center; gap: 8px; font-size: .9rem; }
-.shareact { justify-content: flex-end; }
 .tourbtn { background: var(--ai-soft); color: var(--ai); border-color: transparent; font-weight: 700; padding: 10px 20px; }
 .tourbtn:hover { border-color: var(--ai); }
 /* The tour: a ring around one part of the page with the rest dimmed (clicks still go through), and a card beside it. */
@@ -636,15 +661,15 @@ colours.apply(...colours.saved()); // before anything is drawn
   </header>
   <div class="banner" id="banner" hidden></div>
   <div class="gate" id="gate" role="status">Loading…</div>
+  <dialog id="askDlg" aria-labelledby="askTitle"><form method="dialog" class="shareask"><h2 id="askTitle"></h2><div class="asktext" id="askText"></div>
+    <div class="tactions shareact"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes" id="askYes"></button></div></form></dialog>
 
   <!-- SETUP -->
   <section id="setup" class="wrap">
     <div class="panel">
       <div class="head"><h3>Sets</h3>
         <div class="headr"><button class="link" id="toTable">vocab table</button>
-          <div class="seg mini" id="groupSeg" role="group" aria-label="Unit rows by" hidden>
-            <button type="button" data-group="book">Collection</button><button type="button" data-group="course">Course</button>
-          </div>
+          <div class="seg mini viewsw" id="groupSeg" role="group" aria-label="Unit rows by" hidden></div>
         </div>
       </div>
       <div class="pbar" id="pickBar" hidden>
@@ -844,7 +869,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div class="setpane" data-set-pane="data"><h2>Data</h2>
           <section><h3>Vocabulary</h3><p class="muted" id="setStats"></p></section>
           <section id="portPanel" hidden><h3>Export / import</h3>
-            <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and courses, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
+            <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and views, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
             <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
             <p class="muted small" id="aiHelp">Have a vocab list on paper, in a photo or in a PDF? <a href="ai/" target="_blank" rel="noopener">Let your AI make the file</a>.</p>
             <p class="muted small" id="portMsg" hidden></p>
@@ -893,20 +918,21 @@ colours.apply(...colours.saved()); // before anything is drawn
     <div class="qbar"><button class="ghost" id="backBtn">← Back to practice</button></div>
     <div class="banner leaveask" id="leaveAsk" hidden></div>
     <div class="panel">
-      <div class="head"><h2>Vocab table</h2>
-        <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="bookOrderBtn" hidden>Change collection order</button><button class="link" type="button" id="courseBtn" hidden>Edit courses</button>
-          <div class="seg mini" id="tGroupSeg" role="group" aria-label="Unit rows by" hidden>
-            <button type="button" data-group="book">Collection</button><button type="button" data-group="course">Course</button>
+      <div class="ttop" id="tTop">
+        <div class="head"><h2>Vocab table</h2>
+          <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="editColBtn" hidden>Edit collections</button>
+            <span class="colbtns" id="colBtns" hidden><span class="editerr" id="colErr" role="status"></span><span class="muted small" id="colState"></span><button class="btn" type="button" id="colDiscard">Discard</button><button class="btn primary" type="button" id="colSave" disabled>Save</button></span>
+            <div class="seg mini viewsw" id="tGroupSeg" role="group" aria-label="Unit rows by" hidden></div>
           </div>
         </div>
+        <div class="tbar">
+          <input type="search" class="tsearch" id="tSearch" placeholder="Search English, kana or kanji" aria-label="Search the vocab table in every unit">
+          <div class="viewed" id="viewEd" hidden></div>
+          <div class="coled" id="colEd" hidden></div>
+          <div class="pbar tpbar" id="tPickBar"><div class="pchs" id="tChs" role="group" aria-label="Units"></div></div>
+        </div>
       </div>
-      <div class="tbar">
-        <input type="search" class="tsearch" id="tSearch" placeholder="Search English, kana or kanji" aria-label="Search the vocab table in every unit">
-        <div class="bookorder setedit" id="bookOrderEd" hidden></div>
-        <div class="courseed setedit" id="courseEd" hidden></div>
-        <div class="pbar tpbar" id="tPickBar"><div class="pchs" id="tChs" role="group" aria-label="Units"></div></div>
-        <div class="tsum"><span class="muted small" id="tSummary"></span><button class="link" id="tOpenAll" type="button"></button></div>
-      </div>
+      <div class="tsum" id="tSum"><span class="muted small" id="tSummary"></span><button class="link" id="tOpenAll" type="button"></button></div>
       <div id="setTables"></div>
       <form class="newset" id="newSetForm" hidden>
         <label>Collection<input id="nsCol" list="colList" placeholder="Japanese 1" required></label>
@@ -947,6 +973,10 @@ colours.apply(...colours.saved()); // before anything is drawn
   const sayIn = (el) => (m) => { el.hidden = !m; el.textContent = m || ""; };
   // Marks which of a menu's buttons is the one showing (the styles key on aria-current).
   const markCurrent = (els, on) => els.forEach((b) => (on(b) ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
+  // A (?) that shows a short explanation in a bubble when pointed at, focused or (on a touch screen) tapped. qtip(id, label,
+  // text) is its HTML (id names the bubble, for aria-describedby); tipTaps(box) makes the ones in box open on a tap.
+  const qtip = (id, label, text) => `<span class="qtip" tabindex="0" role="button" aria-label="${esc(label)}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.4a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.7v.5"/><circle cx="12" cy="17.2" r=".4" fill="currentColor"/></svg><span class="qtipbody" role="tooltip" id="${id}">${esc(text)}</span></span>`;
+  const tipTaps = (box) => box.querySelectorAll(".qtip").forEach((q) => { q.onclick = () => q.classList.toggle("open"); q.onblur = q.onmouseleave = () => q.classList.remove("open"); });
   // ---------- a dropdown in the page's own style ----------
   // A button showing the picked option; clicking it opens a short list under it (over it, near the bottom of the
   // screen). Arrow keys, Enter and Escape work, and a click anywhere else closes it.
@@ -990,6 +1020,72 @@ colours.apply(...colours.saved()); // before anything is drawn
     document.addEventListener("pointerdown", away);
     return { set };
   }
+  // ---------- dragging things around ----------
+  // makeDrag(root, sel, { over(el, x, y), drop(el, x, y), end() }): the elements matching sel inside root can be picked up
+  // and dropped elsewhere. With a mouse, dragging starts once the pointer moves a little; with a finger or a pen, after
+  // holding still for a moment (so a swipe still scrolls the page), when the element grows a little to show it's picked up.
+  // A copy follows the pointer; over() hears where it is (to mark where it would land), drop() where it was let go, and
+  // end() that it's over either way (Escape lets go without dropping). Near the top or bottom of the window the page scrolls.
+  // root stays while what's in it is drawn again, so it can be redrawn between drags.
+  function makeDrag(root, sel, on) {
+    let d = null, justDropped = false;
+    const HOLD = 380, SLOP = 8;
+    const stop = (dropIt) => {
+      if (!d) return;
+      const { el, ghost, x, y, live } = d;
+      clearTimeout(d.timer); cancelAnimationFrame(d.raf); ghost?.remove(); el.classList.remove("dragsrc", "lifting");
+      document.body.classList.remove("dragging"); d = null;
+      if (live) { justDropped = true; setTimeout(() => (justDropped = false), 0); if (dropIt) on.drop(el, x, y); on.end(); }
+    };
+    function lift() {
+      const r = d.el.getBoundingClientRect(), g = d.el.cloneNode(true);
+      g.classList.add("dragghost"); g.removeAttribute("id");
+      Object.assign(g.style, { left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" });
+      document.body.append(g);
+      Object.assign(d, { live: true, ghost: g, dx: d.x - r.left, dy: d.y - r.top });
+      d.el.classList.remove("lifting"); d.el.classList.add("dragsrc"); document.body.classList.add("dragging");
+      if (navigator.vibrate && d.touch) navigator.vibrate(8);
+      follow(); scroll();
+    }
+    function follow() { d.ghost.style.transform = `translate(${d.x - d.dx - parseFloat(d.ghost.style.left)}px, ${d.y - d.dy - parseFloat(d.ghost.style.top)}px) scale(1.06)`; on.over(d.el, d.x, d.y); }
+    function scroll() {
+      if (!d?.live) return;
+      const edge = 60, v = d.y < edge ? -(edge - d.y) / 4 : d.y > innerHeight - edge ? (d.y - innerHeight + edge) / 4 : 0;
+      if (v) { window.scrollBy(0, v); on.over(d.el, d.x, d.y); }
+      d.raf = requestAnimationFrame(scroll);
+    }
+    root.addEventListener("pointerdown", (e) => {
+      const el = e.target.closest(sel);
+      if (!el || !root.contains(el) || e.button > 0 || d) return;
+      const touch = e.pointerType !== "mouse";
+      d = { el, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, touch, live: false, id: e.pointerId };
+      if (touch) { el.classList.add("lifting"); d.timer = setTimeout(() => d && lift(), HOLD); }
+    });
+    addEventListener("pointermove", (e) => {
+      if (!d || e.pointerId !== d.id) return;
+      d.x = e.clientX; d.y = e.clientY;
+      const far = Math.hypot(d.x - d.x0, d.y - d.y0) > SLOP;
+      if (d.live) follow();
+      else if (far) { if (d.touch) stop(false); else lift(); } // a finger that moves before the hold is a scroll
+    });
+    addEventListener("pointerup", (e) => { if (d && e.pointerId === d.id) stop(true); });
+    addEventListener("pointercancel", (e) => { if (d && e.pointerId === d.id) stop(false); });
+    addEventListener("keydown", (e) => { if (d?.live && e.key === "Escape") stop(false); });
+    // Once something is picked up the page doesn't scroll under the finger, and the click that ends a drag does nothing.
+    addEventListener("touchmove", (e) => { if (d?.live) e.preventDefault(); }, { passive: false });
+    root.addEventListener("click", (e) => { if (justDropped) { e.stopPropagation(); e.preventDefault(); } }, true);
+    root.addEventListener("contextmenu", (e) => { if (d) e.preventDefault(); });
+    return { busy: () => !!d?.live };
+  }
+  // ---------- asking first ----------
+  // A pop-up over the page before something that's hard to take back. ask(title, html, yes) resolves true for the yes
+  // button (labelled yes), false for Cancel or Escape.
+  function ask(title, html, yes) {
+    const d = $("#askDlg");
+    $("#askTitle").textContent = title; $("#askText").innerHTML = html; $("#askYes").textContent = yes;
+    d.returnValue = ""; d.showModal(); $("#askYes").focus();
+    return new Promise((done) => d.addEventListener("close", () => done(d.returnValue === "yes"), { once: true }));
+  }
   // Choices people make on the page. They're kept in this browser and, for someone signed in, in their account
   // too (data/users/<id>/prefs, see syncPrefs in account/choices.js), so they come along to other devices.
   const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "sessPer", "loveTop", "palette", "theme", "resume", "share", "practices"];
@@ -1012,7 +1108,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   let db = null, user = null, sample = null, uid = null, canWrite = false, owner = false;
   // Export / import works from the documents exactly as stored, not the tidied copies the page renders from.
   let downloads = null;
-  const raw = { sets: [], kanji: [], books: null, courses: null };
+  const raw = { sets: [], kanji: [], books: null, courses: null, views: null };
   const S = {
     sets: [], loaded: false,
     selected: new Set(store.get("selected", [])),
@@ -1021,8 +1117,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     // (Older pages also stored the books shown, in pickBooks or pickBook, and bare chapter numbers, read as chapters of the first book.)
     pick: { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", null) ?? [store.get("pickCh", "all")].filter((c) => c !== "all")) },
     tpick: { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) },
-    groupBy: store.get("groupBy", "book"), // unit rows by collection ("book") or "course"
-    courses: [],                           // meta/courses: [{name, parts: [{collection, from, to}]}], in course order; a line break in a name breaks its label
+    groupBy: store.get("groupBy", "main"), // the view the unit rows follow, by name ("main" for the main view; "book" and "course" from before views)
+    courses: [],                           // meta/courses, from before views: [{name, parts: [{collection, from, to}]}], read as the view "Courses"
     oldBooks: store.get("pickBooks", null) ?? (store.get("pickBook", null) != null ? [store.get("pickBook", null)] : null),
     tableBook: store.get("tableBook", null), // book shown in the vocab table
     pickTags: new Set(store.get("pickTags", null) ?? oldKindPicks()), // tags picked in the Filter row (lowercase); none = every set
@@ -1046,8 +1142,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     kEdit: null, kEditUnit: "", kEditCol: "",  // kanji list whose collection and unit are being edited
     formCol: null,                 // collection last filled into the new set / new kanji forms
     colOrder: [],                  // saved book order (meta/books); books not in it come after, by name
-    orderEdit: null,               // the collection order being edited in the vocab table, or null
-    courseEdit: null,              // the courses being edited in the vocab table (vocab/courses.js), or null
+    colEdit: null,                 // the views and collections being edited in the vocab table (vocab/collections.js), or null
+    viewDoc: null,                 // meta/views as read (vocab/views.js), or null before views are saved
   };
 
   // ---------- views ----------
@@ -1404,7 +1500,9 @@ colours.apply(...colours.saved()); // before anything is drawn
   //   sets/<id>      { collection, unit, name, tags?, words: [{ id, en, kana, kanji }] }
   //   kanji/<id>     { collection, unit, kanji }       the kanji a unit teaches, as one string
   //   meta/books     { order: [collection, …] }        the order the collections are studied in
-  //   meta/courses   { courses: [{ name, parts: [{ collection, from, to }] }] }
+  //   meta/views     { main, views: [{ name, collections: [{ name, units: [{ collection, unit }] }] }] }
+  //                  the main view's name, and other ways of grouping the same units into collections (vocab/views.js)
+  //   meta/courses   { courses: [{ name, parts: [{ collection, from, to }] }] }   what views replaced, read until views are saved
   // Vocab is grouped Collection › Unit › Set: a collection (a textbook, a course, any list of lists) has units (Ch. 3,
   // Week 1, any name), and each unit has sets; kanji lists go by unit. Documents saved before October 2026 name a book,
   // a numbered chapter and a section with an optional label: they're read as collection, unit "Ch. N" and set name "A · Label".
@@ -1412,6 +1510,9 @@ colours.apply(...colours.saved()); // before anything is drawn
   const oldUnit = (v) => { const c = tidy(v, 60).replace(/^ch(apter)?\.?\s*(?=\d)/i, ""); return /^\d+$/.test(c) ? `Ch. ${+c}` : c; };
   const docCol = (d) => tidy(d.collection ?? d.book, 100);
   const docUnit = (d) => (d.unit != null ? tidy(d.unit, 60) : oldUnit(d.chapter)) || "No unit";
+  const coll = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+  // Units sort by name with numbers in order (Week 2 before Week 10).
+  const byUnit = (a, b) => coll.compare(String(a), String(b));
   const docName = (d) => tidy(d.name ?? [d.section, d.label].map((x) => tidy(x, 200)).filter(Boolean).join(" · "), 200) || "Untitled set";
   const colLabel = (b) => b || "No collection";
   // "Genki 1 › Lesson 3" and "Genki 1 › Lesson 3 › Food": the collection is named only where there's more than one (withCol).
@@ -1436,11 +1537,11 @@ colours.apply(...colours.saved()); // before anything is drawn
   const dataOrNull = (snap) => (snap.exists ? snap.data() : null);
   // All four at once, for a page that doesn't keep them loaded (the AI page; the site itself listens to each, see boot).
   async function readVocab(db) {
-    const [sets, kanji, books, courses] = await Promise.all([db.collection("sets").get(), db.collection("kanji").get(), db.doc("meta/books").get(), db.doc("meta/courses").get()]);
-    return { sets: withIds(sets), kanji: withIds(kanji), books: dataOrNull(books), courses: dataOrNull(courses) };
+    const [sets, kanji, books, courses, views] = await Promise.all([db.collection("sets").get(), db.collection("kanji").get(), db.doc("meta/books").get(), db.doc("meta/courses").get(), db.doc("meta/views").get()]);
+    return { sets: withIds(sets), kanji: withIds(kanji), books: dataOrNull(books), courses: dataOrNull(courses), views: dataOrNull(views) };
   }
   // A vocab file (Export writes one, Import reads one, an AI can make one: see ai/) is those documents in one JSON object:
-  // { app: APP, version: 2, sets: [...], kanji: [...], collections: { order }, courses }.
+  // { app: APP, version: 2, sets: [...], kanji: [...], collections: { order }, views } (older files: courses instead of views).
   const APP = "jp-vocab-practice";
   // Each cleaner returns the document to store, in the current format, or null when what it's given isn't usable.
   // Files and older documents go through them, so their contents are never trusted.
@@ -1458,11 +1559,24 @@ colours.apply(...colours.saved()); // before anything is drawn
     return Array.isArray(list) ? { courses: list.slice(0, 50).filter((c) => c && c.name && Array.isArray(c.parts)).map((c) => ({ name: str(c.name, 100),
       parts: c.parts.slice(0, 20).filter((x) => x && typeof x === "object").map(coursePart).filter((x) => x.from && x.to) })) } : null;
   }
+  // Courses read as one view, "Courses", each unit in the first course that covers it. units: every unit there is, as
+  // { collection, unit }; courses: [{ name, parts }] (cleanCourses).
+  function courseView(units, courses) {
+    const used = new Set(), inPart = (u, pt) => u.collection === pt.collection && byUnit(u.unit, pt.from) >= 0 && byUnit(u.unit, pt.to) <= 0;
+    return { name: "Courses", collections: courses.map((c) => { const us = units.filter((u) => !used.has(u) && c.parts.some((pt) => inPart(u, pt))); us.forEach((u) => used.add(u)); return { name: c.name, units: us }; }) };
+  }
+  // A name in a view other than the main one may hold one line break, which shows it on two lines beside its units.
+  const viewName = (v, n) => String(v ?? "").split("\n").map((t) => tidy(t, n)).filter(Boolean).slice(0, 2).join("\n").slice(0, n);
+  function cleanViews(d) {
+    if (!d || typeof d !== "object" || !Array.isArray(d.views)) return null;
+    const unit = (u) => ({ collection: tidy(u.collection, 100), unit: tidy(u.unit, 60) });
+    return { main: tidy(d.main, 60) || "Books", views: d.views.slice(0, 20).filter((v) => v && typeof v === "object" && Array.isArray(v.collections)).map((v) => ({ name: viewName(v.name, 60) || "View",
+      collections: v.collections.slice(0, 100).filter((c) => c && typeof c === "object").map((c) => ({ name: viewName(c.name, 100) || "Untitled",
+        units: (Array.isArray(c.units) ? c.units : []).slice(0, 1000).filter((u) => u && typeof u === "object" && u.unit).map(unit) })) })) };
+  }
   // ---------- data ----------
   // The vocab as the page holds it: collections, their units and sets, in order (how a stored document is read: vocab/docs.js).
-  const coll = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-  // Units sort by name with numbers in order (Week 2 before Week 10). In a unit, Kanji sets, Extras and supplementary lists come last.
-  const byUnit = (a, b) => coll.compare(String(a), String(b));
+  // In a unit, Kanji sets, Extras and supplementary lists come last (units sort by name: byUnit in vocab/docs.js).
   const secRank = (s) => { s = String(s || ""); return /^kanji/i.test(s) ? 1 : /^extra/i.test(s) ? 2 : /^supp/i.test(s) ? 3 : 0; };
   const sortSets = (a, b) => byCol(colOf(a), colOf(b)) || byUnit(a.unit, b.unit) || secRank(a.name) - secRank(b.name) || coll.compare(a.name, b.name);
   const sortLists = (a, b) => byCol(colOf(a), colOf(b)) || byUnit(a.unit, b.unit);
@@ -1491,6 +1605,13 @@ colours.apply(...colours.saved()); // before anything is drawn
   // The same as HTML, with the reading over the kanji (ruby) when the word has kanji.
   const jpRuby = (w) => (w.kana && KANJI.test(w.kanji || "") ? `<ruby>${esc(w.kanji)}<rt>${esc(w.kana)}</rt></ruby>` : esc(jpForm(w)));
 
+  // Listens to the vocab where it's kept, so a change from anywhere (another tab or device too) shows at once. failed: what
+  // to say when the sets can't load.
+  function watchVocab(failed) {
+    db.collection("kanji").onSnapshot(onKanji, () => {});
+    db.collection("sets").onSnapshot(onSets, () => banner(failed));
+    for (const [path, on] of [["meta/books", onBookOrder], ["meta/courses", onCourses], ["meta/views", onViews]]) db.doc(path).onSnapshot(on, () => {});
+  }
   function onCourses(snap) {
     raw.courses = dataOrNull(snap);
     const list = snap.exists ? snap.data()?.courses : null;
@@ -1668,8 +1789,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   const setCols = () => cols().filter((b) => S.sets.some((s) => colOf(s) === b));
   const unitsOf = (col) => [...new Set(S.sets.filter((s) => colOf(s) === col).map((s) => s.unit))];
   const colKeys = (col) => unitsOf(col).map((c) => `${col}\u0001${c}`);
-  const courseMode = () => S.groupBy === "course" && S.courses.length > 0;
-  // A unit picker: one row of chips per collection, or per course with any units no course covers under "Other".
+  // A unit picker: one row of chips per collection of the view picked (vocab/views.js), with any units that view has in no
+  // collection under "Other".
   // Each collection shows all, none or some of its units: st.show maps collection -> "all" | "none" | "some" (missing = "all"),
   // and st.picks holds the unitKey()s shown for "some". o: { st, showKey, chsKey, cols(), keys(col), bar, rows, dot(key), onChange() }.
   function makePicker(o) {
@@ -1703,26 +1824,26 @@ colours.apply(...colours.saved()); // before anything is drawn
       replace(show, picks) { st.show = show; st.picks = picks; save(); },
       groups() {
         const bs = o.cols();
-        if (!courseMode()) return bs.map((b) => ({ name: colLabel(b), keys: o.keys(b) }));
-        const { rows, rest } = courseRows(bs.flatMap(o.keys), S.courses), gs = rows.filter((g) => g.keys.length);
-        return rest.length ? [...gs, { name: "Other", keys: rest }] : gs;
+        const v = curView();
+        return v ? viewRows(v, bs.flatMap(o.keys)) : bs.map((b) => ({ name: colLabel(b), keys: o.keys(b) }));
       },
       render() {
-        const groups = p.groups(), labeled = groups.length > 1 || courseMode();
+        const groups = p.groups(), labeled = groups.length > 1 || !!curView();
         const stateOf = (g) => { const on = g.keys.filter(p.has).length; return on === g.keys.length ? "all" : on ? "some" : "none"; };
-        // Each row is led by its name when there's more than one row (or rows are courses).
+        // Each row is led by its name when there's more than one row (or the rows are another view's).
         o.bar.classList.toggle("labeled", labeled);
         o.rows.innerHTML = groups.map((g, gi) => {
           const sg = stateOf(g);
-          const chips = g.keys.map((k, i) => `<button class="chip" type="button" data-k="${i}" aria-pressed="${sg === "some" && p.has(k)}">${esc(keyUnit(k))}${o.dot(k)}</button>`).join("");
+          const tags = curView() ? fromTags(g.keys, (k) => k.split("\u0001")[0]) : [];
+          const chips = g.keys.map((k, i) => `${tags[i] || ""}<button class="chip" type="button" data-k="${i}" aria-pressed="${sg === "some" && p.has(k)}">${esc(keyUnit(k))}${o.dot(k)}</button>`).join("");
           return `<div class="pchrow" data-g="${gi}">${labeled ? `<span class="chbook muted small${g.name.includes("\n") ? " two" : ""}">${esc(g.name)}</span>` : ""}<div class="chips"><button class="chip" type="button" data-k="all" aria-pressed="${sg === "all"}">All</button>${chips}</div></div>`;
         }).join("");
-        // The label column is as wide as the widest name in either view (collections or courses), so switching views doesn't shift the chips.
+        // The label column is as wide as the widest name in any view, so switching views doesn't shift the chips.
         const lab = o.rows.querySelector(".chbook");
         if (lab) {
           const ctx = (makePicker.cv ||= document.createElement("canvas")).getContext("2d");
           ctx.font = getComputedStyle(lab).font;
-          const names = [...o.cols().map(colLabel), ...S.courses.map((c) => c.name), "Other"];
+          const names = [...o.cols().map(colLabel), ...altViews().flatMap((v) => v.collections.map((c) => c.name)), "Other"];
           const w = Math.max(...names.flatMap((n) => n.split("\n")).map((t) => ctx.measureText(t).width));
           o.bar.style.setProperty("--labw", Math.ceil(w) + 1 + "px");
         }
@@ -1744,14 +1865,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     dot: (k) => (S.sets.some((s) => S.selected.has(s.id) && unitKey(s) === k) ? `<span class="dot pick" title="Has picked sets">•</span>` : ""),
     onChange: () => renderSetup() });
   const chShown = (s) => PP.has(unitKey(s));
-  // Both pages share one Collection / Course switch.
-  function syncGroupSegs() {
-    for (const id of ["#groupSeg", "#tGroupSeg"]) {
-      $(id).hidden = !S.courses.length;
-      $(id).querySelectorAll("[data-group]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.group === (courseMode() ? "course" : "book")));
-    }
-  }
-  document.querySelectorAll("[data-group]").forEach((b) => (b.onclick = () => { S.groupBy = b.dataset.group; store.set("groupBy", S.groupBy); renderSetup(); renderTable(); }));
+  // Both pages share one choice of view.
+  function syncGroupSegs() { renderViewSwitch($("#groupSeg")); renderViewSwitch($("#tGroupSeg")); $("#tGroupSeg").hidden ||= !!S.colEdit; }
   function renderPickBar() {
     PP.render(); syncGroupSegs();
     const n = S.selected.size;
@@ -2665,7 +2780,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     S.selected = new Set(store.get("selected", []));
     Object.assign(S.pick, { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", [])) });
     Object.assign(S.tpick, { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) });
-    S.groupBy = store.get("groupBy", "book");
+    S.groupBy = store.get("groupBy", "main");
     S.pickTags = new Set(store.get("pickTags", []));
     S.dir = store.get("dir", "ej"); S.mode = store.get("mode", "default"); S.upto = store.get("uptoPick", "auto");
     S.loveWin = String(store.get("loveWin", "10")); S.sessPer = String(store.get("sessPer", "20")); S.loveTop = store.get("loveTop", "jp") === "en" ? "en" : "jp";
@@ -2798,30 +2913,12 @@ colours.apply(...colours.saved()); // before anything is drawn
     const tp = S.tpick.picks, all = new Set(cols().flatMap(tKeys)), was = tp.size;
     for (const c of [...tp]) { const k = newKey(c, (x) => all.has(x)); if (k !== c) { tp.delete(c); tp.add(k); } }
     if (tp.size !== was || [...tp].some((k) => /\u0001\d+$/.test(k) && !all.has(k))) TP.replace(S.tpick.show, tp);
-    $("#bookOrderBtn").hidden = !canWrite || cols().length < 2 || !!S.orderEdit;
-    TP.render(); syncGroupSegs();
-    renderBookOrder(); renderCourses();
-  }
-  $("#bookOrderBtn").onclick = () => { S.orderEdit = cols(); renderTable(); };
-  // Collection order editor: move collections up or down, then Save. "Kanji learned up to" counts collections in this order.
-  function renderBookOrder() {
-    const ed = $("#bookOrderEd"), cur = cols();
-    if (S.orderEdit) S.orderEdit = [...S.orderEdit.filter((b) => cur.includes(b)), ...cur.filter((b) => !S.orderEdit.includes(b))];
-    ed.hidden = !S.orderEdit || cur.length < 2 || !canWrite;
-    if (ed.hidden) { ed.innerHTML = ""; return; }
-    const o = S.orderEdit, changed = o.some((b, i) => b !== cur[i]);
-    ed.innerHTML = `<p class="muted small" style="margin:0">Put the collections in the order you study them. “Kanji learned up to” counts every kanji in the collections above the one you pick.</p>
-      <ol>${o.map((b, i) => `<li><span class="n">${i + 1}</span><b>${esc(colLabel(b))}</b><button class="ghost" type="button" data-bup="${i}" aria-label="Move ${esc(colLabel(b))} up"${i ? "" : " disabled"}>↑</button><button class="ghost" type="button" data-bdown="${i}" aria-label="Move ${esc(colLabel(b))} down"${i < o.length - 1 ? "" : " disabled"}>↓</button></li>`).join("")}</ol>
-      <div class="row"><button class="btn primary" type="button" id="boSave"${changed ? "" : " disabled"}>Save order</button><button class="btn" type="button" id="boCancel">Cancel</button><span class="muted small">${changed ? "Unsaved changes" : ""}</span><span class="editerr" id="boErr"></span></div>`;
-    const move = (i, d) => { const j = i + d; [o[i], o[j]] = [o[j], o[i]]; renderBookOrder(); ed.querySelector(`[data-b${d < 0 ? "up" : "down"}="${j}"]:not(:disabled)`)?.focus(); };
-    ed.querySelectorAll("[data-bup]").forEach((b) => (b.onclick = () => move(+b.dataset.bup, -1)));
-    ed.querySelectorAll("[data-bdown]").forEach((b) => (b.onclick = () => move(+b.dataset.bdown, 1)));
-    $("#boCancel").onclick = () => { S.orderEdit = null; renderTable(); };
-    $("#boSave").onclick = async (e) => {
-      e.target.disabled = true; e.target.textContent = "Saving…";
-      try { await db.doc("meta/books").set({ order: o, updatedAt: new Date().toISOString() }); S.orderEdit = null; onBookOrder({ exists: true, data: () => ({ order: o }) }); }
-      catch { e.target.disabled = false; e.target.textContent = "Save order"; $("#boErr").textContent = "Couldn't save. Try again."; }
-    };
+    // "Edit collections" (vocab/collections.js) puts its editor where the unit rows were, and Discard and Save where it was.
+    const ed = !!S.colEdit;
+    $("#editColBtn").hidden = !canWrite || ed; $("#colBtns").hidden = !ed;
+    $("#tTop").classList.toggle("editing", ed); $("#tPickBar").hidden = ed; $("#tSearch").disabled = ed;
+    if (!ed) TP.render();
+    syncGroupSegs(); renderColEdit();
   }
   // Search runs a moment after typing pauses, so each keystroke stays instant.
   let searchTimer = 0;
@@ -2864,32 +2961,32 @@ colours.apply(...colours.saved()); // before anything is drawn
   const fit = CSS.supports("field-sizing", "content") ? () => {} : (t) => { t.style.height = "auto"; t.style.height = t.scrollHeight + 2 + "px"; };
   // Unsaved changes are asked about before they can be lost: on leaving the vocab table, and by the browser on leaving the page.
   const unsavedSets = () => S.sets.filter(dirtySet), unsavedLists = () => S.kanjiLists.filter((k) => S.kdrafts.has(k.id));
-  addEventListener("beforeunload", (e) => { if (unsavedSets().length || unsavedLists().length || coursesDirty()) { e.preventDefault(); e.returnValue = ""; } });
+  addEventListener("beforeunload", (e) => { if (unsavedSets().length || unsavedLists().length || colsDirty()) { e.preventDefault(); e.returnValue = ""; } });
   // to: the view to go to (page/nav.js), once the changes are saved or let go.
   function leaveTable(to = "setup") {
     // Whatever was opened for editing and left as it was just closes.
     for (const s of S.sets) if (!dirtySet(s)) S.drafts.delete(s.id);
-    if (!coursesDirty()) S.courseEdit = null;
+    if (!colsDirty()) S.colEdit = null;
     S.kEdit = S.confirmDel = S.kConfirmDel = null;
     S.leaveTo = to; S.leaveAsk = true; renderLeave();
     if (!S.leaveAsk) openView(to); else window.scrollTo(0, 0);
   }
   function renderLeave(why = "") {
-    const sets = unsavedSets(), lists = unsavedLists(), crs = coursesDirty(), n = sets.length + lists.length + crs, box = $("#leaveAsk");
+    const sets = unsavedSets(), lists = unsavedLists(), crs = colsDirty(), n = sets.length + lists.length + crs, box = $("#leaveAsk");
     if (!n) S.leaveAsk = false;
     box.hidden = !S.leaveAsk;
     if (box.hidden) return;
     const count = (k, w) => (k ? [`${k} ${w}${k === 1 ? "" : "s"}`] : []);
-    box.innerHTML = `<span>${[...count(sets.length, "set"), ...count(lists.length, "kanji list"), ...(crs ? ["the courses"] : [])].join(" and ")} ${n === 1 && !crs ? "has" : "have"} unsaved changes.${why ? ` <span class="keyerr">${esc(why)}</span>` : ""}</span>
+    box.innerHTML = `<span>${[...count(sets.length, "set"), ...count(lists.length, "kanji list"), ...(crs ? ["the collections"] : [])].join(" and ")} ${n === 1 && !crs ? "has" : "have"} unsaved changes.${why ? ` <span class="keyerr">${esc(why)}</span>` : ""}</span>
       <span class="tactions"><button class="btn primary" type="button" data-lsave>Save all</button><button class="btn" type="button" data-ldiscard>Discard all</button><button class="link" type="button" data-lkeep>Keep editing</button></span>`;
     box.querySelector("[data-lkeep]").onclick = () => { S.leaveAsk = false; renderLeave(); };
-    box.querySelector("[data-ldiscard]").onclick = () => { S.drafts.clear(); S.kdrafts.clear(); S.courseEdit = null; renderTable(); openView(S.leaveTo); };
+    box.querySelector("[data-ldiscard]").onclick = () => { S.drafts.clear(); S.kdrafts.clear(); S.colEdit = null; renderTable(); openView(S.leaveTo); };
     box.querySelector("[data-lsave]").onclick = async (e) => {
       e.target.disabled = true; e.target.textContent = "Saving…";
       let bad = "";
       for (const s of sets) if (!bad && !(await saveSet(s, (m) => { bad = `${setName(s)}: ${m}`; })) && !bad) bad = "Couldn't save. Try again.";
       for (const k of lists) if (!bad && !(await saveKanji(k.id))) bad = "Couldn't save. Try again.";
-      if (crs && !bad) await saveCourses((m) => { bad = `Courses: ${m}`; });
+      if (crs && !bad && !(await saveCols((m) => { bad = `Collections: ${m}`; })) && !bad) bad = "Couldn't save. Try again.";
       renderTable();
       if (bad) renderLeave(bad); else openView(S.leaveTo);
     };
@@ -2901,14 +2998,17 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (!searchOnly) { renderKanji(); renderPort(); }
     renderLeave();
     $("#tableRole").hidden = canWrite;
-    $("#newSetForm").hidden = !canWrite;
+    // While collections are edited, the sets and kanji lists below fold up under a grey cover: they can't be used until Save or Discard.
+    const ed = !!S.colEdit;
+    $("#newSetForm").hidden = !canWrite || ed;
+    for (const el of [$("#setTables"), $("#kanjiLists").closest(".panel")]) { el.inert = ed; el.classList.toggle("tlocked", ed); el.dataset.lock = "Editing collections"; }
     $("#colList").innerHTML = cols().filter(Boolean).map((b) => `<option value="${esc(b)}"></option>`).join("");
     // Prefill the Collection fields with the collection being viewed, keeping anything typed until the view moves to another one.
     if (S.formCol !== curCol()) { S.formCol = curCol(); for (const id of ["#nsCol", "#nkCol"]) $(id).value = S.formCol; }
     else for (const id of ["#nsCol", "#nkCol"]) if (!$(id).value && document.activeElement !== $(id)) $(id).value = S.formCol;
     $("#unitList").innerHTML = tKeys(S.formCol).map((k) => `<option value="${esc(keyUnit(k))}"></option>`).join("");
     const box = $("#setTables");
-    const bar = $(".tbar"); bar.hidden = !S.loaded || !S.sets.length;
+    const bar = $(".tbar"); bar.hidden = $("#tSum").hidden = !S.loaded || !S.sets.length;
     if (!S.loaded) { box.innerHTML = `<div class="empty">Loading…</div>`; return; }
     if (!S.sets.length) { box.innerHTML = `<div class="empty"><b>No sets yet.</b><span>${canWrite ? "Add a set below, then fill in its words." : ""}</span></div>`; return; }
     renderTableBar();
@@ -2932,7 +3032,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         });
         if (any || S.drafts.has(s.id) && idx.length) shown.push({ s, words, idx, open: true });
       } else if (TP.has(unitKey(s))) {
-        shown.push({ s, words, idx: words.map((w, i) => i), open: S.openSets.has(s.id) });
+        shown.push({ s, words, idx: words.map((w, i) => i), open: !ed && S.openSets.has(s.id) });
       }
     }
     const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
@@ -2941,7 +3041,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#tSummary").textContent = q
       ? (!total ? "" : drawn < total ? `Showing the first ${drawn} of ${total} matches. Keep typing to narrow it down.` : `${plural(total, "matching word")} in ${plural(shown.length, "set")}, ${multiCol() ? "all collections" : "all units"}`)
       : !keys.length ? "" : `${where}: ${plural(shown.length, "set")}, ${plural(shown.reduce((n, x) => n + readyCount(x.words), 0), "word")}`;
-    const openAll = $("#tOpenAll"); openAll.hidden = q ? drawn >= total : !shown.length;
+    const openAll = $("#tOpenAll"); openAll.hidden = ed || (q ? drawn >= total : !shown.length);
     openAll.textContent = q ? `Show all ${total}` : shown.every((x) => x.open) ? "Close all sets" : "Open all sets";
     if (q && !shown.length) { box.innerHTML = `<div class="empty"><b>No words match “${esc(q)}”.</b><span>Search looks at English, kana and kanji in every ${multiCol() ? "collection and unit" : "unit"}.</span></div>`; return; }
     if (!keys.length) { box.innerHTML = `<div class="empty"><span>No units picked. Tap All or a unit above to see its sets.</span></div>`; return; }
@@ -3030,102 +3130,272 @@ colours.apply(...colours.saved()); // before anything is drawn
       e.target.reset(); $("#nsCol").value = col; $("#nsUnit").value = unit;
     } catch { banner("Couldn't add the set. Only the owner and editors can change the table."); }
   });
-  // ---------- courses ----------
-  // A course is a row of the unit pickers when rows are by Course: a name and ranges of units, each from one collection
-  // ({ collection, from, to }, stored in meta/courses). A unit goes in the first course that covers it.
-  // rows: each course with the units it shows (keys) and every unit its ranges cover (covers); rest: units no course has.
-  function courseRows(all, courses) {
+  // ---------- views ----------
+  // A view is one way of putting every unit into rows, the collections. The main view is the one the sets are saved in
+  // (each set's own collection and unit, in the collection order of meta/books). Other views group the same units another
+  // way, such as by course: meta/views { main, views: [{ name, collections: [{ name, units: [{ collection, unit }] }] }] }
+  // (vocab/docs.js). A unit no collection of a view has shows under "Other" there, so every view still has every unit.
+  // Before views, courses took ranges of units (meta/courses): they're read as one view, "Courses" (courseView in
+  // vocab/docs.js), until views are saved.
+  // Every unit there is (with a set or a kanji list), as unitKey()s, in the main view's order.
+  const allUnits = () => cols().flatMap(tKeys);
+  const mainName = () => S.viewDoc?.main || "Books";
+  // The other views, units as unitKey()s.
+  function altViews() {
+    const vs = S.viewDoc?.views ?? (S.courses.length ? [courseView(allUnits().map((k) => ({ collection: k.split("\u0001")[0], unit: keyUnit(k) })), S.courses)] : []);
+    return vs.map((v) => ({ name: v.name, collections: v.collections.map((c) => ({ name: c.name, units: c.units.map(unitKey) })) }));
+  }
+  function onViews(snap) {
+    raw.views = dataOrNull(snap);
+    S.viewDoc = cleanViews(raw.views);
+    renderSetup(); renderTable();
+  }
+  // The view the unit rows follow (S.groupBy names it), or null for the main view. Choices from before views: "course"
+  // was the courses, "book" the main view.
+  function curView() {
+    const vs = altViews(), g = S.groupBy;
+    return vs.find((v) => v.name === g) ?? (g === "course" ? vs[0] : null) ?? null;
+  }
+  // A view's rows among the keys given: each collection with the keys it has (once, in the first collection that has them),
+  // then the rest under "Other". Collections with none of the keys are left out.
+  function viewRows(v, keys) {
     const used = new Set();
-    const inPart = (k, pt) => { const [b, u] = k.split("\u0001"); return b === pt.collection && byUnit(u, pt.from) >= 0 && byUnit(u, pt.to) <= 0; };
-    const rows = courses.map((c) => {
-      const covers = all.filter((k) => c.parts.some((pt) => inPart(k, pt))), keys = covers.filter((k) => !used.has(k));
-      keys.forEach((k) => used.add(k));
-      return { name: c.name, keys, covers };
+    const rows = v.collections.map((c) => { const has = new Set(c.units); const ks = keys.filter((k) => has.has(k) && !used.has(k)); ks.forEach((k) => used.add(k)); return { name: c.name, keys: ks }; });
+    const rest = keys.filter((k) => !used.has(k));
+    return [...rows.filter((r) => r.keys.length), ...(rest.length ? [{ name: "Other", keys: rest }] : [])];
+  }
+  // In a row of another view with units from more than one collection, each run of one collection's units is led by
+  // that collection's name, so two Ch. 1s can be told apart. ids are in order; colOf(id) is the collection of one.
+  const fromTags = (ids, colOf) => { const many = new Set(ids.map(colOf)).size > 1;
+    return ids.map((u, i) => (many && (!i || colOf(ids[i - 1]) !== colOf(u)) ? `<span class="ufrom">${esc(colLabel(colOf(u)))}</span>` : "")); };
+  // The switch between views, on the practice page and in the vocab table: one button per view, or a dropdown once the
+  // buttons would take more than half the width of the header they're in. Hidden while there's only the main view.
+  function renderViewSwitch(box) {
+    const vs = altViews(), on = curView()?.name ?? "";
+    box.hidden = !vs.length;
+    if (box.hidden) return;
+    const opts = [["", mainName()], ...vs.map((v) => [v.name, v.name])];
+    const pick = (v) => { S.groupBy = v || "main"; store.set("groupBy", S.groupBy); renderSetup(); renderTable(); };
+    box.className = "seg mini viewsw";
+    box.innerHTML = opts.map(([v, t]) => `<button type="button" data-view="${esc(v)}" aria-pressed="${v === on}">${esc(t.replace("\n", " "))}</button>`).join("");
+    box.querySelectorAll("[data-view]").forEach((b) => (b.onclick = () => pick(b.dataset.view)));
+    const head = box.closest(".head");
+    if (head && box.scrollWidth > head.clientWidth / 2) { box.className = "viewsw"; makeDropdown(box, "Unit rows by", opts.map(([v, t]) => [v, t.replace("\n", " ")]), pick).set(on); }
+  }
+  // Redrawn when its header changes width, so it turns into a dropdown (or back) as the window does.
+  const viewSwitchFit = new ResizeObserver((es) => es.forEach((e) => { const w = Math.round(e.contentRect.width), box = e.target.querySelector(".viewsw");
+    if (box && e.target.dataset.w !== String(w)) { e.target.dataset.w = w; renderViewSwitch(box); } }));
+  for (const id of ["#groupSeg", "#tGroupSeg"]) viewSwitchFit.observe($(id).closest(".head"));
+  // ---------- editing collections ----------
+  // "Edit collections" turns the top of the vocab table into an editor for every view at once (vocab/views.js); nothing
+  // is stored until Save. While it's open, S.colEdit is
+  //   { at, mainName, main: [col], others: [{ name, was, cols: [col] }], units: { [id]: { name, srcs } }, was }
+  // with col = { id, name, units: [unit id], was }: at is the view being edited (-1 for the main one), a view's or col's was
+  // is its name when editing began (null for one added, or for the main view turned into another), a unit's id is the
+  // unitKey() it had when editing began, and srcs are the unitKey()s it stands for (more than one once two are merged).
+  // In the main view, moving a unit moves its sets and kanji list into that collection, and a unit of the same name there
+  // merges with it (after asking). In another view, moving a unit only regroups it. Units sort by name in a collection.
+  const colSnap = (e) => JSON.stringify([e.mainName, e.main, e.others, e.units]);
+  const colsDirty = () => !!S.colEdit && colSnap(S.colEdit) !== S.colEdit.was;
+  const newCol = (name, units) => ({ id: rid(), name, units, was: name });
+  $("#editColBtn").onclick = () => {
+    const units = {}, keys = new Set(allUnits());
+    for (const k of keys) units[k] = { name: keyUnit(k), srcs: [k] };
+    // A unit is in at most one collection of a view: the first that has it.
+    const once = (list) => { const used = new Set(); return list.map((c) => newCol(c.name, c.units.filter((u) => keys.has(u) && !used.has(u) && used.add(u)))); };
+    S.colEdit = { at: -1, mainName: mainName(), main: cols().map((b) => newCol(b, tKeys(b))), others: altViews().map((v) => ({ name: v.name, was: v.name, cols: once(v.collections) })), units };
+    S.colEdit.was = colSnap(S.colEdit);
+    clearSearch(); renderTable();
+    $("#colDiscard").focus();
+  };
+  $("#colDiscard").onclick = () => { S.colEdit = null; renderTable(); $("#editColBtn").focus(); };
+  $("#colSave").onclick = async (ev) => {
+    const b = ev.currentTarget; b.disabled = true; b.textContent = "Saving…";
+    const ok = await saveCols((m) => { $("#colErr").textContent = m; });
+    b.textContent = "Save";
+    if (ok) renderTable(); else b.disabled = false;
+  };
+  const viewCols = (e) => (e.at < 0 ? e.main : e.others[e.at].cols);
+  // Which main-view collection each unit is in, by its position: other views list units in that order.
+  const mainAt = (e) => { const m = {}; e.main.forEach((c, i) => c.units.forEach((u) => (m[u] = i))); return m; };
+
+  // The top of the table while editing: the views to pick from, under the search, then the picked view's collections.
+  function renderColEdit() {
+    const e = S.colEdit, vEd = $("#viewEd"), cEd = $("#colEd");
+    vEd.hidden = cEd.hidden = !e;
+    if (!e) { vEd.innerHTML = cEd.innerHTML = ""; return; }
+    const chip = (i, name) => `<button type="button" class="chip" data-view="${i}" aria-pressed="${e.at === i}">${esc(name.replace("\n", " ") || "Untitled view")}</button>`;
+    vEd.innerHTML = `<div class="chips" role="group" aria-label="Views">${chip(-1, e.mainName)}<span class="mainptr small">← main view${qtip("mainTip", "What the main view is", "Your sets are saved in the main view's collections. Other views group the same units another way without changing them, and any of them can become the main view.")}</span>
+        ${e.others.map((v, i) => chip(i, v.name)).join("")}<button type="button" class="chip add" data-vadd>+ New view</button></div>
+      <div class="viewbar"><label class="small">View name <input type="text" data-vname maxlength="60" value="${esc(e.at < 0 ? e.mainName : e.others[e.at].name.replace("\n", " "))}"></label>
+        ${e.at >= 0 ? `<button class="link" type="button" data-vmain>Make this the main view</button><button class="link danger" type="button" data-vdel>Delete view</button>` : `<span class="muted small">Moving a unit here moves its sets to that collection.</span>`}</div>`;
+    const list = viewCols(e), at = mainAt(e), main = e.at < 0;
+    const sorted = (ids) => ids.slice().sort((a, b) => (main ? 0 : (at[a] ?? 1e9) - (at[b] ?? 1e9)) || byUnit(e.units[a].name, e.units[b].name));
+    const inOther = main ? [] : Object.keys(e.units).filter((u) => !list.some((c) => c.units.includes(u)));
+    const chips = (ids, where) => {
+      const list = sorted(ids), colName = (u) => e.main[at[u]]?.name ?? "", tags = main ? [] : fromTags(list, colName);
+      return list.map((u, i) => `${tags[i] || ""}<button type="button" class="chip unit" data-u="${esc(u)}" aria-label="${esc(e.units[u].name)}${main ? "" : ` (${esc(colName(u))})`} in ${esc(where)}. Drag it, or press the up or down arrow to move it to the collection above or below.">${esc(e.units[u].name)}</button>`).join("")
+        || `<span class="muted small">Drag units here</span>`;
+    };
+    cEd.innerHTML = list.map((c, i) => `<div class="colrow" data-col="${c.id}">
+        <span class="colctl"><button class="grip" type="button" aria-label="Drag to move ${esc(c.name || "this collection")}" title="Drag to move">⠿</button><button class="ghost" type="button" data-cmove="-1" aria-label="Move ${esc(c.name || "this collection")} up"${i ? "" : " disabled"}>↑</button><button class="ghost" type="button" data-cmove="1" aria-label="Move ${esc(c.name || "this collection")} down"${i < list.length - 1 ? "" : " disabled"}>↓</button></span>
+        <textarea class="colname" rows="${c.name.includes("\n") ? 2 : 1}" data-cname maxlength="100" placeholder="Collection name" aria-label="Name of collection ${i + 1}">${esc(c.name)}</textarea>
+        <div class="colunits" data-drop="${c.id}">${chips(c.units, c.name)}</div>
+        <button class="ghost small" type="button" data-cdel${main && c.units.length ? ` disabled title="Move its units to other collections first"` : ""}>Delete</button></div>`).join("")
+      + (main ? "" : `<div class="colrow other" data-col="other"><span class="colctl"></span><span class="colname">Other</span><div class="colunits" data-drop="other">${chips(inOther, "Other")}</div><span></span></div>`)
+      + `<div class="row"><button class="btn" type="button" data-cadd>+ Add collection</button><span class="muted small">${main ? "" : "Units in no collection of this view show under “Other”."}${main ? "" : " Press Enter in a name to put it on two lines."}</span></div>`;
+    syncColBtns(); tipTaps(vEd);
+    const redo = (focus) => { renderColEdit(); renderLeave(); if (focus) document.querySelector(focus)?.focus(); };
+    vEd.querySelectorAll("[data-view]").forEach((b) => (b.onclick = () => { e.at = +b.dataset.view; redo(`#viewEd [data-view="${e.at}"]`); }));
+    vEd.querySelector("[data-vname]").addEventListener("input", (ev) => {
+      const v = tidy(ev.target.value, 60);
+      if (e.at < 0) e.mainName = v; else e.others[e.at].name = v;
+      vEd.querySelector(`[data-view="${e.at}"]`).textContent = v || "Untitled view"; syncColBtns();
     });
-    return { rows, rest: all.filter((k) => !used.has(k)) };
+    vEd.querySelector("[data-vadd]").onclick = () => {
+      e.others.push({ name: freeName("New view", [e.mainName, ...e.others.map((v) => v.name)]), was: null, cols: e.main.map((c) => newCol(c.name, [...c.units])) });
+      e.at = e.others.length - 1; redo(); const n = vEd.querySelector("[data-vname]"); n.focus(); n.select();
+    };
+    const vdel = vEd.querySelector("[data-vdel]");
+    if (vdel) vdel.onclick = async () => {
+      const v = e.others[e.at];
+      if (!(await ask("Delete this view?", `<p>The view <b>${esc(v.name)}</b> and the way it groups the units go. Your sets, units and other views stay as they are.</p><p>Nothing is changed until you press Save.</p>`, "Delete view"))) return;
+      e.others.splice(e.at, 1); e.at = -1; redo(`#viewEd [data-view="-1"]`);
+    };
+    const vmain = vEd.querySelector("[data-vmain]");
+    if (vmain) vmain.onclick = () => makeMain(e.at);
+    cEd.querySelectorAll(".colrow:not(.other)").forEach((row, i) => {
+      const c = list[i], nm = row.querySelector("[data-cname]");
+      nm.addEventListener("keydown", (ev) => { if (ev.key === "Enter" && (main || nm.value.includes("\n"))) ev.preventDefault(); });
+      nm.addEventListener("input", () => { c.name = main ? tidy(nm.value, 100) : nm.value; nm.rows = nm.value.includes("\n") ? 2 : 1; syncColBtns(); renderLeave(); });
+      row.querySelectorAll("[data-cmove]").forEach((b) => (b.onclick = () => { const d = +b.dataset.cmove; list.splice(i + d, 0, ...list.splice(i, 1)); redo(`[data-col="${c.id}"] [data-cmove="${d}"]:not(:disabled)`); }));
+      row.querySelector("[data-cdel]").onclick = () => { list.splice(i, 1); redo(`#colEd [data-cadd]`); };
+    });
+    cEd.querySelector("[data-cadd]").onclick = () => { const c = newCol("", []); list.push(c); redo(`[data-col="${c.id}"] [data-cname]`); };
+    // The arrow keys move a unit to the collection above or below (in another view, "Other" is the last).
+    cEd.querySelectorAll(".chip.unit").forEach((b) => b.addEventListener("keydown", (ev) => {
+      if (ev.key !== "ArrowUp" && ev.key !== "ArrowDown") return;
+      ev.preventDefault();
+      const rows = [...cEd.querySelectorAll("[data-drop]")], i = rows.indexOf(b.closest("[data-drop]")) + (ev.key === "ArrowUp" ? -1 : 1);
+      if (rows[i]) moveUnit(b.dataset.u, rows[i].dataset.drop);
+    }));
+  }
+  const freeName = (base, taken) => { let n = base, k = 2; while (taken.some((t) => sameName(t, n))) n = `${base} ${k++}`; return n; };
+  function syncColBtns() {
+    const ch = colsDirty();
+    $("#colSave").disabled = !ch; $("#colState").textContent = ch ? "Unsaved changes" : ""; $("#colErr").textContent = "";
   }
 
-  // The editor in the vocab table: S.courseEdit is a copy of the courses, stored only on Save.
-  // A name may hold one line break, which shows the name on two lines beside the units.
-  const courseName = (n) => String(n).split("\n").map((t) => tidy(t, 100)).filter(Boolean).slice(0, 2).join("\n").slice(0, 100);
-  const keptCourses = (list) => list.map((c) => ({ name: courseName(c.name), parts: c.parts.map(({ collection, from, to }) => ({ collection, from, to })) }));
-  const coursesDirty = () => !!S.courseEdit && JSON.stringify(keptCourses(S.courseEdit)) !== JSON.stringify(keptCourses(S.courses));
-  const colUnits = (b) => tKeys(b).map(keyUnit);
-  const wholeCol = (b) => { const us = colUnits(b); return { collection: b, from: us[0] ?? "", to: us[us.length - 1] ?? "" }; };
-  $("#courseBtn").onclick = () => { S.courseEdit = keptCourses(S.courses); renderTable(); $("#courseEd").querySelector("textarea, [data-cadd]")?.focus(); };
+  // Dragging: a unit onto a collection's row, or a collection (by its ⠿) to another place in the list.
+  const markDrop = (sel) => { $("#colEd").querySelectorAll(".dropon, .dropabove, .dropbelow").forEach((x) => x.classList.remove("dropon", "dropabove", "dropbelow")); if (sel) sel[0]?.classList.add(sel[1]); };
+  const dropAt = (x, y) => document.elementFromPoint(x, y)?.closest("#colEd [data-drop]");
+  makeDrag($("#colEd"), ".chip.unit", {
+    over: (el, x, y) => { const t = dropAt(x, y); markDrop(t && t !== el.closest("[data-drop]") ? [t, "dropon"] : null); },
+    drop: (el, x, y) => { const t = dropAt(x, y); if (t) moveUnit(el.dataset.u, t.dataset.drop); },
+    end: () => markDrop(null),
+  });
+  // Where a collection dragged to height y would go: before the row whose middle is below y.
+  const rowSlot = (y) => { const rows = [...$("#colEd").querySelectorAll(".colrow:not(.other)")]; const i = rows.findIndex((r) => { const b = r.getBoundingClientRect(); return y < b.top + b.height / 2; }); return { rows, i: i < 0 ? rows.length : i }; };
+  makeDrag($("#colEd"), ".grip", {
+    over: (el, x, y) => { const { rows, i } = rowSlot(y); markDrop(i < rows.length ? [rows[i], "dropabove"] : [rows[rows.length - 1], "dropbelow"]); },
+    drop: (el, x, y) => {
+      const list = viewCols(S.colEdit), from = list.findIndex((c) => c.id === el.closest(".colrow").dataset.col), { i } = rowSlot(y);
+      const [c] = list.splice(from, 1); list.splice(i > from ? i - 1 : i, 0, c);
+      renderColEdit(); renderLeave(); $(`[data-col="${c.id}"] .grip`)?.focus();
+    },
+    end: () => markDrop(null),
+  });
 
-  function renderCourses() {
-    const ed = $("#courseEd"), e = S.courseEdit;
-    $("#courseBtn").hidden = !canWrite || !cols().length || !!e;
-    ed.hidden = !e || !canWrite;
-    if (ed.hidden) { ed.innerHTML = ""; return; }
-    const changed = coursesDirty();
-    ed.innerHTML = `<p class="muted small" style="margin:0">With rows by Course, each course is one row of units. A unit goes in the first course that has it, and units no course has show under “Other”. Press Enter in a name to put it on two lines.</p>
-      ${e.length ? `<ol class="courses">${e.map((c, i) => `<li data-c="${i}">
-        <div class="chead"><span class="n">${i + 1}</span><textarea rows="${c.name.includes("\n") ? 2 : 1}" data-cname maxlength="100" placeholder="Course name, like Japanese 2" aria-label="Name of course ${i + 1}">${esc(c.name)}</textarea><span class="muted small csum" data-csum></span>
-          <button class="ghost" type="button" data-cmove="-1" aria-label="Move course ${i + 1} up"${i ? "" : " disabled"}>↑</button><button class="ghost" type="button" data-cmove="1" aria-label="Move course ${i + 1} down"${i < e.length - 1 ? "" : " disabled"}>↓</button>
-          <button class="ghost small" type="button" data-cdel>Delete</button></div>
-        ${c.parts.map((p, j) => `<div class="cpart" data-p="${j}"><div id="cdd-${i}-${j}-collection"></div><span class="crange"><span class="muted small">from</span><div id="cdd-${i}-${j}-from"></div><span class="muted small">to</span><div id="cdd-${i}-${j}-to"></div></span>${c.parts.length > 1 ? `<button class="ghost" type="button" data-pdel aria-label="Remove this range">✕</button>` : ""}</div>`).join("")}
-        <div class="cfoot"><button class="link" type="button" data-padd>+ Add units from another collection</button></div>
-      </li>`).join("")}</ol>` : `<p class="small" style="margin:0">No courses yet.</p>`}
-      <div class="row"><button class="btn" type="button" data-cadd>+ Add a course</button><span class="muted small" data-crest></span></div>
-      <div class="row"><button class="btn primary" type="button" id="coSave"${changed ? "" : " disabled"}>Save courses</button><button class="btn" type="button" id="coCancel">Cancel</button><span class="muted small" data-cstate>${changed ? "Unsaved changes" : ""}</span><span class="editerr" id="coErr"></span></div>`;
-    const redo = (focus) => { renderCourses(); renderLeave(); if (focus) ed.querySelector(focus)?.focus(); };
-    // What each course ends up showing, where the units it covers but an earlier course has went, and what's left for "Other".
-    // Also while a name is typed, which redraws nothing else (a redraw then would lose the next click).
-    const units = (n) => `${n} unit${n === 1 ? "" : "s"}`;
-    const sums = () => {
-      const { rows, rest } = courseRows(cols().flatMap(tKeys), keptCourses(e)), ch = coursesDirty();
-      ed.querySelectorAll("[data-csum]").forEach((el, i) => {
-        const r = rows[i], gone = r.covers.filter((k) => !r.keys.includes(k)), by = [...new Set(gone.map((k) => rows.findIndex((x, j) => j < i && x.keys.includes(k))))];
-        el.textContent = `${units(r.keys.length)}${gone.length ? ` · ${units(gone.length)} already in ${by.map((j) => `“${rows[j].name.replace("\n", " ") || `course ${j + 1}`}”`).join(", ")}` : ""}`;
-      });
-      ed.querySelector("[data-crest]").textContent = rest.length ? `${units(rest.length)} in no course, under “Other”` : "Every unit is in a course";
-      $("#coSave").disabled = !ch; ed.querySelector("[data-cstate]").textContent = ch ? "Unsaved changes" : "";
-    };
-    ed.querySelectorAll("[data-c]").forEach((li) => {
-      const i = +li.dataset.c, c = e[i], nm = li.querySelector("[data-cname]");
-      nm.addEventListener("input", () => {
-        if (nm.value.split("\n").length > 2) { const at = nm.selectionStart - 1; nm.value = nm.value.replace(/\n(?=[^\n]*\n)/, " "); nm.setSelectionRange(at, at); }
-        c.name = nm.value; nm.rows = nm.value.includes("\n") ? 2 : 1; $("#coErr").textContent = ""; sums(); renderLeave();
-      });
-      li.querySelectorAll("[data-cmove]").forEach((b) => (b.onclick = () => {
-        const d = +b.dataset.cmove; e.splice(i + d, 0, ...e.splice(i, 1));
-        redo(`[data-c="${i + d}"] [data-cmove="${d}"]:not(:disabled)`);
-      }));
-      li.querySelector("[data-cdel]").onclick = () => { e.splice(i, 1); redo(`[data-c="${Math.min(i, e.length - 1)}"] [data-cname]`); };
-      li.querySelector("[data-padd]").onclick = () => {
-        const used = c.parts.map((p) => p.collection);
-        c.parts.push(wholeCol(cols().find((b) => !used.includes(b)) ?? cols()[0])); redo();
-      };
-      li.querySelectorAll("[data-p]").forEach((row) => {
-        const j = +row.dataset.p, p = c.parts[j], us = colUnits(p.collection), box = (f) => row.querySelector(`#cdd-${i}-${j}-${f}`);
-        // A name no longer in the vocab (renamed or deleted since) stays on the list, so the range shows what it is.
-        const opts = (list, v, by) => (list.includes(v) || !v ? list : [...list, v].sort(by)).map((x) => [x, by === byCol ? colLabel(x) : x]);
-        makeDropdown(box("collection"), `Collection of course ${i + 1}`, opts(cols(), p.collection, byCol), (v) => { c.parts[j] = wholeCol(v); redo(`#cdd-${i}-${j}-collection .dd-btn`); }).set(p.collection);
-        makeDropdown(box("from"), `First unit of this range`, opts(us, p.from, byUnit), (v) => { p.from = v; if (byUnit(p.to, v) < 0) p.to = v; redo(`#cdd-${i}-${j}-from .dd-btn`); }).set(p.from);
-        makeDropdown(box("to"), `Last unit of this range`, opts(us, p.to, byUnit), (v) => { p.to = v; if (byUnit(p.from, v) > 0) p.from = v; redo(`#cdd-${i}-${j}-to .dd-btn`); }).set(p.to);
-        const del = row.querySelector("[data-pdel]"); if (del) del.onclick = () => { c.parts.splice(j, 1); redo(`[data-c="${i}"] [data-padd]`); };
-      });
-    });
-    sums();
-    ed.querySelector("[data-cadd]").onclick = () => { e.push({ name: "", parts: [wholeCol(curCol())] }); redo(`[data-c="${e.length - 1}"] [data-cname]`); };
-    $("#coCancel").onclick = () => { S.courseEdit = null; renderTable(); };
-    $("#coSave").onclick = async (ev) => {
-      const b = ev.currentTarget; b.disabled = true; b.textContent = "Saving…";
-      if (!(await saveCourses((m) => { $("#coErr").textContent = m; }))) { b.disabled = false; b.textContent = "Save courses"; }
-    };
+  async function moveUnit(uid, to) {
+    const e = S.colEdit, list = viewCols(e), from = list.find((c) => c.units.includes(uid)), target = list.find((c) => c.id === to);
+    if ((from?.id ?? "other") === to) return;
+    let keep = uid;
+    if (e.at < 0) {
+      if (!target) return;
+      const u = e.units[uid], twin = target.units.find((x) => sameName(e.units[x].name, u.name));
+      if (twin) {
+        if (!(await ask("Merge these units?", `<p><b>${esc(target.name)}</b> already has a unit called <b>${esc(e.units[twin].name)}</b>. Moving <b>${esc(u.name)}</b> from <b>${esc(from.name)}</b> there makes them one unit: their sets go together, and their kanji lists become one.</p><p>Nothing is changed until you press Save.</p>`, "Merge them"))) return;
+        mergeUnit(uid, twin); keep = twin;
+      } else { from.units = from.units.filter((x) => x !== uid); target.units.push(uid); }
+    } else {
+      if (from) from.units = from.units.filter((x) => x !== uid);
+      if (target) target.units.push(uid);
+    }
+    renderColEdit(); renderLeave();
+    $("#colEd").querySelector(`[data-u="${CSS.escape(keep)}"]`)?.focus();
   }
-  // Stores the courses being edited. say shows what's wrong; true = saved.
-  async function saveCourses(say) {
-    const list = keptCourses(S.courseEdit);
-    const twice = list.find((c, i) => list.findIndex((x) => sameName(x.name, c.name)) !== i);
-    const bad = list.some((c) => !c.name) ? "Give every course a name." : twice ? `Two courses are called “${twice.name.replace("\n", " ")}”.`
-      : list.some((c) => c.parts.some((p) => !p.collection || !p.from || !p.to)) ? "Every range needs a collection and its units." : "";
+  // uid joins into: their sets and kanji lists become one unit's, and each view keeps into where it had either.
+  function mergeUnit(uid, into) {
+    const e = S.colEdit;
+    e.units[into].srcs.push(...e.units[uid].srcs); delete e.units[uid];
+    for (const c of e.main) c.units = c.units.filter((x) => x !== uid);
+    for (const v of e.others) {
+      let has = v.cols.some((c) => c.units.includes(into));
+      for (const c of v.cols) c.units = c.units.flatMap((x) => (x !== uid ? [x] : has ? [] : ((has = true), [into])));
+    }
+  }
+  // Another view becomes the main one: each set moves to the collection its unit has there (units it has nowhere go into
+  // a collection called Other), units of the same name in one collection merge, and the old main view stays as another view.
+  async function makeMain(i) {
+    const e = S.colEdit, v = e.others[i], placed = new Set(v.cols.flatMap((c) => c.units));
+    const rest = Object.keys(e.units).filter((u) => !placed.has(u));
+    const next = [...v.cols.map((c) => newCol(c.name.replace(/\s*\n\s*/g, " "), [...c.units])), ...(rest.length ? [newCol("Other", rest)] : [])];
+    const merges = [];
+    for (const c of next) { const by = new Map(); for (const u of c.units) { const k = e.units[u].name.toLowerCase(); if (by.has(k)) merges.push([u, by.get(k), c.name]); else by.set(k, u); } }
+    const said = [...new Set(merges.map(([, into, col]) => `${e.units[into].name} in ${col}`))];
+    const n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`;
+    if (!(await ask(`Make “${v.name.replace("\n", " ")}” the main view?`, `<p>Your sets will be saved in its collections: each set moves to the collection its unit has in <b>${esc(v.name)}</b>. <b>${esc(e.mainName)}</b> stays as another view, so you can switch back.</p>
+      ${said.length ? `<p>Units with the same name in one collection become one unit, their sets together and their kanji lists combined: ${esc(said.join(", "))}.</p>` : ""}
+      ${rest.length ? `<p>${n(rest.length, "unit")} in no collection of ${esc(v.name)} ${rest.length === 1 ? "goes" : "go"} into a collection called Other.</p>` : ""}<p>Nothing is changed until you press Save.</p>`, "Make it the main view"))) return;
+    e.others.splice(i, 1, { name: e.mainName, was: null, cols: e.main.map((c) => newCol(c.name, [...c.units])) });
+    e.mainName = v.name.replace(/\s*\n\s*/g, " "); e.main = next;
+    for (const [u, into] of merges) mergeUnit(u, into);
+    e.at = -1; renderColEdit(); renderLeave(); $(`#viewEd [data-view="-1"]`)?.focus();
+  }
+
+  // Stores what was edited: each set and kanji list that moved, the collection order, and the views. say shows what's
+  // wrong; true = saved.
+  async function saveCols(say) {
+    const e = S.colEdit, now = new Date().toISOString(), showing = curView()?.name, twice = (xs) => xs.find((x, i) => xs.findIndex((y) => sameName(y, x)) !== i);
+    const kept = e.main.filter((c) => c.units.length), colNames = kept.map((c) => tidy(c.name, 100));
+    const vNames = [tidy(e.mainName, 60), ...e.others.map((v) => viewName(v.name, 60))];
+    const bad = vNames.some((x) => !x) ? "Give every view a name." : twice(vNames) ? `Two views are called “${twice(vNames)}”.`
+      : colNames.some((x) => !x) ? `Give every collection with units a name in ${vNames[0]}.` : twice(colNames) ? `Two collections in ${vNames[0]} are called “${twice(colNames)}”.`
+      : e.others.map((v, i) => { const ns = v.cols.map((c) => viewName(c.name, 100)); return ns.some((x) => !x) ? `Give every collection a name in ${vNames[i + 1]}.` : twice(ns) ? `Two collections in ${vNames[i + 1]} are called “${twice(ns).replace("\n", " ")}”.` : ""; }).find(Boolean) || "";
     if (bad) { say(bad); return false; }
-    try { await db.doc("meta/courses").set({ courses: list, updatedAt: new Date().toISOString() }); }
-    catch { say("Couldn't save. Try again."); return false; }
-    S.courseEdit = null; onCourses({ exists: true, data: () => ({ courses: list }) });
+    // Where each unit ends up, and the documents that change to get it there.
+    const to = {}, jobs = [];
+    kept.forEach((c, i) => c.units.forEach((u) => (to[u] = { collection: colNames[i], unit: e.units[u].name })));
+    for (const [u, { srcs }] of Object.entries(e.units)) {
+      const t = to[u], has = new Set(srcs);
+      if (!t) continue;
+      // The sets already there keep their names; one that would share a name with another gets (2), (3)…
+      const sets = S.sets.filter((s) => has.has(unitKey(s))).sort((a, b) => (unitKey(b) === srcs[0]) - (unitKey(a) === srcs[0])), taken = new Set();
+      for (const s of sets) {
+        let name = s.name, k = 2;
+        while (taken.has(name.toLowerCase())) name = `${s.name} (${k++})`;
+        taken.add(name.toLowerCase());
+        if (colOf(s) !== t.collection || s.unit !== t.unit || name !== s.name) jobs.push(["update", "sets/" + s.id, { collection: t.collection, unit: t.unit, ...(name !== s.name ? { name } : {}), updatedAt: now }]);
+      }
+      const [k1, ...more] = S.kanjiLists.filter((k) => has.has(unitKey(k)));
+      if (k1 && (more.length || colOf(k1) !== t.collection || k1.unit !== t.unit)) jobs.push(["update", "kanji/" + k1.id, { collection: t.collection, unit: t.unit, kanji: onlyKanji([k1, ...more].map((k) => k.kanji).join("")), updatedAt: now }]);
+      for (const k of more) jobs.push(["delete", "kanji/" + k.id]);
+    }
+    if (JSON.stringify(colNames) !== JSON.stringify(cols())) jobs.push(["set", "meta/books", { order: colNames, updatedAt: now }]);
+    const doc = { main: vNames[0], views: e.others.map((v, i) => ({ name: vNames[i + 1], collections: v.cols.map((c) => ({ name: viewName(c.name, 100), units: c.units.filter((u) => to[u]).map((u) => to[u]) })) })) };
+    if (JSON.stringify(doc) !== JSON.stringify(S.viewDoc)) jobs.push(["set", "meta/views", { ...doc, updatedAt: now }]);
+    let n = 0;
+    try { for (const [how, path, d] of jobs) { await (how === "delete" ? db.doc(path).delete() : how === "set" ? db.doc(path).set(d) : db.doc(path).update(d)); n++; } }
+    catch { say(n ? "Saving stopped partway. What was saved stays: reload the page and check, then try again." : "Couldn't save. Try again."); return false; }
+    // What was picked follows its unit (and a renamed collection keeps its row's choice), here and on the practice page.
+    const key = (t) => `${t.collection}\u0001${t.unit}`, moved = new Map(Object.entries(e.units).flatMap(([u, { srcs }]) => (to[u] ? srcs.map((s) => [s, key(to[u])]) : [])));
+    const renamed = new Map(kept.filter((c, i) => c.was !== colNames[i]).map((c) => [c.was, tidy(c.name, 100)]));
+    for (const p of [TP, PP]) { const st = p === TP ? S.tpick : S.pick; p.replace(Object.fromEntries(Object.entries(st.show || {}).map(([b, m]) => [renamed.get(b) ?? b, m])), new Set([...st.picks].map((k) => moved.get(k) ?? k))); }
+    if (moved.has(S.upto)) { S.upto = moved.get(S.upto); store.set("uptoPick", S.upto); }
+    // The unit rows stay on the view they showed, under its new name; on the main view if it became that or went.
+    const stay = showing == null ? -1 : e.others.findIndex((v) => v.was === showing);
+    S.groupBy = stay < 0 ? "main" : vNames[stay + 1]; store.set("groupBy", S.groupBy);
+    S.viewDoc = cleanViews(doc); S.colEdit = null;
     return true;
   }
 
@@ -3135,7 +3405,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // in the file are left alone. It doesn't know where the vocab is kept; whoever makes one says how to read and write it:
   //   button, input    the "Import a file…" button and its hidden file input
   //   box, say         where the preview goes, and how a one-line message is shown (say("") clears it)
-  //   stored()         the documents stored now, with their ids: { sets, kanji, books, courses } (it may be async)
+  //   stored()         the documents stored now, with their ids: { sets, kanji, books, courses, views } (it may be async)
   //   write(path, doc) saves one document
   //   where()          optional: a line for the preview, saying where the import will be saved
   //   hint             optional: what to do about a file that isn't one of ours, added to that message
@@ -3162,7 +3432,18 @@ colours.apply(...colours.saved()); // before anything is drawn
       const withCol = new Set([...[...here.sets, ...here.kanji].map(docCol), ...[...sets, ...kanji].map((x) => x.doc.collection)]).size > 1;
       for (const x of sets) x.title = setPath(x.doc, withCol);
       for (const x of kanji) x.title = "Kanji " + unitPath(x.doc, withCol);
-      return { name, exportedAt: file.exportedAt, sets, kanji, books: meta(file.collections ?? file.books, here.books, cleanBooks), courses: meta(file.courses, here.courses, cleanCourses), skipped };
+      let courses = meta(file.courses, here.courses, cleanCourses), views = meta(file.views, here.views, cleanViews);
+      // An older file's courses, where views are saved already (which would hide them), come in as the view "Courses".
+      const hasViews = cleanViews(here.views);
+      if (courses && !views && hasViews) {
+        const units = new Map([...here.sets, ...here.kanji].map((d) => ({ collection: docCol(d), unit: docUnit(d) })).concat([...sets, ...kanji].map((x) => ({ collection: x.doc.collection, unit: x.doc.unit })))
+          .map((u) => [`${u.collection}\u0001${u.unit}`, u]));
+        const cv = courseView([...units.values()], courses.doc.courses);
+        if (cv.name.toLowerCase() === hasViews.main.toLowerCase()) cv.name = "Courses 2";
+        const doc = { ...hasViews, views: [...hasViews.views.filter((v) => v.name.toLowerCase() !== cv.name.toLowerCase()), cv] };
+        views = { doc, changed: !same(hasViews, doc) }; courses = null;
+      }
+      return { name, exportedAt: file.exportedAt, sets, kanji, books: meta(file.collections ?? file.books, here.books, cleanBooks), courses, views, skipped };
     }
 
     function render() {
@@ -3178,10 +3459,10 @@ colours.apply(...colours.saved()); // before anything is drawn
       const metaLine = (m, noun) => `${noun}: ${!m ? "not in the file" : m.changed ? "will change" : "already the same"}`;
       const names = (st) => { const xs = [...p.sets, ...p.kanji].filter((x) => x.status === st).map((x) => x.title);
         return xs.length ? `<div class="names"><b>${st === "new" ? "New" : "Changed"}:</b> ${esc(xs.slice(0, 12).join(", "))}${xs.length > 12 ? `, and ${xs.length - 12} more` : ""}</div>` : ""; };
-      const todo = p.sets.length - count(p.sets, "same") + p.kanji.length - count(p.kanji, "same") + (p.books?.changed ? 1 : 0) + (p.courses?.changed ? 1 : 0);
+      const todo = p.sets.length - count(p.sets, "same") + p.kanji.length - count(p.kanji, "same") + [p.books, p.courses, p.views].filter((m) => m?.changed).length;
       const when = p.exportedAt && !isNaN(new Date(p.exportedAt)) ? ` · exported ${new Date(p.exportedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : "";
       box.innerHTML = `<div><b>${esc(p.name)}</b><span class="muted small">${esc(when)}</span></div>
-      <ul class="small"><li>${line(p.sets, "Vocab sets")}</li><li>${line(p.kanji, "Kanji lists")}</li><li>${metaLine(p.books, "Collection order")}</li><li>${metaLine(p.courses, "Courses")}</li>
+      <ul class="small"><li>${line(p.sets, "Vocab sets")}</li><li>${line(p.kanji, "Kanji lists")}</li><li>${metaLine(p.books, "Collection order")}</li><li>${p.courses && !p.views ? metaLine(p.courses, "Courses") : metaLine(p.views, "Views")}</li>
       ${p.skipped ? `<li>${p.skipped} ${p.skipped === 1 ? "entry isn't" : "entries aren't"} valid and will be skipped</li>` : ""}</ul>
       ${names("new")}${names("changed")}
       ${todo && where ? `<div class="muted small" data-where>${esc(where())}</div>` : ""}
@@ -3195,14 +3476,15 @@ colours.apply(...colours.saved()); // before anything is drawn
     async function run() {
       const p = plan, now = new Date().toISOString(), todo = (xs) => xs.filter((x) => x.status !== "same");
       const jobs = [...todo(p.sets).map((x) => ["sets/" + x.id, { ...x.doc, updatedAt: now }]), ...todo(p.kanji).map((x) => ["kanji/" + x.id, { ...x.doc, updatedAt: now }]),
-        ...(p.books?.changed ? [["meta/books", { ...p.books.doc, updatedAt: now }]] : []), ...(p.courses?.changed ? [["meta/courses", p.courses.doc]] : [])];
+        ...(p.books?.changed ? [["meta/books", { ...p.books.doc, updatedAt: now }]] : []), ...(p.courses?.changed ? [["meta/courses", p.courses.doc]] : []),
+        ...(p.views?.changed ? [["meta/views", { ...p.views.doc, updatedAt: now }]] : [])];
       plan = null; render(); busy(true);
       let n = 0;
       try {
         for (const [path, doc] of jobs) { say(`Importing ${n + 1} of ${jobs.length}…`); await write(path, doc); n++; }
         const pl = (k, w) => k && `${k} ${w}${k === 1 ? "" : "s"}`;
         say(`Imported: ${[pl(count(p.sets, "new"), "new set"), pl(count(p.sets, "changed"), "updated set"), pl(todo(p.kanji).length, "kanji list"),
-          p.books?.changed && "collection order", p.courses?.changed && "courses"].filter(Boolean).join(", ")}.`);
+          p.books?.changed && "collection order", p.courses?.changed && "courses", p.views?.changed && "views"].filter(Boolean).join(", ")}.`);
       } catch (e) {
         say(`Stopped after ${n} of ${jobs.length}: ${e?.message || "the database refused the change"}. What was imported stays; import the file again to finish.`);
       }
@@ -3226,13 +3508,14 @@ colours.apply(...colours.saved()); // before anything is drawn
     return me;
   }
   // ---------- exporting the vocab as a file ----------
-  // Every set and kanji list, the collection order and the courses, in the current format whatever format each was saved in.
+  // Every set and kanji list, the collection order and the views (or, before views were saved, the courses), in the
+  // current format whatever format each was saved in.
   async function exportVocab() {
     const setById = new Map(raw.sets.map((d) => [d.id, d])), kById = new Map(raw.kanji.map((d) => [d.id, d]));
     const tidied = (list, byId, clean) => list.map((x) => byId.get(x.id)).filter(Boolean).map((d) => ({ id: d.id, ...clean(d) }));
     const file = { app: APP, version: 2, exportedAt: new Date().toISOString(),
       sets: tidied(S.sets, setById, cleanSet), kanji: tidied(S.kanjiLists, kById, cleanKanji),
-      collections: cleanBooks(raw.books), courses: cleanCourses(raw.courses) };
+      collections: cleanBooks(raw.books), ...(S.viewDoc ? { views: S.viewDoc } : { courses: cleanCourses(raw.courses) }) };
     const name = `japanese-vocab-${new Date().toLocaleDateString("en-CA")}.json`;
     portMsg("");
     try { await downloads.save({ filename: name, data: JSON.stringify(file, null, 1) }); portMsg(`Saved ${name}.`); }
@@ -3501,15 +3784,13 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#delAcct").innerHTML = !delAsk
       ? account ? `<button class="btn danger" type="button" id="delStart">Delete my account</button>`
         : `<div class="delrow"><button class="btn danger" type="button" id="delStart" aria-describedby="delTip">Delete local storage</button>
-          <span class="qtip" tabindex="0" role="button" aria-label="What this does"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.4a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.7v.5"/><circle cx="12" cy="17.2" r=".4" fill="currentColor"/></svg><span class="qtipbody" role="tooltip" id="delTip">This deletes all local data (sets, kanji lists, practice history and settings), refreshes the page and treats you as a new user.</span></span></div>`
+          ${qtip("delTip", "What this does", "This deletes all local data (sets, kanji lists, practice history and settings), refreshes the page and treats you as a new user.")}</div>`
       : `<p class="small">This deletes ${what}, for good. Export your vocab first if you want a copy.</p>
         <div class="tactions"><button class="btn danger" type="button" id="delYes">Delete everything</button><button class="btn" type="button" id="delNo">Cancel</button></div>
         <p class="keyerr small" id="delErr" hidden></p>`;
     if (!delAsk) {
       $("#delStart").onclick = () => { delAsk = true; renderAccount(); };
-      // A tap shows the tip on touch screens, where there's no hover.
-      const q = $("#delAcct .qtip");
-      if (q) { q.onclick = () => q.classList.toggle("open"); q.onblur = q.onmouseleave = () => q.classList.remove("open"); }
+      tipTaps($("#delAcct")); // a tap shows the tip on touch screens, where there's no hover
       return;
     }
     $("#delNo").onclick = () => { delAsk = false; renderAccount(); };
@@ -3519,7 +3800,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       try {
         const paths = [];
         for (const c of ["sets", "kanji", "training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
-        for (const p of [...paths, "meta/books", "meta/courses", "meta/samples"]) await db.doc(p).delete();
+        for (const p of [...paths, "meta/books", "meta/courses", "meta/views", "meta/samples"]) await db.doc(p).delete();
         try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
         // Every choice this site kept in this browser goes too (colours, picks, a practice to resume with its writing): signed in,
         // they're the account's copy. A guest's own sets and history (qcard:local:…) stay unless it's the guest being deleted.
@@ -3893,10 +4174,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       db = store; user = platform.user(uid); owner = canWrite = true; downloads = platform.downloads;
       document.body.classList.add("ready");
       renderPort();
-      db.collection("kanji").onSnapshot(onKanji, () => {});
-      db.collection("sets").onSnapshot(onSets, () => banner("Your vocab sets couldn't load. Reload the page to try again."));
-      db.doc("meta/books").onSnapshot(onBookOrder, () => {});
-      db.doc("meta/courses").onSnapshot(onCourses, () => {});
+      watchVocab("Your vocab sets couldn't load. Reload the page to try again.");
       watchHistory();
       if (id !== "local") { stopPrefs = syncPrefs(); watchProfile(); }
       renderAcctMenu();

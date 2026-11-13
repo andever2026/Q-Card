@@ -35,8 +35,8 @@
   const setCols = () => cols().filter((b) => S.sets.some((s) => colOf(s) === b));
   const unitsOf = (col) => [...new Set(S.sets.filter((s) => colOf(s) === col).map((s) => s.unit))];
   const colKeys = (col) => unitsOf(col).map((c) => `${col}\u0001${c}`);
-  const courseMode = () => S.groupBy === "course" && S.courses.length > 0;
-  // A unit picker: one row of chips per collection, or per course with any units no course covers under "Other".
+  // A unit picker: one row of chips per collection of the view picked (vocab/views.js), with any units that view has in no
+  // collection under "Other".
   // Each collection shows all, none or some of its units: st.show maps collection -> "all" | "none" | "some" (missing = "all"),
   // and st.picks holds the unitKey()s shown for "some". o: { st, showKey, chsKey, cols(), keys(col), bar, rows, dot(key), onChange() }.
   function makePicker(o) {
@@ -70,26 +70,26 @@
       replace(show, picks) { st.show = show; st.picks = picks; save(); },
       groups() {
         const bs = o.cols();
-        if (!courseMode()) return bs.map((b) => ({ name: colLabel(b), keys: o.keys(b) }));
-        const { rows, rest } = courseRows(bs.flatMap(o.keys), S.courses), gs = rows.filter((g) => g.keys.length);
-        return rest.length ? [...gs, { name: "Other", keys: rest }] : gs;
+        const v = curView();
+        return v ? viewRows(v, bs.flatMap(o.keys)) : bs.map((b) => ({ name: colLabel(b), keys: o.keys(b) }));
       },
       render() {
-        const groups = p.groups(), labeled = groups.length > 1 || courseMode();
+        const groups = p.groups(), labeled = groups.length > 1 || !!curView();
         const stateOf = (g) => { const on = g.keys.filter(p.has).length; return on === g.keys.length ? "all" : on ? "some" : "none"; };
-        // Each row is led by its name when there's more than one row (or rows are courses).
+        // Each row is led by its name when there's more than one row (or the rows are another view's).
         o.bar.classList.toggle("labeled", labeled);
         o.rows.innerHTML = groups.map((g, gi) => {
           const sg = stateOf(g);
-          const chips = g.keys.map((k, i) => `<button class="chip" type="button" data-k="${i}" aria-pressed="${sg === "some" && p.has(k)}">${esc(keyUnit(k))}${o.dot(k)}</button>`).join("");
+          const tags = curView() ? fromTags(g.keys, (k) => k.split("\u0001")[0]) : [];
+          const chips = g.keys.map((k, i) => `${tags[i] || ""}<button class="chip" type="button" data-k="${i}" aria-pressed="${sg === "some" && p.has(k)}">${esc(keyUnit(k))}${o.dot(k)}</button>`).join("");
           return `<div class="pchrow" data-g="${gi}">${labeled ? `<span class="chbook muted small${g.name.includes("\n") ? " two" : ""}">${esc(g.name)}</span>` : ""}<div class="chips"><button class="chip" type="button" data-k="all" aria-pressed="${sg === "all"}">All</button>${chips}</div></div>`;
         }).join("");
-        // The label column is as wide as the widest name in either view (collections or courses), so switching views doesn't shift the chips.
+        // The label column is as wide as the widest name in any view, so switching views doesn't shift the chips.
         const lab = o.rows.querySelector(".chbook");
         if (lab) {
           const ctx = (makePicker.cv ||= document.createElement("canvas")).getContext("2d");
           ctx.font = getComputedStyle(lab).font;
-          const names = [...o.cols().map(colLabel), ...S.courses.map((c) => c.name), "Other"];
+          const names = [...o.cols().map(colLabel), ...altViews().flatMap((v) => v.collections.map((c) => c.name)), "Other"];
           const w = Math.max(...names.flatMap((n) => n.split("\n")).map((t) => ctx.measureText(t).width));
           o.bar.style.setProperty("--labw", Math.ceil(w) + 1 + "px");
         }
@@ -111,14 +111,8 @@
     dot: (k) => (S.sets.some((s) => S.selected.has(s.id) && unitKey(s) === k) ? `<span class="dot pick" title="Has picked sets">•</span>` : ""),
     onChange: () => renderSetup() });
   const chShown = (s) => PP.has(unitKey(s));
-  // Both pages share one Collection / Course switch.
-  function syncGroupSegs() {
-    for (const id of ["#groupSeg", "#tGroupSeg"]) {
-      $(id).hidden = !S.courses.length;
-      $(id).querySelectorAll("[data-group]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.group === (courseMode() ? "course" : "book")));
-    }
-  }
-  document.querySelectorAll("[data-group]").forEach((b) => (b.onclick = () => { S.groupBy = b.dataset.group; store.set("groupBy", S.groupBy); renderSetup(); renderTable(); }));
+  // Both pages share one choice of view.
+  function syncGroupSegs() { renderViewSwitch($("#groupSeg")); renderViewSwitch($("#tGroupSeg")); $("#tGroupSeg").hidden ||= !!S.colEdit; }
   function renderPickBar() {
     PP.render(); syncGroupSegs();
     const n = S.selected.size;

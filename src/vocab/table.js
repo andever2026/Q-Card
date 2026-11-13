@@ -122,30 +122,12 @@
     const tp = S.tpick.picks, all = new Set(cols().flatMap(tKeys)), was = tp.size;
     for (const c of [...tp]) { const k = newKey(c, (x) => all.has(x)); if (k !== c) { tp.delete(c); tp.add(k); } }
     if (tp.size !== was || [...tp].some((k) => /\u0001\d+$/.test(k) && !all.has(k))) TP.replace(S.tpick.show, tp);
-    $("#bookOrderBtn").hidden = !canWrite || cols().length < 2 || !!S.orderEdit;
-    TP.render(); syncGroupSegs();
-    renderBookOrder(); renderCourses();
-  }
-  $("#bookOrderBtn").onclick = () => { S.orderEdit = cols(); renderTable(); };
-  // Collection order editor: move collections up or down, then Save. "Kanji learned up to" counts collections in this order.
-  function renderBookOrder() {
-    const ed = $("#bookOrderEd"), cur = cols();
-    if (S.orderEdit) S.orderEdit = [...S.orderEdit.filter((b) => cur.includes(b)), ...cur.filter((b) => !S.orderEdit.includes(b))];
-    ed.hidden = !S.orderEdit || cur.length < 2 || !canWrite;
-    if (ed.hidden) { ed.innerHTML = ""; return; }
-    const o = S.orderEdit, changed = o.some((b, i) => b !== cur[i]);
-    ed.innerHTML = `<p class="muted small" style="margin:0">Put the collections in the order you study them. “Kanji learned up to” counts every kanji in the collections above the one you pick.</p>
-      <ol>${o.map((b, i) => `<li><span class="n">${i + 1}</span><b>${esc(colLabel(b))}</b><button class="ghost" type="button" data-bup="${i}" aria-label="Move ${esc(colLabel(b))} up"${i ? "" : " disabled"}>↑</button><button class="ghost" type="button" data-bdown="${i}" aria-label="Move ${esc(colLabel(b))} down"${i < o.length - 1 ? "" : " disabled"}>↓</button></li>`).join("")}</ol>
-      <div class="row"><button class="btn primary" type="button" id="boSave"${changed ? "" : " disabled"}>Save order</button><button class="btn" type="button" id="boCancel">Cancel</button><span class="muted small">${changed ? "Unsaved changes" : ""}</span><span class="editerr" id="boErr"></span></div>`;
-    const move = (i, d) => { const j = i + d; [o[i], o[j]] = [o[j], o[i]]; renderBookOrder(); ed.querySelector(`[data-b${d < 0 ? "up" : "down"}="${j}"]:not(:disabled)`)?.focus(); };
-    ed.querySelectorAll("[data-bup]").forEach((b) => (b.onclick = () => move(+b.dataset.bup, -1)));
-    ed.querySelectorAll("[data-bdown]").forEach((b) => (b.onclick = () => move(+b.dataset.bdown, 1)));
-    $("#boCancel").onclick = () => { S.orderEdit = null; renderTable(); };
-    $("#boSave").onclick = async (e) => {
-      e.target.disabled = true; e.target.textContent = "Saving…";
-      try { await db.doc("meta/books").set({ order: o, updatedAt: new Date().toISOString() }); S.orderEdit = null; onBookOrder({ exists: true, data: () => ({ order: o }) }); }
-      catch { e.target.disabled = false; e.target.textContent = "Save order"; $("#boErr").textContent = "Couldn't save. Try again."; }
-    };
+    // "Edit collections" (vocab/collections.js) puts its editor where the unit rows were, and Discard and Save where it was.
+    const ed = !!S.colEdit;
+    $("#editColBtn").hidden = !canWrite || ed; $("#colBtns").hidden = !ed;
+    $("#tTop").classList.toggle("editing", ed); $("#tPickBar").hidden = ed; $("#tSearch").disabled = ed;
+    if (!ed) TP.render();
+    syncGroupSegs(); renderColEdit();
   }
   // Search runs a moment after typing pauses, so each keystroke stays instant.
   let searchTimer = 0;
@@ -188,32 +170,32 @@
   const fit = CSS.supports("field-sizing", "content") ? () => {} : (t) => { t.style.height = "auto"; t.style.height = t.scrollHeight + 2 + "px"; };
   // Unsaved changes are asked about before they can be lost: on leaving the vocab table, and by the browser on leaving the page.
   const unsavedSets = () => S.sets.filter(dirtySet), unsavedLists = () => S.kanjiLists.filter((k) => S.kdrafts.has(k.id));
-  addEventListener("beforeunload", (e) => { if (unsavedSets().length || unsavedLists().length || coursesDirty()) { e.preventDefault(); e.returnValue = ""; } });
+  addEventListener("beforeunload", (e) => { if (unsavedSets().length || unsavedLists().length || colsDirty()) { e.preventDefault(); e.returnValue = ""; } });
   // to: the view to go to (page/nav.js), once the changes are saved or let go.
   function leaveTable(to = "setup") {
     // Whatever was opened for editing and left as it was just closes.
     for (const s of S.sets) if (!dirtySet(s)) S.drafts.delete(s.id);
-    if (!coursesDirty()) S.courseEdit = null;
+    if (!colsDirty()) S.colEdit = null;
     S.kEdit = S.confirmDel = S.kConfirmDel = null;
     S.leaveTo = to; S.leaveAsk = true; renderLeave();
     if (!S.leaveAsk) openView(to); else window.scrollTo(0, 0);
   }
   function renderLeave(why = "") {
-    const sets = unsavedSets(), lists = unsavedLists(), crs = coursesDirty(), n = sets.length + lists.length + crs, box = $("#leaveAsk");
+    const sets = unsavedSets(), lists = unsavedLists(), crs = colsDirty(), n = sets.length + lists.length + crs, box = $("#leaveAsk");
     if (!n) S.leaveAsk = false;
     box.hidden = !S.leaveAsk;
     if (box.hidden) return;
     const count = (k, w) => (k ? [`${k} ${w}${k === 1 ? "" : "s"}`] : []);
-    box.innerHTML = `<span>${[...count(sets.length, "set"), ...count(lists.length, "kanji list"), ...(crs ? ["the courses"] : [])].join(" and ")} ${n === 1 && !crs ? "has" : "have"} unsaved changes.${why ? ` <span class="keyerr">${esc(why)}</span>` : ""}</span>
+    box.innerHTML = `<span>${[...count(sets.length, "set"), ...count(lists.length, "kanji list"), ...(crs ? ["the collections"] : [])].join(" and ")} ${n === 1 && !crs ? "has" : "have"} unsaved changes.${why ? ` <span class="keyerr">${esc(why)}</span>` : ""}</span>
       <span class="tactions"><button class="btn primary" type="button" data-lsave>Save all</button><button class="btn" type="button" data-ldiscard>Discard all</button><button class="link" type="button" data-lkeep>Keep editing</button></span>`;
     box.querySelector("[data-lkeep]").onclick = () => { S.leaveAsk = false; renderLeave(); };
-    box.querySelector("[data-ldiscard]").onclick = () => { S.drafts.clear(); S.kdrafts.clear(); S.courseEdit = null; renderTable(); openView(S.leaveTo); };
+    box.querySelector("[data-ldiscard]").onclick = () => { S.drafts.clear(); S.kdrafts.clear(); S.colEdit = null; renderTable(); openView(S.leaveTo); };
     box.querySelector("[data-lsave]").onclick = async (e) => {
       e.target.disabled = true; e.target.textContent = "Saving…";
       let bad = "";
       for (const s of sets) if (!bad && !(await saveSet(s, (m) => { bad = `${setName(s)}: ${m}`; })) && !bad) bad = "Couldn't save. Try again.";
       for (const k of lists) if (!bad && !(await saveKanji(k.id))) bad = "Couldn't save. Try again.";
-      if (crs && !bad) await saveCourses((m) => { bad = `Courses: ${m}`; });
+      if (crs && !bad && !(await saveCols((m) => { bad = `Collections: ${m}`; })) && !bad) bad = "Couldn't save. Try again.";
       renderTable();
       if (bad) renderLeave(bad); else openView(S.leaveTo);
     };
@@ -225,14 +207,17 @@
     if (!searchOnly) { renderKanji(); renderPort(); }
     renderLeave();
     $("#tableRole").hidden = canWrite;
-    $("#newSetForm").hidden = !canWrite;
+    // While collections are edited, the sets and kanji lists below fold up under a grey cover: they can't be used until Save or Discard.
+    const ed = !!S.colEdit;
+    $("#newSetForm").hidden = !canWrite || ed;
+    for (const el of [$("#setTables"), $("#kanjiLists").closest(".panel")]) { el.inert = ed; el.classList.toggle("tlocked", ed); el.dataset.lock = "Editing collections"; }
     $("#colList").innerHTML = cols().filter(Boolean).map((b) => `<option value="${esc(b)}"></option>`).join("");
     // Prefill the Collection fields with the collection being viewed, keeping anything typed until the view moves to another one.
     if (S.formCol !== curCol()) { S.formCol = curCol(); for (const id of ["#nsCol", "#nkCol"]) $(id).value = S.formCol; }
     else for (const id of ["#nsCol", "#nkCol"]) if (!$(id).value && document.activeElement !== $(id)) $(id).value = S.formCol;
     $("#unitList").innerHTML = tKeys(S.formCol).map((k) => `<option value="${esc(keyUnit(k))}"></option>`).join("");
     const box = $("#setTables");
-    const bar = $(".tbar"); bar.hidden = !S.loaded || !S.sets.length;
+    const bar = $(".tbar"); bar.hidden = $("#tSum").hidden = !S.loaded || !S.sets.length;
     if (!S.loaded) { box.innerHTML = `<div class="empty">Loading…</div>`; return; }
     if (!S.sets.length) { box.innerHTML = `<div class="empty"><b>No sets yet.</b><span>${canWrite ? "Add a set below, then fill in its words." : ""}</span></div>`; return; }
     renderTableBar();
@@ -256,7 +241,7 @@
         });
         if (any || S.drafts.has(s.id) && idx.length) shown.push({ s, words, idx, open: true });
       } else if (TP.has(unitKey(s))) {
-        shown.push({ s, words, idx: words.map((w, i) => i), open: S.openSets.has(s.id) });
+        shown.push({ s, words, idx: words.map((w, i) => i), open: !ed && S.openSets.has(s.id) });
       }
     }
     const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
@@ -265,7 +250,7 @@
     $("#tSummary").textContent = q
       ? (!total ? "" : drawn < total ? `Showing the first ${drawn} of ${total} matches. Keep typing to narrow it down.` : `${plural(total, "matching word")} in ${plural(shown.length, "set")}, ${multiCol() ? "all collections" : "all units"}`)
       : !keys.length ? "" : `${where}: ${plural(shown.length, "set")}, ${plural(shown.reduce((n, x) => n + readyCount(x.words), 0), "word")}`;
-    const openAll = $("#tOpenAll"); openAll.hidden = q ? drawn >= total : !shown.length;
+    const openAll = $("#tOpenAll"); openAll.hidden = ed || (q ? drawn >= total : !shown.length);
     openAll.textContent = q ? `Show all ${total}` : shown.every((x) => x.open) ? "Close all sets" : "Open all sets";
     if (q && !shown.length) { box.innerHTML = `<div class="empty"><b>No words match “${esc(q)}”.</b><span>Search looks at English, kana and kanji in every ${multiCol() ? "collection and unit" : "unit"}.</span></div>`; return; }
     if (!keys.length) { box.innerHTML = `<div class="empty"><span>No units picked. Tap All or a unit above to see its sets.</span></div>`; return; }

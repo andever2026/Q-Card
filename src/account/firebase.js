@@ -17,7 +17,7 @@ const fs = initializeFirestore(app, { ignoreUndefinedProperties: true });
 const who = (u) => u && { uid: u.uid, name: u.displayName || "", email: u.email || "" };
 
 // claude.ai paths → Firestore paths, all inside users/<uid>/:
-//   sets/<id>, kanji/<id>, meta/books, meta/courses → users/<uid>/sets/<id>, …
+//   sets/<id>, kanji/<id>, meta/books, meta/views … → users/<uid>/sets/<id>, …
 //   data/users/<uid>/<id> (history and its settings doc) → users/<uid>/data/<id>
 function mapPath(uid, path) {
   const p = String(path).replace(/^\/+|\/+$/g, ""), own = `data/users/${uid}`;

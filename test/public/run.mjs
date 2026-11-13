@@ -620,10 +620,10 @@ const chipNames = () => up.$$eval("#setPicker [data-set]", (bs) => bs.map((b) =>
 ok((await chipNames()) === "Colours, Shops, Animals, A · Food, Extras", "units: older sections and labels read as set names (Extras last)", await chipNames());
 ok((await up.$eval("#uptoSel", (s) => s.value)) === "Nakama\u0001Ch. 2" && /Nakama › Ch\. 2/.test(await up.$eval("#uptoSel", (s) => s.selectedOptions[0].textContent)),
   "units: an older 'Kanji learned up to' pick carries over", await up.$eval("#uptoSel", (s) => s.value));
-await up.click('#groupSeg [data-group="course"]'); await up.waitForTimeout(200);
+await up.click('#groupSeg [data-view="Courses"]'); await up.waitForTimeout(200);
 rows = await rowsOf("#pickChs");
 ok(rows === "J1: All, Ch. 1, Ch. 2* | Other: All, Week 1*, Week 2*, Week 10*, Ch. 10", "units: an older course (chapters 1 to 2) covers units Ch. 1 and Ch. 2", rows);
-await up.click('#groupSeg [data-group="book"]');
+await up.click('#groupSeg [data-view=""]');
 await up.click("#toTable"); await up.waitForTimeout(200);
 await up.fill("#nsCol", "mine"); await up.fill("#nsUnit", "week 2"); await up.fill("#nsName", "Weather");
 await up.click('#newSetForm [type="submit"]'); await up.waitForTimeout(400);
@@ -1415,7 +1415,7 @@ if (entry.length > 1) {
   await bctx.close();
 }
 
-// ---------- 23. courses are edited in the vocab table ----------
+// ---------- 23. Edit collections: views, dragging units and collections, merging, the main view, saving, export / import ----------
 {
   const cctx = await browser.newContext();
   const cp = await newPage(cctx, { width: 1280, init: () => {
@@ -1424,52 +1424,194 @@ if (entry.length > 1) {
     localStorage.setItem("qcard:mode", "local"); put("meta/samples", { offeredAt: "x" });
     for (let i = 1; i <= 12; i++) put(`sets/a${i}`, { collection: "Book A", unit: `Ch. ${i}`, name: "Words", words: w });
     for (let i = 1; i <= 11; i++) put(`sets/b${i}`, { collection: "Book B", unit: `Ch. ${i}`, name: "Words", words: w });
+    put("kanji/ka1", { collection: "Book A", unit: "Ch. 1", kanji: "水火" }); put("kanji/kb1", { collection: "Book B", unit: "Ch. 1", kanji: "火木" });
     put("meta/books", { order: ["Book A", "Book B"] });
     put("meta/courses", { courses: [{ name: "Year 1", parts: [{ collection: "Book A", from: "Ch. 1", to: "Ch. 8" }] },
       { name: "Year 2", parts: [{ collection: "Book A", from: "Ch. 9", to: "Ch. 12" }, { collection: "Book B", from: "Ch. 1", to: "Ch. 4" }] },
       { name: "Book B\nExtras", parts: [{ collection: "Book B", from: "Ch. 9", to: "Ch. 11" }] }] });
     localStorage.setItem("jpq:groupBy", JSON.stringify("course"));
   } });
-  const rowsOf = () => cp.$$eval("#tChs .pchrow", (rs) => rs.map((r) => `${r.querySelector(".chbook")?.textContent ?? ""}: ${[...r.querySelectorAll(".chip:not([data-k=all])")].map((c) => c.textContent).join(",")}`).join(" | "));
-  const stored = () => cp.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:meta/courses")).courses);
-  const pick = async (dd, v) => { await cp.click(`${dd} .dd-btn`); await cp.click(`${dd} li[data-v="${v}"]`); await cp.waitForTimeout(150); };
+  const chs = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => `Ch. ${a + i}`).join(",");
+  const tRows = (p = cp) => p.$$eval("#tChs .pchrow", (rs) => rs.map((r) => `${r.querySelector(".chbook")?.textContent ?? ""}: ${[...r.querySelectorAll(".chip:not([data-k=all])")].map((c) => c.textContent).join(",")}`).join(" | "));
+  const switchOf = (p = cp) => p.$$eval("#tGroupSeg [data-view]", (bs) => bs.map((b) => b.textContent + (b.getAttribute("aria-pressed") === "true" ? "*" : "")).join(","));
+  const edRows = () => cp.$$eval("#colEd .colrow", (rs) => rs.map((r) => { const n = r.querySelector(".colname"); return `${n.value ?? n.textContent}: ${[...r.querySelectorAll(".chip.unit")].map((c) => c.textContent).join(",")}`; }).join(" | "));
+  const froms = (row) => cp.$$eval(`#colEd .colrow:nth-child(${row + 1}) .ufrom`, (s) => s.map((x) => x.textContent).join(","));
+  const row = (i) => cp.locator("#colEd .colrow").nth(i);
+  const unit = (i, name) => row(i).locator(".chip.unit", { hasText: new RegExp(`^${name.replace(".", "\\.")}$`) });
+  const drag = async (from, to, { hold } = {}) => {
+    const a = await from.boundingBox(), b = await to.boundingBox(), x = a.x + a.width / 2, y = a.y + a.height / 2;
+    await cp.mouse.move(x, y); await cp.mouse.down(); await cp.mouse.move(x + 20, y + 4, { steps: 3 });
+    await cp.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 8 }); if (hold) await hold();
+    await cp.mouse.up(); await cp.waitForTimeout(200);
+  };
+  const drop = (i) => row(i).locator("[data-drop]");
+  const asking = () => cp.$eval("#askDlg", (d) => d.open);
+  const setsNow = () => cp.evaluate(() => Object.fromEntries(Object.keys(localStorage).filter((k) => k.startsWith("qcard:local:sets/")).map((k) => { const d = JSON.parse(localStorage.getItem(k)); return [k.slice(17), `${d.collection}|${d.unit}|${d.name}`]; })));
+  const stored = (p, page = cp) => page.evaluate((p) => JSON.parse(localStorage.getItem("qcard:local:" + p) || "null"), p);
+  const strip = (d) => d && JSON.parse(JSON.stringify({ ...d, updatedAt: undefined }));
+
   await cp.click('#sideNav [data-go="table"]'); await cp.waitForTimeout(300);
-  ok(await vis(cp, "#courseBtn") && !(await vis(cp, "#courseEd")), "courses: the vocab table has Edit courses");
-  await cp.click("#courseBtn"); await cp.waitForTimeout(200);
-  ok((await cp.$$eval("#courseEd [data-cname]", (ts) => ts.map((t) => t.value).join("|"))) === "Year 1|Year 2|Book B\nExtras" && (await cp.$eval("#cdd-1-1-from .dd-btn", (b) => b.textContent.trim())) === "Ch. 1"
-    && await cp.$eval("#coSave", (b) => b.disabled) && /4 units in no course/.test(await text(cp, "#courseEd")), "courses: the editor shows each course, its ranges and the units in no course", await text(cp, "#courseEd"));
-  await cp.screenshot({ path: join(out, "23-courses.png"), fullPage: true });
-  // A new course after Year 1, its range overlapping Year 1's: those units stay in Year 1.
-  await cp.click("#courseEd [data-cadd]"); await cp.waitForTimeout(150);
-  ok(await cp.evaluate(() => document.activeElement.matches('[data-c="3"] [data-cname]')), "courses: Add a course puts the cursor in its name");
-  await cp.keyboard.type("Review");
-  ok(!(await cp.$eval("#coSave", (b) => b.disabled)) && /Unsaved changes/.test(await text(cp, "#courseEd")), "courses: typing a name shows unsaved changes");
-  await pick("#cdd-3-0-collection", "Book B"); await pick("#cdd-3-0-from", "Ch. 3"); await pick("#cdd-3-0-to", "Ch. 6");
-  ok(/2 units · 2 units already in “Year 2”/.test(await cp.$eval('[data-c="3"] .csum', (e) => e.textContent)), "courses: a range overlapping an earlier course says which units stay there", await cp.$eval('[data-c="3"] .csum', (e) => e.textContent));
-  await pick("#cdd-3-0-to", "Ch. 2");
-  ok((await cp.$eval("#cdd-3-0-from .dd-btn", (b) => b.textContent.trim())) === "Ch. 2", "courses: a last unit before the first moves the first along");
-  await pick("#cdd-3-0-from", "Ch. 5"); await pick("#cdd-3-0-to", "Ch. 8");
-  await cp.click('[data-c="3"] [data-cmove="-1"]'); await cp.waitForTimeout(150);
-  ok((await cp.$$eval("#courseEd [data-cname]", (ts) => ts.map((t) => t.value).join("|"))) === "Year 1|Year 2|Review|Book B\nExtras", "courses: ↑ moves a course up");
-  await cp.fill('[data-c="2"] [data-cname]', ""); await cp.click("#coSave"); await cp.waitForTimeout(150);
-  ok(/Give every course a name/.test(await text(cp, "#coErr")), "courses: a course with no name isn't saved", await text(cp, "#coErr"));
-  await cp.fill('[data-c="2"] [data-cname]', "Year 3"); await cp.click("#coSave"); await cp.waitForTimeout(400);
-  const saved = await stored();
-  ok(!(await vis(cp, "#courseEd")) && saved.map((c) => c.name).join("|") === "Year 1|Year 2|Year 3|Book B\nExtras" && JSON.stringify(saved[2].parts) === JSON.stringify([{ collection: "Book B", from: "Ch. 5", to: "Ch. 8" }]),
-    "courses: Save stores them in order", JSON.stringify(saved));
-  ok((await rowsOf()) === "Year 1: Ch. 1,Ch. 2,Ch. 3,Ch. 4,Ch. 5,Ch. 6,Ch. 7,Ch. 8 | Year 2: Ch. 9,Ch. 10,Ch. 11,Ch. 12,Ch. 1,Ch. 2,Ch. 3,Ch. 4 | Year 3: Ch. 5,Ch. 6,Ch. 7,Ch. 8 | Book B\nExtras: Ch. 9,Ch. 10,Ch. 11",
-    "courses: the unit rows follow at once", await rowsOf());
-  // Unsaved course edits are asked about on leaving; Discard all lets them go.
-  await cp.click("#courseBtn"); await cp.click('[data-c="3"] [data-cdel]'); await cp.waitForTimeout(100);
+  ok((await switchOf()) === "Books,Courses*" && (await tRows()) === `Year 1: ${chs(1, 8)} | Year 2: ${chs(9, 12)},${chs(1, 4)} | Book B\nExtras: ${chs(9, 11)} | Other: ${chs(5, 8)}`
+    && (await cp.$$eval("#tChs .pchrow:nth-child(2) .ufrom", (s) => s.map((x) => x.textContent).join(","))) === "Book A,Book B",
+    "collections: older courses show as the view Courses, and a row with two collections' units names each", await tRows());
+  await cp.click("#editColBtn"); await cp.waitForTimeout(200);
+  ok(await vis(cp, "#colBtns") && !(await vis(cp, "#editColBtn")) && !(await vis(cp, "#tGroupSeg")) && !(await vis(cp, "#tPickBar")) && await cp.$eval("#tSearch", (i) => i.disabled) && await cp.$eval("#colSave", (b) => b.disabled)
+    && await cp.$eval("#setTables", (e) => e.inert && e.classList.contains("tlocked") && e.dataset.lock === "Editing collections") && await cp.$eval("#tTop", (e) => e.classList.contains("editing"))
+    && (await cp.$$eval("#viewEd [data-view]", (bs) => bs.map((b) => b.textContent).join(","))) === "Books,Courses" && /← main view/.test(await text(cp, "#viewEd .mainptr"))
+    && (await edRows()) === `Book A: ${chs(1, 12)} | Book B: ${chs(1, 11)}`,
+    "collections: Edit collections shows the main view's collections, Save and Discard take the button's place, and the sets below are covered", await edRows());
+  await cp.hover("#viewEd .mainptr .qtip");
+  ok(await vis(cp, "#mainTip") && /main view's collections/.test(await text(cp, "#mainTip")), "collections: the (?) beside the main view explains it", await text(cp, "#mainTip"));
+  await cp.screenshot({ path: join(out, "23-collections.png"), fullPage: true });
+  // In the main view a unit moves with its sets; one landing where a unit has its name merges with it, after asking.
+  await drag(unit(0, "Ch. 12"), drop(1));
+  ok((await edRows()) === `Book A: ${chs(1, 11)} | Book B: ${chs(1, 12)}` && !(await cp.$eval("#colSave", (b) => b.disabled)) && (await text(cp, "#colState")) === "Unsaved changes",
+    "collections: a unit dragged to another collection goes there, in order by name, and Save lights up", await edRows());
+  let shown = false;
+  await drag(unit(1, "Ch. 1"), drop(0), { hold: async () => { shown = await cp.$eval("#colEd .colrow:nth-child(1) [data-drop]", (e) => e.classList.contains("dropon")); } });
+  ok(shown && await asking() && (await text(cp, "#askTitle")) === "Merge these units?" && /Book A already has a unit called Ch\. 1/.test(await text(cp, "#askText")),
+    "collections: the collection under a dragged unit lights up, and a unit with the same name there is asked about first", await text(cp, "#askText"));
+  await cp.keyboard.press("Escape"); await cp.waitForTimeout(150);
+  ok(!(await asking()) && (await edRows()) === `Book A: ${chs(1, 11)} | Book B: ${chs(1, 12)}`, "collections: Escape (or Cancel) leaves both units where they were");
+  await unit(1, "Ch. 1").focus(); await cp.keyboard.press("ArrowUp"); await cp.waitForTimeout(150);
+  ok(await asking(), "collections: the up arrow moves a unit to the collection above, asking the same");
+  await cp.click("#askYes"); await cp.waitForTimeout(150);
+  ok((await edRows()) === `Book A: ${chs(1, 11)} | Book B: ${chs(2, 12)}` && await cp.evaluate(() => document.activeElement?.matches("#colEd .colrow:nth-child(1) .chip.unit")),
+    "collections: Merge them makes the two one unit", await edRows());
+  // Collections: add, ↑/↓, dragged by ⠿, deleted when empty.
+  await cp.click("#colEd [data-cadd]"); await cp.waitForTimeout(100);
+  ok(await cp.evaluate(() => document.activeElement.matches("#colEd .colrow:nth-child(3) [data-cname]")), "collections: Add collection puts the cursor in its name");
+  await cp.keyboard.type("Book C");
+  await row(2).locator('[data-cmove="-1"]').click(); await cp.waitForTimeout(100);
+  ok(/^Book A: .* \| Book C: +\| Book B: /.test(await edRows()) && await cp.evaluate(() => document.activeElement.matches('#colEd .colrow:nth-child(2) [data-cmove="-1"]')), "collections: ↑ moves a collection up, keeping the focus on it", await edRows());
+  { const g = await row(1).locator(".grip").boundingBox(), last = await row(2).boundingBox();
+    await cp.mouse.move(g.x + g.width / 2, g.y + g.height / 2); await cp.mouse.down(); await cp.mouse.move(g.x + 8, g.y + 20, { steps: 3 });
+    await cp.mouse.move(g.x + g.width / 2, last.y + last.height - 4, { steps: 8 });
+    const marked = await cp.$$eval("#colEd .colrow:nth-child(3).dropbelow", (x) => x.length); await cp.mouse.up(); await cp.waitForTimeout(150);
+    ok(marked === 1 && /^Book A: .* \| Book B: .* \| Book C:/.test(await edRows()), "collections: one dragged by its ⠿ goes where it's let go, a line showing where", await edRows()); }
+  await drag(unit(1, "Ch. 11"), drop(2));
+  ok(await row(2).locator("[data-cdel]").isDisabled() && /Book C: Ch\. 11$/.test(await edRows()), "collections: a collection with units can't be deleted in the main view", await edRows());
+  await cp.click("#colEd [data-cadd]"); await row(3).locator("[data-cdel]").click(); await cp.waitForTimeout(100);
+  ok((await cp.$$eval("#colEd .colrow", (r) => r.length)) === 3, "collections: an empty one can");
+  // Another view: units only regroup there, and every unit is somewhere ("Other" holds the rest).
+  await cp.click('#viewEd [data-view="0"]'); await cp.waitForTimeout(150);
+  ok((await edRows()) === `Year 1: ${chs(1, 8)} | Year 2: ${chs(9, 11)},${chs(2, 4)},Ch. 12 | Book B\nExtras: ${chs(9, 11)} | Other: ${chs(5, 8)}`
+    && (await froms(1)) === "Book A,Book B" && (await froms(2)) === "Book B,Book C" && await vis(cp, "#viewEd [data-vmain]"),
+    "collections: another view follows the moves and the merge, naming the collection of each run of units", await edRows());
+  await drag(unit(3, "Ch. 5"), drop(0));
+  ok(!(await asking()) && (await edRows()).startsWith(`Year 1: ${chs(1, 8)},Ch. 5 |`) && (await edRows()).endsWith(`Other: ${chs(6, 8)}`), "collections: in another view a unit only regroups, even beside one of the same name", await edRows());
+  await cp.fill("#viewEd [data-vname]", "Terms");
+  ok((await text(cp, '#viewEd [data-view="0"]')) === "Terms", "collections: a view can be renamed");
+  await cp.click("#viewEd [data-vadd]"); await cp.waitForTimeout(100);
+  ok(await cp.evaluate(() => document.activeElement.matches("#viewEd [data-vname]") && document.activeElement.value === "New view") && (await edRows()) === `Book A: ${chs(1, 11)} | Book B: ${chs(2, 10)},Ch. 12 | Book C: Ch. 11 | Other: `,
+    "collections: + New view starts as a copy of the main view, its name ready to type", await edRows());
+  await cp.keyboard.type("Spare");
+  await cp.click("#viewEd [data-vdel]"); await cp.waitForTimeout(100);
+  ok(await asking() && (await text(cp, "#askTitle")) === "Delete this view?", "collections: deleting a view asks first");
+  await cp.click("#askYes"); await cp.waitForTimeout(100);
+  ok((await cp.$$eval("#viewEd [data-view]", (bs) => bs.map((b) => b.textContent).join(","))) === "Books,Terms" && (await cp.$eval("#viewEd [data-view='-1']", (b) => b.getAttribute("aria-pressed"))) === "true", "collections: and then it's gone");
+  await cp.click("#viewEd [data-vadd]"); await cp.keyboard.type("Levels");
+  await row(0).locator("[data-cname]").fill("Easy\nwords");
+  await cp.click("#colSave"); await cp.waitForTimeout(500);
+  let sets = await setsNow();
+  ok(!(await vis(cp, "#colEd")) && await vis(cp, "#editColBtn") && sets.a12 === "Book B|Ch. 12|Words" && sets.b11 === "Book C|Ch. 11|Words" && [sets.a1, sets.b1].sort().join() === "Book A|Ch. 1|Words,Book A|Ch. 1|Words (2)" && sets.a5 === "Book A|Ch. 5|Words",
+    "collections: Save moves the sets, and the merged unit's sets keep different names", JSON.stringify({ a12: sets.a12, b11: sets.b11, a1: sets.a1, b1: sets.b1 }));
+  ok((await stored("kanji/ka1"))?.kanji === "水火木" && (await stored("kanji/kb1")) === null && JSON.stringify((await stored("meta/books")).order) === '["Book A","Book B","Book C"]',
+    "collections: the merged unit's kanji lists become one, and the collection order is stored", JSON.stringify(await stored("kanji/ka1")));
+  let views = await stored("meta/views");
+  ok(views?.main === "Books" && views.views.map((v) => v.name).join() === "Terms,Levels" && views.views[1].collections[0].name === "Easy\nwords"
+    && JSON.stringify(views.views[0].collections[0].units.slice(-1)) === '[{"collection":"Book B","unit":"Ch. 5"}]' && views.views[0].collections[1].units.some((u) => u.collection === "Book B" && u.unit === "Ch. 12"),
+    "collections: the views are stored, their units where the sets now are", JSON.stringify(views?.views?.[0]?.collections?.[1]));
+  ok((await switchOf()) === "Books,Terms*,Levels" && (await tRows()).startsWith(`Year 1: ${chs(1, 8)},Ch. 5 | Year 2: `), "collections: the unit rows stay on the view they showed, under its new name", await switchOf());
+  // Another view becomes the main one: the sets move to its collections, and the old main view stays as a view.
+  await cp.click("#editColBtn"); await cp.click('#viewEd [data-view="0"]'); await cp.click("#viewEd [data-vmain]"); await cp.waitForTimeout(100);
+  ok(await asking() && (await text(cp, "#askTitle")) === "Make “Terms” the main view?" && /become one unit.*Ch\. 5 in Year 1/.test(await text(cp, "#askText")) && /3 units in no collection of Terms go into a collection called Other/.test(await text(cp, "#askText")),
+    "collections: making another view the main one says what will merge and what goes to Other", await text(cp, "#askText"));
+  await cp.click("#askYes"); await cp.waitForTimeout(150);
+  ok((await cp.$$eval("#viewEd [data-view]", (bs) => bs.map((b) => b.textContent).join(","))) === "Terms,Books,Levels" && (await edRows()) === `Year 1: ${chs(1, 8)} | Year 2: ${chs(2, 4)},${chs(9, 12)} | Book B Extras: ${chs(9, 11)} | Other: ${chs(6, 8)}`,
+    "collections: it's first, its collections are the main ones, and the old main view is another view", await edRows());
+  await cp.click("#colSave"); await cp.waitForTimeout(600);
+  sets = await setsNow(); views = await stored("meta/views");
+  ok([sets.a5, sets.b5].sort().join() === "Year 1|Ch. 5|Words,Year 1|Ch. 5|Words (2)" && sets.b6 === "Other|Ch. 6|Words" && sets.a12 === "Year 2|Ch. 12|Words" && sets.b11 === "Book B Extras|Ch. 11|Words"
+    && JSON.stringify((await stored("meta/books")).order) === '["Year 1","Year 2","Book B Extras","Other"]' && views.main === "Terms" && views.views.map((v) => v.name).join() === "Books,Levels",
+    "collections: Save moves every set into the new main view's collections", JSON.stringify({ a5: sets.a5, b5: sets.b5, b6: sets.b6, order: (await stored("meta/books")).order }));
+  ok((await switchOf()) === "Terms*,Books,Levels" && /^Year 1: /.test(await tRows()), "collections: the rows show the main view once the view they showed became it", await switchOf());
+  await cp.click('#tGroupSeg [data-view="Books"]'); await cp.waitForTimeout(150);
+  ok(/^Book A: .* \| Book B: .* \| Book C: Ch\. 11$/.test(await tRows()), "collections: the old main view still groups the units as before", await tRows());
+  // Unsaved edits are asked about on leaving; Discard all lets them go.
+  await cp.click("#editColBtn"); await drag(unit(3, "Ch. 6"), drop(1));
   await cp.click('#sideNav [data-go="history"]'); await cp.waitForTimeout(200);
-  ok(await vis(cp, "#leaveAsk") && /the courses have unsaved changes/.test(await text(cp, "#leaveAsk")), "courses: leaving with unsaved courses asks first", await text(cp, "#leaveAsk"));
+  ok(await vis(cp, "#leaveAsk") && /the collections have unsaved changes/.test(await text(cp, "#leaveAsk")), "collections: leaving with unsaved changes asks first", await text(cp, "#leaveAsk"));
   await cp.click("#leaveAsk [data-ldiscard]"); await cp.waitForTimeout(200);
-  ok((await stored()).length === 4 && !(await vis(cp, "#table")), "courses: Discard all keeps the stored courses");
-  await cp.click('#sideNav [data-go="table"]'); await cp.waitForTimeout(200);
-  await cp.click("#courseBtn"); await cp.setViewportSize({ width: 390, height: 900 }); await cp.waitForTimeout(200);
-  ok(await cp.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "courses: the editor fits a phone");
-  await cp.screenshot({ path: join(out, "23-courses-phone.png"), fullPage: true });
-  ok(cp.errors.length === 0, "courses: no page errors", cp.errors.join(" | "));
+  ok((await setsNow()).b6 === "Other|Ch. 6|Words" && !(await vis(cp, "#table")), "collections: Discard all keeps what's stored");
+  // Export carries the views; importing the file elsewhere brings them along.
+  await settings(cp, "data");
+  const [cdl] = await Promise.all([cp.waitForEvent("download"), cp.click("#exportBtn")]);
+  const cfile = JSON.parse(readFileSync(await cdl.path(), "utf8"));
+  ok(cfile.views?.main === "Terms" && cfile.views.views.map((v) => v.name).join() === "Books,Levels" && !("courses" in cfile), "export: the views are in the file (and the old courses aren't)", JSON.stringify(cfile.views?.views?.map((v) => v.name)));
+  const ectx = await browser.newContext(), ep = await newPage(ectx, { width: 1280 });
+  await ep.click("#guestBtn"); await ep.waitForTimeout(400);
+  const toTable = async (p) => { if (!(await p.locator('#sideNav [data-go="table"]').isVisible())) { await p.click("#menuBtn"); await p.waitForTimeout(300); } await p.click('#sideNav [data-go="table"]'); await p.waitForTimeout(300); };
+  const importIn = async (p, obj, name) => {
+    const f = join(out, name); writeFileSync(f, JSON.stringify(obj));
+    await settings(p, "data");
+    const [ch] = await Promise.all([p.waitForEvent("filechooser"), p.click("#importBtn")]);
+    await ch.setFiles(f); await p.waitForTimeout(300);
+    const preview = await text(p, "#importPreview");
+    await p.click("#importGo"); await p.waitForTimeout(900);
+    return preview;
+  };
+  let preview = await importIn(ep, cfile, "23-export.json");
+  await toTable(ep);
+  ok(/Views: will change/.test(preview) && JSON.stringify(strip(await stored("meta/views", ep))) === JSON.stringify(cfile.views) && (await switchOf(ep)) === "Terms*,Books,Levels",
+    "import: an exported file brings its views along", preview);
+  // An older file with courses: they become the view Courses, also where views are saved already.
+  const old = { app: "jp-vocab-practice", version: 2, sets: [{ id: "o1", collection: "Old", unit: "Ch. 1", name: "Words", words: [{ id: "w1", en: "fire", kana: "ひ", kanji: "火" }] }, { id: "o2", collection: "Old", unit: "Ch. 2", name: "Words", words: [{ id: "w1", en: "tree", kana: "き", kanji: "木" }] }],
+    courses: [{ name: "First term", parts: [{ collection: "Old", from: "Ch. 1", to: "Ch. 1" }] }] };
+  preview = await importIn(ep, old, "23-old-courses.json");
+  views = await stored("meta/views", ep);
+  ok(/Views: will change/.test(preview) && views.views.map((v) => v.name).join() === "Books,Levels,Courses" && JSON.stringify(views.views[2].collections) === '[{"name":"First term","units":[{"collection":"Old","unit":"Ch. 1"}]}]' && (await stored("meta/courses", ep)) === null,
+    "import: an older file's courses join views already saved as the view Courses", JSON.stringify(views.views[2]));
+  const octx = await browser.newContext(), op = await newPage(octx, { width: 1280 });
+  await op.click("#guestBtn"); await op.waitForTimeout(400);
+  preview = await importIn(op, old, "23-old-courses.json");
+  await toTable(op);
+  await op.click('#tGroupSeg [data-view="Courses"]'); await op.waitForTimeout(150);
+  ok(/Courses: will change/.test(preview) && (await stored("meta/courses", op))?.courses?.[0]?.name === "First term" && (await tRows(op)).startsWith("First term: Ch. 1 | Other: Ch. 2,"),
+    "import: in an account without views, an older file's courses read as the view Courses", await tRows(op));
+  ok(ep.errors.length === 0 && op.errors.length === 0, "collections import: no page errors", [...ep.errors, ...op.errors].join(" | "));
+  await ectx.close(); await octx.close();
+  // The switch between views is a dropdown once its buttons would take more than half the header.
+  await toTable(cp);
+  ok((await cp.$$eval("#tGroupSeg [data-view]", (b) => b.length)) === 3 && !(await cp.$("#tGroupSeg .dd-btn")), "collections: on a big screen the views are buttons");
+  await cp.setViewportSize({ width: 390, height: 900 }); await cp.waitForTimeout(300);
+  ok(await vis(cp, "#tGroupSeg .dd-btn") && (await cp.$$eval("#tGroupSeg [data-view]", (b) => b.length)) === 0, "collections: on a phone they turn into a dropdown");
+  await cp.click("#tGroupSeg .dd-btn"); await cp.click('#tGroupSeg li[data-v="Levels"]'); await cp.waitForTimeout(150);
+  ok(/^Easy\nwords: /.test(await tRows()), "collections: and the dropdown switches views", await tRows());
+  // On a phone: a unit held still for a moment is picked up (it grows), then dragged; a quick swipe still scrolls.
+  await cp.click("#editColBtn"); await cp.waitForTimeout(200);
+  ok(await cp.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "collections: the editor fits a phone");
+  await cp.screenshot({ path: join(out, "23-collections-phone.png"), fullPage: true });
+  await row(1).scrollIntoViewIfNeeded();
+  const touch = (from, to, hold) => cp.evaluate(async ([[ri, name], ti, hold]) => {
+    const rows = [...document.querySelectorAll("#colEd .colrow")], el = [...rows[ri].querySelectorAll(".chip.unit")].find((c) => c.textContent === name);
+    const a = el.getBoundingClientRect(), b = rows[ti].querySelector("[data-drop]").getBoundingClientRect(), wait = (ms) => new Promise((d) => setTimeout(d, ms));
+    const fire = (type, x, y) => el.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 7, pointerType: "touch", isPrimary: true, clientX: x, clientY: y }));
+    const x0 = a.x + a.width / 2, y0 = a.y + a.height / 2, x1 = b.x + 10, y1 = b.y + b.height / 2;
+    fire("pointerdown", x0, y0); await wait(100);
+    const lifting = el.classList.contains("lifting"); await wait(hold);
+    const picked = !!document.querySelector(".dragghost");
+    for (let i = 1; i <= 6; i++) { fire("pointermove", x0 + (x1 - x0) * i / 6, y0 + (y1 - y0) * i / 6); await wait(16); }
+    fire("pointerup", x1, y1); await wait(100);
+    return { lifting, picked };
+  }, [from, to, hold]);
+  const before = await edRows();
+  const swipe = await touch([1, "Ch. 9"], 0, 0);
+  ok(swipe.lifting && !swipe.picked && (await edRows()) === before, "collections: a finger that moves at once doesn't pick a unit up", JSON.stringify(swipe));
+  const held = await touch([1, "Ch. 9"], 0, 450);
+  ok(held.lifting && held.picked && (await edRows()).startsWith(`Year 1: ${chs(1, 9)} | Year 2: ${chs(2, 4)},${chs(10, 12)} |`), "collections: held for a moment, it grows, is picked up and dragged to another collection", await edRows());
+  await cp.click("#colDiscard");
+  ok(cp.errors.length === 0, "collections: no page errors", cp.errors.join(" | "));
   await cctx.close();
 }
 

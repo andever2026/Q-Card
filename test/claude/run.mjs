@@ -138,14 +138,15 @@ await page.click('#sideNav [data-go="history"]'); await page.waitForTimeout(300)
 ok(await vis("#history") && await page.evaluate(() => getComputedStyle(document.querySelector("header.side")).position === "fixed"), "menu: a sidebar on a big screen, and History opens from it");
 await page.click('#sideNav [data-go="setup"]'); await page.waitForTimeout(200);
 
-// ---------- 5. courses are edited in the vocab table and stored in this copy's database ----------
+// ---------- 5. views are made in the vocab table's Edit collections and stored in this copy's database ----------
 await page.click('#sideNav [data-go="table"]'); await page.waitForTimeout(300);
-await page.click("#courseBtn"); await page.click("#courseEd [data-cadd]"); await page.keyboard.type("Term 1");
-await page.click("#coSave"); await page.waitForTimeout(400);
-const edClosed = !(await vis("#courseEd"));
-await page.click('#tGroupSeg [data-group="course"]'); await page.waitForTimeout(200);
-ok(edClosed && await page.$$eval("#tChs .chbook", (ls) => ls.map((l) => l.textContent).join("|")) === "Term 1",
-  "courses: a course added in the vocab table is saved and becomes a row of units", await page.$$eval("#tChs .chbook", (ls) => ls.map((l) => l.textContent).join("|")));
+await page.click("#editColBtn"); await page.click("#viewEd [data-vadd]"); await page.keyboard.type("Term 1");
+const mainCols = await page.$$eval("#colEd [data-cname]", (ts) => ts.map((t) => t.value).join("|"));
+await page.click("#colSave"); await page.waitForTimeout(400);
+const edClosed = !(await vis("#colEd"));
+await page.click('#tGroupSeg [data-view="Term 1"]'); await page.waitForTimeout(200);
+ok(edClosed && mainCols && await page.$$eval("#tChs .chbook", (ls) => ls.map((l) => l.textContent).join("|")) === mainCols,
+  "views: a view added in Edit collections is saved and its rows of units show", await page.$$eval("#tChs .chbook", (ls) => ls.map((l) => l.textContent).join("|")));
 await page.click('#sideNav [data-go="setup"]'); await page.waitForTimeout(200);
 
 ok(errors.length === 0, "no page errors", errors.join(" | "));

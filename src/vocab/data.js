@@ -1,8 +1,6 @@
   // ---------- data ----------
   // The vocab as the page holds it: collections, their units and sets, in order (how a stored document is read: vocab/docs.js).
-  const coll = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-  // Units sort by name with numbers in order (Week 2 before Week 10). In a unit, Kanji sets, Extras and supplementary lists come last.
-  const byUnit = (a, b) => coll.compare(String(a), String(b));
+  // In a unit, Kanji sets, Extras and supplementary lists come last (units sort by name: byUnit in vocab/docs.js).
   const secRank = (s) => { s = String(s || ""); return /^kanji/i.test(s) ? 1 : /^extra/i.test(s) ? 2 : /^supp/i.test(s) ? 3 : 0; };
   const sortSets = (a, b) => byCol(colOf(a), colOf(b)) || byUnit(a.unit, b.unit) || secRank(a.name) - secRank(b.name) || coll.compare(a.name, b.name);
   const sortLists = (a, b) => byCol(colOf(a), colOf(b)) || byUnit(a.unit, b.unit);
@@ -31,6 +29,13 @@
   // The same as HTML, with the reading over the kanji (ruby) when the word has kanji.
   const jpRuby = (w) => (w.kana && KANJI.test(w.kanji || "") ? `<ruby>${esc(w.kanji)}<rt>${esc(w.kana)}</rt></ruby>` : esc(jpForm(w)));
 
+  // Listens to the vocab where it's kept, so a change from anywhere (another tab or device too) shows at once. failed: what
+  // to say when the sets can't load.
+  function watchVocab(failed) {
+    db.collection("kanji").onSnapshot(onKanji, () => {});
+    db.collection("sets").onSnapshot(onSets, () => banner(failed));
+    for (const [path, on] of [["meta/books", onBookOrder], ["meta/courses", onCourses], ["meta/views", onViews]]) db.doc(path).onSnapshot(on, () => {});
+  }
   function onCourses(snap) {
     raw.courses = dataOrNull(snap);
     const list = snap.exists ? snap.data()?.courses : null;

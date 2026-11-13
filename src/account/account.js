@@ -37,15 +37,13 @@
     $("#delAcct").innerHTML = !delAsk
       ? account ? `<button class="btn danger" type="button" id="delStart">Delete my account</button>`
         : `<div class="delrow"><button class="btn danger" type="button" id="delStart" aria-describedby="delTip">Delete local storage</button>
-          <span class="qtip" tabindex="0" role="button" aria-label="What this does"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.4a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.7v.5"/><circle cx="12" cy="17.2" r=".4" fill="currentColor"/></svg><span class="qtipbody" role="tooltip" id="delTip">This deletes all local data (sets, kanji lists, practice history and settings), refreshes the page and treats you as a new user.</span></span></div>`
+          ${qtip("delTip", "What this does", "This deletes all local data (sets, kanji lists, practice history and settings), refreshes the page and treats you as a new user.")}</div>`
       : `<p class="small">This deletes ${what}, for good. Export your vocab first if you want a copy.</p>
         <div class="tactions"><button class="btn danger" type="button" id="delYes">Delete everything</button><button class="btn" type="button" id="delNo">Cancel</button></div>
         <p class="keyerr small" id="delErr" hidden></p>`;
     if (!delAsk) {
       $("#delStart").onclick = () => { delAsk = true; renderAccount(); };
-      // A tap shows the tip on touch screens, where there's no hover.
-      const q = $("#delAcct .qtip");
-      if (q) { q.onclick = () => q.classList.toggle("open"); q.onblur = q.onmouseleave = () => q.classList.remove("open"); }
+      tipTaps($("#delAcct")); // a tap shows the tip on touch screens, where there's no hover
       return;
     }
     $("#delNo").onclick = () => { delAsk = false; renderAccount(); };
@@ -55,7 +53,7 @@
       try {
         const paths = [];
         for (const c of ["sets", "kanji", "training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
-        for (const p of [...paths, "meta/books", "meta/courses", "meta/samples"]) await db.doc(p).delete();
+        for (const p of [...paths, "meta/books", "meta/courses", "meta/views", "meta/samples"]) await db.doc(p).delete();
         try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
         // Every choice this site kept in this browser goes too (colours, picks, a practice to resume with its writing): signed in,
         // they're the account's copy. A guest's own sets and history (qcard:local:…) stay unless it's the guest being deleted.

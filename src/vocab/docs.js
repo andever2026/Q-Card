@@ -3,7 +3,9 @@
   //   sets/<id>      { collection, unit, name, tags?, words: [{ id, en, kana, kanji }] }
   //   kanji/<id>     { collection, unit, kanji }       the kanji a unit teaches, as one string
   //   meta/books     { order: [collection, …] }        the order the collections are studied in
-  //   meta/courses   { courses: [{ name, parts: [{ collection, from, to }] }] }
+  //   meta/views     { main, views: [{ name, collections: [{ name, units: [{ collection, unit }] }] }] }
+  //                  the main view's name, and other ways of grouping the same units into collections (vocab/views.js)
+  //   meta/courses   { courses: [{ name, parts: [{ collection, from, to }] }] }   what views replaced, read until views are saved
   // Vocab is grouped Collection › Unit › Set: a collection (a textbook, a course, any list of lists) has units (Ch. 3,
   // Week 1, any name), and each unit has sets; kanji lists go by unit. Documents saved before October 2026 name a book,
   // a numbered chapter and a section with an optional label: they're read as collection, unit "Ch. N" and set name "A · Label".
@@ -11,6 +13,9 @@
   const oldUnit = (v) => { const c = tidy(v, 60).replace(/^ch(apter)?\.?\s*(?=\d)/i, ""); return /^\d+$/.test(c) ? `Ch. ${+c}` : c; };
   const docCol = (d) => tidy(d.collection ?? d.book, 100);
   const docUnit = (d) => (d.unit != null ? tidy(d.unit, 60) : oldUnit(d.chapter)) || "No unit";
+  const coll = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+  // Units sort by name with numbers in order (Week 2 before Week 10).
+  const byUnit = (a, b) => coll.compare(String(a), String(b));
   const docName = (d) => tidy(d.name ?? [d.section, d.label].map((x) => tidy(x, 200)).filter(Boolean).join(" · "), 200) || "Untitled set";
   const colLabel = (b) => b || "No collection";
   // "Genki 1 › Lesson 3" and "Genki 1 › Lesson 3 › Food": the collection is named only where there's more than one (withCol).
@@ -35,11 +40,11 @@
   const dataOrNull = (snap) => (snap.exists ? snap.data() : null);
   // All four at once, for a page that doesn't keep them loaded (the AI page; the site itself listens to each, see boot).
   async function readVocab(db) {
-    const [sets, kanji, books, courses] = await Promise.all([db.collection("sets").get(), db.collection("kanji").get(), db.doc("meta/books").get(), db.doc("meta/courses").get()]);
-    return { sets: withIds(sets), kanji: withIds(kanji), books: dataOrNull(books), courses: dataOrNull(courses) };
+    const [sets, kanji, books, courses, views] = await Promise.all([db.collection("sets").get(), db.collection("kanji").get(), db.doc("meta/books").get(), db.doc("meta/courses").get(), db.doc("meta/views").get()]);
+    return { sets: withIds(sets), kanji: withIds(kanji), books: dataOrNull(books), courses: dataOrNull(courses), views: dataOrNull(views) };
   }
   // A vocab file (Export writes one, Import reads one, an AI can make one: see ai/) is those documents in one JSON object:
-  // { app: APP, version: 2, sets: [...], kanji: [...], collections: { order }, courses }.
+  // { app: APP, version: 2, sets: [...], kanji: [...], collections: { order }, views } (older files: courses instead of views).
   const APP = "jp-vocab-practice";
   // Each cleaner returns the document to store, in the current format, or null when what it's given isn't usable.
   // Files and older documents go through them, so their contents are never trusted.
@@ -56,4 +61,19 @@
     const list = Array.isArray(d) ? d : d?.courses;
     return Array.isArray(list) ? { courses: list.slice(0, 50).filter((c) => c && c.name && Array.isArray(c.parts)).map((c) => ({ name: str(c.name, 100),
       parts: c.parts.slice(0, 20).filter((x) => x && typeof x === "object").map(coursePart).filter((x) => x.from && x.to) })) } : null;
+  }
+  // Courses read as one view, "Courses", each unit in the first course that covers it. units: every unit there is, as
+  // { collection, unit }; courses: [{ name, parts }] (cleanCourses).
+  function courseView(units, courses) {
+    const used = new Set(), inPart = (u, pt) => u.collection === pt.collection && byUnit(u.unit, pt.from) >= 0 && byUnit(u.unit, pt.to) <= 0;
+    return { name: "Courses", collections: courses.map((c) => { const us = units.filter((u) => !used.has(u) && c.parts.some((pt) => inPart(u, pt))); us.forEach((u) => used.add(u)); return { name: c.name, units: us }; }) };
+  }
+  // A name in a view other than the main one may hold one line break, which shows it on two lines beside its units.
+  const viewName = (v, n) => String(v ?? "").split("\n").map((t) => tidy(t, n)).filter(Boolean).slice(0, 2).join("\n").slice(0, n);
+  function cleanViews(d) {
+    if (!d || typeof d !== "object" || !Array.isArray(d.views)) return null;
+    const unit = (u) => ({ collection: tidy(u.collection, 100), unit: tidy(u.unit, 60) });
+    return { main: tidy(d.main, 60) || "Books", views: d.views.slice(0, 20).filter((v) => v && typeof v === "object" && Array.isArray(v.collections)).map((v) => ({ name: viewName(v.name, 60) || "View",
+      collections: v.collections.slice(0, 100).filter((c) => c && typeof c === "object").map((c) => ({ name: viewName(c.name, 100) || "Untitled",
+        units: (Array.isArray(c.units) ? c.units : []).slice(0, 1000).filter((u) => u && typeof u === "object" && u.unit).map(unit) })) })) };
   }

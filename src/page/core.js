@@ -20,7 +20,7 @@
   let db = null, user = null, sample = null, uid = null, canWrite = false, owner = false;
   // Export / import works from the documents exactly as stored, not the tidied copies the page renders from.
   let downloads = null;
-  const raw = { sets: [], kanji: [], books: null, courses: null };
+  const raw = { sets: [], kanji: [], books: null, courses: null, views: null };
   const S = {
     sets: [], loaded: false,
     selected: new Set(store.get("selected", [])),
@@ -29,8 +29,8 @@
     // (Older pages also stored the books shown, in pickBooks or pickBook, and bare chapter numbers, read as chapters of the first book.)
     pick: { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", null) ?? [store.get("pickCh", "all")].filter((c) => c !== "all")) },
     tpick: { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) },
-    groupBy: store.get("groupBy", "book"), // unit rows by collection ("book") or "course"
-    courses: [],                           // meta/courses: [{name, parts: [{collection, from, to}]}], in course order; a line break in a name breaks its label
+    groupBy: store.get("groupBy", "main"), // the view the unit rows follow, by name ("main" for the main view; "book" and "course" from before views)
+    courses: [],                           // meta/courses, from before views: [{name, parts: [{collection, from, to}]}], read as the view "Courses"
     oldBooks: store.get("pickBooks", null) ?? (store.get("pickBook", null) != null ? [store.get("pickBook", null)] : null),
     tableBook: store.get("tableBook", null), // book shown in the vocab table
     pickTags: new Set(store.get("pickTags", null) ?? oldKindPicks()), // tags picked in the Filter row (lowercase); none = every set
@@ -54,8 +54,8 @@
     kEdit: null, kEditUnit: "", kEditCol: "",  // kanji list whose collection and unit are being edited
     formCol: null,                 // collection last filled into the new set / new kanji forms
     colOrder: [],                  // saved book order (meta/books); books not in it come after, by name
-    orderEdit: null,               // the collection order being edited in the vocab table, or null
-    courseEdit: null,              // the courses being edited in the vocab table (vocab/courses.js), or null
+    colEdit: null,                 // the views and collections being edited in the vocab table (vocab/collections.js), or null
+    viewDoc: null,                 // meta/views as read (vocab/views.js), or null before views are saved
   };
 
   // ---------- views ----------

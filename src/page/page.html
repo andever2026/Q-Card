@@ -77,15 +77,15 @@ colours.apply(...colours.saved()); // before anything is drawn
   </header>
   <div class="banner" id="banner" hidden></div>
   <div class="gate" id="gate" role="status">Loading…</div>
+  <dialog id="askDlg" aria-labelledby="askTitle"><form method="dialog" class="shareask"><h2 id="askTitle"></h2><div class="asktext" id="askText"></div>
+    <div class="tactions shareact"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes" id="askYes"></button></div></form></dialog>
 
   <!-- SETUP -->
   <section id="setup" class="wrap">
     <div class="panel">
       <div class="head"><h3>Sets</h3>
         <div class="headr"><button class="link" id="toTable">vocab table</button>
-          <div class="seg mini" id="groupSeg" role="group" aria-label="Unit rows by" hidden>
-            <button type="button" data-group="book">Collection</button><button type="button" data-group="course">Course</button>
-          </div>
+          <div class="seg mini viewsw" id="groupSeg" role="group" aria-label="Unit rows by" hidden></div>
         </div>
       </div>
       <div class="pbar" id="pickBar" hidden>
@@ -303,7 +303,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div class="setpane" data-set-pane="data"><h2>Data</h2>
           <section><h3>Vocabulary</h3><p class="muted" id="setStats"></p></section>
           <section id="portPanel" hidden><h3>Export / import</h3>
-            <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and courses, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
+            <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and views, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
             <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
 <!--#if public-->
             <p class="muted small" id="aiHelp">Have a vocab list on paper, in a photo or in a PDF? <a href="ai/" target="_blank" rel="noopener">Let your AI make the file</a>.</p>
@@ -356,20 +356,21 @@ colours.apply(...colours.saved()); // before anything is drawn
     <div class="qbar"><button class="ghost" id="backBtn">← Back to practice</button></div>
     <div class="banner leaveask" id="leaveAsk" hidden></div>
     <div class="panel">
-      <div class="head"><h2>Vocab table</h2>
-        <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="bookOrderBtn" hidden>Change collection order</button><button class="link" type="button" id="courseBtn" hidden>Edit courses</button>
-          <div class="seg mini" id="tGroupSeg" role="group" aria-label="Unit rows by" hidden>
-            <button type="button" data-group="book">Collection</button><button type="button" data-group="course">Course</button>
+      <div class="ttop" id="tTop">
+        <div class="head"><h2>Vocab table</h2>
+          <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="editColBtn" hidden>Edit collections</button>
+            <span class="colbtns" id="colBtns" hidden><span class="editerr" id="colErr" role="status"></span><span class="muted small" id="colState"></span><button class="btn" type="button" id="colDiscard">Discard</button><button class="btn primary" type="button" id="colSave" disabled>Save</button></span>
+            <div class="seg mini viewsw" id="tGroupSeg" role="group" aria-label="Unit rows by" hidden></div>
           </div>
         </div>
+        <div class="tbar">
+          <input type="search" class="tsearch" id="tSearch" placeholder="Search English, kana or kanji" aria-label="Search the vocab table in every unit">
+          <div class="viewed" id="viewEd" hidden></div>
+          <div class="coled" id="colEd" hidden></div>
+          <div class="pbar tpbar" id="tPickBar"><div class="pchs" id="tChs" role="group" aria-label="Units"></div></div>
+        </div>
       </div>
-      <div class="tbar">
-        <input type="search" class="tsearch" id="tSearch" placeholder="Search English, kana or kanji" aria-label="Search the vocab table in every unit">
-        <div class="bookorder setedit" id="bookOrderEd" hidden></div>
-        <div class="courseed setedit" id="courseEd" hidden></div>
-        <div class="pbar tpbar" id="tPickBar"><div class="pchs" id="tChs" role="group" aria-label="Units"></div></div>
-        <div class="tsum"><span class="muted small" id="tSummary"></span><button class="link" id="tOpenAll" type="button"></button></div>
-      </div>
+      <div class="tsum" id="tSum"><span class="muted small" id="tSummary"></span><button class="link" id="tOpenAll" type="button"></button></div>
       <div id="setTables"></div>
       <form class="newset" id="newSetForm" hidden>
         <label>Collection<input id="nsCol" list="colList" placeholder="Japanese 1" required></label>
@@ -407,6 +408,8 @@ colours.apply(...colours.saved()); // before anything is drawn
 (() => {
   //#include page/dom.js
   //#include page/dropdown.js
+  //#include page/drag.js
+  //#include page/ask.js
   //#include page/core.js
   //#include page/settings.js
   //#include page/nav.js
@@ -431,7 +434,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   //#include account/choices.js
 
   //#include vocab/table.js
-  //#include vocab/courses.js
+  //#include vocab/views.js
+  //#include vocab/collections.js
 
   //#include import-export/import.js
   //#include import-export/export.js
