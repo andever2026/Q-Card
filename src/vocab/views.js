@@ -32,10 +32,10 @@
     const rest = keys.filter((k) => !used.has(k));
     return [...rows.filter((r) => r.keys.length), ...(rest.length ? [{ name: "Other", keys: rest }] : [])];
   }
-  // In a row of another view with units from more than one collection, each run of one collection's units is led by
-  // that collection's name, so two Ch. 1s can be told apart. ids are in order; colOf(id) is the collection of one.
-  const fromTags = (ids, colOf) => { const many = new Set(ids.map(colOf)).size > 1;
-    return ids.map((u, i) => (many && (!i || colOf(ids[i - 1]) !== colOf(u)) ? `<span class="ufrom">${esc(colLabel(colOf(u)))}</span>` : "")); };
+  // Where a row of another view has two units of one name (Ch. 1 of two books), each names its collection. ids are in
+  // order; colOf(id) and nameOf(id) are a unit's collection and name. Gives what goes inside each one's chip.
+  const twinTags = (ids, colOf, nameOf) => { const low = (u) => nameOf(u).toLowerCase(), names = ids.map(low);
+    return ids.map((u) => (names.filter((x) => x === low(u)).length > 1 ? `<span class="n">${esc(colLabel(colOf(u)))}</span>` : "")); };
   // The switch between views, on the practice page and in the vocab table: one button per view, or a dropdown once the
   // buttons would take more than half the width of the header they're in. Hidden while there's only the main view.
   function renderViewSwitch(box) {

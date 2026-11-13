@@ -1449,7 +1449,6 @@ if (entry.length > 1) {
   const tRows = (p = cp) => p.$$eval("#tChs .pchrow", (rs) => rs.map((r) => `${r.querySelector(".chbook")?.textContent ?? ""}: ${[...r.querySelectorAll(".chip:not([data-k=all])")].map((c) => c.textContent).join(",")}`).join(" | "));
   const switchOf = (p = cp) => p.$$eval("#tGroupSeg [data-view]", (bs) => bs.map((b) => b.textContent + (b.getAttribute("aria-pressed") === "true" ? "*" : "")).join(","));
   const edRows = () => cp.$$eval("#colEd .colrow", (rs) => rs.map((r) => { const n = r.querySelector(".colname"); return `${n.value ?? n.textContent}: ${[...r.querySelectorAll(".chip.unit")].map((c) => c.textContent).join(",")}`; }).join(" | "));
-  const froms = (row) => cp.$$eval(`#colEd .colrow:nth-child(${row + 1}) .ufrom`, (s) => s.map((x) => x.textContent).join(","));
   const row = (i) => cp.locator("#colEd .colrow").nth(i);
   const unit = (i, name) => row(i).locator(".chip.unit", { hasText: new RegExp(`^${name.replace(".", "\\.")}$`) });
   const drag = async (from, to, { hold } = {}) => {
@@ -1466,8 +1465,7 @@ if (entry.length > 1) {
 
   await cp.click('#sideNav [data-go="table"]'); await cp.waitForTimeout(300);
   ok((await switchOf()) === "Books,Courses*" && (await tRows()) === `Year 1: ${chs(1, 8)} | Year 2: ${chs(9, 12)},${chs(1, 4)} | Book B\nExtras: ${chs(9, 11)} | Other: ${chs(5, 8)}`
-    && (await cp.$$eval("#tChs .pchrow:nth-child(2) .ufrom", (s) => s.map((x) => x.textContent).join(","))) === "Book A,Book B",
-    "collections: older courses show as the view Courses, and a row with two collections' units names each", await tRows());
+    && !(await cp.$("#tChs .chip .n")), "collections: older courses show as the view Courses (no collection names on the units while their names differ)", await tRows());
   await cp.click("#editColBtn"); await cp.waitForTimeout(200);
   ok(await vis(cp, "#colBtns") && !(await vis(cp, "#editColBtn")) && !(await vis(cp, "#tGroupSeg")) && !(await vis(cp, "#tPickBar")) && await cp.$eval("#tSearch", (i) => i.disabled) && await cp.$eval("#colSave", (b) => b.disabled)
     && await cp.$eval("#setTables", (e) => e.inert && e.classList.contains("tlocked") && e.dataset.lock === "Editing collections") && await cp.$eval("#tTop", (e) => e.classList.contains("editing"))
@@ -1510,10 +1508,10 @@ if (entry.length > 1) {
   // Another view: units only regroup there, and every unit is somewhere ("Other" holds the rest).
   await cp.click('#viewEd [data-view="0"]'); await cp.waitForTimeout(150);
   ok((await edRows()) === `Year 1: ${chs(1, 8)} | Year 2: ${chs(9, 11)},${chs(2, 4)},Ch. 12 | Book B\nExtras: ${chs(9, 11)} | Other: ${chs(5, 8)}`
-    && (await froms(1)) === "Book A,Book B" && (await froms(2)) === "Book B,Book C" && await vis(cp, "#viewEd [data-vmain]"),
-    "collections: another view follows the moves and the merge, naming the collection of each run of units", await edRows());
+    && !(await cp.$("#colEd .chip .n")) && await vis(cp, "#viewEd [data-vmain]"), "collections: another view follows the moves and the merge", await edRows());
   await drag(unit(3, "Ch. 5"), drop(0));
-  ok(!(await asking()) && (await edRows()).startsWith(`Year 1: ${chs(1, 8)},Ch. 5 |`) && (await edRows()).endsWith(`Other: ${chs(6, 8)}`), "collections: in another view a unit only regroups, even beside one of the same name", await edRows());
+  ok(!(await asking()) && (await edRows()).startsWith(`Year 1: ${chs(1, 4)},Ch. 5Book A,${chs(6, 8)},Ch. 5Book B |`) && (await edRows()).endsWith(`Other: ${chs(6, 8)}`),
+    "collections: in another view a unit only regroups, even beside one of the same name (then each names its collection)", await edRows());
   await cp.fill("#viewEd [data-vname]", "Terms");
   ok((await text(cp, '#viewEd [data-view="0"]')) === "Terms", "collections: a view can be renamed");
   await cp.click("#viewEd [data-vadd]"); await cp.waitForTimeout(100);
@@ -1536,7 +1534,7 @@ if (entry.length > 1) {
   ok(views?.main === "Books" && views.views.map((v) => v.name).join() === "Terms,Levels" && views.views[1].collections[0].name === "Easy\nwords"
     && JSON.stringify(views.views[0].collections[0].units.slice(-1)) === '[{"collection":"Book B","unit":"Ch. 5"}]' && views.views[0].collections[1].units.some((u) => u.collection === "Book B" && u.unit === "Ch. 12"),
     "collections: the views are stored, their units where the sets now are", JSON.stringify(views?.views?.[0]?.collections?.[1]));
-  ok((await switchOf()) === "Books,Terms*,Levels" && (await tRows()).startsWith(`Year 1: ${chs(1, 8)},Ch. 5 | Year 2: `), "collections: the unit rows stay on the view they showed, under its new name", await switchOf());
+  ok((await switchOf()) === "Books,Terms*,Levels" && (await tRows()).startsWith(`Year 1: ${chs(1, 4)},Ch. 5Book A,${chs(6, 8)},Ch. 5Book B | Year 2: `), "collections: the unit rows stay on the view they showed, under its new name", await switchOf());
   // Another view becomes the main one: the sets move to its collections, and the old main view stays as a view.
   await cp.click("#editColBtn"); await cp.click('#viewEd [data-view="0"]'); await cp.click("#viewEd [data-vmain]"); await cp.waitForTimeout(100);
   ok(await asking() && (await text(cp, "#askTitle")) === "Make “Terms” the main view?" && /become one unit.*Ch\. 5 in Year 1/.test(await text(cp, "#askText")) && /3 units in no collection of Terms go into a collection called Other/.test(await text(cp, "#askText")),

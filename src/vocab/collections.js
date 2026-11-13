@@ -45,8 +45,8 @@
     const sorted = (ids) => ids.slice().sort((a, b) => (main ? 0 : (at[a] ?? 1e9) - (at[b] ?? 1e9)) || byUnit(e.units[a].name, e.units[b].name));
     const inOther = main ? [] : Object.keys(e.units).filter((u) => !list.some((c) => c.units.includes(u)));
     const chips = (ids, where) => {
-      const list = sorted(ids), colName = (u) => e.main[at[u]]?.name ?? "", tags = main ? [] : fromTags(list, colName);
-      return list.map((u, i) => `${tags[i] || ""}<button type="button" class="chip unit" data-u="${esc(u)}" aria-label="${esc(e.units[u].name)}${main ? "" : ` (${esc(colName(u))})`} in ${esc(where)}. Drag it, or press the up or down arrow to move it to the collection above or below.">${esc(e.units[u].name)}</button>`).join("")
+      const list = sorted(ids), colName = (u) => e.main[at[u]]?.name ?? "", tags = main ? [] : twinTags(list, colName, (u) => e.units[u].name);
+      return list.map((u, i) => `<button type="button" class="chip unit" data-u="${esc(u)}" aria-label="${esc(e.units[u].name)}${main ? "" : ` (${esc(colName(u))})`} in ${esc(where)}. Drag it, or press the up or down arrow to move it to the collection above or below.">${esc(e.units[u].name)}${tags[i] || ""}</button>`).join("")
         || `<span class="muted small">Drag units here</span>`;
     };
     cEd.innerHTML = list.map((c, i) => `<div class="colrow" data-col="${c.id}">

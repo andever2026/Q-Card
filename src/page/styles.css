@@ -457,8 +457,6 @@ textarea.colname:focus { border-color: var(--ai); background: var(--surface); ou
 .colrow.dropbelow { box-shadow: 0 3px 0 var(--ai); }
 .chip.unit { cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: transform .3s ease, box-shadow .3s ease; }
 .chip.unit.lifting { transform: scale(1.08); box-shadow: 0 6px 16px rgb(0 0 0 / .18); transition-duration: .38s; } /* a finger holding it: it grows as it's picked up */
-.ufrom { align-self: center; font-size: .75rem; color: var(--muted); padding-left: 4px; }
-.ufrom:first-child { padding-left: 0; }
 .dragsrc { opacity: .35; }
 .dragghost { position: fixed; z-index: 60; margin: 0; pointer-events: none; transform-origin: center; box-shadow: 0 10px 24px rgb(0 0 0 / .22); transition: none; }
 body.dragging { cursor: grabbing; -webkit-user-select: none; user-select: none; }

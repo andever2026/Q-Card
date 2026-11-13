@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-nbbgRsx9BCRwNRNIMVkhZmcTUtD8dHYkVDZxm/uuyC0=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-pkh12FhnJhWlvb2L1w/flsagtRaD3KDEL858qLK9GQY=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -542,8 +542,6 @@ textarea.colname:focus { border-color: var(--ai); background: var(--surface); ou
 .colrow.dropbelow { box-shadow: 0 3px 0 var(--ai); }
 .chip.unit { cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: transform .3s ease, box-shadow .3s ease; }
 .chip.unit.lifting { transform: scale(1.08); box-shadow: 0 6px 16px rgb(0 0 0 / .18); transition-duration: .38s; } /* a finger holding it: it grows as it's picked up */
-.ufrom { align-self: center; font-size: .75rem; color: var(--muted); padding-left: 4px; }
-.ufrom:first-child { padding-left: 0; }
 .dragsrc { opacity: .35; }
 .dragghost { position: fixed; z-index: 60; margin: 0; pointer-events: none; transform-origin: center; box-shadow: 0 10px 24px rgb(0 0 0 / .22); transition: none; }
 body.dragging { cursor: grabbing; -webkit-user-select: none; user-select: none; }
@@ -1837,8 +1835,8 @@ colours.apply(...colours.saved()); // before anything is drawn
         o.bar.classList.toggle("labeled", labeled);
         o.rows.innerHTML = groups.map((g, gi) => {
           const sg = stateOf(g);
-          const tags = curView() ? fromTags(g.keys, (k) => k.split("\u0001")[0]) : [];
-          const chips = g.keys.map((k, i) => `${tags[i] || ""}<button class="chip" type="button" data-k="${i}" aria-pressed="${sg === "some" && p.has(k)}">${esc(keyUnit(k))}${o.dot(k)}</button>`).join("");
+          const tags = curView() ? twinTags(g.keys, (k) => k.split("\u0001")[0], keyUnit) : [];
+          const chips = g.keys.map((k, i) => `<button class="chip" type="button" data-k="${i}" aria-pressed="${sg === "some" && p.has(k)}">${esc(keyUnit(k))}${tags[i] || ""}${o.dot(k)}</button>`).join("");
           return `<div class="pchrow" data-g="${gi}">${labeled ? `<span class="chbook muted small${g.name.includes("\n") ? " two" : ""}">${esc(g.name)}</span>` : ""}<div class="chips"><button class="chip" type="button" data-k="all" aria-pressed="${sg === "all"}">All</button>${chips}</div></div>`;
         }).join("");
         // The label column is as wide as the widest name in any view, so switching views doesn't shift the chips.
@@ -3167,10 +3165,10 @@ colours.apply(...colours.saved()); // before anything is drawn
     const rest = keys.filter((k) => !used.has(k));
     return [...rows.filter((r) => r.keys.length), ...(rest.length ? [{ name: "Other", keys: rest }] : [])];
   }
-  // In a row of another view with units from more than one collection, each run of one collection's units is led by
-  // that collection's name, so two Ch. 1s can be told apart. ids are in order; colOf(id) is the collection of one.
-  const fromTags = (ids, colOf) => { const many = new Set(ids.map(colOf)).size > 1;
-    return ids.map((u, i) => (many && (!i || colOf(ids[i - 1]) !== colOf(u)) ? `<span class="ufrom">${esc(colLabel(colOf(u)))}</span>` : "")); };
+  // Where a row of another view has two units of one name (Ch. 1 of two books), each names its collection. ids are in
+  // order; colOf(id) and nameOf(id) are a unit's collection and name. Gives what goes inside each one's chip.
+  const twinTags = (ids, colOf, nameOf) => { const low = (u) => nameOf(u).toLowerCase(), names = ids.map(low);
+    return ids.map((u) => (names.filter((x) => x === low(u)).length > 1 ? `<span class="n">${esc(colLabel(colOf(u)))}</span>` : "")); };
   // The switch between views, on the practice page and in the vocab table: one button per view, or a dropdown once the
   // buttons would take more than half the width of the header they're in. Hidden while there's only the main view.
   function renderViewSwitch(box) {
@@ -3236,8 +3234,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     const sorted = (ids) => ids.slice().sort((a, b) => (main ? 0 : (at[a] ?? 1e9) - (at[b] ?? 1e9)) || byUnit(e.units[a].name, e.units[b].name));
     const inOther = main ? [] : Object.keys(e.units).filter((u) => !list.some((c) => c.units.includes(u)));
     const chips = (ids, where) => {
-      const list = sorted(ids), colName = (u) => e.main[at[u]]?.name ?? "", tags = main ? [] : fromTags(list, colName);
-      return list.map((u, i) => `${tags[i] || ""}<button type="button" class="chip unit" data-u="${esc(u)}" aria-label="${esc(e.units[u].name)}${main ? "" : ` (${esc(colName(u))})`} in ${esc(where)}. Drag it, or press the up or down arrow to move it to the collection above or below.">${esc(e.units[u].name)}</button>`).join("")
+      const list = sorted(ids), colName = (u) => e.main[at[u]]?.name ?? "", tags = main ? [] : twinTags(list, colName, (u) => e.units[u].name);
+      return list.map((u, i) => `<button type="button" class="chip unit" data-u="${esc(u)}" aria-label="${esc(e.units[u].name)}${main ? "" : ` (${esc(colName(u))})`} in ${esc(where)}. Drag it, or press the up or down arrow to move it to the collection above or below.">${esc(e.units[u].name)}${tags[i] || ""}</button>`).join("")
         || `<span class="muted small">Drag units here</span>`;
     };
     cEd.innerHTML = list.map((c, i) => `<div class="colrow" data-col="${c.id}">

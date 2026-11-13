@@ -80,8 +80,8 @@
         o.bar.classList.toggle("labeled", labeled);
         o.rows.innerHTML = groups.map((g, gi) => {
           const sg = stateOf(g);
-          const tags = curView() ? fromTags(g.keys, (k) => k.split("\u0001")[0]) : [];
-          const chips = g.keys.map((k, i) => `${tags[i] || ""}<button class="chip" type="button" data-k="${i}" aria-pressed="${sg === "some" && p.has(k)}">${esc(keyUnit(k))}${o.dot(k)}</button>`).join("");
+          const tags = curView() ? twinTags(g.keys, (k) => k.split("\u0001")[0], keyUnit) : [];
+          const chips = g.keys.map((k, i) => `<button class="chip" type="button" data-k="${i}" aria-pressed="${sg === "some" && p.has(k)}">${esc(keyUnit(k))}${tags[i] || ""}${o.dot(k)}</button>`).join("");
           return `<div class="pchrow" data-g="${gi}">${labeled ? `<span class="chbook muted small${g.name.includes("\n") ? " two" : ""}">${esc(g.name)}</span>` : ""}<div class="chips"><button class="chip" type="button" data-k="all" aria-pressed="${sg === "all"}">All</button>${chips}</div></div>`;
         }).join("");
         // The label column is as wide as the widest name in any view, so switching views doesn't shift the chips.
