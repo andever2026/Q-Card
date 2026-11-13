@@ -1,16 +1,18 @@
   // ---------- history ----------
   S.history = []; S.hOpen = new Set(); S.hConfirm = null; S.tough = [];
-  // Test history is opt-in: data/users/<id>/settings {history: true|false}; missing = not asked yet.
+  // The choice: data/users/<id>/settings {history: true|false}. Missing means on where history stays in this browser
+  // (a guest, a visitor by link: nothing goes anywhere), and not asked yet for an account, whose history is on the server.
   S.histOn = null; S.histReady = false; S.histBlocked = false;
   // The owner's history lives in the database (the morning check-in reads it). Everyone else's stays in their own
   // browser (S.local): only that device has it, and clearing site data or a private window loses it.
   S.local = false;
   const LOCAL_MAX = 300; // sessions kept in the browser; the oldest go first
   // History changed, or the choice to keep it: every place that shows it.
-  function histChanged() { renderRecent(); renderHistSet(); if (!$("#history").hidden) renderHistory(); }
+  function histChanged() { renderRecent(); renderHistSet(); renderHistPort(); if (!$("#history").hidden) renderHistory(); }
+  const inBrowser = () => S.local || uid === "local";
+  const histChoice = (v) => (typeof v === "boolean" ? v : inBrowser() ? true : null);
   function loadLocal() {
-    const v = store.get("histOn", null);
-    S.histOn = typeof v === "boolean" ? v : null; S.histReady = true;
+    S.histOn = histChoice(store.get("histOn", null)); S.histReady = true;
     S.history = (store.get("hist", []) || []).filter((t) => t && /^t\d/.test(t.id)).sort((a, b) => String(b.finishedAt || "").localeCompare(String(a.finishedAt || "")));
     histChanged();
   }
@@ -49,8 +51,7 @@
   function watchHistory() {
     if (!db || !uid) return;
     settingsDoc().onSnapshot((snap) => {
-      const v = snap.exists ? snap.data().history : undefined;
-      S.histOn = typeof v === "boolean" ? v : null; S.histReady = true;
+      S.histOn = histChoice(snap.exists ? snap.data().history : undefined); S.histReady = true;
       histChanged();
     }, () => {});
     db.collection("data/users/" + uid).orderBy("finishedAt", "desc").limit(1000).onSnapshot((snap) => {
@@ -59,7 +60,7 @@
     }, () => {});
   }
   const histBlockedText = () => `${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so practice history is off." : "Your access to this page doesn't allow saving practice history."} You can still practice as much as you like.`;
-  const histWhereText = () => S.local || uid === "local"
+  const histWhereText = () => inBrowser()
     ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it in History at any time."
     : "Only you and the site maintainers can see this data, and you can delete it from the server at any time.";
   function renderRecent() {
@@ -78,7 +79,7 @@
          <div class="tactions"><button class="btn primary" data-hist="on">Turn on data collection</button><button class="btn" data-hist="off">No thanks</button></div>`
       : on === false
       ? `<p class="muted">Data collection is off, so finished sessions aren't saved.</p>${earlier}<div class="tactions"><button class="btn" data-hist="on">Turn on data collection</button></div>`
-      : `<p class="muted">Data collection is on. Finish a practice session and it shows up here.</p>`;
+      : `<p class="muted">${inBrowser() ? "Practice history is on and saved only in this browser." : "Data collection is on."} Finish a practice session and it shows up here.</p>`;
     ask.querySelectorAll("[data-hist]").forEach((b) => (b.onclick = async () => { b.disabled = true; if (await setHistory(b.dataset.hist === "on")) renderRecent(); else b.disabled = false; }));
     $("#histList").hidden = on !== true || !h.length;
     $("#histList").innerHTML = on !== true ? "" : h.slice(0, 5).map((t) => {

@@ -15,7 +15,7 @@
     if (!sample) banner("Handwriting checking needs Claude, which isn't available in this view. Open the page in claude.ai while signed in.");
     if (!db) { gate("Sign in to claude.ai to use this page", "Already signed in? Reload the page."); return; }
     document.body.classList.add("ready");
-    cl.use("downloads").then((d) => { downloads = d; renderPort(); });
+    cl.use("downloads").then((d) => { downloads = d; renderPort(); renderHistPort(); });
     watchVocab("The vocab sets couldn't load. Reload the page to try again.");
     // Visitors by link can't write to the database, so their history stays in their own browser.
     if (owner) { watchHistory(); syncPrefs(); } else if (uid) watchLocal();

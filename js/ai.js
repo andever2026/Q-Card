@@ -105,6 +105,11 @@
   //   changed()        optional: called when writing starts and when it stops
   //   done()           optional: called after an import that wrote everything
   // importer.busy is true while it's writing.
+  // The top of an import preview (the file's name and when it was exported) and its line about entries it skips; the
+  // history import (history-file.js) draws its preview with them too.
+  const previewHead = (p) => `<div><b>${esc(p.name)}</b><span class="muted small">${p.exportedAt && !isNaN(new Date(p.exportedAt))
+    ? ` · exported ${esc(new Date(p.exportedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }))}` : ""}</span></div>`;
+  const skippedLine = (n) => (n ? `<li>${n} ${n === 1 ? "entry isn't" : "entries aren't"} valid and will be skipped</li>` : "");
   function makeImporter({ button, input, box, say, stored, write, where, hint = "", changed = () => {}, done = () => {} }) {
     const me = { busy: false };
     let plan = null;
@@ -153,10 +158,9 @@
       const names = (st) => { const xs = [...p.sets, ...p.kanji].filter((x) => x.status === st).map((x) => x.title);
         return xs.length ? `<div class="names"><b>${st === "new" ? "New" : "Changed"}:</b> ${esc(xs.slice(0, 12).join(", "))}${xs.length > 12 ? `, and ${xs.length - 12} more` : ""}</div>` : ""; };
       const todo = p.sets.length - count(p.sets, "same") + p.kanji.length - count(p.kanji, "same") + [p.books, p.courses, p.views].filter((m) => m?.changed).length;
-      const when = p.exportedAt && !isNaN(new Date(p.exportedAt)) ? ` · exported ${new Date(p.exportedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : "";
-      box.innerHTML = `<div><b>${esc(p.name)}</b><span class="muted small">${esc(when)}</span></div>
+      box.innerHTML = `${previewHead(p)}
       <ul class="small"><li>${line(p.sets, "Vocab sets")}</li><li>${line(p.kanji, "Kanji lists")}</li><li>${metaLine(p.books, "Collection order")}</li><li>${p.courses && !p.views ? metaLine(p.courses, "Courses") : metaLine(p.views, "Views")}</li>
-      ${p.skipped ? `<li>${p.skipped} ${p.skipped === 1 ? "entry isn't" : "entries aren't"} valid and will be skipped</li>` : ""}</ul>
+      ${skippedLine(p.skipped)}</ul>
       ${names("new")}${names("changed")}
       ${todo && where ? `<div class="muted small" data-where>${esc(where())}</div>` : ""}
       <div class="tactions">${todo ? `<button class="btn primary" type="button" id="importGo">Import ${todo} ${todo === 1 ? "change" : "changes"}</button><button class="link" type="button" id="importCancel">Cancel</button>`
@@ -193,6 +197,7 @@
       let file = null;
       try { file = JSON.parse(await f.text()); } catch {}
       if (!file) return say("That file couldn't be read. Pick a .json file made for Japanese Vocab Practice.");
+      if (file?.app === APP && file.kind === "history") return say("This is a practice history file. Import it in Settings → Practice history.");
       if (typeof file !== "object" || file.app !== APP || !Array.isArray(file.sets)) return say("This isn't a Japanese Vocab Practice file." + (hint && " " + hint));
       try { plan = planImport(file, f.name, await stored()); }
       catch { return say("Your vocab couldn't be read just now, so the file can't be compared with it. Reload the page and try again."); }

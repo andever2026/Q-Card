@@ -525,11 +525,11 @@ await lp.screenshot({ path: join(out, "9-settings.png") });
 await settings(lp, "account"); await lp.click("#delStart"); await settings(lp, "look"); await settings(lp, "account");
 ok((await text(lp, "#delStart")) === "Delete local storage", "settings: a Delete left waiting for its confirmation is dropped on leaving the tab");
 await settings(lp, "history");
-ok(/^Off, so finished practice sessions aren't saved/.test(await text(lp, "#histSetInfo")) && /saved only in this browser/.test(await text(lp, "#histSetWhere")) && (await text(lp, "#histSetToggle")) === "Turn on" && !(await vis(lp, "#histSetAll")), "settings (guest): Practice history says it's off and where it would be kept", await text(lp, "#histSetInfo"));
+ok(/^On\./.test(await text(lp, "#histSetInfo")) && /saved only in this browser/.test(await text(lp, "#histSetWhere")) && (await text(lp, "#histSetToggle")) === "Turn off" && !(await vis(lp, "#histSetAll")), "settings (guest): Practice history is on without asking, and says where it's kept", await text(lp, "#histSetInfo"));
 await lp.click("#histSetToggle"); await lp.waitForTimeout(200);
-ok(/^On\./.test(await text(lp, "#histSetInfo")) && (await text(lp, "#histSetToggle")) === "Turn off" && await lp.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:data/users/local/settings") || "null")?.history) === true, "settings: Practice history can be turned on there", await text(lp, "#histSetInfo"));
+ok(/^Off, so finished practice sessions aren't saved/.test(await text(lp, "#histSetInfo")) && (await text(lp, "#histSetToggle")) === "Turn on" && await lp.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:data/users/local/settings") || "null")?.history) === false, "settings: a guest can turn Practice history off there", await text(lp, "#histSetInfo"));
 await lp.click("#histSetToggle"); await lp.waitForTimeout(200);
-ok(/^Off/.test(await text(lp, "#histSetInfo")) && await lp.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:data/users/local/settings") || "null")?.history) === false, "settings: and off again");
+ok(/^On/.test(await text(lp, "#histSetInfo")) && await lp.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:data/users/local/settings") || "null")?.history) === true, "settings: and on again");
 await lp.evaluate(() => localStorage.removeItem("qcard:local:data/users/local/settings")); await lp.reload(); await lp.waitForTimeout(500); // as before the choice was made
 
 ok(await vis(lp, '[data-set="samples-greetings"]'), "guest: starts with the sample sets");
@@ -546,12 +546,35 @@ await lp.waitForTimeout(300); await lp.click("#importGo"); await lp.waitForTimeo
 let ls = await lp.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("qcard:local:")));
 ok(ls.includes("qcard:local:sets/sample-ch1-a") && ls.includes("qcard:local:meta/books"), "local: imported sets saved in localStorage", ls.join(", "));
 ok(Object.keys(await fsData(lp)).length === 0, "local: nothing written to the database");
-ok(/saved only in this browser/.test(await text(lp, "#histAsk")) && !/from the server/.test(await text(lp, "#histAsk")), "local: the history question says it stays in this browser");
-await lp.click('#histAsk [data-hist="on"]'); await lp.waitForTimeout(200);
+ok(/saved only in this browser/.test(await text(lp, "#histAsk")) && !(await lp.$("#histAsk [data-hist]")) && await vis(lp, "#histOff"), "local: practice history is on for a guest without a question, kept in this browser", await text(lp, "#histAsk"));
 await lp.click('[data-set="sample-ch1-b"]'); await lp.click("#dir-je"); await lp.click("#startBtn"); await lp.waitForTimeout(300);
 for (let i = 0; i < 10 && await vis(lp, "#quiz"); i++) { await scribble(lp); await lp.click("#checkBtn"); await lp.waitForTimeout(150); await lp.click("#selfGot"); await lp.waitForTimeout(1400); }
 ls = await lp.evaluate(() => Object.keys(localStorage).filter((k) => /^qcard:local:data\/users\/local\/t\d/.test(k)));
 ok(ls.length === 1, "local: practice history saved in localStorage", String(ls.length));
+// Settings → Practice history: export the history, then import a file that has that session, two new ones and a broken one
+await settings(lp, "history");
+{ const [hdl] = await Promise.all([lp.waitForEvent("download"), lp.click("#histExport")]);
+  const hf = JSON.parse(readFileSync(await hdl.path(), "utf8")), s0 = hf.sessions?.[0];
+  ok(/^japanese-vocab-history-.*\.json$/.test(hdl.suggestedFilename()) && hf.kind === "history" && hf.sessions.length === 1 && /^t\d+$/.test(s0.id) && s0.words?.length > 0 && s0.sets?.length === 1,
+    "history export: one file with the session and its words", hdl.suggestedFilename());
+  const fresh = (i) => ({ ...s0, id: "t" + (1700000000000 + i), finishedAt: new Date(Date.UTC(2025, 5, 1 + i)).toISOString() });
+  const hfile = join(out, "history-import.json"), pickHist = async (f) => { const [ch] = await Promise.all([lp.waitForEvent("filechooser"), lp.click("#histImport")]); await ch.setFiles(f); await lp.waitForTimeout(200); };
+  writeFileSync(hfile, JSON.stringify({ ...hf, sessions: [s0, fresh(1), fresh(2), { id: "nope", words: [] }] }));
+  await pickHist(hfile);
+  const prev = await text(lp, "#histImportPreview");
+  ok(/2 new sessions to add/.test(prev) && /1 session already here/.test(prev) && /1 entry isn't valid/.test(prev) && (await text(lp, "#histImportGo")) === "Add 2 sessions", "history import: the preview counts new sessions, ones already here and broken ones", prev);
+  await lp.screenshot({ path: join(out, "9-history-import.png") });
+  await lp.click("#histImportGo"); await lp.waitForTimeout(300);
+  ls = await lp.evaluate(() => Object.keys(localStorage).filter((k) => /^qcard:local:data\/users\/local\/t\d/.test(k)));
+  ok(ls.length === 3 && /Added 2 sessions/.test(await text(lp, "#histPortMsg")) && /See all 3/.test(await text(lp, "#histSetAll")), "history import: merges, adding only the new sessions", `${ls.length} · ${await text(lp, "#histPortMsg")}`);
+  await pickHist(hfile);
+  ok(/Every session in this file is already here/.test(await text(lp, "#histImportPreview")) && !(await lp.$("#histImportGo")), "history import: the same file again has nothing to add");
+  await lp.click("#histImportCancel");
+  await pickHist(join(root, "test/public/fixtures/sample-export.json"));
+  ok(/vocab file/.test(await text(lp, "#histPortMsg")) && !(await vis(lp, "#histImportPreview")), "history import: a vocab file is pointed to Settings → Data", await text(lp, "#histPortMsg"));
+  await settings(lp, "data"); await (await lp.$("#importFile")).setInputFiles(hfile); await lp.waitForTimeout(200);
+  ok(/practice history file/.test(await text(lp, "#portMsg")), "vocab import: a history file is pointed to Settings → Practice history", await text(lp, "#portMsg"));
+  await lp.click("#settingsClose"); }
 await lp.close();
 lp = await newPage(lctx);
 await lp.waitForTimeout(300);

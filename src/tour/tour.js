@@ -44,7 +44,7 @@
     { view: "setup", at: () => firstVis("#resumeBtn"), title: "Pick up where you left off",
       text: "Because you left midway, Resume last practice carries on where you stopped, even with what you'd written. Start practice begins a new one." },
     { view: "setup", at: () => firstVis("#histPanel"), title: "Your practice",
-      text: "Your recent practice shows up here. Turn on history to see your progress and which words need the most love." },
+      text: "Your recent practice shows up here, with your progress and the words that need the most love. Practice history can be turned on or off in Settings." },
     { view: "setup", at: () => $("#toTable"), title: "Vocabularies", text: "Tap edit to see the words in every set, and to change them.",
       done: () => vis($("#table")), act: () => $("#toTable").click() },
     { view: "table", at: () => firstVis("#setTables"), title: "Your sets",

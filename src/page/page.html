@@ -324,6 +324,13 @@ colours.apply(...colours.saved()); // before anything is drawn
             <p id="histSetInfo"></p>
             <p class="muted small" id="histSetWhere"></p>
             <div class="tactions"><button class="btn" type="button" id="histSetToggle"></button><button class="link" type="button" id="histSetAll">See all history</button></div>
+            <div id="histPort" hidden>
+              <h3>Export and import</h3>
+              <p class="muted small">Save your practice history as a file, or add the sessions in a history file to the history here. Sessions already here are left as they are, so nothing is replaced or deleted.</p>
+              <div class="tactions"><button class="btn" type="button" id="histExport">Export history</button><button class="btn" type="button" id="histImport">Import a history file…</button><input type="file" id="histFile" accept=".json,application/json" hidden></div>
+              <p class="muted small" id="histPortMsg" hidden></p>
+              <div class="impprev" id="histImportPreview" hidden></div>
+            </div>
             <h3>Words that need the most love</h3>
             <p class="muted small">Which comes first on each word, so you can go down the list and test yourself on the other.</p>
             <div class="seg mini" id="histSetTop" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div>
@@ -442,6 +449,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   //#include import-export/import.js
   //#include import-export/export.js
   //#include import-export/panel.js
+  //#include import-export/history-file.js
 
   //#if public
   //#include page/data-files.js

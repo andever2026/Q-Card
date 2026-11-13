@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-lUYhGa9EyiKxv8MQA/OP4t1Cr/Qmh4JJbByCpfG4EkM=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-ijwObfpE0Rp/awUdSkbtT3kW6dsH5XMn2aPM9fLNrA8=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -885,6 +885,13 @@ colours.apply(...colours.saved()); // before anything is drawn
             <p id="histSetInfo"></p>
             <p class="muted small" id="histSetWhere"></p>
             <div class="tactions"><button class="btn" type="button" id="histSetToggle"></button><button class="link" type="button" id="histSetAll">See all history</button></div>
+            <div id="histPort" hidden>
+              <h3>Export and import</h3>
+              <p class="muted small">Save your practice history as a file, or add the sessions in a history file to the history here. Sessions already here are left as they are, so nothing is replaced or deleted.</p>
+              <div class="tactions"><button class="btn" type="button" id="histExport">Export history</button><button class="btn" type="button" id="histImport">Import a history file…</button><input type="file" id="histFile" accept=".json,application/json" hidden></div>
+              <p class="muted small" id="histPortMsg" hidden></p>
+              <div class="impprev" id="histImportPreview" hidden></div>
+            </div>
             <h3>Words that need the most love</h3>
             <p class="muted small">Which comes first on each word, so you can go down the list and test yourself on the other.</p>
             <div class="seg mini" id="histSetTop" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div>
@@ -2428,17 +2435,19 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   // ---------- history ----------
   S.history = []; S.hOpen = new Set(); S.hConfirm = null; S.tough = [];
-  // Test history is opt-in: data/users/<id>/settings {history: true|false}; missing = not asked yet.
+  // The choice: data/users/<id>/settings {history: true|false}. Missing means on where history stays in this browser
+  // (a guest, a visitor by link: nothing goes anywhere), and not asked yet for an account, whose history is on the server.
   S.histOn = null; S.histReady = false; S.histBlocked = false;
   // The owner's history lives in the database (the morning check-in reads it). Everyone else's stays in their own
   // browser (S.local): only that device has it, and clearing site data or a private window loses it.
   S.local = false;
   const LOCAL_MAX = 300; // sessions kept in the browser; the oldest go first
   // History changed, or the choice to keep it: every place that shows it.
-  function histChanged() { renderRecent(); renderHistSet(); if (!$("#history").hidden) renderHistory(); }
+  function histChanged() { renderRecent(); renderHistSet(); renderHistPort(); if (!$("#history").hidden) renderHistory(); }
+  const inBrowser = () => S.local || uid === "local";
+  const histChoice = (v) => (typeof v === "boolean" ? v : inBrowser() ? true : null);
   function loadLocal() {
-    const v = store.get("histOn", null);
-    S.histOn = typeof v === "boolean" ? v : null; S.histReady = true;
+    S.histOn = histChoice(store.get("histOn", null)); S.histReady = true;
     S.history = (store.get("hist", []) || []).filter((t) => t && /^t\d/.test(t.id)).sort((a, b) => String(b.finishedAt || "").localeCompare(String(a.finishedAt || "")));
     histChanged();
   }
@@ -2477,8 +2486,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   function watchHistory() {
     if (!db || !uid) return;
     settingsDoc().onSnapshot((snap) => {
-      const v = snap.exists ? snap.data().history : undefined;
-      S.histOn = typeof v === "boolean" ? v : null; S.histReady = true;
+      S.histOn = histChoice(snap.exists ? snap.data().history : undefined); S.histReady = true;
       histChanged();
     }, () => {});
     db.collection("data/users/" + uid).orderBy("finishedAt", "desc").limit(1000).onSnapshot((snap) => {
@@ -2487,7 +2495,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     }, () => {});
   }
   const histBlockedText = () => `${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so practice history is off." : "Your access to this page doesn't allow saving practice history."} You can still practice as much as you like.`;
-  const histWhereText = () => S.local || uid === "local"
+  const histWhereText = () => inBrowser()
     ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it in History at any time."
     : "Only you and the site maintainers can see this data, and you can delete it from the server at any time.";
   function renderRecent() {
@@ -2506,7 +2514,7 @@ colours.apply(...colours.saved()); // before anything is drawn
          <div class="tactions"><button class="btn primary" data-hist="on">Turn on data collection</button><button class="btn" data-hist="off">No thanks</button></div>`
       : on === false
       ? `<p class="muted">Data collection is off, so finished sessions aren't saved.</p>${earlier}<div class="tactions"><button class="btn" data-hist="on">Turn on data collection</button></div>`
-      : `<p class="muted">Data collection is on. Finish a practice session and it shows up here.</p>`;
+      : `<p class="muted">${inBrowser() ? "Practice history is on and saved only in this browser." : "Data collection is on."} Finish a practice session and it shows up here.</p>`;
     ask.querySelectorAll("[data-hist]").forEach((b) => (b.onclick = async () => { b.disabled = true; if (await setHistory(b.dataset.hist === "on")) renderRecent(); else b.disabled = false; }));
     $("#histList").hidden = on !== true || !h.length;
     $("#histList").innerHTML = on !== true ? "" : h.slice(0, 5).map((t) => {
@@ -3420,6 +3428,11 @@ colours.apply(...colours.saved()); // before anything is drawn
   //   changed()        optional: called when writing starts and when it stops
   //   done()           optional: called after an import that wrote everything
   // importer.busy is true while it's writing.
+  // The top of an import preview (the file's name and when it was exported) and its line about entries it skips; the
+  // history import (history-file.js) draws its preview with them too.
+  const previewHead = (p) => `<div><b>${esc(p.name)}</b><span class="muted small">${p.exportedAt && !isNaN(new Date(p.exportedAt))
+    ? ` · exported ${esc(new Date(p.exportedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }))}` : ""}</span></div>`;
+  const skippedLine = (n) => (n ? `<li>${n} ${n === 1 ? "entry isn't" : "entries aren't"} valid and will be skipped</li>` : "");
   function makeImporter({ button, input, box, say, stored, write, where, hint = "", changed = () => {}, done = () => {} }) {
     const me = { busy: false };
     let plan = null;
@@ -3468,10 +3481,9 @@ colours.apply(...colours.saved()); // before anything is drawn
       const names = (st) => { const xs = [...p.sets, ...p.kanji].filter((x) => x.status === st).map((x) => x.title);
         return xs.length ? `<div class="names"><b>${st === "new" ? "New" : "Changed"}:</b> ${esc(xs.slice(0, 12).join(", "))}${xs.length > 12 ? `, and ${xs.length - 12} more` : ""}</div>` : ""; };
       const todo = p.sets.length - count(p.sets, "same") + p.kanji.length - count(p.kanji, "same") + [p.books, p.courses, p.views].filter((m) => m?.changed).length;
-      const when = p.exportedAt && !isNaN(new Date(p.exportedAt)) ? ` · exported ${new Date(p.exportedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : "";
-      box.innerHTML = `<div><b>${esc(p.name)}</b><span class="muted small">${esc(when)}</span></div>
+      box.innerHTML = `${previewHead(p)}
       <ul class="small"><li>${line(p.sets, "Vocab sets")}</li><li>${line(p.kanji, "Kanji lists")}</li><li>${metaLine(p.books, "Collection order")}</li><li>${p.courses && !p.views ? metaLine(p.courses, "Courses") : metaLine(p.views, "Views")}</li>
-      ${p.skipped ? `<li>${p.skipped} ${p.skipped === 1 ? "entry isn't" : "entries aren't"} valid and will be skipped</li>` : ""}</ul>
+      ${skippedLine(p.skipped)}</ul>
       ${names("new")}${names("changed")}
       ${todo && where ? `<div class="muted small" data-where>${esc(where())}</div>` : ""}
       <div class="tactions">${todo ? `<button class="btn primary" type="button" id="importGo">Import ${todo} ${todo === 1 ? "change" : "changes"}</button><button class="link" type="button" id="importCancel">Cancel</button>`
@@ -3508,6 +3520,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       let file = null;
       try { file = JSON.parse(await f.text()); } catch {}
       if (!file) return say("That file couldn't be read. Pick a .json file made for Japanese Vocab Practice.");
+      if (file?.app === APP && file.kind === "history") return say("This is a practice history file. Import it in Settings → Practice history.");
       if (typeof file !== "object" || file.app !== APP || !Array.isArray(file.sets)) return say("This isn't a Japanese Vocab Practice file." + (hint && " " + hint));
       try { plan = planImport(file, f.name, await stored()); }
       catch { return say("Your vocab couldn't be read just now, so the file can't be compared with it. Reload the page and try again."); }
@@ -3524,10 +3537,14 @@ colours.apply(...colours.saved()); // before anything is drawn
     const file = { app: APP, version: 2, exportedAt: new Date().toISOString(),
       sets: tidied(S.sets, setById, cleanSet), kanji: tidied(S.kanjiLists, kById, cleanKanji),
       collections: cleanBooks(raw.books), ...(S.viewDoc ? { views: S.viewDoc } : { courses: cleanCourses(raw.courses) }) };
-    const name = `japanese-vocab-${new Date().toLocaleDateString("en-CA")}.json`;
-    portMsg("");
-    try { await downloads.save({ filename: name, data: JSON.stringify(file, null, 1) }); portMsg(`Saved ${name}.`); }
-    catch (e) { portMsg(e?.code === "declined" ? "" : e?.code === "rate_limited" ? "A save prompt is already open." : "The file couldn't be saved in this view."); }
+    await saveJsonFile("", file, portMsg);
+  }
+  // Saves one of the site's JSON files (kind "" for the vocab, "history" for the practice history) and says how it went.
+  async function saveJsonFile(kind, file, say) {
+    const name = `japanese-vocab-${kind ? kind + "-" : ""}${new Date().toLocaleDateString("en-CA")}.json`;
+    say("");
+    try { await downloads.save({ filename: name, data: JSON.stringify(file, null, 1) }); say(`Saved ${name}.`); }
+    catch (e) { say(e?.code === "declined" ? "" : e?.code === "rate_limited" ? "A save prompt is already open." : "The file couldn't be saved in this view."); }
   }
   // ---------- Settings → Export / import (owner and editors) ----------
   const portMsg = sayIn($("#portMsg"));
@@ -3541,6 +3558,68 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#exportBtn").title = downloads ? "" : "Saving files isn't available in this view.";
   }
   $("#exportBtn").onclick = exportVocab;
+  // ---------- Settings → Practice history: the history as a file ----------
+  // Export saves every session. Import adds the file's sessions that aren't here yet (matched by id), so a file from
+  // another browser or account merges into this history; sessions already here are left as they are, none is deleted.
+  const histPortMsg = sayIn($("#histPortMsg"));
+  let histPlan = null, histBusy = false;
+  // A session as saved by results.js, keeping only what the page reads; null if it isn't one.
+  const cleanSession = (d) => {
+    if (!d || typeof d !== "object" || !/^t\d+$/.test(String(d.id)) || isNaN(new Date(d.finishedAt)) || !Array.isArray(d.words)) return null;
+    const str = (v) => (v == null ? "" : String(v));
+    return { finishedAt: new Date(d.finishedAt).toISOString(), dir: str(d.dir), mode: str(d.mode), sets: (Array.isArray(d.sets) ? d.sets : []).map(str),
+      words: d.words.filter((w) => w && typeof w === "object").map((w) => ({ id: str(w.id), en: str(w.en), jp: str(w.jp), dir: str(w.dir),
+        tries: Math.max(1, Math.round(+w.tries) || 1), ...(w.skip === true ? { skip: true } : {}) })) };
+  };
+  function renderHistPort() {
+    const off = S.histOn !== true;
+    $("#histPort").hidden = S.histBlocked || !S.histReady || !db;
+    $("#histExport").disabled = !downloads || !S.history.length || histBusy;
+    $("#histExport").title = !downloads ? "Saving files isn't available in this view." : S.history.length ? "" : "No practice sessions to export yet.";
+    $("#histImport").disabled = off || histBusy;
+    $("#histImport").title = off ? "Turn on practice history first." : "";
+    const p = histPlan, box = $("#histImportPreview");
+    box.hidden = !p;
+    if (!p) { box.innerHTML = ""; return; }
+    const pl = (k, w = "session") => `${k} ${w}${k === 1 ? "" : "s"}`;
+    const span = p.add.length ? `<li>From ${esc(fmtDay(p.add[p.add.length - 1].finishedAt))} to ${esc(fmtDay(p.add[0].finishedAt))}</li>` : "";
+    box.innerHTML = `${previewHead(p)}
+      <ul class="small"><li>${p.add.length ? `${pl(p.add.length, "new session")} to add` : "No new sessions"}</li>${span}${p.have ? `<li>${pl(p.have)} already here, left as they are</li>` : ""}
+      ${skippedLine(p.skipped)}</ul>
+      <div class="tactions">${p.add.length ? `<button class="btn primary" type="button" id="histImportGo">Add ${pl(p.add.length)}</button><button class="link" type="button" id="histImportCancel">Cancel</button>`
+        : `<span class="muted small">Every session in this file is already here.</span><button class="link" type="button" id="histImportCancel">Close</button>`}</div>`;
+    box.querySelector("#histImportCancel").onclick = () => { histPlan = null; renderHistPort(); };
+    if (p.add.length) box.querySelector("#histImportGo").onclick = importHistory;
+  }
+  $("#histExport").onclick = () => saveJsonFile("history", { app: APP, kind: "history", version: 1, exportedAt: new Date().toISOString(),
+    sessions: S.history.map((t) => ({ id: t.id, ...cleanSession(t) })) }, histPortMsg);
+  $("#histImport").onclick = () => { $("#histFile").value = ""; $("#histFile").click(); };
+  $("#histFile").onchange = async () => {
+    const f = $("#histFile").files?.[0];
+    if (!f) return;
+    histPortMsg(""); histPlan = null;
+    let file = null;
+    try { file = JSON.parse(await f.text()); } catch {}
+    if (file?.app === APP && Array.isArray(file.sets)) { renderHistPort(); return histPortMsg("This is a vocab file. Import it in Settings → Data."); }
+    if (file?.app !== APP || file.kind !== "history" || !Array.isArray(file.sessions)) { renderHistPort(); return histPortMsg("This isn't a practice history file. Pick a .json file saved with Export history."); }
+    const here = new Set(S.history.map((t) => t.id)), add = new Map();
+    let skipped = 0, have = 0;
+    for (const d of file.sessions) { const c = cleanSession(d); if (!c) skipped++; else if (here.has(String(d.id))) have++; else add.set(String(d.id), { id: String(d.id), ...c }); }
+    histPlan = { name: f.name, exportedAt: file.exportedAt, add: [...add.values()].sort((a, b) => b.finishedAt.localeCompare(a.finishedAt)), have, skipped };
+    renderHistPort();
+  };
+  async function importHistory() {
+    const add = histPlan.add;
+    histPlan = null; histBusy = true; renderHistPort();
+    let n = 0;
+    if (S.local) { saveLocal([...add, ...S.history].sort((a, b) => b.finishedAt.localeCompare(a.finishedAt))); n = add.length; }
+    else for (const { id, ...doc } of add) {
+      histPortMsg(`Adding ${n + 1} of ${add.length}…`);
+      try { await db.collection("data/users/" + uid).doc(id).set(doc); n++; } catch { break; }
+    }
+    histPortMsg(n === add.length ? `Added ${n} session${n === 1 ? "" : "s"} to your history.` : `Stopped after ${n} of ${add.length}. Import the file again to add the rest.`);
+    histBusy = false; renderHistPort();
+  }
 
   // ---------- public site: data files ----------
   // data/<name>.json comes as the script js/<name>.js (made by tools/build.mjs), which leaves it in window.QCardData:
@@ -3932,7 +4011,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     { view: "setup", at: () => firstVis("#resumeBtn"), title: "Pick up where you left off",
       text: "Because you left midway, Resume last practice carries on where you stopped, even with what you'd written. Start practice begins a new one." },
     { view: "setup", at: () => firstVis("#histPanel"), title: "Your practice",
-      text: "Your recent practice shows up here. Turn on history to see your progress and which words need the most love." },
+      text: "Your recent practice shows up here, with your progress and the words that need the most love. Practice history can be turned on or off in Settings." },
     { view: "setup", at: () => $("#toTable"), title: "Vocabularies", text: "Tap edit to see the words in every set, and to change them.",
       done: () => vis($("#table")), act: () => $("#toTable").click() },
     { view: "table", at: () => firstVis("#setTables"), title: "Your sets",
