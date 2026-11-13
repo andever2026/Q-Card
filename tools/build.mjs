@@ -3,6 +3,7 @@
 //                                 (js/templates.js and js/samples.js are data/*.json as scripts: a page opened straight
 //                                 from disk may load scripts, though not fetch files, so the site works offline that way too)
 //   ai/, privacy/                 the site's side pages, from src/side-pages/ (with css/theme.css, js/pages.js and js/ai.js)
+//   study-tools/                  the Study tools page, from src/study-tools/ (with js/tools.js)
 //   build/claude-ai.html          the claude.ai artifact (the owner's own copy, using claude.ai's database and Claude)
 // src/page/page.html is the page's markup. A line that is only an include marker is replaced by that file from src/, as is:
 //   /*#include page/styles.css*/   //#include page/core.js
@@ -78,11 +79,11 @@ const noRegex = { name: "no-re2js", setup(b) {
   b.onLoad({ filter: /.*/, namespace: "stub" }, () => ({ contents: 'export const RE2JS = { compile() { throw new Error("regex pipelines are not included"); } };' }));
 } };
 const LICENSES = "Firebase JS SDK (Apache-2.0), Q-Card code (AGPL-3.0)";
-async function bundle(imports) {
+async function bundle(imports, licenses = LICENSES) {
   const r = await esbuild.build({
     stdin: { contents: imports.map((f) => `import "./${f}";`).join("\n"), resolveDir: root, sourcefile: "entry.js" },
     bundle: true, format: "iife", minify: true, target: "es2020", write: false, legalComments: "eof", plugins: [noRegex],
-    banner: { js: `/* Q-Card, built by tools/build.mjs from src/ (edit those, not this file). Includes ${LICENSES}. */` },
+    banner: { js: `/* Q-Card, built by tools/build.mjs from src/ (edit those, not this file). Includes ${licenses}. */` },
   });
   return r.outputFiles[0].text;
 }
@@ -123,6 +124,9 @@ const files = {
   "js/ai.js": script("side-pages/ai.js"),
   "ai/index.html": sidePage("side-pages/ai.html", { firebase: true }),
   "privacy/index.html": sidePage("side-pages/privacy.html"),
+  // Study tools (study-tools/): one card per tool, each tool a module in src/study-tools/.
+  "js/tools.js": variant(await bundle(["src/study-tools/tools.js"], "Q-Card code (AGPL-3.0)"), "js/tools.js"),
+  "study-tools/index.html": sidePage("study-tools/tools.html"),
 };
 
 if (check && beta) throw new Error("--check is for the committed files; the beta build is never committed");

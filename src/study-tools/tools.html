@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<!--#include side-pages/head.html-->
+<meta name="description" content="Printable practice sheets and other study tools from Japanese Vocab Practice.">
+<title>Study tools · Japanese Vocab Practice</title>
+<!-- Each tool's card is drawn by js/tools.js (src/study-tools/). -->
+<style>
+/*#include side-pages/base.css*/
+main { max-width: var(--pagew); }
+.tool { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 12px; }
+.tool h2 { margin: 0; }
+.tactions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sheet { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.sheet svg { display: block; width: 100%; height: auto; }
+.edge { fill: none; stroke: #c9ced8; stroke-dasharray: 3 3; stroke-width: .6; }
+#printSheet { display: none; }
+@page { size: letter landscape; margin: 0; }
+@media print {
+  main > :not(#printSheet) { display: none !important; }
+  main { padding: 0; max-width: none; }
+  body { background: #fff; }
+  #printSheet { display: block; }
+  #printSheet svg { display: block; width: 11in; height: 8.5in; }
+  #printSheet .edge { display: none; }
+}
+</style>
+<script src="../js/tools.js" defer></script>
+</head>
+<body>
+<main>
+<p class="back"><a href="../">← Japanese Vocab Practice</a></p>
+<h1>Study tools</h1>
+<p class="muted">Extras to practice with away from the screen.</p>
+<div id="tools" style="display: grid; gap: 18px"></div>
+<div id="printSheet"></div>
+</main>
+</body>
+</html>

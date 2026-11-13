@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<!-- Made by tools/build.mjs from src/study-tools/tools.html; edit that file instead. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="stylesheet" href="../css/theme.css">
+<script src="../js/pages.js"></script>
+<meta name="description" content="Printable practice sheets and other study tools from Japanese Vocab Practice.">
+<title>Study tools · Japanese Vocab Practice</title>
+<!-- Each tool's card is drawn by js/tools.js (src/study-tools/). -->
+<style>
+/* What the side pages (ai/, privacy/) share on top of css/theme.css: a single column of text. */
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); line-height: 1.6; }
+main { max-width: 720px; margin: 0 auto; padding: 28px 16px 48px; display: grid; gap: 20px; }
+a { color: var(--ai); text-underline-offset: 3px; }
+h1 { margin: 0; font-size: 1.7rem; line-height: 1.3; }
+h2 { margin: 8px 0 0; font-size: 1.15rem; }
+p, ol, ul { margin: 0; }
+ol, ul { padding-left: 1.3em; display: grid; gap: 4px; }
+.small { font-size: .9rem; }
+.back { font-size: .9rem; }
+main { max-width: var(--pagew); }
+.tool { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 12px; }
+.tool h2 { margin: 0; }
+.tactions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sheet { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.sheet svg { display: block; width: 100%; height: auto; }
+.edge { fill: none; stroke: #c9ced8; stroke-dasharray: 3 3; stroke-width: .6; }
+#printSheet { display: none; }
+@page { size: letter landscape; margin: 0; }
+@media print {
+  main > :not(#printSheet) { display: none !important; }
+  main { padding: 0; max-width: none; }
+  body { background: #fff; }
+  #printSheet { display: block; }
+  #printSheet svg { display: block; width: 11in; height: 8.5in; }
+  #printSheet .edge { display: none; }
+}
+</style>
+<script src="../js/tools.js" defer></script>
+</head>
+<body>
+<main>
+<p class="back"><a href="../">← Japanese Vocab Practice</a></p>
+<h1>Study tools</h1>
+<p class="muted">Extras to practice with away from the screen.</p>
+<div id="tools" style="display: grid; gap: 18px"></div>
+<div id="printSheet"></div>
+</main>
+</body>
+</html>

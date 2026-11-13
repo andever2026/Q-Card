@@ -7,6 +7,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChang
 import { initializeFirestore, doc, collection, query, orderBy, limit, onSnapshot, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import config from "./config.js";
 import { makeLocalDb } from "./local.js";
+import { saveFile } from "../import-export/save-file.js";
 
 const app = initializeApp(config);
 const auth = getAuth(app);
@@ -54,14 +55,7 @@ function makeDb(uid) {
 const makeUser = (uid) => ({ id: async () => uid, isOwner: async () => true, can: async () => true, canEdit: async () => true });
 
 const downloads = {
-  async save({ filename, data }) {
-    const type = /\.json$/i.test(filename) ? "application/json" : "application/octet-stream";
-    const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type }));
-    const a = Object.assign(document.createElement("a"), { href: url, download: filename });
-    document.body.append(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-    return { status: "saved" };
-  },
+  async save({ filename, data }) { saveFile(filename, data); return { status: "saved" }; },
 };
 
 window.qcardPlatform = {

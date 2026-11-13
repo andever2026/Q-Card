@@ -1,7 +1,10 @@
 /* Made by tools/build.mjs from src/theme/theme.css; edit that file instead. */
 /* The look every page of the site shares: its colours, and further down the pieces drawn the same way everywhere (buttons,
-   quiet text). The page includes this file (page/styles.css); the side pages ai/ and privacy/ link it as css/theme.css.
+   quiet text). The page includes this file (page/styles.css); the side pages ai/, privacy/ and study-tools/ link it as css/theme.css.
    Colours: Blue (the default) and Warm (data-palette="claude"), each light and dark (data-theme, else the device's setting). */
+/* The site's widths, set here only. The content column: 720px on a laptop or iPad, growing with the window on a big
+   monitor. Practice: never under 1000px, so the writing boxes stay big on a laptop. */
+:root { --pagew: clamp(720px, 76vw, 1360px); --practicew: max(1000px, var(--pagew)); }
 :root {
   --bg: #fdfdfd;
   --surface: #ffffff;

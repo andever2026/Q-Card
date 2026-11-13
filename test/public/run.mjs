@@ -932,6 +932,17 @@ await hp.click("#hPractise"); await hp.waitForTimeout(300);
 ok(await vis(hp, "#quiz") && /^0 of 11 done/.test(await text(hp, "#progLbl")), "hard words: Practice these practices the words shown", await text(hp, "#progLbl"));
 ok(hp.errors.length === 0, "history pages: no page errors", hp.errors.join(" | "));
 await hctx.close();
+// Study tools: the romaji sheet has 9 panels of all 46 romaji, New sheet shuffles them, and Download PDF saves a PDF.
+const stctx = await browser.newContext({ acceptDownloads: true });
+const stp = await newPage(stctx); await stp.goto(base + "study-tools/"); await stp.waitForTimeout(300);
+const stOrder = () => stp.$$eval(".preview text", (t) => t.map((x) => x.textContent));
+const st1 = await stOrder(); await stp.click("[data-new]"); const st2 = await stOrder();
+ok(st1.length === 414 && new Set(st1.slice(0, 46)).size === 46 && st1.join() !== st2.join(), "study tools: 9 panels of the 46 romaji, shuffled again by New sheet", `${st1.length}`);
+const [stdl] = await Promise.all([stp.waitForEvent("download"), stp.click("[data-pdf]")]);
+const stpdf = (await import("node:fs")).readFileSync(await stdl.path(), "latin1");
+ok(/^romaji-sheet-.*\.pdf$/.test(stdl.suggestedFilename()) && stpdf.startsWith("%PDF") && (stpdf.match(/\) Tj/g) || []).length === 414, "study tools: Download PDF saves the sheet shown as a PDF", stdl.suggestedFilename());
+ok(stp.errors.length === 0, "study tools: no page errors", stp.errors.join(" | "));
+await stctx.close();
 // The welcome pop-up closed with Escape is remembered like its X.
 const ectx = await browser.newContext();
 let ep = await newPage(ectx);

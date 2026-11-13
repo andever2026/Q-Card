@@ -5,7 +5,7 @@ layout, the build and the tests; this file is what README doesn't say.
 
 ## How changes reach the site
 
-- Edit `src/` only, then `npm run build` and commit the built files (`index.html`, `ai/`, `privacy/`, `js/`, `css/`)
+- Edit `src/` only, then `npm run build` and commit the built files (`index.html`, `ai/`, `privacy/`, `study-tools/`, `js/`, `css/`)
   with the change. `npm run check` must say "Built files are up to date" and "No code is written twice under src/".
 - Everything is shared between the public site and the owner's claude.ai copy (`#if public` / `#if claude` in
   `src/page/page.html` and the scripts). A fix in one version's own section (sign-in, saving, checking) means checking the
