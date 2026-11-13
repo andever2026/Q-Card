@@ -134,6 +134,13 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .qtip:hover .qtipbody, .qtip:focus-visible .qtipbody, .qtip.open .qtipbody { display: block; }
 /* On a phone the tip opens above the whole row from its left edge, so the page's right side doesn't cut it off. */
 @media (max-width: 480px) { .delrow { position: relative; } .delrow .qtip { position: static; } .delrow .qtipbody { left: 0; transform: none; } }
+/* The privacy policy notice (src/account/policy-notice.js): a small card in the corner until it's closed. */
+.notice { position: fixed; z-index: 30; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100vw - 32px));
+  display: flex; align-items: flex-start; gap: 8px; padding: 12px 10px 12px 14px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / .14); font-size: .88rem; line-height: 1.45; }
+.notice[hidden], body.writing .notice { display: none; }
+.notice p { margin: 0; flex: 1; }
+.notice button { padding: 0 6px; font-size: 1.1rem; line-height: 1.2; }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
 body:not(.ready) section, body:not(.ready) #banner, body:not(.ready) .topr, body:not(.ready) .sidenav, body:not(.ready) #menuBtn, body:not(.ready) .foot { display: none !important; }

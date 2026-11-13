@@ -83,6 +83,9 @@ colours.apply(...colours.saved()); // before anything is drawn
 <!--#endif-->
   </header>
   <div class="banner" id="banner" hidden></div>
+<!--#if public-->
+  <div class="notice" id="policyNote" role="status" hidden><p>The privacy policy was updated on <span id="policyDate"></span>. <a href="privacy/" target="_blank" rel="noopener" id="policyLink">Read it</a></p><button class="ghost" type="button" id="policyClose" aria-label="Close">×</button></div>
+<!--#endif-->
   <div class="gate" id="gate" role="status">Loading…</div>
   <dialog id="askDlg" aria-labelledby="askTitle"><form method="dialog" class="shareask"><h2 id="askTitle"></h2><div class="asktext" id="askText"></div>
     <div class="tactions shareact"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes" id="askYes"></button></div></form></dialog>
@@ -356,6 +359,11 @@ colours.apply(...colours.saved()); // before anything is drawn
             <p class="muted small">Only developers see this tab. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
             <div class="tactions"><button class="btn" type="button" id="devAsk1">First time</button><button class="btn" type="button" id="devAsk2">Later times</button></div>
           </section>
+          <section><h3>The privacy policy notice</h3>
+            <p class="muted small" id="devPolicyInfo"></p>
+            <div class="tactions"><button class="btn" type="button" id="devPolicyNow">Show it now</button><button class="btn" type="button" id="devPolicyNext">Show it on my next visit</button></div>
+            <p class="muted small" id="devPolicyMsg" hidden></p>
+          </section>
           <section><h3>Practice</h3>
             <label class="checkrow"><input type="checkbox" id="roundListOn"> Show the words of this round during a practice: the one on screen, the ones still to come, and the ones missed (in this browser)</label>
           </section>
@@ -459,6 +467,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   //#include account/menu.js
   //#include tour/tour.js
   //#include account/share.js
+  //#include account/policy-notice.js
   //#include practice/round-list.js
   //#endif
   //#include page/boot.js

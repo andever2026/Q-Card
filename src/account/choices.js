@@ -1,7 +1,8 @@
   // ---------- choices that follow the account ----------
   // On load the account's copy of the choices replaces this browser's (a first sign-in saves this browser's instead),
   // and each later change is saved back shortly after it's made. Returns a function that stops the saving.
-  function syncPrefs() {
+  // loaded() runs once the account's choices are in this browser (or, for a new account, sent up from it).
+  function syncPrefs(loaded = () => {}) {
     const ref = db.doc(`data/users/${uid}/prefs`);
     let first = true, timer = null, stopped = false;
     // Firestore refuses a whole document with an empty field name, and sets with no collection are under "" in bookShow and tShow:
@@ -19,6 +20,7 @@
       // A yes to sharing handwriting left in this browser is another account's, so a first sign-in doesn't take it along.
       if (snap.exists) usePrefs(snap.data() || {}); else { store.set("share", null); save(); }
       prefsChanged = () => { clearTimeout(timer); timer = setTimeout(save, 800); };
+      loaded();
       const flush = () => { if (timer) save(); };
       addEventListener("pagehide", flush);
       document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flush(); });

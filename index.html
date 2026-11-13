@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-ijwObfpE0Rp/awUdSkbtT3kW6dsH5XMn2aPM9fLNrA8=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-L04bATzC/vzpiKClo4U2bSaeihBE9Zu38i74sau0zzA=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -217,6 +217,13 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .qtip:hover .qtipbody, .qtip:focus-visible .qtipbody, .qtip.open .qtipbody { display: block; }
 /* On a phone the tip opens above the whole row from its left edge, so the page's right side doesn't cut it off. */
 @media (max-width: 480px) { .delrow { position: relative; } .delrow .qtip { position: static; } .delrow .qtipbody { left: 0; transform: none; } }
+/* The privacy policy notice (src/account/policy-notice.js): a small card in the corner until it's closed. */
+.notice { position: fixed; z-index: 30; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100vw - 32px));
+  display: flex; align-items: flex-start; gap: 8px; padding: 12px 10px 12px 14px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / .14); font-size: .88rem; line-height: 1.45; }
+.notice[hidden], body.writing .notice { display: none; }
+.notice p { margin: 0; flex: 1; }
+.notice button { padding: 0 6px; font-size: 1.1rem; line-height: 1.2; }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
 body:not(.ready) section, body:not(.ready) #banner, body:not(.ready) .topr, body:not(.ready) .sidenav, body:not(.ready) #menuBtn, body:not(.ready) .foot { display: none !important; }
@@ -664,6 +671,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     </footer>
   </header>
   <div class="banner" id="banner" hidden></div>
+  <div class="notice" id="policyNote" role="status" hidden><p>The privacy policy was updated on <span id="policyDate"></span>. <a href="privacy/" target="_blank" rel="noopener" id="policyLink">Read it</a></p><button class="ghost" type="button" id="policyClose" aria-label="Close">×</button></div>
   <div class="gate" id="gate" role="status">Loading…</div>
   <dialog id="askDlg" aria-labelledby="askTitle"><form method="dialog" class="shareask"><h2 id="askTitle"></h2><div class="asktext" id="askText"></div>
     <div class="tactions shareact"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes" id="askYes"></button></div></form></dialog>
@@ -916,6 +924,11 @@ colours.apply(...colours.saved()); // before anything is drawn
             <p class="muted small">Only developers see this tab. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
             <div class="tactions"><button class="btn" type="button" id="devAsk1">First time</button><button class="btn" type="button" id="devAsk2">Later times</button></div>
           </section>
+          <section><h3>The privacy policy notice</h3>
+            <p class="muted small" id="devPolicyInfo"></p>
+            <div class="tactions"><button class="btn" type="button" id="devPolicyNow">Show it now</button><button class="btn" type="button" id="devPolicyNext">Show it on my next visit</button></div>
+            <p class="muted small" id="devPolicyMsg" hidden></p>
+          </section>
           <section><h3>Practice</h3>
             <label class="checkrow"><input type="checkbox" id="roundListOn"> Show the words of this round during a practice: the one on screen, the ones still to come, and the ones missed (in this browser)</label>
           </section>
@@ -1094,7 +1107,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   // Choices people make on the page. They're kept in this browser and, for someone signed in, in their account
   // too (data/users/<id>/prefs, see syncPrefs in account/choices.js), so they come along to other devices.
-  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "sessPer", "loveTop", "palette", "theme", "resume", "share", "practices"];
+  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "sessPer", "loveTop", "palette", "theme", "resume", "share", "practices", "policySeen"];
   let prefsChanged = () => {};
   const store = {
     get(k, d) { try { const v = localStorage.getItem("jpq:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
@@ -2765,7 +2778,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   // ---------- choices that follow the account ----------
   // On load the account's copy of the choices replaces this browser's (a first sign-in saves this browser's instead),
   // and each later change is saved back shortly after it's made. Returns a function that stops the saving.
-  function syncPrefs() {
+  // loaded() runs once the account's choices are in this browser (or, for a new account, sent up from it).
+  function syncPrefs(loaded = () => {}) {
     const ref = db.doc(`data/users/${uid}/prefs`);
     let first = true, timer = null, stopped = false;
     // Firestore refuses a whole document with an empty field name, and sets with no collection are under "" in bookShow and tShow:
@@ -2783,6 +2797,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       // A yes to sharing handwriting left in this browser is another account's, so a first sign-in doesn't take it along.
       if (snap.exists) usePrefs(snap.data() || {}); else { store.set("share", null); save(); }
       prefsChanged = () => { clearTimeout(timer); timer = setTimeout(save, 800); };
+      loaded();
       const flush = () => { if (timer) save(); };
       addEventListener("pagehide", flush);
       document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flush(); });
@@ -4236,6 +4251,26 @@ colours.apply(...colours.saved()); // before anything is drawn
     } catch { banner("Some shared answers couldn't be deleted. Try again."); }
     e.target.disabled = false; shareDelAsk = false; renderShare();
   };
+  // ---------- the privacy policy notice (public site) ----------
+  // When the privacy policy's "Last updated" date is newer than the one this visitor last saw, a small notice in the
+  // corner links to it until it's closed. The date comes from src/side-pages/privacy.html: the build writes it in here,
+  // so changing that line is all it takes. A first visit only records the date (nothing has changed for them). Signed
+  // in, the date seen is one of the account's choices (PREF_KEYS), so the notice comes once per account.
+  const POLICY_UPDATED = "2026-10-25";
+  const policyDay = (iso) => new Date(iso + "T12:00:00").toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+  function checkPolicy() {
+    const seen = store.get("policySeen", null);
+    if (typeof seen !== "string") store.set("policySeen", POLICY_UPDATED);
+    else if (seen < POLICY_UPDATED) showPolicyNote();
+  }
+  function showPolicyNote() { $("#policyDate").textContent = policyDay(POLICY_UPDATED); $("#policyNote").hidden = false; }
+  const policyRead = () => { $("#policyNote").hidden = true; store.set("policySeen", POLICY_UPDATED); };
+  $("#policyClose").onclick = policyRead;
+  $("#policyLink").addEventListener("click", policyRead);
+  // Settings → Admin: see the notice now, or as a visitor who saw an older policy will on their next visit.
+  $("#devPolicyInfo").textContent = `The policy was last updated ${policyDay(POLICY_UPDATED)}. Anyone who last saw an older version gets the notice once.`;
+  $("#devPolicyNow").onclick = showPolicyNote;
+  $("#devPolicyNext").onclick = () => { store.set("policySeen", "2000-01-01"); sayIn($("#devPolicyMsg"))("Reload the page to see it as a returning visitor would."); };
   // ---------- public site, Admin: the words of this round, during a practice ----------
   // A developer's look at what's left (Settings → Admin, off until turned on, in this browser): the word on screen, the
   // ones still to come this round, and the ones missed this round, which come back in the next.
@@ -4263,7 +4298,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       renderPort();
       watchVocab("Your vocab sets couldn't load. Reload the page to try again.");
       watchHistory();
-      if (id !== "local") { stopPrefs = syncPrefs(); watchProfile(); }
+      if (id !== "local") { stopPrefs = syncPrefs(checkPolicy); watchProfile(); } else checkPolicy();
       renderAcctMenu();
       offerSamples();
     };

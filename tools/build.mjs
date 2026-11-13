@@ -111,7 +111,13 @@ const made = (f) => `Made by tools/build.mjs from src/${f}; edit that file inste
 const script = (f) => variant(`// ${made(f)}\n${preprocess(expand(`src/${f}`), "public")}`, `js/${f.split("/").at(-1)}`);
 const sidePage = (f, load) => variant(csp(preprocess(expand(`src/${f}`), "public"), load).replace("<head>\n", `<head>\n<!-- ${made(f)} -->\n`), f);
 const src = expand("src/page/page.html");
-const page = variant(preprocess(src, "public"), "index.html");
+// The privacy policy notice (src/account/policy-notice.js) compares with the policy's own "Last updated" line.
+function policyDate(html) {
+  const m = readFileSync(at("src/side-pages/privacy.html"), "utf8").match(/Last updated: ([A-Z][a-z]+ \d{1,2}, \d{4})\./), d = m && new Date(m[1] + " 12:00 UTC");
+  if (!d || isNaN(d) || !html.includes('"%PRIVACY_LAST_UPDATED%"')) throw new Error("privacy notice: couldn't find the policy's Last updated date, or where it goes");
+  return html.replace('"%PRIVACY_LAST_UPDATED%"', JSON.stringify(d.toISOString().slice(0, 10)));
+}
+const page = variant(policyDate(preprocess(src, "public")), "index.html");
 const files = {
   "index.html": csp(page, { firebase: true, images: "'self' data: blob:" }),
   "js/platform.js": variant(await bundle(["src/account/firebase.js", ...(existsSync(at("src/checking/checker.js")) ? ["src/checking/checker.js"] : [])]), "js/platform.js"),

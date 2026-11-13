@@ -835,7 +835,16 @@ ok(await vis(op, "#quiz") && await op.evaluate(() => !document.querySelector("#r
 const [, nLi, nowLi] = (await round()).split("|"), q = await text(op, "#qText");
 ok(nLi === String(nWords) && nowLi.includes(q), "admin: the round list has every word of the round, the one on screen first", `${await round()} / ${q}`);
 await op.click("#quitBtn"); await op.waitForTimeout(300);
-await settings(op, "admin"); await op.uncheck("#roundListOn"); await op.click("#settingsClose");
+await settings(op, "admin"); await op.uncheck("#roundListOn");
+// Admin: the privacy policy notice, now and as a returning visitor sees it
+await op.click("#devPolicyNow"); await op.waitForTimeout(100);
+ok(await vis(op, "#policyNote") && /The privacy policy was updated on \w+ \d+, \d{4}\. Read it/.test(await text(op, "#policyNote")), "admin: Show it now shows the privacy policy notice", await text(op, "#policyNote"));
+await op.click("#policyClose");
+await op.click("#devPolicyNext"); await op.waitForTimeout(1200); // the account's choices are saved a moment later
+await op.reload(); await op.waitForTimeout(800);
+ok(await vis(op, "#policyNote"), "admin: after Show it on my next visit, the notice comes on the next visit");
+await op.click("#policyClose"); await op.waitForTimeout(1200);
+ok((await fsData(op))["users/t1/data/prefs"]?.policySeen === await op.evaluate(() => JSON.parse(localStorage.getItem("jpq:policySeen"))) && !(await vis(op, "#policyNote")), "policy notice: closing it is saved with the account's choices", (await fsData(op))["users/t1/data/prefs"]?.policySeen);
 ok(op.errors.length === 0, "dev tools: no page errors", op.errors.join(" | "));
 // guests are never asked: their handwriting stays in the browser
 const gp = await newPage(await browser.newContext(), { init: () => {
@@ -1660,6 +1669,26 @@ if (entry.length > 1) {
   await cp.click("#colDiscard");
   ok(cp.errors.length === 0, "collections: no page errors", cp.errors.join(" | "));
   await cctx.close();
+}
+
+// ---------- 24. the privacy policy notice: once to a returning visitor after the policy changes, never on a first visit ----------
+{
+  const updated = readFileSync(join(root, "src/side-pages/privacy.html"), "utf8").match(/Last updated: ([^.]+)\./)[1];
+  const nctx = await browser.newContext();
+  const np = await newPage(nctx, { init: () => localStorage.setItem("qcard:welcomed", "1") });
+  const seen = () => np.evaluate(() => JSON.parse(localStorage.getItem("jpq:policySeen")));
+  ok(!(await vis(np, "#policyNote")) && /^\d{4}-\d{2}-\d{2}$/.test(await seen()), "policy notice: a first visit only notes the policy's date", await seen());
+  const date = await seen();
+  await np.evaluate(() => localStorage.setItem("jpq:policySeen", '"2026-01-01"')); await np.reload(); await np.waitForTimeout(500);
+  ok(await vis(np, "#policyNote") && (await text(np, "#policyNote")).includes(updated) && await np.$eval("#policyLink", (a) => a.getAttribute("href")) === "privacy/",
+    "policy notice: a visitor who saw an older policy gets the notice, with its date and a link to it", await text(np, "#policyNote"));
+  await np.screenshot({ path: join(out, "24-policy-notice.png") });
+  await np.click("#policyClose");
+  ok(!(await vis(np, "#policyNote")) && (await seen()) === date, "policy notice: closing it notes the date");
+  await np.reload(); await np.waitForTimeout(500);
+  ok(!(await vis(np, "#policyNote")), "policy notice: it doesn't come back");
+  ok(np.errors.length === 0, "policy notice: no page errors", np.errors.join(" | "));
+  await nctx.close();
 }
 
 await browser.close(); server.close();

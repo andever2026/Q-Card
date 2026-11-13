@@ -1,6 +1,6 @@
   // Choices people make on the page. They're kept in this browser and, for someone signed in, in their account
   // too (data/users/<id>/prefs, see syncPrefs in account/choices.js), so they come along to other devices.
-  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "sessPer", "loveTop", "palette", "theme", "resume", "share", "practices"];
+  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "sessPer", "loveTop", "palette", "theme", "resume", "share", "practices", "policySeen"];
   let prefsChanged = () => {};
   const store = {
     get(k, d) { try { const v = localStorage.getItem("jpq:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },

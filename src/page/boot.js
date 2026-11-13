@@ -32,7 +32,7 @@
       renderPort();
       watchVocab("Your vocab sets couldn't load. Reload the page to try again.");
       watchHistory();
-      if (id !== "local") { stopPrefs = syncPrefs(); watchProfile(); }
+      if (id !== "local") { stopPrefs = syncPrefs(checkPolicy); watchProfile(); } else checkPolicy();
       renderAcctMenu();
       offerSamples();
     };
