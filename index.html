@@ -153,8 +153,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
   #settingsBtn svg { width: 20px; height: 20px; color: var(--muted); }
   /* ☰ shrinks the sidebar to its icons; the names stay for screen readers, and pointing at an icon shows its name. */
   :root.sidemini:not(.drawer) { --sidebar: 64px; }
-  .sidemini:not(.drawer) .sidenav > *, .sidemini:not(.drawer) #settingsBtn { justify-content: center; padding-inline: 0; }
-  .sidemini:not(.drawer) .sidenav span, .sidemini:not(.drawer) #settingsBtn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* The names fold to nothing but keep their line, so the icons stay exactly where they are in the full sidebar. */
+  .sidemini:not(.drawer) .sidenav span, .sidemini:not(.drawer) #settingsBtn span { width: 0; overflow: hidden; white-space: nowrap; opacity: 0; }
   /* On Settings: its tabs fill the sidebar, and the menu comes in over the page under the title's bar. */
   .drawer #settingsBtn { display: none; }
   .drawer .sidenav, .drawer .sideshade { top: var(--topbar); }
