@@ -308,14 +308,18 @@ td.c { text-align: center; padding-inline: 0; }
 .heatlegend { display: flex; gap: 4px; align-items: center; font-size: .75rem; color: var(--muted); }
 .heatlegend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
 .tests { list-style: none; margin: 0; padding: 0; display: grid; }
-.pager { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; }
-.pg { min-width: 34px; height: 34px; padding: 0 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+/* Under a paged list: the page buttons, which ones are shown, and the list's own button pushed to the right. */
+.listfoot { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 14px; }
+.listfoot:not(:has(> :not([hidden]):not(:empty))) { display: none; }
+.listfoot > .btn { margin-left: auto; padding: 7px 18px; }
+.listfoot .perpage { height: 36px; padding: 0 8px; font-size: .9rem; }
+@media (max-width: 480px) { .listfoot > .btn { flex: 1 0 100%; } }
+.pager { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.pg { min-width: 34px; height: 34px; padding: 0 6px; border: none; border-right: 1px solid var(--line); border-radius: 0; background: none; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+.pg:last-child { border-right: none; }
 .pg:not(:disabled):not([aria-current]):not(.gap):hover { background: var(--sunk); }
-.pg:disabled { opacity: .4; cursor: default; }
-.pgnums { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.pgnums .pg { border: none; border-right: 1px solid var(--line); border-radius: 0; }
-.pgnums .pg:last-child { border-right: none; }
-.pg[aria-current] { background: var(--ai); color: var(--surface); font-weight: 700; }
+.pg:disabled { color: var(--muted); opacity: .45; cursor: default; }
+.pg[aria-current] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
 .pg.gap { color: var(--muted); }
 .test { border-bottom: 1px dashed var(--line); }
 .test summary { display: grid; grid-template-columns: 9rem minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; cursor: pointer; align-items: baseline; list-style: none; }

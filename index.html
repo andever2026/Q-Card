@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-I3hKv192yaY3C3A31MG32auyk4P3o6N9PEv1U8t/fAA=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-5Agkj0rlAyOmc/oHLfn6dw1uMfjyvoF/fz0Xa8OrTZw=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -387,14 +387,18 @@ td.c { text-align: center; padding-inline: 0; }
 .heatlegend { display: flex; gap: 4px; align-items: center; font-size: .75rem; color: var(--muted); }
 .heatlegend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
 .tests { list-style: none; margin: 0; padding: 0; display: grid; }
-.pager { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; }
-.pg { min-width: 34px; height: 34px; padding: 0 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+/* Under a paged list: the page buttons, which ones are shown, and the list's own button pushed to the right. */
+.listfoot { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 14px; }
+.listfoot:not(:has(> :not([hidden]):not(:empty))) { display: none; }
+.listfoot > .btn { margin-left: auto; padding: 7px 18px; }
+.listfoot .perpage { height: 36px; padding: 0 8px; font-size: .9rem; }
+@media (max-width: 480px) { .listfoot > .btn { flex: 1 0 100%; } }
+.pager { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.pg { min-width: 34px; height: 34px; padding: 0 6px; border: none; border-right: 1px solid var(--line); border-radius: 0; background: none; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+.pg:last-child { border-right: none; }
 .pg:not(:disabled):not([aria-current]):not(.gap):hover { background: var(--sunk); }
-.pg:disabled { opacity: .4; cursor: default; }
-.pgnums { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.pgnums .pg { border: none; border-right: 1px solid var(--line); border-radius: 0; }
-.pgnums .pg:last-child { border-right: none; }
-.pg[aria-current] { background: var(--ai); color: var(--surface); font-weight: 700; }
+.pg:disabled { color: var(--muted); opacity: .45; cursor: default; }
+.pg[aria-current] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
 .pg.gap { color: var(--muted); }
 .test { border-bottom: 1px dashed var(--line); }
 .test summary { display: grid; grid-template-columns: 9rem minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; cursor: pointer; align-items: baseline; list-style: none; }
@@ -665,16 +669,14 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div id="acc"></div>
       </div>
       <div class="panel" id="hLovePanel">
-        <div class="head"><h3>Words that need the most love overall</h3><div class="headr">
-          <span class="muted small" id="loveCount"></span><span class="muted small" aria-hidden="true">Show</span><div class="seg mini" id="loveWin" role="group" aria-label="Words to show"><button type="button" data-win="5">5</button><button type="button" data-win="10">10</button><button type="button" data-win="20">20</button><button type="button" data-win="50">50</button><button type="button" data-win="all">All</button></div></div></div>
+        <div class="head"><h3>Words that need the most love overall</h3></div>
         <ul class="love" id="hLove"></ul>
-        <nav class="pager" id="lovePager" aria-label="Word pages" hidden></nav>
-        <div class="tactions" style="justify-content: flex-end"><button class="btn primary" type="button" id="hPractise">Practice these</button></div>
+        <div class="listfoot"><nav class="pager" id="lovePager" aria-label="Word pages" hidden></nav><span class="muted small" id="loveCount"></span><select class="sel perpage" id="loveWin" aria-label="Words per page"><option value="5">5 per page</option><option value="10">10 per page</option><option value="20">20 per page</option><option value="50">50 per page</option><option value="all">All</option></select><button class="btn primary" type="button" id="hPractise">Practice these</button></div>
       </div>
       <div class="panel">
         <div class="head"><h3>All practice sessions</h3><span class="tactions" id="delAllWrap"></span></div>
         <ul class="tests" id="hList"></ul>
-        <nav class="pager" id="hPager" aria-label="Practice session pages" hidden></nav>
+        <div class="listfoot"><nav class="pager" id="hPager" aria-label="Practice session pages" hidden></nav><span class="muted small" id="hCount"></span></div>
       </div>
     </div>
   </section>
@@ -2257,7 +2259,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const agg = new Map();
     // Oldest session first, so each word's run counts the sessions since its latest miss.
     const byTime = S.history.slice().sort((a, b) => String(a.finishedAt || "").localeCompare(String(b.finishedAt || "")));
-    document.querySelectorAll("#loveWin [data-win]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.win === S.loveWin));
+    $("#loveWin").value = S.loveWin;
     for (const t of byTime) for (const w of t.words || []) {
       if (w.skip) continue; // left off the list on the results page
       const k = w.id + ":" + w.dir, a = agg.get(k) || { w, misses: 0, tests: 0, run: 0 };
@@ -2270,7 +2272,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     S.lovePage = Math.min(S.lovePage || 0, pages - 1);
     const from = S.lovePage * per, top = all.slice(from, from + per);
     $("#hLovePanel").hidden = !all.length;
-    $("#loveCount").textContent = pages > 1 ? `${top.length > 1 ? `${from + 1}–${from + top.length}` : from + 1} of ${all.length}` : "";
+    $("#loveCount").textContent = shownOf(from, top.length, all.length, pages);
     pager($("#lovePager"), S.lovePage, pages, (i) => { S.lovePage = i; renderToughest(); });
     S.tough = top.map((a) => a.w);
     const n = toughWords().length;
@@ -2279,7 +2281,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   S.loveWin = String(store.get("loveWin", "10"));
   if (!["5", "10", "20", "50", "all"].includes(S.loveWin)) S.loveWin = "10";
-  $("#loveWin").onclick = (e) => { const b = e.target.closest("[data-win]"); if (!b) return; S.loveWin = b.dataset.win; S.lovePage = 0; store.set("loveWin", S.loveWin); renderToughest(); };
+  $("#loveWin").onchange = (e) => { S.loveWin = e.target.value; S.lovePage = 0; store.set("loveWin", S.loveWin); renderToughest(); };
   // Every word on the list that's still in a set and can be asked.
   function toughWords() {
     const words = new Map();
@@ -2306,14 +2308,17 @@ colours.apply(...colours.saved()); // before anything is drawn
       nums += `<button type="button" class="pg" data-pg="${i}"${i === page ? ' aria-current="page"' : ""}>${i + 1}</button>`; last = i;
     }
     const arrow = (to, label, d) => `<button type="button" class="pg arrow" data-pg="${to}" aria-label="${label}"${to < 0 || to >= pages ? " disabled" : ""}><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
-    box.innerHTML = `${arrow(page - 1, "Previous page", "M10 3 5 8l5 5")}<span class="pgnums">${nums}</span>${arrow(page + 1, "Next page", "M6 3l5 5-5 5")}`;
+    box.innerHTML = arrow(page - 1, "Previous page", "M10 3 5 8l5 5") + nums + arrow(page + 1, "Next page", "M6 3l5 5-5 5");
     box.onclick = (e) => { const b = e.target.closest("[data-pg]"); if (b && !b.disabled && +b.dataset.pg !== page) go(+b.dataset.pg); };
   }
+  // "11–20 of 26" beside the page buttons; nothing when everything fits on one page.
+  const shownOf = (from, n, total, pages) => pages < 2 ? "" : `${n > 1 ? `${from + 1}–${from + n}` : from + 1} of ${total}`;
   const PAGE = 20; // practice sessions per page, newest first
   function renderTests() {
     const pages = Math.max(1, Math.ceil(S.history.length / PAGE));
     S.hPage = Math.min(S.hPage || 0, pages - 1); // a delete can empty the last page
     const shown = S.history.slice(S.hPage * PAGE, (S.hPage + 1) * PAGE);
+    $("#hCount").textContent = shownOf(S.hPage * PAGE, shown.length, S.history.length, pages);
     pager($("#hPager"), S.hPage, pages, (i) => { S.hPage = i; renderTests(); $("#hList").closest(".panel").scrollIntoView({ block: "start" }); });
     $("#hList").innerHTML = shown.map((t) => {
       const { n, first } = firstTry(t), del = S.hConfirm === t.id;

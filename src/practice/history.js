@@ -196,7 +196,7 @@
     const agg = new Map();
     // Oldest session first, so each word's run counts the sessions since its latest miss.
     const byTime = S.history.slice().sort((a, b) => String(a.finishedAt || "").localeCompare(String(b.finishedAt || "")));
-    document.querySelectorAll("#loveWin [data-win]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.win === S.loveWin));
+    $("#loveWin").value = S.loveWin;
     for (const t of byTime) for (const w of t.words || []) {
       if (w.skip) continue; // left off the list on the results page
       const k = w.id + ":" + w.dir, a = agg.get(k) || { w, misses: 0, tests: 0, run: 0 };
@@ -209,7 +209,7 @@
     S.lovePage = Math.min(S.lovePage || 0, pages - 1);
     const from = S.lovePage * per, top = all.slice(from, from + per);
     $("#hLovePanel").hidden = !all.length;
-    $("#loveCount").textContent = pages > 1 ? `${top.length > 1 ? `${from + 1}–${from + top.length}` : from + 1} of ${all.length}` : "";
+    $("#loveCount").textContent = shownOf(from, top.length, all.length, pages);
     pager($("#lovePager"), S.lovePage, pages, (i) => { S.lovePage = i; renderToughest(); });
     S.tough = top.map((a) => a.w);
     const n = toughWords().length;
@@ -218,7 +218,7 @@
   }
   S.loveWin = String(store.get("loveWin", "10"));
   if (!["5", "10", "20", "50", "all"].includes(S.loveWin)) S.loveWin = "10";
-  $("#loveWin").onclick = (e) => { const b = e.target.closest("[data-win]"); if (!b) return; S.loveWin = b.dataset.win; S.lovePage = 0; store.set("loveWin", S.loveWin); renderToughest(); };
+  $("#loveWin").onchange = (e) => { S.loveWin = e.target.value; S.lovePage = 0; store.set("loveWin", S.loveWin); renderToughest(); };
   // Every word on the list that's still in a set and can be asked.
   function toughWords() {
     const words = new Map();
@@ -245,14 +245,17 @@
       nums += `<button type="button" class="pg" data-pg="${i}"${i === page ? ' aria-current="page"' : ""}>${i + 1}</button>`; last = i;
     }
     const arrow = (to, label, d) => `<button type="button" class="pg arrow" data-pg="${to}" aria-label="${label}"${to < 0 || to >= pages ? " disabled" : ""}><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
-    box.innerHTML = `${arrow(page - 1, "Previous page", "M10 3 5 8l5 5")}<span class="pgnums">${nums}</span>${arrow(page + 1, "Next page", "M6 3l5 5-5 5")}`;
+    box.innerHTML = arrow(page - 1, "Previous page", "M10 3 5 8l5 5") + nums + arrow(page + 1, "Next page", "M6 3l5 5-5 5");
     box.onclick = (e) => { const b = e.target.closest("[data-pg]"); if (b && !b.disabled && +b.dataset.pg !== page) go(+b.dataset.pg); };
   }
+  // "11–20 of 26" beside the page buttons; nothing when everything fits on one page.
+  const shownOf = (from, n, total, pages) => pages < 2 ? "" : `${n > 1 ? `${from + 1}–${from + n}` : from + 1} of ${total}`;
   const PAGE = 20; // practice sessions per page, newest first
   function renderTests() {
     const pages = Math.max(1, Math.ceil(S.history.length / PAGE));
     S.hPage = Math.min(S.hPage || 0, pages - 1); // a delete can empty the last page
     const shown = S.history.slice(S.hPage * PAGE, (S.hPage + 1) * PAGE);
+    $("#hCount").textContent = shownOf(S.hPage * PAGE, shown.length, S.history.length, pages);
     pager($("#hPager"), S.hPage, pages, (i) => { S.hPage = i; renderTests(); $("#hList").closest(".panel").scrollIntoView({ block: "start" }); });
     $("#hList").innerHTML = shown.map((t) => {
       const { n, first } = firstTry(t), del = S.hConfirm === t.id;

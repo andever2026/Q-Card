@@ -227,16 +227,14 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div id="acc"></div>
       </div>
       <div class="panel" id="hLovePanel">
-        <div class="head"><h3>Words that need the most love overall</h3><div class="headr">
-          <span class="muted small" id="loveCount"></span><span class="muted small" aria-hidden="true">Show</span><div class="seg mini" id="loveWin" role="group" aria-label="Words to show"><button type="button" data-win="5">5</button><button type="button" data-win="10">10</button><button type="button" data-win="20">20</button><button type="button" data-win="50">50</button><button type="button" data-win="all">All</button></div></div></div>
+        <div class="head"><h3>Words that need the most love overall</h3></div>
         <ul class="love" id="hLove"></ul>
-        <nav class="pager" id="lovePager" aria-label="Word pages" hidden></nav>
-        <div class="tactions" style="justify-content: flex-end"><button class="btn primary" type="button" id="hPractise">Practice these</button></div>
+        <div class="listfoot"><nav class="pager" id="lovePager" aria-label="Word pages" hidden></nav><span class="muted small" id="loveCount"></span><select class="sel perpage" id="loveWin" aria-label="Words per page"><option value="5">5 per page</option><option value="10">10 per page</option><option value="20">20 per page</option><option value="50">50 per page</option><option value="all">All</option></select><button class="btn primary" type="button" id="hPractise">Practice these</button></div>
       </div>
       <div class="panel">
         <div class="head"><h3>All practice sessions</h3><span class="tactions" id="delAllWrap"></span></div>
         <ul class="tests" id="hList"></ul>
-        <nav class="pager" id="hPager" aria-label="Practice session pages" hidden></nav>
+        <div class="listfoot"><nav class="pager" id="hPager" aria-label="Practice session pages" hidden></nav><span class="muted small" id="hCount"></span></div>
       </div>
     </div>
   </section>
