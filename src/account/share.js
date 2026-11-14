@@ -7,8 +7,8 @@
   // second time there is. With sharing on, each checked answer is saved to users/<uid>/training/<id>: its strokes
   // (points, timing, pressure, pointer kind), the word and direction, the checker's verdict and the student's own call.
   // Only the account itself (and the site's owner, through Firebase) can read it. The pop-up says it may go into products
-  // offered to others and goes with the site if it becomes or joins a company (the owner's plans, 2026-10-21). Saying yes
-  // takes a birth month and year (account/birth.js), saved to the account with the yes; under 16 there's no yes. Settings turns
+  // offered to others and goes with the site if it becomes or joins a company (the owner's plans, 2026-10-21). A yes
+  // is followed by a second pop-up for a birth month and year (account/birth.js), and counts once that's 16 or older. Settings turns
   // sharing off and deletes what was shared (models already trained on it stay); deleting the account deletes it too. The choice and counts live in the synced choices:
   // share = { on, at, asked, never, n }, practices = finished practices.
   const SHARE_EVERY = 10, SHARE_FOR_ALL = false;
@@ -56,28 +56,11 @@
     $("#shareCount").textContent = done ? `You've finished ${done} practices! ` : "";
     $("#shareNeverRow").hidden = !again;
     $("#shareNever").checked = false;
-    shareBorn.set(born); shareAge();
     $("#shareAsk").showModal();
   }
-  // The birth month and year in the question. Picked under 16, it says so and Yes waits for another pick (nothing is
-  // saved); why = what else kept Yes from going through.
-  const shareBorn = birthPick($("#shareBorn"), () => shareAge());
-  bornTip($("#shareBornTip"), "shareBornTipText");
-  function shareAge(why = "") {
-    const young = tooYoung(shareBorn.get()), m = $("#shareAgeMsg");
-    $("#shareYes").disabled = young;
-    m.textContent = young ? "Thank you for wanting to help! Sharing is for people 16 and older, so it stays off for now." : why;
-    m.hidden = !m.textContent; m.classList.toggle("keyerr", !young);
-  }
-  $("#shareYes").onclick = async () => {
-    const b = shareBorn.get();
-    if (!b) return shareAge("Pick your birth month and year to say yes.");
-    if (tooYoung(b)) return shareAge();
-    if (b !== born) try { await saveProfile({ born: b }); renderBorn(); } catch { return shareAge("Your answer couldn't be saved. Try again."); }
-    setShare({ on: true, at: new Date().toISOString(), never: false }); $("#shareAsk").close(); renderShare();
-  };
-  // The birth month and year changed in Settings: under 16, sharing goes off (true when it was on).
-  function shareAged() { const off = tooYoung(born) && shareState().on === true; if (off) setShare({ on: false }); renderShare(); return off; }
+  $("#shareYes").onclick = () => { $("#shareAsk").close(); askBorn(() => { setShare({ on: true, at: new Date().toISOString(), never: false }); renderShare(); }); };
+  // The birth month and year changed in Settings: under 16 or cleared, sharing goes off (true when it was on).
+  function shareAged() { const off = !(born && oldEnough(born)) && shareState().on === true; if (off) setShare({ on: false }); renderShare(); return off; }
   $("#shareNo").onclick = () => { if (!$("#shareNeverRow").hidden && $("#shareNever").checked) setShare({ never: true }); $("#shareAsk").close(); };
 
   // Settings → Help train the checker (wherever it's offered).

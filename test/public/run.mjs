@@ -764,18 +764,18 @@ const practiceOnce = async (how = "#selfGot") => {
   await sp.click(how); await sp.waitForTimeout(1500);
 };
 const shareOpen = () => sp.evaluate(() => document.querySelector("#shareAsk").open);
-// Birth month and year: at is the picker (#shareBorn in the question, #bornIn in Settings). Someone whose 16th birthday
-// may still be ahead this month counts as under 16; a month older is 16 for certain.
+// Birth month and year: at is the picker (#bornAskIn in the pop-up after a yes, #bornIn in Settings). Someone whose 16th
+// birthday may still be ahead this month counts as under 16; a month older is 16 for certain.
 const pickBorn = async (p, at, m, y) => { for (const [k, v] of [["M", m], ["Y", y]]) { await p.click(`${at}${k} .dd-btn`); await p.click(`${at}${k} li[data-v="${v}"]`); } };
-const bornOf = (back) => { const d = new Date(new Date().getFullYear() - 16, new Date().getMonth() - back, 1); return [String(d.getMonth() + 1).padStart(2, "0"), String(d.getFullYear())]; };
-const [m15, y15] = bornOf(0), [m16, y16] = bornOf(1);
+const bornOf = (back) => { const d = new Date(new Date().getFullYear() - 16, new Date().getMonth() - back, 1); return [String(d.getMonth() + 1).padStart(2, "0"), String(d.getFullYear()), d.toLocaleDateString("en", { month: "long" }) + " " + d.getFullYear()]; };
+const [m15, y15, said15] = bornOf(0), [m16, y16, said16] = bornOf(1);
 const acct = async (doc) => (await fsData(sp))["users/t1/data/" + doc];
+const bornOpen = () => sp.evaluate(() => document.querySelector("#bornAsk").open);
 await practiceOnce();
 ok(await vis(sp, "#results") && await shareOpen(), "share: the 10th finished practice asks to share handwriting");
 ok(/schools or other companies/.test(await text(sp, "#shareAsk")) && /models already trained on it stay/.test(await text(sp, "#shareAsk")) && /16 or older/.test(await text(sp, "#shareAsk")), "share: the question says where shared handwriting can go, what deleting can't undo, and the age");
 ok(!(await vis(sp, "#shareNeverRow")) && /finished 10 practices/.test(await text(sp, "#shareCount")), "share: the first time there's no \"Don't ask me again\"", await text(sp, "#shareCount"));
-ok(await vis(sp, "#shareBorn") && (await text(sp, "#shareBornM .dd-btn")) === "Month" && (await text(sp, "#shareBornY .dd-btn")) === "Year" && /handwriting consent/.test(await text(sp, "#shareBornTipText")),
-  "share: the question asks for a birth month and year, with a (?) saying what it's used for", await text(sp, "#shareBornTipText"));
+ok(!(await sp.$("#shareAsk .dd")), "share: the question itself doesn't ask for a birth month and year");
 await sp.locator("#shareAsk").screenshot({ path: join(out, "14-share-ask.png") });
 await sp.click("#shareNo"); await sp.waitForTimeout(200);
 ok(!(await shareOpen()) && !(await training()).length, "share: Not now closes it and nothing is saved");
@@ -788,17 +788,21 @@ await practiceOnce();
 ok(await shareOpen() && await vis(sp, "#shareNeverRow"), "share: the 20th practice asks again, now with \"Don't ask me again\"");
 await sp.locator("#shareAsk").screenshot({ path: join(out, "14-share-ask-again.png") });
 await sp.click("#shareYes"); await sp.waitForTimeout(200);
-ok(await shareOpen() && /Pick your birth month and year/.test(await text(sp, "#shareAgeMsg")), "share: Yes without a birth month and year asks for it and stays open", await text(sp, "#shareAgeMsg"));
-await pickBorn(sp, "#shareBorn", m15, y15);
-ok(await sp.$eval("#shareYes", (b) => b.disabled) && /16 and older/.test(await text(sp, "#shareAgeMsg")), "share: under 16, it says sharing is for 16 and older and Yes can't be pressed", await text(sp, "#shareAgeMsg"));
-await sp.locator("#shareAsk").screenshot({ path: join(out, "14-share-ask-under-16.png") });
-await sp.waitForTimeout(1300);
-ok(!(await acct("prefs"))?.share?.on && !(await acct("profile"))?.born, "share: under 16, nothing is turned on and the birth month and year isn't saved");
-await pickBorn(sp, "#shareBorn", m16, y16);
-ok(!(await sp.$eval("#shareYes", (b) => b.disabled)) && !(await vis(sp, "#shareAgeMsg")), "share: 16 for certain, Yes can be pressed");
-await sp.locator("#shareAsk").screenshot({ path: join(out, "14-share-ask-born.png") });
-await sp.click("#shareYes"); await sp.waitForTimeout(1300);
-ok((await acct("prefs"))?.share?.on === true && (await acct("profile"))?.born === `${y16}-${m16}`, "share: Yes is saved with the account's choices, and the birth month and year with the account", JSON.stringify(await acct("profile")));
+ok(!(await shareOpen()) && await bornOpen() && (await text(sp, "#bornAskInM .dd-btn")) === "Month" && (await text(sp, "#bornAskInY .dd-btn")) === "Year" && /handwriting consent/.test(await text(sp, "#bornAskTipText")) && /once every 3 months/.test(await text(sp, "#bornAskNote")),
+  "share: Yes is followed by a second pop-up asking for a birth month and year, with a (?) and a line that it can change once every 3 months", await text(sp, "#bornAskNote"));
+await sp.locator("#bornAsk").screenshot({ path: join(out, "14-born-ask.png") });
+await sp.click("#bornAskGo"); await sp.waitForTimeout(200);
+ok(await bornOpen() && /Pick both/.test(await text(sp, "#bornAskErr")), "birth: without a month and year it asks for both and stays open", await text(sp, "#bornAskErr"));
+await sp.click("#bornAskNo"); await sp.waitForTimeout(1300);
+ok(!(await bornOpen()) && !(await acct("prefs"))?.share?.on && !(await acct("profile"))?.born, "birth: Cancel leaves sharing off and saves nothing");
+await settings(sp, "share"); await sp.click("#shareToggle"); await sp.click("#shareYes"); await sp.waitForTimeout(200);
+await sp.click("#bornAskInM .dd-btn"); await sp.click(`#bornAskInM li[data-v="${m16}"]`);
+ok((await text(sp, "#bornAskInM .dd-btn")) !== "Month" && !(await acct("profile"))?.born, "birth: a month picked stays while the year is picked, and nothing is saved before Save");
+await pickBorn(sp, "#bornAskIn", m16, y16);
+await sp.click("#bornAskGo"); await sp.waitForTimeout(1300);
+ok(!(await bornOpen()) && (await acct("prefs"))?.share?.on === true && (await acct("profile"))?.born === `${y16}-${m16}` && Date.now() - new Date((await acct("profile"))?.bornAt) < 60000,
+  "share: with a month and year of 16 or older, the yes is saved with the account's choices and the month and year with the account", JSON.stringify(await acct("profile")));
+await sp.click("#settingsClose");
 await sp.click("#newBtn"); await sp.waitForTimeout(200);
 await practiceOnce();
 let tr = await training();
@@ -817,23 +821,27 @@ await sp.click("#shareDel"); await sp.click("#shareDelYes"); await sp.waitForTim
 ok(!(await training()).length && /0 answers shared/.test(await text(sp, "#shareInfo")) && !(await vis(sp, "#shareDel")), "share: Delete what I've shared removes every saved answer", await text(sp, "#shareInfo"));
 await sp.click("#shareToggle"); await sp.waitForTimeout(200);
 ok(/^Off\./.test(await text(sp, "#shareInfo")) && (await text(sp, "#shareToggle")) === "Turn on…", "share: Turn off stops it");
-// the birth month and year is the account's now: the question comes with it, and Settings → Account shows and changes it
-await sp.click("#shareToggle"); await sp.waitForTimeout(200);
-ok(await shareOpen() && (await text(sp, "#shareBornY .dd-btn")) === y16, "birth: asked again, the question comes with the birth month and year already there", await text(sp, "#shareBornY .dd-btn"));
-await sp.click("#shareYes"); await sp.waitForTimeout(200);
-ok(!(await shareOpen()) && /^On/.test(await text(sp, "#shareInfo")), "birth: so Yes is all it takes");
+// the birth month and year is the account's now: a later yes doesn't ask again, and Settings → Account shows it
+await sp.click("#shareToggle"); await sp.click("#shareYes"); await sp.waitForTimeout(200);
+ok(!(await shareOpen()) && !(await bornOpen()) && /^On/.test(await text(sp, "#shareInfo")), "birth: with 16 or older on the account, Yes is all it takes the next time");
 await settings(sp, "account"); await sp.waitForTimeout(200);
-ok(await vis(sp, "#bornRow") && (await text(sp, "#bornInY .dd-btn")) === y16 && await vis(sp, "#bornClear") && /advertising if we add it later/.test(await text(sp, "#bornTip")), "birth: Settings → Account shows the birth month and year, with its (?)", await text(sp, "#bornTip"));
+ok(await vis(sp, "#bornRow") && (await text(sp, "#bornNow")) === said16 && !(await vis(sp, "#bornIn")) && !(await vis(sp, "#bornSave")) && /can be changed after \w+ \d+, \d{4}/.test(await text(sp, "#bornNote")) && /advertising if we add it later/.test(await text(sp, "#bornTip")),
+  "birth: Settings → Account shows it with its (?); given less than 3 months ago, it can't be changed and says when it can", `${await text(sp, "#bornNow")} / ${await text(sp, "#bornNote")}`);
+await sp.locator('[data-set-pane="account"]').screenshot({ path: join(out, "14-birth-settings-wait.png") });
+// 3 months on (the day it was given, moved back)
+await sp.waitForTimeout(1000);
+await sp.evaluate(() => { const fs = JSON.parse(localStorage.getItem("fake:fs")); fs["users/t1/data/profile"].bornAt = new Date(Date.now() - 100 * 86400e3).toISOString(); localStorage.setItem("fake:fs", JSON.stringify(fs)); });
+await sp.reload(); await sp.waitForTimeout(800); await settings(sp, "account"); await sp.waitForTimeout(200);
+ok(await vis(sp, "#bornIn") && (await text(sp, "#bornInY .dd-btn")) === y16 && await sp.$eval("#bornSave", (b) => b.disabled) && /once every 3 months/.test(await text(sp, "#bornNote")), "birth: 3 months on, it can be changed: the dropdowns and Save are back", await text(sp, "#bornNote"));
 await sp.locator('[data-set-pane="account"]').screenshot({ path: join(out, "14-birth-settings.png") });
-await sp.click("#bornClear"); await sp.waitForTimeout(300);
-ok((await acct("profile"))?.born === "" && (await text(sp, "#bornInM .dd-btn")) === "Month" && !(await vis(sp, "#bornClear")) && (await acct("profile"))?.nickname === "", "birth: Clear empties it", JSON.stringify(await acct("profile")));
-await sp.click("#bornInM .dd-btn"); await sp.click(`#bornInM li[data-v="${m15}"]`); await sp.waitForTimeout(300);
-ok(/Pick both/.test(await text(sp, "#bornMsg")) && (await acct("profile"))?.born === "", "birth: a month without a year isn't saved", await text(sp, "#bornMsg"));
-await pickBorn(sp, "#bornIn", m15, y15); await sp.waitForTimeout(1300);
-ok((await acct("profile"))?.born === `${y15}-${m15}` && /Saved.*16 and older.*off now/.test(await text(sp, "#bornMsg")) && (await acct("prefs"))?.share?.on === false, "birth: changed to under 16 in Settings, it's saved and sharing goes off, and it says so", await text(sp, "#bornMsg"));
+await pickBorn(sp, "#bornIn", m15, y15); await sp.waitForTimeout(300);
+ok((await acct("profile"))?.born === `${y16}-${m16}` && !(await sp.$eval("#bornSave", (b) => b.disabled)), "birth: picking saves nothing until Save is pressed");
+await sp.click("#bornSave"); await sp.waitForTimeout(1300);
+ok((await acct("profile"))?.born === `${y15}-${m15}` && /Saved\..*off now/.test(await text(sp, "#bornMsg")) && (await acct("prefs"))?.share?.on === false && (await text(sp, "#bornNow")) === said15 && !(await vis(sp, "#bornIn")),
+  "birth: changed to under 16 in Settings, it's saved, sharing goes off and it says so, and the 3 months start again", await text(sp, "#bornMsg"));
 await settings(sp, "share");
 ok(/^Off\./.test(await text(sp, "#shareInfo")), "birth: Settings shows sharing off", await text(sp, "#shareInfo"));
-await sp.click("#settingsClose"); await sp.click("#newBtn"); await sp.waitForTimeout(200);
+await sp.click("#settingsClose"); await sp.waitForTimeout(200);
 await sp.evaluate(() => localStorage.setItem("jpq:practices", "29"));
 await practiceOnce();
 ok(await vis(sp, "#results") && !(await shareOpen()), "birth: an account known to be under 16 isn't asked on its 30th practice");
@@ -845,8 +853,15 @@ const rink = (await fsData(sp))["users/t1/data/prefs"]?.resume?.ink?.main?.s?.[0
 ok(Array.isArray(rink) && rink.length > 4 && rink.every((n) => typeof n === "number"), "resume: the writing saved for Resume reaches the account (flat list of numbers)", JSON.stringify(rink)?.slice(0, 80));
 await settings(sp, "share"); await sp.click("#shareToggle"); await sp.waitForTimeout(200);
 ok(await shareOpen() && !(await vis(sp, "#shareNeverRow")) && !(await text(sp, "#shareCount")), "share: Turn on… in Settings asks the same question, without the count or the checkbox");
-ok(await sp.$eval("#shareYes", (b) => b.disabled) && /16 and older/.test(await text(sp, "#shareAgeMsg")), "birth: for an account under 16 the question opens saying sharing is for 16 and older");
-await sp.click("#shareNo");
+await sp.click("#shareYes"); await sp.waitForTimeout(200);
+ok(await bornOpen() && await vis(sp, "#bornAskYoung") && /16 and older/.test(await text(sp, "#bornAskYoung")) && (await text(sp, "#bornAskNow")) === said15 && !(await vis(sp, "#bornAskIn")) && !(await vis(sp, "#bornAskGo")) && /can be changed after/.test(await text(sp, "#bornAskNote")),
+  "birth: an account under 16 that says yes is told sharing is for 16 and older, with no way to change the month and year for 3 months", await text(sp, "#bornAskNote"));
+await sp.locator("#bornAsk").screenshot({ path: join(out, "14-born-ask-under-16.png") });
+await sp.click("#bornAskNo"); await sp.waitForTimeout(200);
+ok(!(await bornOpen()) && /^Off\./.test(await text(sp, "#shareInfo")), "birth: and sharing stays off");
+await settings(sp, "account"); await sp.click("#bornClear"); await sp.waitForTimeout(300);
+ok((await acct("profile"))?.born === "" && (await text(sp, "#bornNow")) === "Not given" && !(await vis(sp, "#bornClear")) && !(await vis(sp, "#bornIn")) && /Cleared/.test(await text(sp, "#bornMsg")),
+  "birth: Clear empties it any time, and the wait before giving another stays", JSON.stringify(await acct("profile")));
 await sp.click("#settingsClose");
 ok(sp.errors.length === 0, "share: no page errors", sp.errors.join(" | "));
 // a developer (dev/<uid>, made in the Firebase console) gets Dev tools in Settings to open the question themselves

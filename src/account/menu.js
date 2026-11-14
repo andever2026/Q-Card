@@ -42,13 +42,13 @@
   // The nickname: kept with the account, shown at the top right, changed in Settings → Account.
   const profileRef = () => db.doc(`data/users/${uid}/profile`);
   function watchProfile() {
-    profileRef().onSnapshot((snap) => { const p = snap.exists ? snap.data() : {}; nickname = tidy(p?.nickname, 40); born = cleanBorn(p?.born); renderAcctMenu(); renderNick(); renderBorn(); }, () => {});
+    profileRef().onSnapshot((snap) => { const p = snap.exists ? snap.data() : {}; nickname = tidy(p?.nickname, 40); born = cleanBorn(p?.born); bornAt = tidy(p?.bornAt, 30); renderAcctMenu(); renderNick(); renderBorn(); }, () => {});
   }
   // The profile is saved whole: what changes, with the rest as it is.
   async function saveProfile(change) {
-    const p = { nickname, born, ...change };
+    const p = { nickname, born, bornAt, ...change };
     await profileRef().set({ ...p, updatedAt: new Date().toISOString() });
-    ({ nickname, born } = p);
+    ({ nickname, born, bornAt } = p);
   }
   function renderNick() {
     $("#nickRow").hidden = !account;

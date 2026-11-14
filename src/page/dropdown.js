@@ -23,8 +23,7 @@
       list.hidden = !on; btn.setAttribute("aria-expanded", on);
       if (!on) return;
       box.classList.remove("up");
-      // (In a pop-up the list has the pop-up's own bottom edge to stay above.)
-      if (list.getBoundingClientRect().bottom > (box.closest("dialog")?.getBoundingClientRect().bottom ?? innerHeight) - 8) box.classList.add("up");
+      if (list.getBoundingClientRect().bottom > innerHeight - 8) box.classList.add("up");
       mark(items.findIndex((li) => li.dataset.v === value), true); list.focus({ preventScroll: true });
     }
     function choose(i) {

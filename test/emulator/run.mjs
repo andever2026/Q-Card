@@ -187,8 +187,8 @@ const clean = async (page, label) => {
 };
 // Signed in, Settings opens from the account menu at the top right (src/account/menu.js).
 async function openSettings(page) { await page.click("#acctBtn"); await page.click('#acctList [data-acct="settings"]'); }
-// Saying yes to sharing handwriting takes a birth month and year.
-async function pickBorn(page) { for (const [k, v] of [["M", "01"], ["Y", "1990"]]) { await page.click(`#shareBorn${k} .dd-btn`); await page.click(`#shareBorn${k} li[data-v="${v}"]`); } }
+// Yes to sharing handwriting, then the birth month and year its second pop-up asks for.
+async function sayYes(page) { await page.click("#shareYes"); for (const [k, v] of [["M", "01"], ["Y", "1990"]]) { await page.click(`#bornAskIn${k} .dd-btn`); await page.click(`#bornAskIn${k} li[data-v="${v}"]`); } await page.click("#bornAskGo"); }
 // One part of the tests; an exception fails it and the rest still run.
 async function part(name, fn) {
   console.log(`\n${name}`);
@@ -257,7 +257,7 @@ await part("3. Sharing handwriting", async () => {
   ok(await until(() => vis(page, "#shareSet")) && /^Off\./.test(await text(page, "#shareInfo")), "share: offered to a developer, off to begin with", await text(page, "#shareInfo"));
   await page.click("#shareToggle");
   await until(() => page.evaluate(() => document.querySelector("#shareAsk").open));
-  await pickBorn(page); await page.click("#shareYes");
+  await sayYes(page);
   await page.click("#settingsClose");
   ok(!!(await until(async () => (await getDoc(`users/${uid}/data/prefs`))?.share?.on === true)), "share: Settings → Turn on… → Yes is saved in the account's prefs");
   ok((await getDoc(`users/${uid}/data/profile`))?.born === "1990-01", "share: the birth month and year given with the yes is saved to users/<uid>/data/profile (the rules allow it)");
@@ -309,7 +309,7 @@ await part("5. Delete my account", async () => {
   await page.click('#histAsk [data-hist="on"]');
   await openSettings(page); await page.click('#setNav [data-set-tab="share"]'); await page.click("#shareToggle");
   await until(() => page.evaluate(() => document.querySelector("#shareAsk").open));
-  await pickBorn(page); await page.click("#shareYes"); await page.click("#settingsClose");
+  await sayYes(page); await page.click("#settingsClose");
   await page.click('[data-set="samples-greetings"]'); await page.click("#dir-je"); await page.click("#startBtn");
   await until(() => vis(page, "#quiz"));
   await scribble(page); await page.click("#checkBtn");
