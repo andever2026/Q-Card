@@ -133,7 +133,13 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .qtipbody { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(250px, 60vw); background: var(--ink); color: var(--surface); padding: 6px 9px; border-radius: 6px; font-size: .82rem; line-height: 1.4; z-index: 2; }
 .qtip:hover .qtipbody, .qtip:focus-visible .qtipbody, .qtip.open .qtipbody { display: block; }
 /* On a phone the tip opens above the whole row from its left edge, so the page's right side doesn't cut it off. */
-@media (max-width: 480px) { .delrow { position: relative; } .delrow .qtip { position: static; } .delrow .qtipbody { left: 0; transform: none; } }
+@media (max-width: 480px) { :is(.delrow, .tiph) { position: relative; } :is(.delrow, .tiph) .qtip { position: static; } :is(.delrow, .tiph) .qtipbody { left: 0; transform: none; } }
+/* a label with its (?) */
+.tiph { display: flex; align-items: center; gap: 6px; }
+.tiph > span { display: inline-flex; }
+.tiph .qtipbody { font-weight: 400; text-transform: none; letter-spacing: normal; }
+.bornpick { display: inline-flex; gap: 8px; }
+.bornrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 /* The privacy policy notice (src/account/policy-notice.js): a small card in the corner until it's closed. */
 .notice { position: fixed; z-index: 30; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100vw - 32px));
   display: flex; align-items: flex-start; gap: 8px; padding: 12px 10px 12px 14px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px;
@@ -401,7 +407,7 @@ td.c { text-align: center; padding-inline: 0; }
 .dd { position: relative; display: inline-block; }
 .dd-btn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: .9rem; }
 .dd-btn:hover, .dd-btn[aria-expanded="true"] { background: var(--sunk); }
-.dd-btn svg { color: var(--muted); }
+.dd-btn svg, .dd.unset .dd-btn span { color: var(--muted); }
 .dd-list { position: absolute; left: 0; top: calc(100% + 4px); z-index: 20; min-width: 100%; max-height: min(320px, 60vh); overflow-y: auto; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgb(0 0 0 / .14); }
 .dd.up .dd-list { top: auto; bottom: calc(100% + 4px); }
 .dd-list:focus { outline: none; }
@@ -489,6 +495,8 @@ body.dragging { cursor: grabbing; -webkit-user-select: none; user-select: none; 
 .shareask ul { padding-left: 1.2em; display: grid; gap: 4px; }
 .asktext { display: grid; gap: 8px; }
 .shareact { justify-content: flex-end; }
+.bornask { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; font-weight: 700; }
+.bornask .dd { font-weight: 400; }
 /*#if public*/
 body { margin: 0; }
 #welcome { border: none; border-radius: 14px; padding: 26px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--muted); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }

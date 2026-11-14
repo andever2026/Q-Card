@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-L04bATzC/vzpiKClo4U2bSaeihBE9Zu38i74sau0zzA=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-/Zw9vJQLF0A5A6toQvrU2t6Q+0XhiS/Sf1+WhJMFRpY=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -216,7 +216,13 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .qtipbody { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(250px, 60vw); background: var(--ink); color: var(--surface); padding: 6px 9px; border-radius: 6px; font-size: .82rem; line-height: 1.4; z-index: 2; }
 .qtip:hover .qtipbody, .qtip:focus-visible .qtipbody, .qtip.open .qtipbody { display: block; }
 /* On a phone the tip opens above the whole row from its left edge, so the page's right side doesn't cut it off. */
-@media (max-width: 480px) { .delrow { position: relative; } .delrow .qtip { position: static; } .delrow .qtipbody { left: 0; transform: none; } }
+@media (max-width: 480px) { :is(.delrow, .tiph) { position: relative; } :is(.delrow, .tiph) .qtip { position: static; } :is(.delrow, .tiph) .qtipbody { left: 0; transform: none; } }
+/* a label with its (?) */
+.tiph { display: flex; align-items: center; gap: 6px; }
+.tiph > span { display: inline-flex; }
+.tiph .qtipbody { font-weight: 400; text-transform: none; letter-spacing: normal; }
+.bornpick { display: inline-flex; gap: 8px; }
+.bornrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 /* The privacy policy notice (src/account/policy-notice.js): a small card in the corner until it's closed. */
 .notice { position: fixed; z-index: 30; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100vw - 32px));
   display: flex; align-items: flex-start; gap: 8px; padding: 12px 10px 12px 14px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px;
@@ -487,7 +493,7 @@ td.c { text-align: center; padding-inline: 0; }
 .dd { position: relative; display: inline-block; }
 .dd-btn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: .9rem; }
 .dd-btn:hover, .dd-btn[aria-expanded="true"] { background: var(--sunk); }
-.dd-btn svg { color: var(--muted); }
+.dd-btn svg, .dd.unset .dd-btn span { color: var(--muted); }
 .dd-list { position: absolute; left: 0; top: calc(100% + 4px); z-index: 20; min-width: 100%; max-height: min(320px, 60vh); overflow-y: auto; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgb(0 0 0 / .14); }
 .dd.up .dd-list { top: auto; bottom: calc(100% + 4px); }
 .dd-list:focus { outline: none; }
@@ -575,6 +581,8 @@ body.dragging { cursor: grabbing; -webkit-user-select: none; user-select: none; 
 .shareask ul { padding-left: 1.2em; display: grid; gap: 4px; }
 .asktext { display: grid; gap: 8px; }
 .shareact { justify-content: flex-end; }
+.bornask { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; font-weight: 700; }
+.bornask .dd { font-weight: 400; }
 body { margin: 0; }
 #welcome { border: none; border-radius: 14px; padding: 26px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--muted); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
 #welcome::backdrop { background: rgba(17, 20, 26, .5); }
@@ -646,6 +654,8 @@ colours.apply(...colours.saved()); // before anything is drawn
       <p><span id="shareCount"></span>The checker that reads your writing learns best from real handwriting like yours. If you say yes, each answer you write from now on is saved to your account with:</p>
       <ul><li>the strokes you drew: their shape, timing and pen pressure</li><li>the word you were answering, and how the checker and you marked it</li><li>whether you wrote with a pen, a finger or a mouse</li></ul>
       <p>It's used to build better handwriting recognition, for this site and for products made from it, which may be offered to schools or other companies. If the site becomes or joins a company, your shared handwriting goes with it. You can turn sharing off or delete what you've shared any time in Settings; models already trained on it stay as they are. Only say yes if you're 16 or older.</p>
+      <div class="bornask"><span class="tiph" id="shareBornLab">Your birth month and year <span id="shareBornTip"></span></span><span id="shareBorn" role="group" aria-labelledby="shareBornLab"></span></div>
+      <p class="small" id="shareAgeMsg" role="status" hidden></p>
       <label class="checkrow" id="shareNeverRow" hidden><input type="checkbox" id="shareNever"> Don't ask me again</label>
       <div class="tactions shareact"><button class="btn" type="button" id="shareNo">Not now</button><button class="btn primary" type="button" id="shareYes">Yes, share my handwriting</button></div>
     </div></dialog>
@@ -876,6 +886,10 @@ colours.apply(...colours.saved()); // before anything is drawn
             <form class="nickform" id="nickForm"><input type="text" id="nickIn" maxlength="40" autocomplete="nickname" aria-label="Nickname"><button class="btn primary" type="submit" id="nickSave" disabled>Save</button><span class="muted small" id="nickMsg" role="status"></span></form>
             <p class="muted small">Shown at the top right of the page. Leave it empty to show your Google name.</p>
           </section>
+          <section id="bornRow" hidden><h3 class="tiph" id="bornLab">Birth month and year <span id="bornTipAt"></span></h3>
+            <div class="bornrow"><span id="bornIn" role="group" aria-labelledby="bornLab"></span><button class="link" type="button" id="bornClear" hidden>Clear</button><span class="muted small" id="bornMsg" role="status"></span></div>
+            <p class="muted small">Optional. You can leave it empty.</p>
+          </section>
           <section><h3>Delete</h3><div id="delAcct"></div></section>
         </div>
         <div class="setpane" data-set-pane="data"><h2>Data</h2>
@@ -1000,7 +1014,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // A button showing the picked option; clicking it opens a short list under it (over it, near the bottom of the
   // screen). Arrow keys, Enter and Escape work, and a click anywhere else closes it.
   //   makeDropdown(box, label, [[value, text], …], pick(value)) fills box and returns { set(value) },
-  //   which shows a value chosen elsewhere without calling pick.
+  //   which shows a value chosen elsewhere without calling pick. An option whose value is "" reads as nothing picked.
   function makeDropdown(box, label, options, pick) {
     const id = box.id || "dd";
     box.classList.add("dd");
@@ -1008,19 +1022,22 @@ colours.apply(...colours.saved()); // before anything is drawn
       <ul class="dd-list" role="listbox" aria-label="${esc(label)}" tabindex="-1" hidden>${options.map(([v, t], i) => `<li role="option" id="${id}-o${i}" data-v="${esc(v)}">${esc(t)}</li>`).join("")}</ul>`;
     const btn = box.querySelector(".dd-btn"), list = box.querySelector(".dd-list"), items = [...list.children];
     let value = null, at = -1;
-    const mark = (i) => { at = i; items.forEach((li, j) => li.classList.toggle("on", j === i)); if (i >= 0) list.setAttribute("aria-activedescendant", items[i].id); };
+    // show: bring the option into sight in a long list (the keys and opening do; the mouse is already on it).
+    const mark = (i, show) => { at = i; items.forEach((li, j) => li.classList.toggle("on", j === i)); if (i >= 0) { list.setAttribute("aria-activedescendant", items[i].id); if (show) items[i].scrollIntoView({ block: "nearest" }); } };
     function set(v) {
       value = String(v);
       const i = items.findIndex((li) => li.dataset.v === value);
       items.forEach((li, j) => li.setAttribute("aria-selected", j === i));
       btn.firstChild.textContent = i < 0 ? "" : items[i].textContent;
+      box.classList.toggle("unset", value === ""); // an option with no value is the "nothing picked" one
     }
     function open(on) {
       list.hidden = !on; btn.setAttribute("aria-expanded", on);
       if (!on) return;
       box.classList.remove("up");
-      if (list.getBoundingClientRect().bottom > innerHeight - 8) box.classList.add("up");
-      mark(items.findIndex((li) => li.dataset.v === value)); list.focus({ preventScroll: true });
+      // (In a pop-up the list has the pop-up's own bottom edge to stay above.)
+      if (list.getBoundingClientRect().bottom > (box.closest("dialog")?.getBoundingClientRect().bottom ?? innerHeight) - 8) box.classList.add("up");
+      mark(items.findIndex((li) => li.dataset.v === value), true); list.focus({ preventScroll: true });
     }
     function choose(i) {
       open(false); btn.focus({ preventScroll: true });
@@ -1030,9 +1047,10 @@ colours.apply(...colours.saved()); // before anything is drawn
     list.onclick = (e) => { const li = e.target.closest("li"); if (li) choose(items.indexOf(li)); };
     list.onpointermove = (e) => { const li = e.target.closest("li"); if (li) mark(items.indexOf(li)); };
     list.onkeydown = (e) => {
-      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); mark((at + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length); }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); mark((at + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length, true); }
       else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(at); }
-      else if (e.key === "Escape" || e.key === "Tab") { open(false); btn.focus({ preventScroll: true }); }
+      // (Escape closes the list only, not a pop-up the dropdown is in.)
+      else if (e.key === "Escape" || e.key === "Tab") { if (e.key === "Escape") e.preventDefault(); open(false); btn.focus({ preventScroll: true }); }
     };
     // (A dropdown drawn over by its page lets go of the listener the next time anything is pressed.)
     const away = (e) => { if (!box.isConnected) document.removeEventListener("pointerdown", away); else if (!list.hidden && !box.contains(e.target)) open(false); };
@@ -3876,7 +3894,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   let account = null, delAsk = false, stopPrefs = () => {};
   $("#settings").addEventListener("leave", () => { delAsk = false; });
   function renderAccount() {
-    renderNick();
+    renderNick(); renderBorn();
     $("#acctName").innerHTML = account ? `Signed in with Google as <b>${esc(account.email || account.name || "")}</b>.`
       : "Not signed in. As a guest, everything is kept in this browser on this device.";
     $("#signOutBtn").textContent = account ? "Sign out" : "Sign in with Google";
@@ -3920,7 +3938,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // ---------- public site: the account at the top right ----------
   // Beside the gear: a guest says so, and its menu offers signing in. Signed in, the gear steps aside and the person's
   // nickname (or their Google name) opens a menu with Settings and Sign out. The nickname is the account's own,
-  // data/users/<uid>/profile, set in Settings → Account.
+  // data/users/<uid>/profile, set in Settings → Account. The same profile holds the birth month and year (account/birth.js).
   let nickname = "";
   const shownName = () => nickname || account?.name || String(account?.email || "").split("@")[0] || "Account";
   const acctOpen = () => !$("#acctList").hidden;
@@ -3961,7 +3979,13 @@ colours.apply(...colours.saved()); // before anything is drawn
   // The nickname: kept with the account, shown at the top right, changed in Settings → Account.
   const profileRef = () => db.doc(`data/users/${uid}/profile`);
   function watchProfile() {
-    profileRef().onSnapshot((snap) => { nickname = tidy(snap.exists ? snap.data()?.nickname : "", 40); renderAcctMenu(); renderNick(); }, () => {});
+    profileRef().onSnapshot((snap) => { const p = snap.exists ? snap.data() : {}; nickname = tidy(p?.nickname, 40); born = cleanBorn(p?.born); renderAcctMenu(); renderNick(); renderBorn(); }, () => {});
+  }
+  // The profile is saved whole: what changes, with the rest as it is.
+  async function saveProfile(change) {
+    const p = { nickname, born, ...change };
+    await profileRef().set({ ...p, updatedAt: new Date().toISOString() });
+    ({ nickname, born } = p);
   }
   function renderNick() {
     $("#nickRow").hidden = !account;
@@ -3976,10 +4000,53 @@ colours.apply(...colours.saved()); // before anything is drawn
     e.preventDefault();
     const v = tidy($("#nickIn").value, 40), b = $("#nickSave");
     b.disabled = true; b.textContent = "Saving…";
-    try { await profileRef().set({ nickname: v, updatedAt: new Date().toISOString() }); nickname = v; $("#nickIn").value = v; renderAcctMenu(); syncNick(v ? "Saved." : "Saved. Your Google name shows instead."); }
+    try { await saveProfile({ nickname: v }); $("#nickIn").value = v; renderAcctMenu(); syncNick(v ? "Saved." : "Saved. Your Google name shows instead."); }
     catch { syncNick("Couldn't save. Try again."); }
     b.textContent = "Save";
   };
+  // ---------- public site: birth month and year ----------
+  // Sharing handwriting is for people 16 and older, so saying yes to it takes a birth month and year (account/share.js).
+  // It's kept with the account's profile (data/users/<uid>/profile, born: "YYYY-MM"), empty until then, and Settings →
+  // Account shows it and lets it be given, changed or cleared. Month and year only: enough to tell an age, and less to
+  // keep than a birthday (the owner's plan, 2026-11-12).
+  let born = "";
+  const BORN_TIP = "Age information is used for handwriting consent, and for advertising if we add it later.";
+  const cleanBorn = (v) => (/^(19|20)\d\d-(0[1-9]|1[0-2])$/.test(v) ? v : "");
+  // Certainly 16: the month they turn 16 in is over (the day isn't known).
+  const oldEnough = (b, now = new Date()) => { const [y, m] = b.split("-").map(Number); return (now.getFullYear() - y) * 12 + now.getMonth() + 1 - m > 16 * 12; };
+  const tooYoung = (b) => !!b && !oldEnough(b);
+  // The (?) beside wherever it's asked.
+  const bornTip = (at, id) => { at.innerHTML = qtip(id, "What this is used for", BORN_TIP); tipTaps(at); };
+  // Month and year dropdowns in box; changed() runs on each pick. get() is "YYYY-MM", or "" until both are picked;
+  // half() says one is picked without the other.
+  function birthPick(box, changed) {
+    box.classList.add("bornpick");
+    box.innerHTML = `<span id="${box.id}M"></span><span id="${box.id}Y"></span>`;
+    const year = new Date().getFullYear(), two = (n) => String(n).padStart(2, "0");
+    let m = "", y = "";
+    const months = makeDropdown(box.firstChild, "Birth month", [["", "Month"], ...Array.from({ length: 12 }, (_, i) => [two(i + 1), new Date(2000, i, 1).toLocaleDateString("en", { month: "long" })])], (v) => { m = v; changed(); });
+    const years = makeDropdown(box.lastChild, "Birth year", [["", "Year"], ...Array.from({ length: 101 }, (_, i) => [String(year - i), String(year - i)])], (v) => { y = v; changed(); });
+    const set = (b) => { [y, m] = b ? b.split("-") : ["", ""]; months.set(m); years.set(y); };
+    set("");
+    return { set, get: () => (m && y ? `${y}-${m}` : ""), half: () => !m !== !y };
+  }
+
+  // Settings → Account: saved as soon as both are picked; Clear (or both back to nothing) empties it.
+  const bornMsg = (t) => { $("#bornMsg").textContent = t; };
+  const bornIn = birthPick($("#bornIn"), () => (bornIn.half() ? bornMsg("Pick both to save.") : keepBorn(bornIn.get())));
+  bornTip($("#bornTipAt"), "bornTip");
+  async function keepBorn(b) {
+    if (b === born) return bornMsg("");
+    try { await saveProfile({ born: b }); const off = shareAged(); bornMsg(off ? "Saved. Sharing handwriting is for people 16 and older, so it's off now." : b ? "Saved." : "Cleared."); }
+    catch { bornMsg("Couldn't save. Try again."); }
+    renderBorn();
+  }
+  $("#bornClear").onclick = () => keepBorn("");
+  $("#settings").addEventListener("leave", () => { bornMsg(""); renderBorn(); });
+  function renderBorn() {
+    $("#bornRow").hidden = !account;
+    bornIn.set(born); $("#bornClear").hidden = !born;
+  }
   // ---------- public site: the tour ----------
   // "First time here? Take the 5-minute tour" in the welcome pop-up: a guided first practice as a guest. Each step rings
   // part of the page (the rest is dimmed but still works) and says what it's for. A step with `done` waits for the
@@ -4153,7 +4220,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   // second time there is. With sharing on, each checked answer is saved to users/<uid>/training/<id>: its strokes
   // (points, timing, pressure, pointer kind), the word and direction, the checker's verdict and the student's own call.
   // Only the account itself (and the site's owner, through Firebase) can read it. The pop-up says it may go into products
-  // offered to others and goes with the site if it becomes or joins a company (the owner's plans, 2026-10-21). Settings turns
+  // offered to others and goes with the site if it becomes or joins a company (the owner's plans, 2026-10-21). Saying yes
+  // takes a birth month and year (account/birth.js), saved to the account with the yes; under 16 there's no yes. Settings turns
   // sharing off and deletes what was shared (models already trained on it stay); deleting the account deletes it too. The choice and counts live in the synced choices:
   // share = { on, at, asked, never, n }, practices = finished practices.
   const SHARE_EVERY = 10, SHARE_FOR_ALL = false;
@@ -4193,7 +4261,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   function afterPractice() {
     const done = (+store.get("practices", 0) || 0) + 1, s = shareState();
     store.set("practices", done);
-    if (offered() && !s.on && !s.never && done % SHARE_EVERY === 0) { askShare(done); setShare({ asked: (s.asked || 0) + 1 }); }
+    if (offered() && !s.on && !s.never && !tooYoung(born) && done % SHARE_EVERY === 0) { askShare(done); setShare({ asked: (s.asked || 0) + 1 }); }
   }
   // done = practices finished (0 when opened from Settings); again = offer "Don't ask me again", which it does from the
   // second time it's asked after a practice.
@@ -4201,9 +4269,28 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#shareCount").textContent = done ? `You've finished ${done} practices! ` : "";
     $("#shareNeverRow").hidden = !again;
     $("#shareNever").checked = false;
+    shareBorn.set(born); shareAge();
     $("#shareAsk").showModal();
   }
-  $("#shareYes").onclick = () => { setShare({ on: true, at: new Date().toISOString(), never: false }); $("#shareAsk").close(); renderShare(); };
+  // The birth month and year in the question. Picked under 16, it says so and Yes waits for another pick (nothing is
+  // saved); why = what else kept Yes from going through.
+  const shareBorn = birthPick($("#shareBorn"), () => shareAge());
+  bornTip($("#shareBornTip"), "shareBornTipText");
+  function shareAge(why = "") {
+    const young = tooYoung(shareBorn.get()), m = $("#shareAgeMsg");
+    $("#shareYes").disabled = young;
+    m.textContent = young ? "Thank you for wanting to help! Sharing is for people 16 and older, so it stays off for now." : why;
+    m.hidden = !m.textContent; m.classList.toggle("keyerr", !young);
+  }
+  $("#shareYes").onclick = async () => {
+    const b = shareBorn.get();
+    if (!b) return shareAge("Pick your birth month and year to say yes.");
+    if (tooYoung(b)) return shareAge();
+    if (b !== born) try { await saveProfile({ born: b }); renderBorn(); } catch { return shareAge("Your answer couldn't be saved. Try again."); }
+    setShare({ on: true, at: new Date().toISOString(), never: false }); $("#shareAsk").close(); renderShare();
+  };
+  // The birth month and year changed in Settings: under 16, sharing goes off (true when it was on).
+  function shareAged() { const off = tooYoung(born) && shareState().on === true; if (off) setShare({ on: false }); renderShare(); return off; }
   $("#shareNo").onclick = () => { if (!$("#shareNeverRow").hidden && $("#shareNever").checked) setShare({ never: true }); $("#shareAsk").close(); };
 
   // Settings → Help train the checker (wherever it's offered).

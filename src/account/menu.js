@@ -1,7 +1,7 @@
   // ---------- public site: the account at the top right ----------
   // Beside the gear: a guest says so, and its menu offers signing in. Signed in, the gear steps aside and the person's
   // nickname (or their Google name) opens a menu with Settings and Sign out. The nickname is the account's own,
-  // data/users/<uid>/profile, set in Settings → Account.
+  // data/users/<uid>/profile, set in Settings → Account. The same profile holds the birth month and year (account/birth.js).
   let nickname = "";
   const shownName = () => nickname || account?.name || String(account?.email || "").split("@")[0] || "Account";
   const acctOpen = () => !$("#acctList").hidden;
@@ -42,7 +42,13 @@
   // The nickname: kept with the account, shown at the top right, changed in Settings → Account.
   const profileRef = () => db.doc(`data/users/${uid}/profile`);
   function watchProfile() {
-    profileRef().onSnapshot((snap) => { nickname = tidy(snap.exists ? snap.data()?.nickname : "", 40); renderAcctMenu(); renderNick(); }, () => {});
+    profileRef().onSnapshot((snap) => { const p = snap.exists ? snap.data() : {}; nickname = tidy(p?.nickname, 40); born = cleanBorn(p?.born); renderAcctMenu(); renderNick(); renderBorn(); }, () => {});
+  }
+  // The profile is saved whole: what changes, with the rest as it is.
+  async function saveProfile(change) {
+    const p = { nickname, born, ...change };
+    await profileRef().set({ ...p, updatedAt: new Date().toISOString() });
+    ({ nickname, born } = p);
   }
   function renderNick() {
     $("#nickRow").hidden = !account;
@@ -57,7 +63,7 @@
     e.preventDefault();
     const v = tidy($("#nickIn").value, 40), b = $("#nickSave");
     b.disabled = true; b.textContent = "Saving…";
-    try { await profileRef().set({ nickname: v, updatedAt: new Date().toISOString() }); nickname = v; $("#nickIn").value = v; renderAcctMenu(); syncNick(v ? "Saved." : "Saved. Your Google name shows instead."); }
+    try { await saveProfile({ nickname: v }); $("#nickIn").value = v; renderAcctMenu(); syncNick(v ? "Saved." : "Saved. Your Google name shows instead."); }
     catch { syncNick("Couldn't save. Try again."); }
     b.textContent = "Save";
   };

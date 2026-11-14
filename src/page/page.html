@@ -51,6 +51,8 @@ colours.apply(...colours.saved()); // before anything is drawn
       <p><span id="shareCount"></span>The checker that reads your writing learns best from real handwriting like yours. If you say yes, each answer you write from now on is saved to your account with:</p>
       <ul><li>the strokes you drew: their shape, timing and pen pressure</li><li>the word you were answering, and how the checker and you marked it</li><li>whether you wrote with a pen, a finger or a mouse</li></ul>
       <p>It's used to build better handwriting recognition, for this site and for products made from it, which may be offered to schools or other companies. If the site becomes or joins a company, your shared handwriting goes with it. You can turn sharing off or delete what you've shared any time in Settings; models already trained on it stay as they are. Only say yes if you're 16 or older.</p>
+      <div class="bornask"><span class="tiph" id="shareBornLab">Your birth month and year <span id="shareBornTip"></span></span><span id="shareBorn" role="group" aria-labelledby="shareBornLab"></span></div>
+      <p class="small" id="shareAgeMsg" role="status" hidden></p>
       <label class="checkrow" id="shareNeverRow" hidden><input type="checkbox" id="shareNever"> Don't ask me again</label>
       <div class="tactions shareact"><button class="btn" type="button" id="shareNo">Not now</button><button class="btn primary" type="button" id="shareYes">Yes, share my handwriting</button></div>
     </div></dialog>
@@ -307,6 +309,10 @@ colours.apply(...colours.saved()); // before anything is drawn
             <form class="nickform" id="nickForm"><input type="text" id="nickIn" maxlength="40" autocomplete="nickname" aria-label="Nickname"><button class="btn primary" type="submit" id="nickSave" disabled>Save</button><span class="muted small" id="nickMsg" role="status"></span></form>
             <p class="muted small">Shown at the top right of the page. Leave it empty to show your Google name.</p>
           </section>
+          <section id="bornRow" hidden><h3 class="tiph" id="bornLab">Birth month and year <span id="bornTipAt"></span></h3>
+            <div class="bornrow"><span id="bornIn" role="group" aria-labelledby="bornLab"></span><button class="link" type="button" id="bornClear" hidden>Clear</button><span class="muted small" id="bornMsg" role="status"></span></div>
+            <p class="muted small">Optional. You can leave it empty.</p>
+          </section>
           <section><h3>Delete</h3><div id="delAcct"></div></section>
         </div>
 <!--#endif-->
@@ -465,6 +471,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   //#include checking/builtin.js
   //#include account/account.js
   //#include account/menu.js
+  //#include account/birth.js
   //#include tour/tour.js
   //#include account/share.js
   //#include account/policy-notice.js
