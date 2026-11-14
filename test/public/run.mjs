@@ -897,6 +897,14 @@ await op.reload(); await op.waitForTimeout(800);
 ok(await vis(op, "#policyNote"), "admin: after Show it on my next visit, the notice comes on the next visit");
 await op.click("#policyClose"); await op.waitForTimeout(1200);
 ok((await fsData(op))["users/t1/data/prefs"]?.policySeen === await op.evaluate(() => JSON.parse(localStorage.getItem("jpq:policySeen"))) && !(await vis(op, "#policyNote")), "policy notice: closing it is saved with the account's choices", (await fsData(op))["users/t1/data/prefs"]?.policySeen);
+// Admin: the 3 month wait on the birth month and year, ended for the developer's own account
+await settings(op, "account"); await op.waitForTimeout(200);
+const waiting = !(await vis(op, "#bornIn")) && !!(await fsData(op))["users/t1/data/profile"]?.bornAt;
+await settings(op, "admin"); await op.click("#devBornReset"); await op.waitForTimeout(300);
+const resetSaid = await text(op, "#devBornMsg");
+await settings(op, "account"); await op.waitForTimeout(200);
+ok(waiting && /wait is over/.test(resetSaid) && (await fsData(op))["users/t1/data/profile"]?.bornAt === "" && await vis(op, "#bornIn") && await vis(op, "#bornSave"), "admin: Reset the 3 month wait lets the birth month and year be given again", resetSaid);
+await op.click("#settingsClose");
 ok(op.errors.length === 0, "dev tools: no page errors", op.errors.join(" | "));
 // guests are never asked: their handwriting stays in the browser
 const gp = await newPage(await browser.newContext(), { init: () => {

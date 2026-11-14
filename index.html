@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-diA4qOMFe5An9nZNHobnjL4XLWycqlBal3fwdFvk36M=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-1Kk93Im0CzaJMH+cB92RrmkxUmAza9aMvvd/SOVBUH4=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -950,6 +950,11 @@ colours.apply(...colours.saved()); // before anything is drawn
             <p class="muted small" id="devPolicyInfo"></p>
             <div class="tactions"><button class="btn" type="button" id="devPolicyNow">Show it now</button><button class="btn" type="button" id="devPolicyNext">Show it on my next visit</button></div>
             <p class="muted small" id="devPolicyMsg" hidden></p>
+          </section>
+          <section><h3>Birth month and year</h3>
+            <p class="muted small">Once given, it can be changed after 3 months. This ends the wait for your own account, so you can give it again.</p>
+            <div class="tactions"><button class="btn" type="button" id="devBornReset">Reset the 3 month wait</button></div>
+            <p class="muted small" id="devBornMsg" hidden></p>
           </section>
           <section><h3>Practice</h3>
             <label class="checkrow"><input type="checkbox" id="roundListOn"> Show the words of this round during a practice: the one on screen, the ones still to come, and the ones missed (in this browser)</label>
@@ -4102,6 +4107,13 @@ colours.apply(...colours.saved()); // before anything is drawn
   $("#bornForm").onsubmit = (e) => { e.preventDefault(); if (bornIn.get() && !bornWait()) keepBorn(bornIn.get()); };
   $("#bornClear").onclick = () => keepBorn("");
   $("#settings").addEventListener("leave", () => { bornMsg(""); renderBorn(); });
+  // Admin: the wait ended for the developer's own account, to try giving it again.
+  $("#devBornReset").onclick = async () => {
+    if (!isDev) return;
+    const say = sayIn($("#devBornMsg"));
+    try { await saveProfile({ bornAt: "" }); renderBorn(); say("The wait is over. Change it in Account, or say yes to the sharing question."); }
+    catch { say("It couldn't be reset. Try again."); }
+  };
   function renderBorn() {
     $("#bornRow").hidden = !account;
     bornIn.set(born); $("#bornSave").hidden = !!bornIn.draw(); $("#bornClear").hidden = !born; syncBorn();

@@ -89,6 +89,13 @@
   $("#bornForm").onsubmit = (e) => { e.preventDefault(); if (bornIn.get() && !bornWait()) keepBorn(bornIn.get()); };
   $("#bornClear").onclick = () => keepBorn("");
   $("#settings").addEventListener("leave", () => { bornMsg(""); renderBorn(); });
+  // Admin: the wait ended for the developer's own account, to try giving it again.
+  $("#devBornReset").onclick = async () => {
+    if (!isDev) return;
+    const say = sayIn($("#devBornMsg"));
+    try { await saveProfile({ bornAt: "" }); renderBorn(); say("The wait is over. Change it in Account, or say yes to the sharing question."); }
+    catch { say("It couldn't be reset. Try again."); }
+  };
   function renderBorn() {
     $("#bornRow").hidden = !account;
     bornIn.set(born); $("#bornSave").hidden = !!bornIn.draw(); $("#bornClear").hidden = !born; syncBorn();
