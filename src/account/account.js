@@ -33,11 +33,11 @@
     $("#signOutBtn").textContent = account ? "Sign out" : "Sign in with Google"; $("#signOutBtn").classList.toggle("danger", !!account);
     $("#acctErr").hidden = true;
     $("#signOutBtn").onclick = account ? () => platform.signOut() : () => signIn($("#signOutBtn"), (m) => { $("#acctErr").textContent = m; $("#acctErr").hidden = false; });
-    const what = account ? "your account and its sets, kanji lists and practice history" : "the sets, kanji lists and practice history saved in this browser";
+    const what = account ? "your account and its sets, kanji lists and progress" : "the sets, kanji lists and progress saved in this browser";
     $("#delAcct").innerHTML = !delAsk
       ? account ? `<button class="btn danger" type="button" id="delStart">Delete my account</button>`
         : `<div class="delrow"><button class="btn danger" type="button" id="delStart" aria-describedby="delTip">Delete local storage</button>
-          ${qtip("delTip", "What this does", "This deletes all local data (sets, kanji lists, practice history and settings), refreshes the page and treats you as a new user.")}</div>`
+          ${qtip("delTip", "What this does", "This deletes all local data (sets, kanji lists, progress and settings), refreshes the page and treats you as a new user.")}</div>`
       : `<p class="small">This deletes ${what}, for good. Export your vocab first if you want a copy.</p>
         <div class="tactions"><button class="btn danger" type="button" id="delYes">Delete everything</button><button class="btn" type="button" id="delNo">Cancel</button></div>
         <p class="keyerr small" id="delErr" hidden></p>`;

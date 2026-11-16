@@ -59,6 +59,6 @@
       histPortMsg(`Adding ${n + 1} of ${add.length}…`);
       try { await db.collection("data/users/" + uid).doc(id).set(doc); n++; } catch { break; }
     }
-    histPortMsg(n === add.length ? `Added ${plural(n, "session")} to your history.` : `Stopped after ${n} of ${add.length}. Import the file again to add the rest.`);
+    histPortMsg(n === add.length ? `Added ${plural(n, "session")} to your progress.` : `Stopped after ${n} of ${add.length}. Import the file again to add the rest.`);
     histBusy = false; renderHistPort();
   }

@@ -23,7 +23,7 @@ function write(path, value) {
     if (value === undefined) localStorage.removeItem(PREFIX + path);
     else localStorage.setItem(PREFIX + path, JSON.stringify(value)); // JSON drops undefined fields, like ignoreUndefinedProperties
   } catch (e) {
-    throw { code: "resource-exhausted", message: "This browser's storage for Q-Card is full. Export your sets, then delete some practice history." };
+    throw { code: "resource-exhausted", message: "This browser's storage for Q-Card is full. Export your sets, then delete some practice sessions in Progress." };
   }
   changed();
 }

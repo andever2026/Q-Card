@@ -59,7 +59,7 @@
       histChanged();
     }, () => {});
   }
-  const histBlockedText = () => `${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so practice history is off." : "Your access to this page doesn't allow saving practice history."} You can still practice as much as you like.`;
+  const histBlockedText = () => `${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so progress tracking is off." : "Your access to this page doesn't allow saving your progress."} You can still practice as much as you like.`;
   const histWhereText = () => inBrowser()
     ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it in Progress at any time."
     : "";
@@ -284,7 +284,7 @@
     const w = $("#delAllWrap");
     if (state === "confirm") w.innerHTML = `<span class="small">Delete all ${S.history.length} practice sessions and stop saving new ones? This can't be undone.</span><button class="btn danger" id="delAllYes">Delete all and turn off</button><button class="btn" id="delAllNo">Keep</button>`;
     else if (state) w.innerHTML = `<span class="small muted">${esc(state)}</span>`;
-    else w.innerHTML = `<button class="ghost small" id="delAll">Delete and turn off history</button>`;
+    else w.innerHTML = `<button class="ghost small" id="delAll">Delete and turn off progress tracking</button>`;
   }
   let deletingAll = false;
   $("#delAllWrap").addEventListener("click", async (e) => {

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-cykLwUaj+XHm7hKjnqrzdO9RqFZ8zNyViJSyYPh7Aqw=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-bumMbYNB4FQUi8XNVHV5bTWKVskAJRokTToz6XTKMOk=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -2661,7 +2661,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       histChanged();
     }, () => {});
   }
-  const histBlockedText = () => `${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so practice history is off." : "Your access to this page doesn't allow saving practice history."} You can still practice as much as you like.`;
+  const histBlockedText = () => `${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so progress tracking is off." : "Your access to this page doesn't allow saving your progress."} You can still practice as much as you like.`;
   const histWhereText = () => inBrowser()
     ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it in Progress at any time."
     : "";
@@ -2886,7 +2886,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const w = $("#delAllWrap");
     if (state === "confirm") w.innerHTML = `<span class="small">Delete all ${S.history.length} practice sessions and stop saving new ones? This can't be undone.</span><button class="btn danger" id="delAllYes">Delete all and turn off</button><button class="btn" id="delAllNo">Keep</button>`;
     else if (state) w.innerHTML = `<span class="small muted">${esc(state)}</span>`;
-    else w.innerHTML = `<button class="ghost small" id="delAll">Delete and turn off history</button>`;
+    else w.innerHTML = `<button class="ghost small" id="delAll">Delete and turn off progress tracking</button>`;
   }
   let deletingAll = false;
   $("#delAllWrap").addEventListener("click", async (e) => {
@@ -3787,7 +3787,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       histPortMsg(`Adding ${n + 1} of ${add.length}…`);
       try { await db.collection("data/users/" + uid).doc(id).set(doc); n++; } catch { break; }
     }
-    histPortMsg(n === add.length ? `Added ${plural(n, "session")} to your history.` : `Stopped after ${n} of ${add.length}. Import the file again to add the rest.`);
+    histPortMsg(n === add.length ? `Added ${plural(n, "session")} to your progress.` : `Stopped after ${n} of ${add.length}. Import the file again to add the rest.`);
     histBusy = false; renderHistPort();
   }
 
@@ -4036,11 +4036,11 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#signOutBtn").textContent = account ? "Sign out" : "Sign in with Google"; $("#signOutBtn").classList.toggle("danger", !!account);
     $("#acctErr").hidden = true;
     $("#signOutBtn").onclick = account ? () => platform.signOut() : () => signIn($("#signOutBtn"), (m) => { $("#acctErr").textContent = m; $("#acctErr").hidden = false; });
-    const what = account ? "your account and its sets, kanji lists and practice history" : "the sets, kanji lists and practice history saved in this browser";
+    const what = account ? "your account and its sets, kanji lists and progress" : "the sets, kanji lists and progress saved in this browser";
     $("#delAcct").innerHTML = !delAsk
       ? account ? `<button class="btn danger" type="button" id="delStart">Delete my account</button>`
         : `<div class="delrow"><button class="btn danger" type="button" id="delStart" aria-describedby="delTip">Delete local storage</button>
-          ${qtip("delTip", "What this does", "This deletes all local data (sets, kanji lists, practice history and settings), refreshes the page and treats you as a new user.")}</div>`
+          ${qtip("delTip", "What this does", "This deletes all local data (sets, kanji lists, progress and settings), refreshes the page and treats you as a new user.")}</div>`
       : `<p class="small">This deletes ${what}, for good. Export your vocab first if you want a copy.</p>
         <div class="tactions"><button class="btn danger" type="button" id="delYes">Delete everything</button><button class="btn" type="button" id="delNo">Cancel</button></div>
         <p class="keyerr small" id="delErr" hidden></p>`;
@@ -4354,7 +4354,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     { view: "setup", at: () => [$("#acctBtn"), $("#settingsBtn")], title: "Settings and your account",
       get text() { return `${isWide() ? "" : "☰ opens the menu: Vocabulary, Progress and Extra tools. "}Guest is where you sign in. Beside it, the gear opens Settings: colours, light or dark, your account, export / import, and deleting your data.`; } },
     { title: "That's the tour!", end: true,
-      text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and history on all your devices." },
+      text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and progress on all your devices." },
   ];
   const tour = { i: -1, on: false, checked: false, doneAtStart: false, since: 0, frame: 0, card: null, spot: null };
   const tourEls = (st) => { const a = st?.at?.(); return (Array.isArray(a) ? a : [a]).filter(vis); };

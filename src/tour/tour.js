@@ -58,7 +58,7 @@
     { view: "setup", at: () => [$("#acctBtn"), $("#settingsBtn")], title: "Settings and your account",
       get text() { return `${isWide() ? "" : "☰ opens the menu: Vocabulary, Progress and Extra tools. "}Guest is where you sign in. Beside it, the gear opens Settings: colours, light or dark, your account, export / import, and deleting your data.`; } },
     { title: "That's the tour!", end: true,
-      text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and history on all your devices." },
+      text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and progress on all your devices." },
   ];
   const tour = { i: -1, on: false, checked: false, doneAtStart: false, since: 0, frame: 0, card: null, spot: null };
   const tourEls = (st) => { const a = st?.at?.(); return (Array.isArray(a) ? a : [a]).filter(vis); };
