@@ -7,7 +7,9 @@
   // checking/claude.js, the built-in checker in checking/builtin.js) answers with what to do once the page is no longer
   // busy, and CHECK_ERR has that version's messages for what can go wrong.
   async function check() {
-    if (main.empty || Q.busy) return;
+    if (Q.busy || Q.answered) return;
+    // Nothing written: the answer and the scratch pad, with nothing to mark as correct.
+    if (main.empty) { grade(false, { reason: "Nothing was written. Here's the answer." }); $("#overrideBtn").hidden = true; return; }
     const cur = Q.cur;
     Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true;
     let then = null;

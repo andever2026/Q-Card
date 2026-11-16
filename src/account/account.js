@@ -30,7 +30,7 @@
     renderNick(); renderBorn();
     $("#acctName").innerHTML = account ? `Signed in with Google as <b>${esc(account.email || account.name || "")}</b>.`
       : "Not signed in. As a guest, everything is kept in this browser on this device.";
-    $("#signOutBtn").textContent = account ? "Sign out" : "Sign in with Google";
+    $("#signOutBtn").textContent = account ? "Sign out" : "Sign in with Google"; $("#signOutBtn").classList.toggle("danger", !!account);
     $("#acctErr").hidden = true;
     $("#signOutBtn").onclick = account ? () => platform.signOut() : () => signIn($("#signOutBtn"), (m) => { $("#acctErr").textContent = m; $("#acctErr").hidden = false; });
     const what = account ? "your account and its sets, kanji lists and practice history" : "the sets, kanji lists and practice history saved in this browser";

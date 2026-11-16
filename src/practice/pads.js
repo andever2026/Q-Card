@@ -15,6 +15,7 @@
   // Every point the pointer passed through since the last event. Safari sometimes hands back an empty list, which would
   // drop the whole move, so the event itself stands in for it then.
   const coalesced = (e) => { const c = e.getCoalescedEvents ? e.getCoalescedEvents() : []; return c.length ? c : [e]; };
+  function endErase() { if (eraseG.erased.length) history.push({ erased: eraseG.erased }); eraseG = null; }
   class Pad {
     constructor(canvas, kind) {
       this.c = canvas; this.kind = kind; this.strokes = []; this.cur = null; this.onChange = () => {};
@@ -26,7 +27,7 @@
       canvas.addEventListener("pointerleave", (e) => { if (!active.has(e.pointerId) || active.get(e.pointerId) === this) this.up(e); });
       // The box keeps the pointer until the stroke ends; losing it any other way ends the stroke, so a pointerup
       // that never arrives can't leave the box refusing every stroke after it.
-      canvas.addEventListener("lostpointercapture", (e) => { if (this.cur && e.pointerId === this.curId) this.endCur(); });
+      canvas.addEventListener("lostpointercapture", (e) => { if (this.cur && e.pointerId === this.curId) this.endCur(); else if (eraseG?.id === e.pointerId) endErase(); });
       // iOS Safari still starts text selection and the loupe from touches (Apple Pencil included) unless the touch events themselves are cancelled.
       ["touchstart", "touchmove"].forEach((t) => canvas.addEventListener(t, (e) => e.preventDefault(), { passive: false }));
       new ResizeObserver(() => this.resize()).observe(canvas);
@@ -38,14 +39,15 @@
         // A palm that landed just before the pencil already started a stroke: drop it.
         for (const p of pads) if (p.cur && p.curType === "touch") p.dropCur();
       } else if (e.pointerType === "touch" && (penDown || performance.now() - penAt < PALM_MS)) return;
-      // There is only ever one pencil, so a pen stroke still open when another starts never got its pointerup
-      // (iPadOS loses one now and then): end it rather than turn the new stroke away.
-      if (this.cur && e.pointerType === "pen" && this.curType === "pen" && e.pointerId !== this.curId) this.endCur();
+      // There is only ever one pencil, so a pen stroke or eraser drag still open when the pencil comes down again never
+      // got its pointerup (iPadOS loses one now and then, and gives the pencil the same id each time): end it rather
+      // than turn the new stroke away.
+      if (e.pointerType === "pen") { for (const p of pads) if (p.cur && p.curType === "pen") p.endCur(); if (eraseG?.pen) endErase(); }
       if (this.cur || eraseG) return; // one stroke at a time per box
       e.preventDefault();
       try { this.c.setPointerCapture(e.pointerId); } catch {} // a pointer already gone would throw and lose the stroke
       // Eraser mode, or a stylus's own eraser end (buttons bit 32), removes whole strokes instead of drawing.
-      if (erasing || (e.pointerType === "pen" && e.buttons & 32)) { eraseG = { id: e.pointerId, erased: [] }; eraseAt(e); return; }
+      if (erasing || (e.pointerType === "pen" && e.buttons & 32)) { eraseG = { id: e.pointerId, pen: e.pointerType === "pen", erased: [] }; eraseAt(e); return; }
       this.curType = e.pointerType; this.curId = e.pointerId; active.set(e.pointerId, this);
       this.ink = cssVar("--ink"); // read once a stroke, not once a point
       this.cur = [this.pt(e)]; this.cur.gid = ++gidSeq;
@@ -81,7 +83,7 @@
     }
     up(e) {
       if (e?.pointerType === "pen") { penDown = false; penAt = performance.now(); }
-      if (eraseG && (!e || e.pointerId === eraseG.id)) { if (eraseG.erased.length) history.push({ erased: eraseG.erased }); eraseG = null; return; }
+      if (eraseG && (!e || e.pointerId === eraseG.id)) return endErase();
       if (!this.cur || (e && e.pointerId !== this.curId)) return;
       this.endCur();
     }
@@ -155,7 +157,8 @@
   const redrawAll = () => pads.forEach((p) => p.draw());
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawAll);
   new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  const syncCheck = () => { $("#checkBtn").disabled = main.empty || Q.busy || Q.answered; };
+  // Check works with nothing written too: it shows the answer (checking/grading.js).
+  const syncCheck = () => { $("#checkBtn").disabled = Q.busy || Q.answered; };
   furi.onChange = main.onChange = () => { syncCheck(); inkChanged(); };
   // Undo the latest stroke or eraser drag that touched one of these boxes; entries whose strokes are already gone are skipped.
   function undoIn(ps) {

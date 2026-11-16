@@ -35,8 +35,7 @@
   const setCols = () => cols().filter((b) => S.sets.some((s) => colOf(s) === b));
   const unitsOf = (col) => [...new Set(S.sets.filter((s) => colOf(s) === col).map((s) => s.unit))];
   const colKeys = (col) => unitsOf(col).map((c) => `${col}\u0001${c}`);
-  // A unit picker: one row of chips per collection of the view picked (vocab/views.js), with any units that view has in no
-  // collection under "Other".
+  // A unit picker: one row of chips per collection of the view picked (vocab/views.js); units that view hides aren't there.
   // Each collection shows all, none or some of its units: st.show maps collection -> "all" | "none" | "some" (missing = "all"),
   // and st.picks holds the unitKey()s shown for "some". o: { st, showKey, chsKey, cols(), keys(col), bar, rows, dot(key), onChange() }.
   function makePicker(o) {
@@ -89,7 +88,7 @@
         if (lab) {
           const ctx = (makePicker.cv ||= document.createElement("canvas")).getContext("2d");
           ctx.font = getComputedStyle(lab).font;
-          const names = [...o.cols().map(colLabel), ...altViews().flatMap((v) => v.collections.map((c) => c.name)), "Other"];
+          const names = [...o.cols().map(colLabel), ...altViews().flatMap((v) => v.collections.map((c) => c.name))];
           const w = Math.max(...names.flatMap((n) => n.split("\n")).map((t) => ctx.measureText(t).width));
           o.bar.style.setProperty("--labw", Math.ceil(w) + 1 + "px");
         }
@@ -105,6 +104,12 @@
         }));
       },
     };
+    // Holding a unit, a row's All or its name shows the words of its sets (vocab/word-card.js).
+    onHold(o.rows, "[data-k], .chbook", (el) => {
+      const g = p.groups()[+el.closest("[data-g]").dataset.g], k = el.dataset.k, one = k != null && k !== "all";
+      const name = g.name.replace(/\n/g, " "), keys = one ? [g.keys[+k]] : g.keys;
+      wordCard(one ? `${name} › ${keyUnit(keys[0])}` : name, cardParts(setsOfKeys(keys), one));
+    });
     return p;
   }
   const PP = makePicker({ st: S.pick, showKey: "bookShow", chsKey: "pickChs", cols: setCols, keys: colKeys, bar: $("#pickBar"), rows: $("#pickChs"),
@@ -140,6 +145,11 @@
     if (on.length) $("#tagClear").onclick = () => { S.pickTags.clear(); save(); };
   }
   $("#pickClear").onclick = () => { if (S.selected.size) S.selected.clear(); else canPick.forEach((x) => S.selected.add(x.id)); saveSetup(); renderSetup(); };
+  // Holding a set, or a unit's name above its sets, shows their words.
+  onHold($("#setPicker"), "[data-set], [data-u]", (el) => {
+    const s = S.sets.find((x) => x.id === el.dataset.set), sets = s ? [s] : S.sets.filter((x) => unitKey(x) === el.dataset.u);
+    if (sets.length) wordCard([colOf(sets[0]), sets[0].unit, s?.name].filter(Boolean).join(" › "), cardParts(sets, true));
+  });
   function renderSetup() {
     const box = $("#setPicker");
     if (!S.loaded) return;
@@ -151,13 +161,13 @@
       //#if public
       if (samplesState) box.innerHTML = `<div class="empty"><b>${samplesState === "adding" ? "Adding the sample sets…" : "Loading your sets…"}</b></div>`;
       else {
-        box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets in Vocabularies.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open Vocabularies</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
+        box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets in Vocabulary.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open Vocabulary</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
         $("#emptyImport").onclick = () => { openSettings("data"); $("#importBtn").click(); };
         $("#emptyTable").onclick = () => { renderTable(); show("table"); };
         $("#emptySamples").onclick = (e) => { e.target.disabled = true; addSamples().catch(() => { e.target.disabled = false; banner("The sample sets couldn't be added. Try again."); }); };
       }
       //#else
-      box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>${canWrite ? "Add your first set in Vocabularies." : "The owner hasn't added any sets yet."}</span></div>`;
+      box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>${canWrite ? "Add your first set in Vocabulary." : "The owner hasn't added any sets yet."}</span></div>`;
       //#endif
     } else {
       // Sets with no ready words can't be picked.
@@ -200,7 +210,7 @@
         : groups.map((sets, i) => {
         const name = esc(sets[0].unit);
         const usable = sets.filter((s) => readyCount(s.words)), all = usable.length && usable.every((s) => S.selected.has(s.id));
-        return `<div class="chapter"><div class="chrow"><span class="unit">${multi ? `${esc(colLabel(colOf(sets[0])))} › ${name}` : name}</span>${usable.length ? `<button class="link" data-all="${i}">${all ? "Clear" : "Select all"}</button>` : ""}</div>
+        return `<div class="chapter"><div class="chrow"><span class="unit" data-u="${esc(unitKey(sets[0]))}">${multi ? `${esc(colLabel(colOf(sets[0])))} › ${name}` : name}</span>${usable.length ? `<button class="link" data-all="${i}">${all ? "Clear" : "Select all"}</button>` : ""}</div>
           <div class="chips">${sets.map((s) => { const n = readyCount(s.words); return `<button class="chip" data-set="${esc(s.id)}" aria-pressed="${!!n && S.selected.has(s.id)}"${n ? "" : ` disabled title="No words yet"`}>${esc(s.name)}<span class="n">${n}</span></button>`; }).join("")}</div></div>`;
       }).join("");
       box.querySelectorAll("[data-set]").forEach((b) => (b.onclick = () => { const id = b.dataset.set; S.selected.has(id) ? S.selected.delete(id) : S.selected.add(id); saveSetup(); renderSetup(); }));
@@ -244,7 +254,7 @@
     sel.innerHTML = opts.map(opt).join("");
     const set = learnedSet(), key = uptoKey(), list = lists.find((k) => unitKey(k) === key);
     const upTo = S.upto !== "auto" ? "" : !S.selected.size ? "Follows the sets you pick" : list ? `Up to ${unitTitle(list)} · ` : "";
-    $("#uptoHint").textContent = !lists.length ? "Add kanji lists to units in Vocabularies to choose a unit." : S.upto === "auto" && !S.selected.size ? upTo : set ? `${upTo}${set.size} kanji learned` : "";
+    $("#uptoHint").textContent = !lists.length ? "Add kanji lists to units in Vocabulary to choose a unit." : S.upto === "auto" && !S.selected.size ? upTo : set ? `${upTo}${set.size} kanji learned` : "";
   }
   $("#uptoSel").onchange = (e) => { S.upto = e.target.value; store.set("uptoPick", S.upto); renderUpto(); };
   // The list "Highest unit of the picked sets" stands for: the last kanji list at or before the furthest picked unit
@@ -261,5 +271,4 @@
   function saveSetup() { store.set("selected", [...S.selected]); store.set("dir", S.dir); store.set("mode", S.mode); }
   document.querySelectorAll("#dirSeg button").forEach((b) => (b.onclick = () => { S.dir = b.dataset.dir; saveSetup(); renderSetup(); }));
   document.querySelectorAll("#modeSeg button").forEach((b) => (b.onclick = () => { S.mode = b.dataset.mode; saveSetup(); renderSetup(); }));
-  $("#toTable").onclick = () => { renderTable(); show("table"); };
   $("#backBtn").onclick = () => leaveTable();

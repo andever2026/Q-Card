@@ -103,7 +103,7 @@
       let file = null;
       try { file = JSON.parse(await f.text()); } catch {}
       if (!file) return say("That file couldn't be read. Pick a .json file made for Japanese Vocab Practice.");
-      if (file?.app === APP && file.kind === "history") return say("This is a practice history file. Import it in Settings → Practice history.");
+      if (file?.app === APP && file.kind === "history") return say("This is a progress file. Import it in Settings → Data → Progress export / import.");
       if (typeof file !== "object" || file.app !== APP || !Array.isArray(file.sets)) return say("This isn't a Japanese Vocab Practice file." + (hint && " " + hint));
       try { plan = planImport(file, f.name, await stored()); }
       catch { return say("Your vocab couldn't be read just now, so the file can't be compared with it. Reload the page and try again."); }

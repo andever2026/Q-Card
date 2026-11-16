@@ -5,66 +5,48 @@
     const box = $("#kanjiLists"), all = S.kanjiLists;
     // The lists for the units picked in the vocab table, or every list.
     const picked = all.filter((k) => TP.has(unitKey(k))), every = S.kAll || picked.length === all.length;
-    const lists = all.filter((k) => every || TP.has(unitKey(k)) || S.kdrafts.has(k.id)), name = unitTitle;
+    const lists = all.filter((k) => every || TP.has(unitKey(k)) || dirtyList(k)), name = unitTitle;
     $("#kanjiCount").textContent = lists.length ? `${new Set(lists.flatMap((k) => [...(k.kanji || "")])).size} kanji` : "";
     $("#kSummary").textContent = !all.length ? "" : every && all.length > 1 ? `All ${all.length} kanji lists` : lists.length === 1 ? name(lists[0]) : lists.length ? `${lists.length} kanji lists` : "";
     $("#kAllBtn").hidden = !all.length || picked.length === all.length;
     $("#kAllBtn").textContent = S.kAll ? "Show only the units shown above" : "Show all units";
     if (!all.length) { box.innerHTML = `<div class="empty"><span>No kanji lists yet${canWrite ? ". Add a unit below and paste its kanji." : "."}</span></div>`; return; }
     if (!lists.length) { box.innerHTML = `<div class="empty"><span>${TP.shownKeys().length ? "The units shown have no kanji lists" : "No units shown"}${canWrite ? ". Add one below if a unit teaches kanji." : "."}</span></div>`; return; }
+    // Like a set: the kanji read as text until Edit, which opens the collection, unit and kanji for editing; Save stores them.
     box.innerHTML = lists.map((k) => {
-      const dirty = S.kdrafts.has(k.id), v = dirty ? S.kdrafts.get(k.id) : k.kanji || "", del = S.kConfirmDel === k.id;
-      const editing = canWrite && S.kEdit === k.id;
-      const head = editing
-        ? `<form class="newset setedit" data-kform><label>Collection<input data-kcol list="colList" value="${esc(S.kEditCol)}" required></label><label>Unit<input data-kunit list="unitList" value="${esc(S.kEditUnit)}" required></label><button class="btn primary" type="submit">Save</button><button class="btn" type="button" data-kcancel>Cancel</button><span class="editerr" data-kerr></span></form>`
-        : `<div class="head"><h2>${esc(name(k))}</h2><span class="muted small" data-kcount="${esc(k.id)}">${onlyKanji(v).length} kanji</span></div>`;
-      if (!canWrite) return `<div class="krow">${head}<span class="ro">${esc(v) || "—"}</span></div>`;
-      return `<div class="krow" data-kid="${esc(k.id)}">${head}
-        <input type="text" id="k-${esc(k.id)}" value="${esc(v)}" placeholder="Paste this unit's kanji" aria-label="Kanji for ${esc(name(k))}">
-        <div class="tactions"><button class="btn primary" data-ksave ${dirty ? "" : "disabled"}>Save</button>${dirty ? `<span class="dirty">Unsaved changes</span><button class="link" data-kdiscard>Discard</button>` : ""}
-          <span style="flex:1"></span>${del ? `<span class="small">Delete this kanji list?</span><button class="btn danger" data-kdel-yes>Delete</button><button class="btn" data-kdel-no>Keep</button>` : `${editing ? "" : `<button class="ghost small" data-kedit>Edit unit</button>`}<button class="ghost small" data-kdel>Delete list</button>`}</div>
+      const d = canWrite ? S.kdrafts.get(k.id) : null, dirty = dirtyList(k), v = d ? d.kanji : k.kanji || "", del = S.kConfirmDel === k.id;
+      const field = (f, label, more = "") => `<label>${label}<input id="kf-${esc(k.id)}-${f}" data-kf="${f}" value="${esc(d[f])}"${more}${d[f] !== (f === "collection" ? colOf(k) : k[f]) ? ` class="chg"` : ""}></label>`;
+      return `<div class="tset open kset${d ? " editing" : ""}" data-kid="${esc(k.id)}">
+        <h3 class="tseth"><span class="tsethead"><span class="t">${esc(name(k))}</span><span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted" data-kcount>${onlyKanji(v).length} kanji</span></span></span>${canWrite && !d ? `<button class="btn" type="button" data-kedit>Edit</button>` : ""}</h3>
+        ${d ? `<div class="newset setedit">${field("collection", "Collection", ` list="colList"`)}${field("unit", "Unit", ` list="unitList"`)}</div>
+          <input type="text" class="kin${d.kanji !== (k.kanji || "") ? " chg" : ""}" id="k-${esc(k.id)}" data-kf="kanji" value="${esc(v)}" placeholder="Paste this unit's kanji" aria-label="Kanji for ${esc(name(k))}">
+          <div class="tactions editbar"><button class="btn primary" data-ksave ${dirty ? "" : "disabled"}>Save</button><button class="btn" data-kdiscard>${dirty ? "Discard changes" : "Cancel"}</button><span class="editerr" data-kerr></span>
+          <span style="flex:1"></span>${del ? `<span class="small">Delete this kanji list?</span><button class="btn danger" data-kdel-yes>Delete</button><button class="btn" data-kdel-no>Keep</button>` : `<button class="ghost small" data-kdel>Delete list</button>`}</div>`
+        : `<p class="kro">${esc(v) || `<span class="muted small">No kanji yet.${canWrite ? " Tap Edit to add some." : ""}</span>`}</p>`}
       </div>`;
     }).join("");
     if (!canWrite) return;
     box.querySelectorAll("[data-kid]").forEach((row) => {
-      const id = row.dataset.kid, k = lists.find((x) => x.id === id), inp = row.querySelector(`#k-${CSS.escape(id)}`);
-      inp.addEventListener("input", () => {
-        const was = S.kdrafts.has(id), now = inp.value !== (k.kanji || "");
-        now ? S.kdrafts.set(id, inp.value) : S.kdrafts.delete(id);
-        const kc = row.querySelector("[data-kcount]"); if (kc) kc.textContent = `${onlyKanji(inp.value).length} kanji`;
-        if (was !== now) { const pos = inp.selectionStart; renderKanji(); const el = document.getElementById(inp.id); el.focus(); el.setSelectionRange(pos, pos); }
-      });
-      inp.addEventListener("keydown", (e) => { if (e.key === "Enter" && S.kdrafts.has(id)) row.querySelector("[data-ksave]").click(); });
+      const id = row.dataset.kid, k = lists.find((x) => x.id === id), d = S.kdrafts.get(id);
+      const ke = row.querySelector("[data-kedit]");
+      if (ke) ke.onclick = () => { S.kdrafts.set(id, { collection: colOf(k), unit: k.unit, kanji: k.kanji || "" }); renderKanji(); const f = document.getElementById(`k-${id}`); f?.focus(); };
+      if (!d) return;
+      const err = (m) => { row.querySelector("[data-kerr]").textContent = m; };
+      const was = dirtyList(k);
+      row.querySelectorAll("[data-kf]").forEach((inp) => inp.addEventListener("input", () => {
+        const f = inp.dataset.kf; d[f] = inp.value; err("");
+        inp.classList.toggle("chg", inp.value !== (f === "collection" ? colOf(k) : f === "unit" ? k.unit : k.kanji || ""));
+        if (f === "kanji") row.querySelector("[data-kcount]").textContent = `${onlyKanji(inp.value).length} kanji`;
+        if (dirtyList(k) !== was) renderTableKeepFocus(inp.id);
+      }));
+      row.querySelector("#k-" + CSS.escape(id)).addEventListener("keydown", (e) => { if (e.key === "Enter" && dirtyList(k)) row.querySelector("[data-ksave]").click(); });
       row.querySelector("[data-ksave]").onclick = async (ev) => {
-        const b = ev.currentTarget;
-        b.disabled = true; b.textContent = "Saving…";
-        if (!(await saveKanji(id))) { b.textContent = "Save failed, try again"; b.disabled = false; return; }
-        renderKanji();
+        if (await whileSaving(ev.currentTarget, () => saveKanji(id, err))) renderTable();
       };
-      const dis = row.querySelector("[data-kdiscard]"); if (dis) dis.onclick = () => { S.kdrafts.delete(id); renderKanji(); };
+      row.querySelector("[data-kdiscard]").onclick = () => { S.kdrafts.delete(id); S.kConfirmDel = null; renderKanji(); };
       const d1 = row.querySelector("[data-kdel]"); if (d1) d1.onclick = () => { S.kConfirmDel = id; renderKanji(); };
       const dn = row.querySelector("[data-kdel-no]"); if (dn) dn.onclick = () => { S.kConfirmDel = null; renderKanji(); };
       const dy = row.querySelector("[data-kdel-yes]"); if (dy) dy.onclick = async () => { S.kConfirmDel = null; S.kdrafts.delete(id); try { await db.doc("kanji/" + id).delete(); } catch { banner("Couldn't delete that kanji list. Reload and try again."); } };
-      const ke = row.querySelector("[data-kedit]"); if (ke) ke.onclick = () => { S.kEdit = id; S.kEditUnit = k.unit; S.kEditCol = colOf(k); renderKanji(); row.ownerDocument.querySelector(`[data-kid="${CSS.escape(id)}"] [data-kunit]`)?.focus(); };
-      const kf = row.querySelector("[data-kform]");
-      if (kf) {
-        const err = (m) => { kf.querySelector("[data-kerr]").textContent = m; };
-        kf.querySelector("[data-kunit]").addEventListener("input", (e) => { S.kEditUnit = e.target.value; err(""); });
-        kf.querySelector("[data-kcol]").addEventListener("input", (e) => { S.kEditCol = e.target.value; err(""); });
-        kf.querySelector("[data-kcancel]").onclick = () => { S.kEdit = null; renderKanji(); };
-        kf.onsubmit = async (e) => {
-          e.preventDefault();
-          const col = canonCol(S.kEditCol), unit = canonUnit(col, S.kEditUnit);
-          if (!unit || !col) return err("Type a collection and a unit.");
-          if (S.kanjiLists.some((x) => x.id !== id && sameName(colOf(x), col) && sameName(x.unit, unit))) return err(`${col} › ${unit} already has a kanji list.`);
-          const b = kf.querySelector("[type=submit]"); b.disabled = true; b.textContent = "Saving…";
-          try { await db.doc("kanji/" + id).update({ collection: col, unit, updatedAt: new Date().toISOString() }); }
-          catch { b.disabled = false; b.textContent = "Save"; return err("Couldn't save. Try again."); }
-          if (S.upto === unitKey(k)) { S.upto = unitKey({ collection: col, unit }); store.set("uptoPick", S.upto); }
-          S.kEdit = null; pickUnit(unit, col);
-          renderTable(); renderUpto();
-        };
-      }
     });
   }
   $("#newKanjiForm").addEventListener("submit", async (e) => {
@@ -83,9 +65,21 @@
     renderUpto(); renderTable(); renderSetup();
   }
 
-  async function saveKanji(id) {
-    try { await db.doc("kanji/" + id).update({ kanji: onlyKanji(S.kdrafts.get(id) || ""), updatedAt: new Date().toISOString() }); S.kdrafts.delete(id); return true; }
-    catch { return false; }
+  // A kanji list being edited (S.kdrafts: id -> { collection, unit, kanji }) with something different from what's stored.
+  const dirtyList = (k) => { const d = S.kdrafts.get(k.id); return !!d && (d.kanji !== (k.kanji || "") || d.collection.trim() !== colOf(k) || d.unit.trim() !== k.unit); };
+  // Stores an edited kanji list: its kanji, and its collection and unit if they changed. err shows what's wrong; true = saved.
+  async function saveKanji(id, err = () => {}) {
+    const k = S.kanjiLists.find((x) => x.id === id), d = S.kdrafts.get(id);
+    if (!k || !d) return true;
+    const col = canonCol(d.collection), unit = canonUnit(col, d.unit);
+    if (!unit || !col) { err("Type a collection and a unit."); return false; }
+    if (S.kanjiLists.some((x) => x.id !== id && sameName(colOf(x), col) && sameName(x.unit, unit))) { err(`${col} › ${unit} already has a kanji list.`); return false; }
+    try { await db.doc("kanji/" + id).update({ collection: col, unit, kanji: onlyKanji(d.kanji), updatedAt: new Date().toISOString() }); }
+    catch { err("Couldn't save. Try again."); return false; }
+    if (S.upto === unitKey(k) && unitKey({ collection: col, unit }) !== S.upto) { S.upto = unitKey({ collection: col, unit }); store.set("uptoPick", S.upto); renderUpto(); }
+    S.kdrafts.delete(id);
+    if (col !== colOf(k) || unit !== k.unit) pickUnit(unit, col);
+    return true;
   }
   // Units picked like on the practice page, sets folded until opened; a search looks across every unit.
   // Unit chips come from every unit used by a vocab set or a kanji list.
@@ -169,14 +163,15 @@
   // A word's field grows with its text, so a long phrase wraps instead of scrolling sideways.
   const fit = CSS.supports("field-sizing", "content") ? () => {} : (t) => { t.style.height = "auto"; t.style.height = t.scrollHeight + 2 + "px"; };
   // Unsaved changes are asked about before they can be lost: on leaving the vocab table, and by the browser on leaving the page.
-  const unsavedSets = () => S.sets.filter(dirtySet), unsavedLists = () => S.kanjiLists.filter((k) => S.kdrafts.has(k.id));
+  const unsavedSets = () => S.sets.filter(dirtySet), unsavedLists = () => S.kanjiLists.filter(dirtyList);
   addEventListener("beforeunload", (e) => { if (unsavedSets().length || unsavedLists().length || colsDirty()) { e.preventDefault(); e.returnValue = ""; } });
   // to: the view to go to (page/nav.js), once the changes are saved or let go.
   function leaveTable(to = "setup") {
     // Whatever was opened for editing and left as it was just closes.
     for (const s of S.sets) if (!dirtySet(s)) S.drafts.delete(s.id);
+    for (const k of S.kanjiLists) if (!dirtyList(k)) S.kdrafts.delete(k.id);
     if (!colsDirty()) S.colEdit = null;
-    S.kEdit = S.confirmDel = S.kConfirmDel = null;
+    S.confirmDel = S.kConfirmDel = null;
     S.leaveTo = to; S.leaveAsk = true; renderLeave();
     if (!S.leaveAsk) openView(to); else window.scrollTo(0, 0);
   }

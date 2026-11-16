@@ -112,7 +112,7 @@ ok(await vis("#results") || /^2 of 2 done/.test(await text("#progLbl")), "check:
 // ---------- 3. export and import, shared with the public site ----------
 await page.click("#newBtn").catch(() => {}); await page.waitForTimeout(200);
 await page.click("#settingsBtn");
-ok(await page.evaluate(() => !document.querySelector("#settings").hidden && [...document.querySelectorAll("#setNav [data-set-tab]")].filter((b) => !b.hidden).map((b) => b.textContent).join(", ")) === "Appearance, Data, Practice history",
+ok(await page.evaluate(() => !document.querySelector("#settings").hidden && [...document.querySelectorAll("#setNav [data-set-tab]")].filter((b) => !b.hidden).map((b) => b.textContent).join(", ")) === "Appearance, Data",
   "settings: a page with its tabs, without the public site's Account, sharing, Developer tools and Admin");
 await page.click('#setNav [data-set-tab="data"]');
 ok(await vis("#portPanel") && !(await page.$("#aiHelp")), "settings: export / import is there, without the public site's AI link");
@@ -132,7 +132,7 @@ await page.click("#settingsClose");
 ok(await vis('[data-set="drinks"]'), "import: the new set shows on the page");
 
 // ---------- 4. the menu, the same as the public site's without Study tools (a page of the public site) ----------
-ok(await page.evaluate(() => [...document.querySelectorAll("#sideNav > *")].map((b) => b.textContent.trim()).join(", ")) === "Practice, Vocabularies, History", "menu: Practice, Vocab table and History, without the public site's Study tools");
+ok(await page.evaluate(() => [...document.querySelectorAll("#sideNav > *")].map((b) => b.textContent.trim()).join(", ")) === "Practice, Vocabulary, Progress", "menu: Practice, Vocabulary and Progress, without the public site's Study tools");
 await page.setViewportSize({ width: 1280, height: 1000 });
 await page.click('#sideNav [data-go="history"]'); await page.waitForTimeout(300);
 ok(await vis("#history") && await page.evaluate(() => getComputedStyle(document.querySelector("header.side")).position === "fixed"), "menu: a sidebar on a big screen, and History opens from it");

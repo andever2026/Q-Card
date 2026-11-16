@@ -1,4 +1,4 @@
-  // ---------- Settings → Practice history: the history as a file ----------
+  // ---------- Settings → Data → Progress export / import: the practice history as a file ----------
   // Export saves every session. Import adds the file's sessions that aren't here yet (matched by id), so a file from
   // another browser or account merges into this history; sessions already here are left as they are, none is deleted.
   const histPortMsg = sayIn($("#histPortMsg"));
@@ -17,7 +17,10 @@
     $("#histExport").disabled = !downloads || !S.history.length || histBusy;
     $("#histExport").title = !downloads ? "Saving files isn't available in this view." : S.history.length ? "" : "No practice sessions to export yet.";
     $("#histImport").disabled = off || histBusy;
-    $("#histImport").title = off ? "Turn on practice history first." : "";
+    $("#histImport").title = off ? "Turn on progress tracking first." : "";
+    // What an export holds now, in place of words about it.
+    const h = S.history, nw = h.reduce((a, t) => a + (t.words || []).length, 0);
+    $("#histPortSample").textContent = h.length ? `${h.length} session${h.length === 1 ? "" : "s"} · ${nw} word${nw === 1 ? "" : "s"} · ${fmtDay(h[h.length - 1].finishedAt)} to ${fmtDay(h[0].finishedAt)}` : "No practice sessions yet.";
     const p = histPlan, box = $("#histImportPreview");
     box.hidden = !p;
     if (!p) { box.innerHTML = ""; return; }
@@ -40,8 +43,8 @@
     histPortMsg(""); histPlan = null;
     let file = null;
     try { file = JSON.parse(await f.text()); } catch {}
-    if (file?.app === APP && Array.isArray(file.sets)) { renderHistPort(); return histPortMsg("This is a vocab file. Import it in Settings → Data."); }
-    if (file?.app !== APP || file.kind !== "history" || !Array.isArray(file.sessions)) { renderHistPort(); return histPortMsg("This isn't a practice history file. Pick a .json file saved with Export history."); }
+    if (file?.app === APP && Array.isArray(file.sets)) { renderHistPort(); return histPortMsg("This is a vocab file. Import it under Export / import above."); }
+    if (file?.app !== APP || file.kind !== "history" || !Array.isArray(file.sessions)) { renderHistPort(); return histPortMsg("This isn't a progress file. Pick a .json file saved with Export progress."); }
     const here = new Set(S.history.map((t) => t.id)), add = new Map();
     let skipped = 0, have = 0;
     for (const d of file.sessions) { const c = cleanSession(d); if (!c) skipped++; else if (here.has(String(d.id))) have++; else add.set(String(d.id), { id: String(d.id), ...c }); }

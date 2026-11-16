@@ -84,6 +84,9 @@ ok(!(await page.$("#palPick:not(#settings *)")) && !(await vis(page, "#settingsB
   "top bar: signed in, the gear steps aside and the account shows the Google name (no colour dots)", await text(page, "#acctLabel"));
 // Settings is a page of its own with tabs: open it (unless it's open: from the gear, or signed in the account menu) and pick the tab that has what's wanted.
 const setOpen = (p) => p.evaluate(() => !document.querySelector("#settings").hidden);
+// Vocabulary from the menu (☰ first on a narrower screen).
+const goView = async (p, v) => { if (!(await p.locator(`#sideNav [data-go="${v}"]`).isVisible())) { await p.click("#menuBtn"); await p.waitForTimeout(300); } await p.click(`#sideNav [data-go="${v}"]`); await p.waitForTimeout(300); };
+const goTable = (p) => goView(p, "table");
 const settings = async (p, tab) => {
   if (!(await setOpen(p))) { if (await vis(p, "#settingsBtn")) await p.click("#settingsBtn"); else { await p.click("#acctBtn"); await p.click('#acctList [data-acct="settings"]'); } }
   if (tab) await p.click(`#setNav [data-set-tab="${tab}"]`);
@@ -100,7 +103,7 @@ ok(!(await vis(page, "#acctList")), "account menu: a click elsewhere closes it")
 await page.click("#acctBtn"); await page.click('#acctList [data-acct="settings"]');
 ok(await setOpen(page) && !(await vis(page, "#setup")) && await page.evaluate(() => document.querySelector('#setNav [aria-current="page"]')?.dataset.setTab === "look" && getComputedStyle(document.querySelector("#palPick")).display !== "none" && !document.querySelector("#acctName").getClientRects().length),
   "settings: the account menu's Settings opens a page with tabs down the side, Appearance first, the other tabs' parts not shown");
-ok(await page.evaluate(() => [...document.querySelectorAll("#setNav [data-set-tab]")].filter((b) => !b.hidden).map((b) => b.textContent).join(", ")) === "Appearance, Account, Data, Practice history, Developer tools",
+ok(await page.evaluate(() => [...document.querySelectorAll("#setNav [data-set-tab]")].filter((b) => !b.hidden).map((b) => b.textContent).join(", ")) === "Appearance, Account, Data, Developer tools",
   "settings: the tabs (no Handwriting sharing where it isn't offered, no Admin for an account that isn't a developer)");
 await settings(page, "account");
 
@@ -127,6 +130,32 @@ await page.click('#pickTags [data-tag="phrases"]');
 ok((await shownSets()) === "samples-greetings,samples-verbs", "tags: picking a second tag adds its sets", await shownSets());
 await page.click("#tagClear");
 ok((await shownSets()).split(",").length === 6 && await page.evaluate(() => localStorage.getItem("jpq:pickTags")) === "[]", "tags: Clear filter shows every set again");
+// Right-clicking a set, or holding a finger on a unit, shows its words on a card that can't be edited; neither picks anything.
+const pickedNow = () => page.$$eval("#setPicker [data-set][aria-pressed=true]", (bs) => bs.map((b) => b.dataset.set).join(","));
+const picked0 = await pickedNow();
+await page.click('[data-set="samples-greetings"]', { button: "right" }); await page.waitForTimeout(200);
+const wc = () => page.evaluate(() => ({ open: document.querySelector("#wordCard").open, title: document.querySelector("#wordCardTitle").textContent, rows: document.querySelectorAll("#wordCard tbody tr:not(.wset)").length,
+  sets: document.querySelectorAll("#wordCard .wset").length, heads: [...document.querySelectorAll("#wordCard thead th")].map((t) => t.textContent).join(","), inputs: document.querySelectorAll("#wordCard input, #wordCard [contenteditable]").length,
+  w: document.querySelector("#wordCard").getBoundingClientRect().width }));
+const greet = await page.evaluate(() => S.sets.find((s) => s.id === "samples-greetings").words.filter(wordReady).length).catch(() => -1);
+const c1 = await wc();
+ok(c1.open && / › Greetings$/.test(c1.title) && c1.rows > 0 && (greet < 0 || c1.rows === greet) && c1.sets === 0 && /^English,Kana/.test(c1.heads) && !c1.inputs && c1.w < 1280 - 100 && (await pickedNow()) === picked0,
+  "word card: right-clicking a set shows its words (English, Kana, Kanji) on a card as wide as they need, and picks nothing", JSON.stringify(c1));
+await page.locator("#wordCard").screenshot({ path: join(out, "2-word-card.png") });
+await page.click("#wordCardX"); await page.waitForTimeout(150);
+await page.evaluate(() => {
+  const b = document.querySelector('#pickChs [data-k]:not([data-k="all"])'), r = b.getBoundingClientRect();
+  const o = { bubbles: true, cancelable: true, pointerId: 41, pointerType: "touch", isPrimary: true, clientX: r.left + 5, clientY: r.top + 5 };
+  b.dispatchEvent(new PointerEvent("pointerdown", o)); window.__holdO = o;
+});
+await page.waitForTimeout(700);
+// The chip on screen now (the list can be drawn again meanwhile, and a real tap lands on what's there).
+await page.evaluate(() => { const b = document.querySelector('#pickChs [data-k]:not([data-k="all"])'); b.dispatchEvent(new PointerEvent("pointerup", window.__holdO)); b.click(); });
+await page.waitForTimeout(150);
+const c2 = await wc(), shownAfter = await shownSets();
+ok(c2.open && / › /.test(c2.title) && c2.rows > 0 && shownAfter.split(",").length === 6, "word card: holding a unit shows the words of its sets, and the tap that ends the hold doesn't change what's shown", JSON.stringify(c2));
+await page.keyboard.press("Escape"); await page.waitForTimeout(150);
+ok(!(await page.evaluate(() => document.querySelector("#wordCard").open)), "word card: Escape closes it");
 await page.click('[data-set="samples-verbs"]'); await page.click("#dir-ej"); await page.click("#mode-verb"); await page.click("#startBtn"); await page.waitForTimeout(300);
 ok(/^0 of 60 done/.test(await text(page, "#progLbl")), "samples: all 12 sample verbs get their five forms", await text(page, "#progLbl"));
 await page.click("#quitBtn"); await page.waitForTimeout(150);
@@ -154,8 +183,9 @@ await page.click("#settingsClose"); await page.waitForTimeout(200);
 ok(await vis(page, '[data-set="sample-ch1-a"]'), "practice page lists the imported sets");
 
 // ---------- 3. 日本語 → English with the built-in checker: self-marking, history saved ----------
-ok(/from the server/.test(await text(page, "#histAsk")), "history question (account): says it can be deleted from the server");
-await page.click('#histAsk [data-hist="on"]'); await page.waitForTimeout(300);
+await goView(page, "history");
+ok(/Turn on progress tracking\?/.test(await text(page, "#hEmpty")) && !(await page.$("#histPanel")), "history question (account): an account is asked first, on the Progress page (no recent practice card)");
+await page.click('#hEmpty [data-hist="on"]'); await page.waitForTimeout(300); await goView(page, "setup");
 data = await fsData(page);
 ok(data["users/u1/data/settings"]?.history === true, "history on: settings doc at users/u1/data/settings");
 await page.click('[data-set="sample-ch1-b"]');
@@ -231,7 +261,7 @@ if (entry.length > 1) {
       ok(/^The checker read: 「.+」$/.test(await text(page, "#fbRead")), "built-in: a wrong answer shows what the checker read", await text(page, "#fbRead"));
       ok(!(await vis(page, "#liveRead")) && await markPx("#mainPad") > 20, "developer tools: after Check the live line goes and the character boxes stay on the answer");
       await page.evaluate(() => { localStorage.removeItem("jpq:liveRead"); localStorage.removeItem("jpq:charBoxes"); });
-      ok(/The checker misread/.test(await text(page, "#overrideBtn")), "built-in: override link names the checker");
+      ok((await text(page, "#overrideBtn")) === "Mark it as correct" && (await text(page, "#feedback .stamp")) === "Not quite" && await page.$eval("#overrideBtn", (b) => b.classList.contains("btn")), "retry card: Not quite, with a Mark it as correct button");
     }
     if (step === 2) ok(!wrong && !self, "built-in: correct kanji is accepted", `${answer}${wrong ? " → " + seen[2].reason : ""}`);
     if (self) await page.click("#selfGot");
@@ -351,7 +381,7 @@ await page.click("#newBtn"); await page.waitForTimeout(200);
 ok(!(await page.$("#checkPanel")) && !(await page.$("#keyForm")) && !/How answers are checked/.test(await page.content()), "no 'How answers are checked' card");
 
 // ---------- 5. tags, export ----------
-await page.click("#toTable"); await page.waitForTimeout(200);
+await goTable(page);
 const tset = '[data-sid="sample-ch1-a"]';
 // The vocab editor: a set reads as plain text until Edit turns it into fields; nothing is saved until Save.
 const leaveAsked = () => page.evaluate(() => { const e = new Event("beforeunload", { cancelable: true }); dispatchEvent(e); return e.defaultPrevented; });
@@ -388,11 +418,11 @@ ok((await page.$$eval(`${tset} .tag`, (xs) => xs.map((x) => x.textContent).join(
   ok(!(await page.$(`${tset} textarea`)) && (await text(page, `${tset} tbody td`)) === w1 && (await saved()) === w1, "vocab table: Discard changes puts the set back as it was saved");
   await page.click(`${tset} [data-edit]`); await page.fill(en, w1 + "!"); await page.click("#backBtn"); await page.click("#leaveAsk [data-ldiscard]");
   ok(await vis(page, "#setup") && (await saved()) === w1, "vocab table: Discard all on leaving saves nothing");
-  await page.click("#toTable");
+  await goTable(page);
   ok(!(await page.$(`${tset} textarea`)) && (await text(page, `${tset} tbody td`)) === w1, "vocab table: coming back, the set isn't being edited any more");
   await page.click(`${tset} [data-edit]`); await page.fill(en, w1 + "!"); await page.click("#backBtn"); await page.click("#leaveAsk [data-lsave]"); await page.waitForTimeout(400);
   ok(await vis(page, "#setup") && (await saved()) === w1 + "!", "vocab table: Save all on leaving saves, then goes back to practice", await saved());
-  await page.click("#toTable");
+  await goTable(page);
   await page.dblclick(`${tset} tbody tr:nth-child(2) td[data-f="kana"]`);
   ok(!(await page.$(`${tset} textarea`)), "vocab table: double-clicking a word doesn't start editing (only Edit does)");
   await page.click(`${tset} [data-edit]`);
@@ -468,11 +498,11 @@ ok(!(await setOpen(phone)) && await vis(phone, "#setup"), "phone: ← Back from 
 const menuOpen = () => phone.evaluate(() => { const n = document.querySelector("#sideNav"), r = n.getBoundingClientRect(); return document.querySelector("#menuBtn").getAttribute("aria-expanded") === "true" && getComputedStyle(n).visibility === "visible" && r.left >= 0 && r.right <= innerWidth; });
 ok(await vis(phone, "#menuBtn") && !(await menuOpen()), "phone: a ☰ button, the menu closed");
 await phone.click("#menuBtn"); await phone.waitForTimeout(300);
-ok(await menuOpen() && await phone.evaluate(() => [...document.querySelectorAll("#sideNav > :not(.foot)")].map((b) => b.textContent.trim()).join(", ")) === "Practice, Vocabularies, History, Study tools" && await phone.evaluate(() => document.activeElement?.dataset.go === "setup"),
-  "phone: ☰ slides in the menu (Practice, Vocabularies, History, Study tools) and moves to it");
+ok(await menuOpen() && await phone.evaluate(() => [...document.querySelectorAll("#sideNav > :not(.foot)")].map((b) => b.textContent.trim()).join(", ")) === "Practice, Vocabulary, Progress, Extra tools" && await phone.evaluate(() => document.activeElement?.dataset.go === "setup"),
+  "phone: ☰ slides in the menu (Practice, Vocabulary, Progress, Extra tools) and moves to it");
 await phone.screenshot({ path: join(out, "8-menu-phone.png") });
 await phone.click('#sideNav [data-go="history"]'); await phone.waitForTimeout(300);
-ok(await vis(phone, "#history") && !(await menuOpen()), "phone: picking History in the menu goes there and closes the menu");
+ok(await vis(phone, "#history") && !(await menuOpen()), "phone: picking Progress in the menu goes there and closes the menu");
 await phone.click("#menuBtn"); await phone.waitForTimeout(300); await phone.keyboard.press("Escape"); await phone.waitForTimeout(300);
 ok(!(await menuOpen()) && await phone.evaluate(() => document.activeElement?.id === "menuBtn"), "phone: Escape closes the menu");
 await phone.click("#menuBtn"); await phone.waitForTimeout(300); await phone.mouse.click(320, 500); await phone.waitForTimeout(300);
@@ -482,7 +512,7 @@ await phone.click("#histBack");
 await phone.close();
 
 // ---------- 8b. delete an account: its data, then the Google account ----------
-await page.click('#histAsk [data-hist="on"]'); await page.waitForTimeout(300);
+await goView(page, "history"); await page.click('#hEmpty [data-hist="on"]'); await page.waitForTimeout(300); await goView(page, "setup");
 ok(!!(await fsData(page))["users/u2/data/settings"], "delete: (history setting saved, so there's something under data/)");
 await page.click('[data-set="samples-greetings"]'); await page.click("#startBtn"); await page.waitForTimeout(300); await scribble(page); await page.click("#quitBtn"); await page.waitForTimeout(200);
 ok(await vis(page, "#resumeBtn"), "delete: (a practice left midway, with writing, to resume)");
@@ -524,13 +554,13 @@ await lp.click('#themePick [data-theme-pick="light"]'); await lp.click('#palPick
 await lp.screenshot({ path: join(out, "9-settings.png") });
 await settings(lp, "account"); await lp.click("#delStart"); await settings(lp, "look"); await settings(lp, "account");
 ok((await text(lp, "#delStart")) === "Delete local storage", "settings: a Delete left waiting for its confirmation is dropped on leaving the tab");
-await settings(lp, "history");
+await settings(lp, "data");
 ok(/^On\./.test(await text(lp, "#histSetInfo")) && /saved only in this browser/.test(await text(lp, "#histSetWhere")) && (await text(lp, "#histSetToggle")) === "Turn off" && !(await vis(lp, "#histSetAll")), "settings (guest): Practice history is on without asking, and says where it's kept", await text(lp, "#histSetInfo"));
 await lp.click("#histSetToggle"); await lp.waitForTimeout(200);
 ok(/^Off, so finished practice sessions aren't saved/.test(await text(lp, "#histSetInfo")) && (await text(lp, "#histSetToggle")) === "Turn on" && await lp.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:data/users/local/settings") || "null")?.history) === false, "settings: a guest can turn Practice history off there", await text(lp, "#histSetInfo"));
 await lp.click("#histSetToggle"); await lp.waitForTimeout(200);
 ok(/^On/.test(await text(lp, "#histSetInfo")) && await lp.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:data/users/local/settings") || "null")?.history) === true, "settings: and on again");
-await lp.evaluate(() => localStorage.removeItem("qcard:local:data/users/local/settings")); await lp.reload(); await lp.waitForTimeout(500); // as before the choice was made
+await lp.evaluate(() => localStorage.removeItem("qcard:local:data/users/local/settings")); await lp.goto(base); await lp.waitForTimeout(500); // as before the choice was made
 
 ok(await vis(lp, '[data-set="samples-greetings"]'), "guest: starts with the sample sets");
 await lp.click("#sampleRemove"); await lp.click("#sampleNo");
@@ -546,13 +576,15 @@ await lp.waitForTimeout(300); await lp.click("#importGo"); await lp.waitForTimeo
 let ls = await lp.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("qcard:local:")));
 ok(ls.includes("qcard:local:sets/sample-ch1-a") && ls.includes("qcard:local:meta/books"), "local: imported sets saved in localStorage", ls.join(", "));
 ok(Object.keys(await fsData(lp)).length === 0, "local: nothing written to the database");
-ok(/saved only in this browser/.test(await text(lp, "#histAsk")) && !(await lp.$("#histAsk [data-hist]")) && await vis(lp, "#histOff"), "local: practice history is on for a guest without a question, kept in this browser", await text(lp, "#histAsk"));
+await goView(lp, "history");
+ok(/No finished practice sessions yet/.test(await text(lp, "#hEmpty")) && !(await lp.$("#hEmpty [data-hist]")), "local: progress tracking is on for a guest without a question", await text(lp, "#hEmpty"));
+await goView(lp, "setup");
 await lp.click('[data-set="sample-ch1-b"]'); await lp.click("#dir-je"); await lp.click("#startBtn"); await lp.waitForTimeout(300);
 for (let i = 0; i < 10 && await vis(lp, "#quiz"); i++) { await scribble(lp); await lp.click("#checkBtn"); await lp.waitForTimeout(150); await lp.click("#selfGot"); await lp.waitForTimeout(1400); }
 ls = await lp.evaluate(() => Object.keys(localStorage).filter((k) => /^qcard:local:data\/users\/local\/t\d/.test(k)));
 ok(ls.length === 1, "local: practice history saved in localStorage", String(ls.length));
 // Settings → Practice history: export the history, then import a file that has that session, two new ones and a broken one
-await settings(lp, "history");
+await settings(lp, "data");
 { const [hdl] = await Promise.all([lp.waitForEvent("download"), lp.click("#histExport")]);
   const hf = JSON.parse(readFileSync(await hdl.path(), "utf8")), s0 = hf.sessions?.[0];
   ok(/^japanese-vocab-history-.*\.json$/.test(hdl.suggestedFilename()) && hf.kind === "history" && hf.sessions.length === 1 && /^t\d+$/.test(s0.id) && s0.words?.length > 0 && s0.sets?.length === 1,
@@ -573,7 +605,7 @@ await settings(lp, "history");
   await pickHist(join(root, "test/public/fixtures/sample-export.json"));
   ok(/vocab file/.test(await text(lp, "#histPortMsg")) && !(await vis(lp, "#histImportPreview")), "history import: a vocab file is pointed to Settings → Data", await text(lp, "#histPortMsg"));
   await settings(lp, "data"); await (await lp.$("#importFile")).setInputFiles(hfile); await lp.waitForTimeout(200);
-  ok(/practice history file/.test(await text(lp, "#portMsg")), "vocab import: a history file is pointed to Settings → Practice history", await text(lp, "#portMsg"));
+  ok(/progress file/.test(await text(lp, "#portMsg")), "vocab import: a progress file is pointed to its own import", await text(lp, "#portMsg"));
   await lp.click("#settingsClose"); }
 await lp.close();
 lp = await newPage(lctx);
@@ -645,20 +677,19 @@ ok((await up.$eval("#uptoSel", (s) => s.value)) === "Nakama\u0001Ch. 2" && /Naka
   "units: an older 'Kanji learned up to' pick carries over", await up.$eval("#uptoSel", (s) => s.value));
 await up.click('#groupSeg [data-view="Courses"]'); await up.waitForTimeout(200);
 rows = await rowsOf("#pickChs");
-ok(rows === "J1: All, Ch. 1, Ch. 2* | Other: All, Week 1*, Week 2*, Week 10*, Ch. 10", "units: an older course (chapters 1 to 2) covers units Ch. 1 and Ch. 2", rows);
+ok(rows === "J1: All, Ch. 1, Ch. 2*", "units: an older course (chapters 1 to 2) covers units Ch. 1 and Ch. 2, and units in no course are hidden in that view", rows);
 await up.click('#groupSeg [data-view=""]');
 // The sets card: its heading with edit at the right end, and the line under the rows, there even with nothing picked.
 const sumRow = () => up.evaluate(() => [document.querySelector("#pickSum").textContent, document.querySelector("#pickClear").textContent, document.querySelector("#pickClear").disabled].join("|"));
-ok((await text(up, "#setup .panel .head h3")) === "Vocabulary sets" && (await text(up, "#toTable")) === "edit"
-  && await up.evaluate(() => document.querySelector("#setup .panel .head").getBoundingClientRect().right - document.querySelector("#toTable").getBoundingClientRect().right < 2)
-  && await vis(up, "#pickSumRow") && (await sumRow()) === "0 sets picked|Pick all sets|false", "sets card: Vocabulary sets with edit at its right end; with no sets picked, Pick all sets", await sumRow());
+ok((await text(up, "#setup .panel .head h3")) === "Vocabulary sets" && !(await up.$("#toTable"))
+  && await vis(up, "#pickSumRow") && (await sumRow()) === "0 sets picked|Pick all sets|false", "sets card: Vocabulary sets, no edit link; with no sets picked, Pick all sets", await sumRow());
 await up.click("#pickClear");
 ok((await sumRow()) === "5 sets picked|Clear all picks|false", "sets card: Pick all sets picks every set showing, then Clear all picks is offered", await sumRow());
 await up.click("#pickClear");
 await up.click('#pickChs .pchrow:nth-child(1) [data-k="all"]'); await up.click('#pickChs .pchrow:nth-child(2) [data-k="1"]');
 ok(/No units shown\. Tap All or a unit above/.test(await text(up, "#setPicker")) && (await sumRow()) === "0 sets picked|Pick all sets|true", "sets card: with no units shown, Pick all sets is there but greyed out", await sumRow());
 await up.click('#pickChs .pchrow:nth-child(1) [data-k="all"]'); await up.click('#pickChs .pchrow:nth-child(2) [data-k="1"]');
-await up.click("#toTable"); await up.waitForTimeout(200);
+await goTable(up);
 await up.fill("#nsCol", "mine"); await up.fill("#nsUnit", "week 2"); await up.fill("#nsName", "Weather");
 await up.click('#newSetForm [type="submit"]'); await up.waitForTimeout(400);
 ok(await up.evaluate(() => { const a = document.activeElement; return a?.dataset.f === "en" && !!a.closest(".tset.editing") && /Weather/.test(a.closest(".tset").querySelector(".tsethead").textContent); }), "vocab table: a set just added opens ready to type its first word");
@@ -734,7 +765,7 @@ for (const width of [1280, 900, 375]) {
     if (title === "Your turn") { await scribble(tp); await tp.waitForTimeout(100); }
     await tp.click('.tourcard [data-tour="next"]'); await tp.waitForTimeout(500);
   }
-  const want = ["Welcome to the tour", "Pick a set", "Direction", "Modes", "Kanji learned up to", "Start practicing", "The question", "The answer box", "Furigana", "Writing tools", "Your turn", "The result", "Stop any time", "Pick up where you left off", "Vocabularies", "Your sets", "Add your own sets", "Kanji lists", "Back to practice", "Settings and your account", "That's the tour!"];
+  const want = ["Welcome to the tour", "Pick a set", "Direction", "Modes", "Kanji learned up to", "Start practicing", "The question", "The answer box", "Furigana", "Writing tools", "Your turn", "The result", "Stop any time", "Pick up where you left off", "Vocabulary", "Your sets", "Add your own sets", "Kanji lists", "Back to practice", "Settings and your account", "That's the tour!"];
   ok(want.every((t) => titles.includes(t)), `tour (${tag}): goes from the welcome step through practice, the vocab table and Settings to the end`, titles.join(" › "));
   ok(await vis(tp, "#setup") && await vis(tp, "#resumeBtn"), `tour (${tag}): ends back on the practice page, with the practice left midway to resume`);
   await tp.click('.tourcard [data-tour="close"]'); await tp.waitForTimeout(200);
@@ -795,7 +826,7 @@ await sp.click("#bornAskGo"); await sp.waitForTimeout(200);
 ok(await bornOpen() && /Pick both/.test(await text(sp, "#bornAskErr")), "birth: without a month and year it asks for both and stays open", await text(sp, "#bornAskErr"));
 await sp.click("#bornAskNo"); await sp.waitForTimeout(1300);
 ok(!(await bornOpen()) && !(await acct("prefs"))?.share?.on && !(await acct("profile"))?.born, "birth: Cancel leaves sharing off and saves nothing");
-await settings(sp, "share"); await sp.click("#shareToggle"); await sp.click("#shareYes"); await sp.waitForTimeout(200);
+await settings(sp, "account"); await sp.click("#shareToggle"); await sp.click("#shareYes"); await sp.waitForTimeout(200);
 await sp.click("#bornAskInM .dd-btn"); await sp.click(`#bornAskInM li[data-v="${m16}"]`);
 ok((await text(sp, "#bornAskInM .dd-btn")) !== "Month" && !(await acct("profile"))?.born, "birth: a month picked stays while the year is picked, and nothing is saved before Save");
 await pickBorn(sp, "#bornAskIn", m16, y16);
@@ -810,7 +841,7 @@ const rec = tr[0]?.[1], st = rec?.main?.s?.[0];
 ok(tr.length === 1 && rec.word.kanji === "水" && rec.dir === "je" && rec.checker.verdict === "unmatched" && rec.student === "right", "share: an answer is saved to users/<uid>/training with the word, the checker's verdict and the student's own call", JSON.stringify(rec && { ...rec, main: undefined, furi: undefined }));
 ok(rec?.main?.s?.length === 2 && st.xy.every((n) => typeof n === "number") && st.xy.length === 2 * st.t.length && st.t.length === st.f.length && st.dev === "mouse" && rec.main.s[1].at > 0,
   "share: each stroke keeps its points (a flat list), timing, pressure and pointer kind", JSON.stringify(st).slice(0, 160));
-await settings(sp, "share"); await sp.waitForTimeout(200);
+await settings(sp, "account"); await sp.waitForTimeout(200);
 ok(await vis(sp, "#shareSet") && /^On since .*1 answer shared/.test(await text(sp, "#shareInfo")), "share: Settings shows it's on and how many answers were shared", await text(sp, "#shareInfo"));
 await sp.locator("#shareSet").screenshot({ path: join(out, "14-share-settings.png") });
 const [hdl] = await Promise.all([sp.waitForEvent("download"), sp.click("#shareDl")]);
@@ -820,7 +851,7 @@ ok(/^japanese-vocab-handwriting-.*\.json$/.test(hdl.suggestedFilename()) && hfil
 await sp.click("#shareDel"); await sp.click("#shareDelYes"); await sp.waitForTimeout(300);
 ok(!(await training()).length && /0 answers shared/.test(await text(sp, "#shareInfo")) && !(await vis(sp, "#shareDel")), "share: Delete what I've shared removes every saved answer", await text(sp, "#shareInfo"));
 await sp.click("#shareToggle"); await sp.waitForTimeout(200);
-ok(/^Off\./.test(await text(sp, "#shareInfo")) && (await text(sp, "#shareToggle")) === "Turn on…", "share: Turn off stops it");
+ok(/Change your mind at any time/.test(await text(sp, "#shareInfo")) && (await text(sp, "#shareToggle")) === "Turn on…", "share: Turn off stops it");
 // the birth month and year is the account's now: a later yes doesn't ask again, and Settings → Account shows it
 await sp.click("#shareToggle"); await sp.click("#shareYes"); await sp.waitForTimeout(200);
 ok(!(await shareOpen()) && !(await bornOpen()) && /^On/.test(await text(sp, "#shareInfo")), "birth: with 16 or older on the account, Yes is all it takes the next time");
@@ -832,15 +863,18 @@ await sp.locator('[data-set-pane="account"]').screenshot({ path: join(out, "14-b
 await sp.waitForTimeout(1000);
 await sp.evaluate(() => { const fs = JSON.parse(localStorage.getItem("fake:fs")); fs["users/t1/data/profile"].bornAt = new Date(Date.now() - 100 * 86400e3).toISOString(); localStorage.setItem("fake:fs", JSON.stringify(fs)); });
 await sp.reload(); await sp.waitForTimeout(800); await settings(sp, "account"); await sp.waitForTimeout(200);
-ok(await vis(sp, "#bornIn") && (await text(sp, "#bornInY .dd-btn")) === y16 && await sp.$eval("#bornSave", (b) => b.disabled) && /once every 3 months/.test(await text(sp, "#bornNote")), "birth: 3 months on, it can be changed: the dropdowns and Save are back", await text(sp, "#bornNote"));
+ok(await vis(sp, "#bornIn") && (await text(sp, "#bornInY .dd-btn")) === y16 && await sp.$eval("#bornSave", (b) => b.disabled) && !(await text(sp, "#bornNote")), "birth: 3 months on, it can be changed: the dropdowns and Save are back", await text(sp, "#bornNote"));
 await sp.locator('[data-set-pane="account"]').screenshot({ path: join(out, "14-birth-settings.png") });
 await pickBorn(sp, "#bornIn", m15, y15); await sp.waitForTimeout(300);
 ok((await acct("profile"))?.born === `${y16}-${m16}` && !(await sp.$eval("#bornSave", (b) => b.disabled)), "birth: picking saves nothing until Save is pressed");
-await sp.click("#bornSave"); await sp.waitForTimeout(1300);
+await sp.click("#bornSave"); await sp.waitForTimeout(200);
+ok(await sp.$eval("#askDlg", (d) => d.open) && new RegExp(`Confirming your birthday is ${said15}\\.`).test(await text(sp, "#askText")) && /once every 3 months/.test(await text(sp, "#askText")) && (await acct("profile"))?.born === `${y16}-${m16}`,
+  "birth: Save asks to confirm the birthday first, saying it can change once every 3 months", await text(sp, "#askText"));
+await sp.click("#askYes"); await sp.waitForTimeout(1300);
 ok((await acct("profile"))?.born === `${y15}-${m15}` && /Saved\..*off now/.test(await text(sp, "#bornMsg")) && (await acct("prefs"))?.share?.on === false && (await text(sp, "#bornNow")) === said15 && !(await vis(sp, "#bornIn")),
   "birth: changed to under 16 in Settings, it's saved, sharing goes off and it says so, and the 3 months start again", await text(sp, "#bornMsg"));
-await settings(sp, "share");
-ok(/^Off\./.test(await text(sp, "#shareInfo")), "birth: Settings shows sharing off", await text(sp, "#shareInfo"));
+await settings(sp, "account");
+ok(/Change your mind at any time/.test(await text(sp, "#shareInfo")), "birth: Settings shows sharing off", await text(sp, "#shareInfo"));
 await sp.click("#settingsClose"); await sp.waitForTimeout(200);
 await sp.evaluate(() => localStorage.setItem("jpq:practices", "29"));
 await practiceOnce();
@@ -851,17 +885,22 @@ await sp.click("#newBtn"); await sp.waitForTimeout(200);
 await sp.click("#startBtn"); await sp.waitForTimeout(300); await scribble(sp); await sp.click("#quitBtn"); await sp.waitForTimeout(1300);
 const rink = (await fsData(sp))["users/t1/data/prefs"]?.resume?.ink?.main?.s?.[0]?.p;
 ok(Array.isArray(rink) && rink.length > 4 && rink.every((n) => typeof n === "number"), "resume: the writing saved for Resume reaches the account (flat list of numbers)", JSON.stringify(rink)?.slice(0, 80));
-await settings(sp, "share"); await sp.click("#shareToggle"); await sp.waitForTimeout(200);
+await settings(sp, "account"); await sp.click("#shareToggle"); await sp.waitForTimeout(200);
 ok(await shareOpen() && !(await vis(sp, "#shareNeverRow")) && !(await text(sp, "#shareCount")), "share: Turn on… in Settings asks the same question, without the count or the checkbox");
 await sp.click("#shareYes"); await sp.waitForTimeout(200);
 ok(await bornOpen() && await vis(sp, "#bornAskYoung") && /16 and older/.test(await text(sp, "#bornAskYoung")) && (await text(sp, "#bornAskNow")) === said15 && !(await vis(sp, "#bornAskIn")) && !(await vis(sp, "#bornAskGo")) && /can be changed after/.test(await text(sp, "#bornAskNote")),
   "birth: an account under 16 that says yes is told sharing is for 16 and older, with no way to change the month and year for 3 months", await text(sp, "#bornAskNote"));
 await sp.locator("#bornAsk").screenshot({ path: join(out, "14-born-ask-under-16.png") });
 await sp.click("#bornAskNo"); await sp.waitForTimeout(200);
-ok(!(await bornOpen()) && /^Off\./.test(await text(sp, "#shareInfo")), "birth: and sharing stays off");
-await settings(sp, "account"); await sp.click("#bornClear"); await sp.waitForTimeout(300);
-ok((await acct("profile"))?.born === "" && (await text(sp, "#bornNow")) === "Not given" && !(await vis(sp, "#bornClear")) && !(await vis(sp, "#bornIn")) && /Cleared/.test(await text(sp, "#bornMsg")),
-  "birth: Clear empties it any time, and the wait before giving another stays", JSON.stringify(await acct("profile")));
+ok(!(await bornOpen()) && /Change your mind at any time/.test(await text(sp, "#shareInfo")), "birth: and sharing stays off");
+await settings(sp, "account");
+ok((await text(sp, "#bornClear")) === "Delete" && await sp.$eval("#bornClear", (b) => b.classList.contains("danger")), "birth: Delete, in red, beside the birthday");
+await sp.click("#bornClear"); await sp.waitForTimeout(200);
+ok(await sp.$eval("#askDlg", (d) => d.open) && /cleared from our database.*again any time after \w+ \d+, \d{4}/.test(await text(sp, "#askText")) && await sp.$eval("#askYes", (b) => b.classList.contains("danger")) && (await acct("profile"))?.born === `${y15}-${m15}`,
+  "birth: Delete asks first, saying when it can be given again", await text(sp, "#askText"));
+await sp.click("#askYes"); await sp.waitForTimeout(300);
+ok((await acct("profile"))?.born === "" && /^Cleared on \w+ \d+, \d{4}$/.test(await text(sp, "#bornNow")) && /can be updated after \w+ \d+, \d{4}/.test(await text(sp, "#bornNote")) && !(await vis(sp, "#bornClear")) && !(await vis(sp, "#bornIn")) && /Cleared/.test(await text(sp, "#bornMsg")),
+  "birth: deleted, it says when it was cleared and when it can be updated", `${await text(sp, "#bornNow")} / ${await text(sp, "#bornNote")}`);
 await sp.click("#settingsClose");
 ok(sp.errors.length === 0, "share: no page errors", sp.errors.join(" | "));
 // a developer (dev/<uid>, made in the Firebase console) gets Dev tools in Settings to open the question themselves
@@ -931,7 +970,7 @@ const npPractice = async () => { await np.click("#startBtn"); await np.waitForTi
 await npPractice();
 ok(await vis(np, "#results") && !(await np.evaluate(() => document.querySelector("#shareAsk").open)), "share: an account that isn't a developer isn't asked on its 10th practice (developers only for now)");
 await settings(np, "tools"); await np.waitForTimeout(200);
-ok(!(await vis(np, '[data-set-tab="share"]')) && !(await vis(np, '[data-set-tab="admin"]')) && await vis(np, "#toolsSet"), "share: its Settings has no Handwriting sharing tab and no Admin tab (Developer tools itself is there)");
+ok(await np.$eval("#shareSet", (e) => e.hidden) && !(await vis(np, '[data-set-tab="admin"]')) && await vis(np, "#toolsSet"), "share: its Settings has no Handwriting sharing in Account and no Admin tab (Developer tools itself is there)");
 await np.click("#settingsClose"); await np.click("#newBtn"); await np.waitForTimeout(200);
 await np.evaluate(() => localStorage.setItem("jpq:share", JSON.stringify({ on: true, at: "2026-10-01T00:00:00Z" })));
 await npPractice();
@@ -988,6 +1027,12 @@ await qp.click("#quitBtn"); await qp.click("#resumeBtn"); await qp.waitForTimeou
 const q2 = await text(qp, "#qText");
 await qp.waitForTimeout(1400);
 ok(await vis(qp, "#quiz") && (await text(qp, "#qText")) === q2 && /^1 of 3 done/.test(await text(qp, "#progLbl")), "Quit and Resume right after a right answer: the word resumed on stays, none is skipped", `${q2} → ${await text(qp, "#qText")}`);
+// Check with nothing written: the retry card with the answer, and nothing to mark as correct.
+const emptyOn = !(await qp.$eval("#checkBtn", (b) => b.disabled));
+await qp.click("#checkBtn"); await qp.waitForTimeout(200);
+ok(emptyOn && await vis(qp, "#feedback") && !(await vis(qp, "#overrideBtn")) && /Nothing was written/.test(await text(qp, "#fbReason")) && !!(await text(qp, "#fbAnswer")),
+  "Check with nothing written: it can be pressed, and shows the retry card with the answer", await text(qp, "#fbReason"));
+await qp.click("#nextBtn"); await qp.waitForTimeout(200);
 await qGot();
 await qp.click("#newBtn"); await qp.waitForTimeout(200);
 await qp.click('[data-set="q-c"]'); await qp.click('[data-set="q-a"]'); await qp.click('[data-set="q-b"]'); await qp.click("#startBtn"); await qp.waitForTimeout(300);
@@ -1016,7 +1061,7 @@ ok(!(await vis(cp, "#feedback")) && !(await vis(cp, "#selfCheck")) && /^0 of 3 d
   "quit while checking: the old answer isn't marked on the new practice's first question", JSON.stringify(cres?.tries));
 await cp.click("#quitBtn"); await cp.waitForTimeout(200);
 // History's "Practice these" with Verb forms picked: the words on the list are whole words, so they're practiced in Default.
-await cp.click("#mode-verb"); await cp.click("#histAll"); await cp.waitForTimeout(300); await cp.click("#hPractise"); await cp.waitForTimeout(300);
+await cp.click("#mode-verb"); await goView(cp, "history"); await cp.click("#hPractise"); await cp.waitForTimeout(300);
 ok(await vis(cp, "#quiz") && /^0 of 1 done/.test(await text(cp, "#progLbl")) && (await text(cp, "#qText")) === "water", "Practice these with Verb forms picked: practices the listed words (in Default)", `${await text(cp, "#progLbl")} ${await text(cp, "#qText")}`);
 await cp.click(await vis(cp, "#quiz") ? "#quitBtn" : "#newBtn"); await cp.waitForTimeout(200);
 ok(await cp.$eval("#mode-default", (b) => b.getAttribute("aria-pressed") === "true") && await cp.evaluate(() => Object.keys(localStorage).filter((k) => /data\/users\/local\/t\d/.test(k)).length) === 1,
@@ -1036,7 +1081,7 @@ const hp = await newPage(hctx, { init: () => {
   for (let i = 0; i < 45; i++) put("data/users/local/t" + (100 + i), { finishedAt: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString(), dir: "ej", mode: "default", sets: ["U › H"],
     words: i ? [{ id: "w0", en: "word 0", jp: "かな0", dir: "ej", tries: 1 }] : words.map((w) => ({ id: w.id, en: w.en, jp: w.kana, dir: "ej", tries: 2 })) });
 } });
-await hp.click("#histAll"); await hp.waitForTimeout(300);
+await goView(hp, "history");
 { const fill = () => hp.evaluate(() => [Math.round(document.querySelector("#heat svg").getBoundingClientRect().width), document.querySelector("#heat").clientWidth,
     Math.round(document.querySelector("#heat rect").getBoundingClientRect().width), +document.querySelector("#heatTitle").textContent.match(/\d+/)[0]]);
   let [svgW, boxW, sq, wk] = await fill(); const narrow = svgW === boxW, sq0 = sq, wk0 = wk;
@@ -1072,15 +1117,33 @@ await hp.click("#hPractise"); await hp.waitForTimeout(300);
 ok(await vis(hp, "#quiz") && /^0 of 11 done/.test(await text(hp, "#progLbl")), "hard words: Practice these practices the words shown", await text(hp, "#progLbl"));
 ok(hp.errors.length === 0, "history pages: no page errors", hp.errors.join(" | "));
 await hctx.close();
-// Study tools: the romaji sheet has 9 panels of all 46 romaji, New sheet shuffles them, and Download PDF saves a PDF.
+// Extra tools: a view of the page with the menu beside it; the romaji sheet has 9 panels of all 46 romaji, New sheet shuffles
+// them, and Download PDF saves a PDF. The old study-tools/ address opens it.
 const stctx = await browser.newContext({ acceptDownloads: true });
-const stp = await newPage(stctx); await stp.goto(base + "study-tools/"); await stp.waitForTimeout(300);
+const stp = await newPage(stctx, { width: 1280, init: () => localStorage.setItem("qcard:welcomed", "1") });
+await stp.click('#sideNav [data-go="tools"]'); await stp.waitForTimeout(500);
+ok(await vis(stp, "#tools") && await stp.locator("#sideNav").isVisible() && await stp.$eval('#sideNav [data-go="tools"]', (b) => b.getAttribute("aria-current")) === "page" && await stp.locator("#romaji-sheet").isVisible(),
+  "extra tools: opens in the page, the menu beside it and Extra tools marked");
+await stp.goto(base + "study-tools/"); await stp.waitForTimeout(800);
+ok(await vis(stp, "#tools") && await stp.locator("#romaji-sheet").isVisible(), "extra tools: the old study-tools/ address opens it", stp.url());
 const stOrder = () => stp.$$eval(".preview text", (t) => t.map((x) => x.textContent));
 const st1 = await stOrder(); await stp.click("[data-new]"); const st2 = await stOrder();
 ok(st1.length === 414 && new Set(st1.slice(0, 46)).size === 46 && st1.join() !== st2.join(), "study tools: 9 panels of the 46 romaji, shuffled again by New sheet", `${st1.length}`);
 const [stdl] = await Promise.all([stp.waitForEvent("download"), stp.click("[data-pdf]")]);
 const stpdf = (await import("node:fs")).readFileSync(await stdl.path(), "latin1");
 ok(/^romaji-sheet-.*\.pdf$/.test(stdl.suggestedFilename()) && stpdf.startsWith("%PDF") && (stpdf.match(/\) Tj/g) || []).length === 414, "study tools: Download PDF saves the sheet shown as a PDF", stdl.suggestedFilename());
+// Each part has its own address, so the browser's back button steps back through them, and an address opens its part.
+await stp.goto(base); await stp.waitForTimeout(800);
+await stp.click('#sideNav [data-go="table"]'); await stp.waitForTimeout(300);
+await stp.click('#sideNav [data-go="history"]'); await stp.waitForTimeout(300);
+const atProg = new URL(stp.url()).hash;
+await stp.goBack(); await stp.waitForTimeout(400);
+const backTo = [new URL(stp.url()).hash, await vis(stp, "#table")];
+await stp.goBack(); await stp.waitForTimeout(400);
+ok(atProg === "#progress" && backTo[0] === "#vocabulary" && backTo[1] && new URL(stp.url()).hash === "" && await vis(stp, "#setup"),
+  "addresses: each part has its own, and back steps through them", `${atProg} ${backTo} ${stp.url()}`);
+await stp.goto(base + "#progress"); await stp.waitForTimeout(800);
+ok(await vis(stp, "#history") && await stp.$eval('#sideNav [data-go="history"]', (b) => b.getAttribute("aria-current")) === "page", "addresses: #progress opens Progress");
 ok(stp.errors.length === 0, "study tools: no page errors", stp.errors.join(" | "));
 await stctx.close();
 // The welcome pop-up closed with Escape is remembered like its X.
@@ -1113,7 +1176,7 @@ ok(/^On since/.test(await text(ap, "#shareInfo")), "share, another account: (the
 await ap.click("#settingsClose");
 await signOut(); await signIn({ uid: "b1", displayName: "B", email: "b@example.com" });
 await settings(ap);
-ok(/b@example\.com/.test(await text(ap, "#acctName")) && /^Off\./.test(await text(ap, "#shareInfo")), "share, another account: an account that never said yes isn't sharing", await text(ap, "#shareInfo"));
+ok(/b@example\.com/.test(await text(ap, "#acctName")) && /Change your mind at any time/.test(await text(ap, "#shareInfo")), "share, another account: an account that never said yes isn't sharing", await text(ap, "#shareInfo"));
 await ap.click("#settingsClose");
 await ap.click("#startBtn"); await ap.waitForTimeout(300); await scribble(ap); await ap.click("#checkBtn"); await ap.waitForTimeout(200); await ap.click("#selfGot"); await ap.waitForTimeout(1500);
 ok(!Object.keys(await fsData(ap)).some((k) => k.startsWith("users/b1/training/")), "share, another account: none of its handwriting is saved");
@@ -1125,7 +1188,7 @@ await signOut();
 await ap.evaluate(() => localStorage.setItem("jpq:share", JSON.stringify({ on: true, at: "2026-10-01T00:00:00Z" }))); // another account said yes on this browser
 await signIn({ uid: "c1", displayName: "C", email: "c@example.com" });
 await settings(ap);
-ok(/c@example\.com/.test(await text(ap, "#acctName")) && /^Off\./.test(await text(ap, "#shareInfo")) && !(await fsData(ap))["users/c1/data/prefs"]?.share,
+ok(/c@example\.com/.test(await text(ap, "#acctName")) && /Change your mind at any time/.test(await text(ap, "#shareInfo")) && !(await fsData(ap))["users/c1/data/prefs"]?.share,
   "share, another account: a first sign-in doesn't take this browser's yes along", await text(ap, "#shareInfo"));
 ok(ap.errors.length === 0, "another account: no page errors", ap.errors.join(" | "));
 
@@ -1292,12 +1355,11 @@ await ictx.close();
   const lp = await newPage(lctx);
   await lp.click("#guestBtn"); await lp.waitForTimeout(400);
   await settings(lp, "account");
-  ok(await lp.evaluate(() => { const a = document.querySelector("#privacyLink a"); return !!a && a.getAttribute("href") === "privacy/" && a.target === "_blank"; }) && await vis(lp, "#privacyLink"),
-    "settings: links to the privacy page, in a new tab");
+  ok(!(await lp.$("#privacyLink")), "settings: no second privacy link in Account (the sidebar has it)");
   await lp.click("#settingsClose");
   await lp.click("#menuBtn"); await lp.waitForTimeout(300);
   ok(await lp.locator('#sideNav > .foot a[href="privacy/"]').isVisible() && await lp.evaluate(() => { const f = document.querySelector(".foot").getBoundingClientRect(), n = document.querySelector("#sideNav").getBoundingClientRect(); return n.bottom - f.bottom < 30 && f.left >= n.left; })
-    && !(await lp.$('.foot a[href="study-tools/"]')), "footer: at the bottom of the menu that slides in, linking to the privacy page (Study tools is in the menu above)");
+    && !(await lp.$('.foot a[href="study-tools/"]')), "footer: at the bottom of the menu that slides in, linking to the privacy page");
   await Promise.all([lp.waitForURL("**/privacy/"), lp.click('.foot a[href="privacy/"]')]);
   ok(/^Privacy Policy/.test(await lp.title()), "footer: the link opens the privacy page");
   ok(lp.errors.length === 0, "privacy links: no page errors", lp.errors.join(" | "));
@@ -1375,6 +1437,17 @@ await ictx.close();
   await penStroke(9, 0.75);
   const afterInk = await ink(0.75);
   ok(afterInk.n > 0 && afterInk.span > 0.7, "scratch pad: a stroke whose pointerup is lost doesn't stop the next one", JSON.stringify(afterInk));
+  // iPadOS gives the pencil the same id every time, and an eraser drag can lose its pointerup too.
+  await sp.click("#scratchClear"); await sp.waitForTimeout(150);
+  await penStroke(5, 0.25, { drop: true }); await penStroke(5, 0.5);
+  const sameId = await ink(0.5);
+  await sp.click('#feedback [data-tool="erase"]'); await penStroke(6, 0.25, { drop: true }); await sp.click('#feedback [data-tool="pen"]');
+  await penStroke(6, 0.75);
+  const afterErase = await ink(0.75);
+  ok(sameId.n > 0 && sameId.span > 0.7 && afterErase.n > 0 && afterErase.span > 0.7,
+    "scratch pad: a lost pointerup with the pencil's same id, or after an eraser drag, doesn't stop the next stroke", JSON.stringify({ sameId, afterErase }));
+  await sp.click("#scratchClear"); await sp.waitForTimeout(150);
+  await penStroke(7, 0.25); await penStroke(9, 0.75);
   await sp.click("#scratchUndo"); await sp.waitForTimeout(150);
   ok((await ink(0.75)).n === 0 && (await ink(0.25)).n > 0, "scratch pad: Undo removes the last stroke and keeps the rest");
   await sp.click("#scratchClear"); await sp.waitForTimeout(150);
@@ -1431,7 +1504,7 @@ if (entry.length > 1) {
   const loveRuby = (sel) => fp.evaluate((q) => [...document.querySelectorAll(q + " li ruby")].map((r) => r.firstChild.textContent + "/" + r.querySelector("rt").textContent).join(","), sel);
   ok(await vis(fp, "#results") && (await loveRuby("#loveList")) === "水族館/すいぞくかん", "results: a word that needs more love has its reading over the kanji", await loveRuby("#loveList"));
   await fp.screenshot({ path: join(out, "21-results-furigana.png") });
-  await fp.click("#newBtn"); await fp.waitForTimeout(300); await fp.click("#histAll"); await fp.waitForTimeout(300);
+  await fp.click("#newBtn"); await fp.waitForTimeout(300); await goView(fp, "history");
   ok((await loveRuby("#hLove")) === "水族館/すいぞくかん", "history: the hard words have their reading over the kanji", await loveRuby("#hLove"));
   await fp.screenshot({ path: join(out, "21-history-furigana.png") });
   ok(fp.errors.length === 0, "furigana: no page errors", fp.errors.join(" | "));
@@ -1457,11 +1530,11 @@ if (entry.length > 1) {
   ok(si.fixed && si.side[0] === 0 && si.side[1] === 232 && si.col > 232 && si.wide <= 1280 && (await at()) === "setup" && await barBtn() && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "true",
     "sidebar: on a big screen the menu is a sidebar down the left under the title's bar, Practice marked, the page beside it, ☰ left of the title", JSON.stringify(si));
   const topR = () => bp.evaluate(() => { const g = document.querySelector("#settingsBtn").getBoundingClientRect(), a = document.querySelector("#acctBtn").getBoundingClientRect();
-    return { right: Math.round(document.querySelector("header h1").getBoundingClientRect().right - a.right), inBar: g.bottom <= 56 && a.bottom <= 56, order: g.right <= a.left, label: document.querySelector("#acctLabel").textContent }; });
+    return { right: Math.round(document.querySelector("header h1").getBoundingClientRect().right - g.right), inBar: g.bottom <= 56 && a.bottom <= 56, order: a.right <= g.left, label: document.querySelector("#acctLabel").textContent }; });
   const tr = await topR();
-  ok(tr.inBar && tr.order && tr.right >= 8 && tr.right <= 24 && tr.label === "Guest" && !(await shown("#sideNav #settingsBtn")), "top bar: the gear and then Guest at its right end, nothing for Settings in the sidebar", JSON.stringify(tr));
+  ok(tr.inBar && tr.order && tr.right >= 8 && tr.right <= 24 && tr.label === "Guest" && !(await shown("#sideNav #settingsBtn")), "top bar: Guest and then the gear at its right end, nothing for Settings in the sidebar", JSON.stringify(tr));
   await bp.click("#acctBtn");
-  ok(/Not signed in/.test(await text(bp, "#acctList")) && (await bp.$$eval("#acctList [role=menuitem]", (bs) => bs.map((b) => b.textContent.trim()).join(", "))) === "Sign in with Google", "account menu: a guest's offers signing in");
+  ok(/Sign in to sync between devices/.test(await text(bp, "#acctList")) && (await bp.$$eval("#acctList [role=menuitem]", (bs) => bs.map((b) => b.textContent.trim()).join(", "))) === "Sign in with Google", "account menu: a guest's offers signing in");
   await bp.screenshot({ path: join(out, "22-guest-menu.png"), clip: { x: 640, y: 0, width: 640, height: 220 } });
   await bp.keyboard.press("Escape");
   await bp.screenshot({ path: join(out, "22-sidebar.png") });
@@ -1490,7 +1563,7 @@ if (entry.length > 1) {
   let st = await setInfo();
   // On Settings its tabs take the sidebar (as on YouTube), and ☰ brings the menu in over the page.
   const drawerOpen = () => bp.evaluate(() => { const n = document.querySelector("#sideNav"), r = n.getBoundingClientRect(); return getComputedStyle(n).position === "fixed" && getComputedStyle(n).visibility === "visible" && r.left >= 0 && getComputedStyle(document.querySelector("#sideShade")).opacity === "1"; });
-  ok(st.inSide && st.tabs === "Appearance, Account, Data, Practice history, Developer tools" && st.on === "look" && st.body >= st.panel - 2 && st.panel >= st.full - 2 && st.full > 900 && !(await drawerOpen()) && await shown("#settingsBtn"),
+  ok(st.inSide && st.tabs === "Appearance, Account, Data, Developer tools" && st.on === "look" && st.body >= st.panel - 2 && st.panel >= st.full - 2 && st.full > 900 && !(await drawerOpen()) && await shown("#settingsBtn"),
     "sidebar: on Settings its tabs take the sidebar, the page and its menu out of the way, and the tab spans the page like the others do", JSON.stringify(st));
   ft = await footAt();
   ok(ft.inSide && ft.shown && ft.gap >= 0 && ft.gap < 30, "footer: on Settings, at the bottom of the sidebar under its tabs", JSON.stringify(ft));
@@ -1516,15 +1589,15 @@ if (entry.length > 1) {
   const names = () => bp.evaluate(() => [...document.querySelectorAll("#sideNav > *")].map((b) => `${b.title}:${Math.round(b.querySelector("span").getBoundingClientRect().width)}`).join(","));
   await bp.click("#menuBtn"); await bp.waitForTimeout(200);
   si = await sideInfo();
-  ok(si.side[1] === 64 && si.col < 100 && !(await footAt()).shown && (await names()) === "Practice:0,Vocabularies:0,History:0,Study tools:0" && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "false" && await barBtn(),
+  ok(si.side[1] === 64 && si.col < 100 && !(await footAt()).shown && (await names()) === "Practice:0,Vocabulary:0,Progress:0,Extra tools:0" && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "false" && await barBtn(),
     "sidebar: ☰ shrinks it to icons, named when pointed at, and the page takes the room", JSON.stringify(si) + " " + await names());
   await bp.screenshot({ path: join(out, "22-sidebar-icons.png") });
   await bp.click('#sideNav [data-go="history"]'); await bp.waitForTimeout(300);
   ok(await vis(bp, "#history") && (await at()) === "history", "sidebar: an icon still goes to its page");
   await bp.click("#settingsBtn"); await bp.waitForTimeout(300);
   ok(await setOpen(bp) && (await sideInfo()).side[1] === 232 && await shown("#setNav [data-set-tab]"), "sidebar: on Settings its tabs take the sidebar at full width, shrunk or not");
-  await bp.reload(); await bp.waitForTimeout(600);
-  ok((await sideInfo()).side[1] === 64, "sidebar: still shrunk after reloading");
+  await bp.goBack(); await bp.waitForTimeout(300); await bp.reload(); await bp.waitForTimeout(600); // reloading on Progress (on Settings, Settings opens again)
+  ok((await sideInfo()).side[1] === 64 && (await at()) === "history", "sidebar: still shrunk after reloading, on the same page");
   await bp.click("#menuBtn"); await bp.waitForTimeout(200);
   ok((await sideInfo()).side[1] === 232 && (await names()).split(",").every((x) => x.startsWith(":") && +x.slice(1) > 20), "sidebar: ☰ again brings the names back", await names());
   await bp.setViewportSize({ width: 900, height: 1000 }); await bp.click("#settingsBtn"); await bp.waitForTimeout(200);
@@ -1568,17 +1641,31 @@ if (entry.length > 1) {
   const strip = (d) => d && JSON.parse(JSON.stringify({ ...d, updatedAt: undefined }));
 
   await cp.click('#sideNav [data-go="table"]'); await cp.waitForTimeout(300);
-  ok((await switchOf()) === "Books,Courses*" && (await tRows()) === `Year 1: ${chs(1, 8)} | Year 2: ${chs(9, 12)},${chs(1, 4)} | Book B\nExtras: ${chs(9, 11)} | Other: ${chs(5, 8)}`
-    && !(await cp.$("#tChs .chip .n")), "collections: older courses show as the view Courses (no collection names on the units while their names differ)", await tRows());
+  ok((await switchOf()) === "Books,Courses*" && (await tRows()) === `Year 1: ${chs(1, 8)} | Year 2: ${chs(9, 12)},${chs(1, 4)} | Book B\nExtras: ${chs(9, 11)}`
+    && !(await cp.$("#tChs .chip .n")), "collections: older courses show as the view Courses (units in none of its collections are hidden there)", await tRows());
+  const headH = () => cp.$eval("#tTop > .head", (h) => Math.round(h.getBoundingClientRect().height)), h0 = await headH();
   await cp.click("#editColBtn"); await cp.waitForTimeout(200);
+  ok((await headH()) === h0, "collections: Save and Discard take the button's place without making the heading taller", `${h0} → ${await headH()}`);
   ok(await vis(cp, "#colBtns") && !(await vis(cp, "#editColBtn")) && !(await vis(cp, "#tGroupSeg")) && !(await vis(cp, "#tPickBar")) && await cp.$eval("#tSearch", (i) => i.disabled) && await cp.$eval("#colSave", (b) => b.disabled)
     && await cp.$eval("#setTables", (e) => e.inert && e.classList.contains("tlocked") && e.dataset.lock === "Editing collections") && await cp.$eval("#tTop", (e) => e.classList.contains("editing"))
-    && (await cp.$$eval("#viewEd [data-view]", (bs) => bs.map((b) => b.textContent).join(","))) === "Books,Courses" && /← main view/.test(await text(cp, "#viewEd .mainptr"))
+    && (await cp.$$eval("#viewEd [data-view]", (bs) => bs.map((b) => b.textContent).join(","))) === "Books,Courses" && /⬑ main view/.test(await text(cp, "#viewEd .mainptr"))
     && (await edRows()) === `Book A: ${chs(1, 12)} | Book B: ${chs(1, 11)}`,
     "collections: Edit collections shows the main view's collections, Save and Discard take the button's place, and the sets below are covered", await edRows());
   await cp.hover("#viewEd .mainptr .qtip");
   ok(await vis(cp, "#mainTip") && /main view's collections/.test(await text(cp, "#mainTip")), "collections: the (?) beside the main view explains it", await text(cp, "#mainTip"));
   await cp.screenshot({ path: join(out, "23-collections.png"), fullPage: true });
+  // Views are dragged into any order, the main view too.
+  const vOrder = () => cp.$$eval("#viewEd [data-view]", (bs) => bs.map((b) => b.textContent).join(","));
+  await cp.mouse.move(5, 500); await cp.waitForTimeout(300); // the (?) tip above lets go of the view chips
+  { const vb = (n) => cp.locator("#viewEd [data-view]", { hasText: n });
+    const a = await vb("Books").boundingBox(), b = await vb("Courses").boundingBox();
+    await cp.mouse.move(a.x + 5, a.y + a.height / 2); await cp.mouse.down(); await cp.mouse.move(a.x + 25, a.y + a.height / 2, { steps: 3 });
+    await cp.mouse.move(b.x + b.width - 4, b.y + b.height / 2, { steps: 8 }); await cp.mouse.up(); await cp.waitForTimeout(200);
+    ok((await vOrder()) === "Courses,Books" && /main view/.test(await text(cp, "#viewEd .mainptr")) && !(await cp.$eval("#colSave", (x) => x.disabled)), "collections: the main view dragged after another view moves there", await vOrder());
+    const c = await vb("Courses").boundingBox(), d = await vb("Books").boundingBox();
+    await cp.mouse.move(c.x + 5, c.y + c.height / 2); await cp.mouse.down(); await cp.mouse.move(c.x + 25, c.y + c.height / 2, { steps: 3 });
+    await cp.mouse.move(d.x + d.width - 4, d.y + d.height / 2, { steps: 8 }); await cp.mouse.up(); await cp.waitForTimeout(200);
+    ok((await vOrder()) === "Books,Courses" && await cp.$eval("#colSave", (x) => x.disabled), "collections: and back again, with nothing left to save", await vOrder()); }
   // In the main view a unit moves with its sets; one landing where a unit has its name merges with it, after asking.
   await drag(unit(0, "Ch. 12"), drop(1));
   ok((await edRows()) === `Book A: ${chs(1, 11)} | Book B: ${chs(1, 12)}` && !(await cp.$eval("#colSave", (b) => b.disabled)) && (await text(cp, "#colState")) === "Unsaved changes",
@@ -1609,17 +1696,17 @@ if (entry.length > 1) {
   ok(await row(2).locator("[data-cdel]").isDisabled() && /Book C: Ch\. 11$/.test(await edRows()), "collections: a collection with units can't be deleted in the main view", await edRows());
   await cp.click("#colEd [data-cadd]"); await row(3).locator("[data-cdel]").click(); await cp.waitForTimeout(100);
   ok((await cp.$$eval("#colEd .colrow", (r) => r.length)) === 3, "collections: an empty one can");
-  // Another view: units only regroup there, and every unit is somewhere ("Other" holds the rest).
+  // Another view: units only regroup there; units in none of its collections are in Hidden.
   await cp.click('#viewEd [data-view="0"]'); await cp.waitForTimeout(150);
-  ok((await edRows()) === `Year 1: ${chs(1, 8)} | Year 2: ${chs(9, 11)},${chs(2, 4)},Ch. 12 | Book B\nExtras: ${chs(9, 11)} | Other: ${chs(5, 8)}`
+  ok((await edRows()) === `Year 1: ${chs(1, 8)} | Year 2: ${chs(9, 11)},${chs(2, 4)},Ch. 12 | Book B\nExtras: ${chs(9, 11)} | Hidden: ${chs(5, 8)}`
     && !(await cp.$("#colEd .chip .n")) && await vis(cp, "#viewEd [data-vmain]"), "collections: another view follows the moves and the merge", await edRows());
   await drag(unit(3, "Ch. 5"), drop(0));
-  ok(!(await asking()) && (await edRows()).startsWith(`Year 1: ${chs(1, 4)},Ch. 5Book A,${chs(6, 8)},Ch. 5Book B |`) && (await edRows()).endsWith(`Other: ${chs(6, 8)}`),
+  ok(!(await asking()) && (await edRows()).startsWith(`Year 1: ${chs(1, 4)},Ch. 5Book A,${chs(6, 8)},Ch. 5Book B |`) && (await edRows()).endsWith(`Hidden: ${chs(6, 8)}`),
     "collections: in another view a unit only regroups, even beside one of the same name (then each names its collection)", await edRows());
   await cp.fill("#viewEd [data-vname]", "Terms");
   ok((await text(cp, '#viewEd [data-view="0"]')) === "Terms", "collections: a view can be renamed");
   await cp.click("#viewEd [data-vadd]"); await cp.waitForTimeout(100);
-  ok(await cp.evaluate(() => document.activeElement.matches("#viewEd [data-vname]") && document.activeElement.value === "New view") && (await edRows()) === `Book A: ${chs(1, 11)} | Book B: ${chs(2, 10)},Ch. 12 | Book C: Ch. 11 | Other: `,
+  ok(await cp.evaluate(() => document.activeElement.matches("#viewEd [data-vname]") && document.activeElement.value === "New view") && (await edRows()) === `Book A: ${chs(1, 11)} | Book B: ${chs(2, 10)},Ch. 12 | Book C: Ch. 11 | Hidden: `,
     "collections: + New view starts as a copy of the main view, its name ready to type", await edRows());
   await cp.keyboard.type("Spare");
   await cp.click("#viewEd [data-vdel]"); await cp.waitForTimeout(100);
@@ -1693,7 +1780,7 @@ if (entry.length > 1) {
   preview = await importIn(op, old, "23-old-courses.json");
   await toTable(op);
   await op.click('#tGroupSeg [data-view="Courses"]'); await op.waitForTimeout(150);
-  ok(/Courses: will change/.test(preview) && (await stored("meta/courses", op))?.courses?.[0]?.name === "First term" && (await tRows(op)).startsWith("First term: Ch. 1 | Other: Ch. 2,"),
+  ok(/Courses: will change/.test(preview) && (await stored("meta/courses", op))?.courses?.[0]?.name === "First term" && (await tRows(op)) === "First term: Ch. 1",
     "import: in an account without views, an older file's courses read as the view Courses", await tRows(op));
   ok(ep.errors.length === 0 && op.errors.length === 0, "collections import: no page errors", [...ep.errors, ...op.errors].join(" | "));
   await ectx.close(); await octx.close();

@@ -2,7 +2,8 @@
   // A view is one way of putting every unit into rows, the collections. The main view is the one the sets are saved in
   // (each set's own collection and unit, in the collection order of meta/books). Other views group the same units another
   // way, such as by course: meta/views { main, views: [{ name, collections: [{ name, units: [{ collection, unit }] }] }] }
-  // (vocab/docs.js). A unit no collection of a view has shows under "Other" there, so every view still has every unit.
+  // (vocab/docs.js). A unit no collection of a view has is hidden there (the Hidden row of Edit collections), units added
+  // later included: that view doesn't show it or its sets.
   // Before views, courses took ranges of units (meta/courses): they're read as one view, "Courses" (courseView in
   // vocab/docs.js), until views are saved.
   // Every unit there is (with a set or a kanji list), as unitKey()s, in the main view's order.
@@ -24,13 +25,12 @@
     const vs = altViews(), g = S.groupBy;
     return vs.find((v) => v.name === g) ?? (g === "course" ? vs[0] : null) ?? null;
   }
-  // A view's rows among the keys given: each collection with the keys it has (once, in the first collection that has them),
-  // then the rest under "Other". Collections with none of the keys are left out.
+  // A view's rows among the keys given: each collection with the keys it has (once, in the first collection that has them).
+  // The rest are hidden in this view. Collections with none of the keys are left out.
   function viewRows(v, keys) {
     const used = new Set();
     const rows = v.collections.map((c) => { const has = new Set(c.units); const ks = keys.filter((k) => has.has(k) && !used.has(k)); ks.forEach((k) => used.add(k)); return { name: c.name, keys: ks }; });
-    const rest = keys.filter((k) => !used.has(k));
-    return [...rows.filter((r) => r.keys.length), ...(rest.length ? [{ name: "Other", keys: rest }] : [])];
+    return rows.filter((r) => r.keys.length);
   }
   // Where a row of another view has two units of one name (Ch. 1 of two books), each names its collection. ids are in
   // order; colOf(id) and nameOf(id) are a unit's collection and name. Gives what goes inside each one's chip.
@@ -42,7 +42,7 @@
     const vs = altViews(), on = curView()?.name ?? "";
     box.hidden = !vs.length;
     if (box.hidden) return;
-    const opts = [["", mainName()], ...vs.map((v) => [v.name, v.name])];
+    const opts = vs.map((v) => [v.name, v.name]); opts.splice(S.viewDoc?.mainAt || 0, 0, ["", mainName()]);
     const pick = (v) => { S.groupBy = v || "main"; store.set("groupBy", S.groupBy); renderSetup(); renderTable(); };
     box.className = "seg mini viewsw";
     box.innerHTML = opts.map(([v, t]) => `<button type="button" data-view="${esc(v)}" aria-pressed="${v === on}">${esc(t.replace("\n", " "))}</button>`).join("");

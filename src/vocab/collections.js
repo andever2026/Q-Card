@@ -1,13 +1,14 @@
   // ---------- editing collections ----------
   // "Edit collections" turns the top of the vocab table into an editor for every view at once (vocab/views.js); nothing
   // is stored until Save. While it's open, S.colEdit is
-  //   { at, mainName, main: [col], others: [{ name, was, cols: [col] }], units: { [id]: { name, srcs } }, was }
-  // with col = { id, name, units: [unit id], was }: at is the view being edited (-1 for the main one), a view's or col's was
+  //   { at, mainName, mainPos, main: [col], others: [{ name, was, cols: [col] }], units: { [id]: { name, srcs } }, was }
+  // with col = { id, name, units: [unit id], was }: at is the view being edited (-1 for the main one), mainPos is where the
+  // main view sits among the views (they can be dragged into any order), a view's or col's was
   // is its name when editing began (null for one added, or for the main view turned into another), a unit's id is the
   // unitKey() it had when editing began, and srcs are the unitKey()s it stands for (more than one once two are merged).
   // In the main view, moving a unit moves its sets and kanji list into that collection, and a unit of the same name there
   // merges with it (after asking). In another view, moving a unit only regroups it. Units sort by name in a collection.
-  const colSnap = (e) => JSON.stringify([e.mainName, e.main, e.others, e.units]);
+  const colSnap = (e) => JSON.stringify([e.mainName, e.mainPos, e.main, e.others, e.units]);
   const colsDirty = () => !!S.colEdit && colSnap(S.colEdit) !== S.colEdit.was;
   const newCol = (name, units) => ({ id: rid(), name, units, was: name });
   $("#editColBtn").onclick = () => {
@@ -15,17 +16,14 @@
     for (const k of keys) units[k] = { name: keyUnit(k), srcs: [k] };
     // A unit is in at most one collection of a view: the first that has it.
     const once = (list) => { const used = new Set(); return list.map((c) => newCol(c.name, c.units.filter((u) => keys.has(u) && !used.has(u) && used.add(u)))); };
-    S.colEdit = { at: -1, mainName: mainName(), main: cols().map((b) => newCol(b, tKeys(b))), others: altViews().map((v) => ({ name: v.name, was: v.name, cols: once(v.collections) })), units };
+    S.colEdit = { at: -1, mainName: mainName(), mainPos: S.viewDoc?.mainAt || 0, main: cols().map((b) => newCol(b, tKeys(b))), others: altViews().map((v) => ({ name: v.name, was: v.name, cols: once(v.collections) })), units };
     S.colEdit.was = colSnap(S.colEdit);
     clearSearch(); renderTable();
     $("#colDiscard").focus();
   };
   $("#colDiscard").onclick = () => { S.colEdit = null; renderTable(); $("#editColBtn").focus(); };
   $("#colSave").onclick = async (ev) => {
-    const b = ev.currentTarget; b.disabled = true; b.textContent = "Saving…";
-    const ok = await saveCols((m) => { $("#colErr").textContent = m; });
-    b.textContent = "Save";
-    if (ok) renderTable(); else b.disabled = false;
+    if (await whileSaving(ev.currentTarget, () => saveCols((m) => { $("#colErr").textContent = m; }))) renderTable();
   };
   const binIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6.5 H19.5 M9.5 6.5 V4.5 H14.5 V6.5 M6.5 6.5 L7.5 19.5 H16.5 L17.5 6.5 M10.3 10.5 V16 M13.7 10.5 V16"/></svg>`;
   const viewCols = (e) => (e.at < 0 ? e.main : e.others[e.at].cols);
@@ -38,25 +36,26 @@
     vEd.hidden = cEd.hidden = !e;
     if (!e) { vEd.innerHTML = cEd.innerHTML = ""; return; }
     const chip = (i, name) => `<button type="button" class="chip" data-view="${i}" aria-pressed="${e.at === i}">${esc(name.replace("\n", " ") || "Untitled view")}</button>`;
-    vEd.innerHTML = `<div class="chips" role="group" aria-label="Views">${chip(-1, e.mainName)}<span class="mainptr small">← main view${qtip("mainTip", "What the main view is", "Your sets are saved in the main view's collections. Other views group the same units another way without changing them, and any of them can become the main view.")}</span>
-        ${e.others.map((v, i) => chip(i, v.name)).join("")}<button type="button" class="chip add" data-vadd>+ New view</button></div>
+    const order = e.others.map((v, i) => i); order.splice(e.mainPos, 0, -1);
+    vEd.innerHTML = `<div class="vchips"><div class="chips" role="group" aria-label="Views (drag to reorder)">${order.map((i) => chip(i, i < 0 ? e.mainName : e.others[i].name)).join("")}<button type="button" class="chip add" data-vadd>+ New view</button></div>
+        <div class="mainptr small"><span data-ptr>⬑ main view</span>${qtip("mainTip", "What the main view is", "Your sets are saved in the main view's collections. Other views group the same units another way without changing them, and any of them can become the main view.")}</div></div>
       <div class="viewbar"><label class="small">View name <input type="text" data-vname maxlength="60" value="${esc(e.at < 0 ? e.mainName : e.others[e.at].name.replace("\n", " "))}"></label>
-        ${e.at >= 0 ? `<button class="link" type="button" data-vmain>Make this the main view</button><button class="link danger" type="button" data-vdel>Delete view</button>` : `<span class="muted small">Moving a unit here moves its sets to that collection.</span>`}</div>`;
+        ${e.at >= 0 ? `<button class="link" type="button" data-vmain>Make this the main view</button><button class="link danger" type="button" data-vdel>Delete view</button>` : ""}</div>`;
     const list = viewCols(e), at = mainAt(e), main = e.at < 0;
     const sorted = (ids) => ids.slice().sort((a, b) => (main ? 0 : (at[a] ?? 1e9) - (at[b] ?? 1e9)) || byUnit(e.units[a].name, e.units[b].name));
     const inOther = main ? [] : Object.keys(e.units).filter((u) => !list.some((c) => c.units.includes(u)));
     const chips = (ids, where) => {
       const list = sorted(ids), colName = (u) => e.main[at[u]]?.name ?? "", tags = main ? [] : twinTags(list, colName, (u) => e.units[u].name);
       return list.map((u, i) => `<button type="button" class="chip unit" data-u="${esc(u)}" aria-label="${esc(e.units[u].name)}${main ? "" : ` (${esc(colName(u))})`} in ${esc(where)}. Drag it, or press the up or down arrow to move it to the collection above or below.">${esc(e.units[u].name)}${tags[i] || ""}</button>`).join("")
-        || `<span class="muted small">Drag units here</span>`;
+        || `<span class="muted small">${where === "Hidden" ? "Drag units here to hide them in this view" : "Drag units here"}</span>`;
     };
     cEd.innerHTML = list.map((c, i) => `<div class="colrow" data-col="${c.id}">
         <span class="colctl"><button class="grip" type="button" aria-label="Drag to move ${esc(c.name || "this collection")}" title="Drag to move">⠿</button><button class="ghost" type="button" data-cmove="-1" aria-label="Move ${esc(c.name || "this collection")} up"${i ? "" : " disabled"}>↑</button><button class="ghost" type="button" data-cmove="1" aria-label="Move ${esc(c.name || "this collection")} down"${i < list.length - 1 ? "" : " disabled"}>↓</button><button class="ghost cdel" type="button" data-cdel aria-label="Delete ${esc(c.name || "this collection")}"${main && c.units.length ? ` disabled title="Move its units to other collections first"` : ` title="Delete"`}>${binIcon}</button></span>
         <textarea class="colname" rows="${c.name.includes("\n") ? 2 : 1}" data-cname maxlength="100" placeholder="Collection name" aria-label="Name of collection ${i + 1}">${esc(c.name)}</textarea>
         <div class="colunits" data-drop="${c.id}">${chips(c.units, c.name)}</div></div>`).join("")
-      + (main ? "" : `<div class="colrow other" data-col="other"><span class="colctl"></span><span class="colname">Other</span><div class="colunits" data-drop="other">${chips(inOther, "Other")}</div></div>`)
-      + `<div class="row"><button class="btn" type="button" data-cadd>+ Add collection</button><span class="muted small">${main ? "" : "Units in no collection of this view show under “Other”."}${main ? "" : " Press Enter in a name to put it on two lines."}</span></div>`;
-    syncColBtns(); tipTaps(vEd);
+      + (main ? "" : `<div class="colrow other" data-col="other"><span class="colctl"></span><span class="colname">Hidden</span><div class="colunits" data-drop="other">${chips(inOther, "Hidden")}</div></div>`)
+      + `<div class="row"><button class="btn" type="button" data-cadd>+ Add collection</button></div>`;
+    syncColBtns(); tipTaps(vEd); placePtr();
     const redo = (focus) => { renderColEdit(); renderLeave(); if (focus) document.querySelector(focus)?.focus(); };
     vEd.querySelectorAll("[data-view]").forEach((b) => (b.onclick = () => { e.at = +b.dataset.view; redo(`#viewEd [data-view="${e.at}"]`); }));
     vEd.querySelector("[data-vname]").addEventListener("input", (ev) => {
@@ -71,7 +70,8 @@
     const vdel = vEd.querySelector("[data-vdel]");
     if (vdel) vdel.onclick = async () => {
       const v = e.others[e.at];
-      if (!(await ask("Delete this view?", `<p>The view <b>${esc(v.name)}</b> and the way it groups the units go. Your sets, units and other views stay as they are.</p><p>Nothing is changed until you press Save.</p>`, "Delete view"))) return;
+      if (!(await ask("Delete this view?", `<p>You will lose the custom ordering for the units.</p>`, "Delete view", true))) return;
+      if (e.at < e.mainPos) e.mainPos--;
       e.others.splice(e.at, 1); e.at = -1; redo(`#viewEd [data-view="-1"]`);
     };
     const vmain = vEd.querySelector("[data-vmain]");
@@ -84,7 +84,7 @@
       row.querySelector("[data-cdel]").onclick = () => { list.splice(i, 1); redo(`#colEd [data-cadd]`); };
     });
     cEd.querySelector("[data-cadd]").onclick = () => { const c = newCol("", []); list.push(c); redo(`[data-col="${c.id}"] [data-cname]`); };
-    // The arrow keys move a unit to the collection above or below (in another view, "Other" is the last).
+    // The arrow keys move a unit to the collection above or below (in another view, Hidden is the last).
     cEd.querySelectorAll(".chip.unit").forEach((b) => b.addEventListener("keydown", (ev) => {
       if (ev.key !== "ArrowUp" && ev.key !== "ArrowDown") return;
       ev.preventDefault();
@@ -92,6 +92,31 @@
       if (rows[i]) moveUnit(b.dataset.u, rows[i].dataset.drop);
     }));
   }
+  // "main view" under the main view's chip, its arrow pointing up at it from the left (or from the right, past the middle).
+  function placePtr() {
+    const box = $("#viewEd .vchips"), chip = box?.querySelector('[data-view="-1"]'), ptr = box?.querySelector(".mainptr");
+    if (!chip || !box.clientWidth) return;
+    const b = box.getBoundingClientRect(), r = chip.getBoundingClientRect(), right = r.left + r.width / 2 - b.left > b.width / 2;
+    ptr.querySelector("[data-ptr]").textContent = right ? "main view ⬏" : "⬑ main view";
+    ptr.style.justifyContent = right ? "flex-end" : "flex-start";
+    ptr.style.paddingLeft = right ? "" : `${Math.round(r.left - b.left)}px`; ptr.style.paddingRight = right ? `${Math.round(b.right - r.right)}px` : "";
+  }
+  new ResizeObserver(placePtr).observe($("#viewEd"));
+  // Views are dragged into any order: before or after the chip they're let go on.
+  const viewSlot = (x, y) => { const t = document.elementFromPoint(x, y)?.closest("#viewEd [data-view]"); if (!t) return null; const r = t.getBoundingClientRect(); return { t, after: x > r.left + r.width / 2 }; };
+  const markView = (s) => { $("#viewEd").querySelectorAll(".dropbefore, .dropafter").forEach((x) => x.classList.remove("dropbefore", "dropafter")); if (s) s.t.classList.add(s.after ? "dropafter" : "dropbefore"); };
+  makeDrag($("#viewEd"), "[data-view]", {
+    over: (el, x, y) => { const s = viewSlot(x, y); markView(s && s.t !== el ? s : null); },
+    drop: (el, x, y) => {
+      const s = viewSlot(x, y), e = S.colEdit;
+      if (!s || s.t === el) return;
+      const obj = (id) => (id < 0 ? "main" : e.others[id]), at = obj(e.at), order = [...$("#viewEd").querySelectorAll("[data-view]")].map((b) => obj(+b.dataset.view));
+      const me = obj(+el.dataset.view); order.splice(order.indexOf(me), 1); order.splice(order.indexOf(obj(+s.t.dataset.view)) + (s.after ? 1 : 0), 0, me);
+      e.mainPos = order.indexOf("main"); e.others = order.filter((v) => v !== "main"); e.at = at === "main" ? -1 : e.others.indexOf(at);
+      renderColEdit(); renderLeave(); $(`#viewEd [data-view="${me === "main" ? -1 : e.others.indexOf(me)}"]`)?.focus();
+    },
+    end: () => markView(null),
+  });
   const freeName = (base, taken) => { let n = base, k = 2; while (taken.some((t) => sameName(t, n))) n = `${base} ${k++}`; return n; };
   function syncColBtns() {
     const ch = colsDirty();
@@ -156,9 +181,9 @@
     for (const c of next) { const by = new Map(); for (const u of c.units) { const k = e.units[u].name.toLowerCase(); if (by.has(k)) merges.push([u, by.get(k), c.name]); else by.set(k, u); } }
     const said = [...new Set(merges.map(([, into, col]) => `${e.units[into].name} in ${col}`))];
     const n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`;
-    if (!(await ask(`Make “${v.name.replace("\n", " ")}” the main view?`, `<p>Your sets will be saved in its collections: each set moves to the collection its unit has in <b>${esc(v.name)}</b>. <b>${esc(e.mainName)}</b> stays as another view, so you can switch back.</p>
+    if (!(await ask(`Make “${v.name.replace("\n", " ")}” the main view?`, `<p>All new views will adopt the layout of this view at creation.</p>
       ${said.length ? `<p>Units with the same name in one collection become one unit, their sets together and their kanji lists combined: ${esc(said.join(", "))}.</p>` : ""}
-      ${rest.length ? `<p>${n(rest.length, "unit")} in no collection of ${esc(v.name)} ${rest.length === 1 ? "goes" : "go"} into a collection called Other.</p>` : ""}<p>Nothing is changed until you press Save.</p>`, "Make it the main view"))) return;
+      ${rest.length ? `<p>${n(rest.length, "unit")} in no collection of ${esc(v.name)} ${rest.length === 1 ? "goes" : "go"} into a collection called Other.</p>` : ""}`, "Make it the main view"))) return;
     e.others.splice(i, 1, { name: e.mainName, was: null, cols: e.main.map((c) => newCol(c.name, [...c.units])) });
     e.mainName = v.name.replace(/\s*\n\s*/g, " "); e.main = next;
     for (const [u, into] of merges) mergeUnit(u, into);
@@ -194,7 +219,7 @@
       for (const k of more) jobs.push(["delete", "kanji/" + k.id]);
     }
     if (JSON.stringify(colNames) !== JSON.stringify(cols())) jobs.push(["set", "meta/books", { order: colNames, updatedAt: now }]);
-    const doc = { main: vNames[0], views: e.others.map((v, i) => ({ name: vNames[i + 1], collections: v.cols.map((c) => ({ name: viewName(c.name, 100), units: c.units.filter((u) => to[u]).map((u) => to[u]) })) })) };
+    const doc = { main: vNames[0], views: e.others.map((v, i) => ({ name: vNames[i + 1], collections: v.cols.map((c) => ({ name: viewName(c.name, 100), units: c.units.filter((u) => to[u]).map((u) => to[u]) })) })), ...(e.mainPos ? { mainAt: e.mainPos } : {}) };
     if (JSON.stringify(doc) !== JSON.stringify(S.viewDoc)) jobs.push(["set", "meta/views", { ...doc, updatedAt: now }]);
     let n = 0;
     try { for (const [how, path, d] of jobs) { await (how === "delete" ? db.doc(path).delete() : how === "set" ? db.doc(path).set(d) : db.doc(path).update(d)); n++; } }

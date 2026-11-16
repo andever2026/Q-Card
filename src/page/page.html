@@ -57,7 +57,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     <dialog id="bornAsk" aria-labelledby="bornAskTitle"><form class="shareask" id="bornAskForm">
       <h2 id="bornAskTitle">One more thing: when were you born?</h2>
       <p>Sharing handwriting is for people 16 and older, so it takes your birth month and year. It's kept with your account.</p>
-      <div class="bornask"><span class="tiph" id="bornAskLab">Birth month and year <span id="bornAskTip"></span></span><span id="bornAskIn" role="group" aria-labelledby="bornAskLab"></span><b id="bornAskNow" hidden></b></div>
+      <div class="bornask"><span class="tiph" id="bornAskLab">Birthday <span id="bornAskTip"></span></span><span id="bornAskIn" role="group" aria-labelledby="bornAskLab"></span><b id="bornAskNow" hidden></b></div>
       <p class="muted small" id="bornAskNote"></p>
       <p id="bornAskYoung" role="status" hidden>Thank you for wanting to help! Sharing is for people 16 and older, so it stays off for now.</p>
       <p class="keyerr small" id="bornAskErr" role="status" hidden></p>
@@ -66,21 +66,21 @@ colours.apply(...colours.saved()); // before anything is drawn
 <!--#endif-->
     <nav class="sidenav" id="sideNav" aria-label="Pages">
       <button type="button" data-go="setup"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z M13.6 7.4 L16.6 10.4"/></svg><span>Practice</span></button>
-      <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg><span>Vocabularies</span></button>
-      <button type="button" data-go="history"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.8 12 a8.2 8.2 0 1 0 2.4 -5.8 L3.8 8.6 M3.8 4.2 V8.6 H8.2 M12 7.6 V12 L15 13.8"/></svg><span>History</span></button>
+      <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg><span>Vocabulary</span></button>
+      <button type="button" data-go="history"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20 H20 M7 16.5 V12 M12 16.5 V6.5 M17 16.5 V9.5"/></svg><span>Progress</span></button>
 <!--#if public-->
-      <a href="study-tools/"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg><span>Study tools</span></a>
+      <button type="button" data-go="tools"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg><span>Extra tools</span></button>
 <!--#endif-->
     </nav>
     <div class="sideshade" id="sideShade"></div>
     <div class="topr">
-      <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
 <!--#if public-->
       <div class="acct" id="acct">
         <button type="button" class="acctbtn" id="acctBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="acctList"><span class="pfp" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="12" cy="8.6" r="4.1"/><path d="M4.2 20.2c.6-4 3.9-6.4 7.8-6.4s7.2 2.4 7.8 6.4z"/></svg></span><span class="acctname" id="acctLabel">Guest</span><svg class="chev" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="acctlist" id="acctList" role="menu" aria-labelledby="acctBtn" hidden></div>
       </div>
 <!--#endif-->
+      <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
     </div>
     <div class="setslot" id="setNavSlot" hidden></div>
 <!--#if public-->
@@ -98,13 +98,15 @@ colours.apply(...colours.saved()); // before anything is drawn
   <div class="gate" id="gate" role="status">Loading…</div>
   <dialog id="askDlg" aria-labelledby="askTitle"><form method="dialog" class="shareask"><h2 id="askTitle"></h2><div class="asktext" id="askText"></div>
     <div class="tactions shareact"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes" id="askYes"></button></div></form></dialog>
+  <dialog id="wordCard" aria-labelledby="wordCardTitle"><div class="wcardbox">
+    <div class="wcardhead"><h2 id="wordCardTitle"></h2><span class="muted small" id="wordCardN"></span><button type="button" class="dlgx" id="wordCardX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6 18 18 M18 6 6 18"/></svg></button></div>
+    <div class="wcardbody" id="wordCardBody"></div></div></dialog>
 
   <!-- SETUP -->
   <section id="setup" class="wrap">
     <div class="panel">
       <div class="head"><h3>Vocabulary sets</h3>
         <div class="headr"><div class="seg mini viewsw" id="groupSeg" role="group" aria-label="View" hidden></div>
-          <button class="link" id="toTable" aria-label="Edit vocabulary sets">edit</button>
         </div>
       </div>
       <div class="pbar" id="pickBar" hidden>
@@ -147,12 +149,16 @@ colours.apply(...colours.saved()); // before anything is drawn
         <span class="startbtns"><button class="btn" id="resumeBtn" hidden></button><button class="btn primary" id="startBtn" disabled>Start practice</button></span>
       </div>
     </div>
-    <div class="panel" id="histPanel" hidden>
-      <div class="head"><h3 id="histTitle">Your recent practice</h3><span class="tactions"><button class="ghost small" id="histOff" hidden>Turn off</button><button class="link" id="histAll">See all history</button></span></div>
-      <div class="histask" id="histAsk" hidden></div>
-      <ul class="hist" id="histList"></ul>
-    </div>
   </section>
+
+<!--#if public-->
+  <!-- EXTRA TOOLS: each tool's card is drawn by js/tools.js (src/study-tools/), loaded the first time this opens -->
+  <section id="tools" class="wrap" style="gap:18px" hidden>
+    <div class="panel"><div class="head"><h2>Extra tools</h2></div><p class="muted">Extras to practice with away from the screen.</p></div>
+    <div id="toolList" style="display: grid; gap: 18px"><p class="muted small">Loading…</p></div>
+    <div id="printSheet"></div>
+  </section>
+<!--#endif-->
 
   <!-- QUIZ -->
   <section id="quiz" class="wrap" style="gap:16px" hidden>
@@ -188,7 +194,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       <span class="itools"><span class="igroup"><button type="button" id="undoBtn" title="Undo" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></button><button type="button" id="clearBtn" title="Clear" aria-label="Clear"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button></span><span class="igroup" role="group" aria-label="Writing tool"><button type="button" data-tool="pen" aria-pressed="true" title="Pen" aria-label="Pen"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button><button type="button" data-tool="erase" aria-pressed="false" title="Stroke eraser: erases whole strokes" aria-label="Stroke eraser"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></button></span></span>
       <span class="spacer"></span>
       <span class="err" id="checkErr" hidden></span>
-      <button class="btn primary" id="checkBtn" disabled>Check</button>
+      <button class="btn primary" id="checkBtn">Check</button>
     </div>
 <!--#if public-->
     <div class="fb self" id="selfCheck" hidden>
@@ -198,7 +204,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     </div>
 <!--#endif-->
     <div class="fb" id="feedback" hidden>
-      <div class="fbhead"><span class="stamp">もう一度</span><span id="fbReason"></span></div>
+      <div class="fbhead"><span class="stamp">Not quite</span><span id="fbReason"></span></div>
       <div class="answer" id="fbAnswer"></div>
       <p class="need" id="fbNeed" hidden></p>
       <p class="read" id="fbRead"></p>
@@ -208,7 +214,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div class="itools"><span class="igroup"><button type="button" id="scratchUndo" title="Undo" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></button><button type="button" id="scratchClear" title="Clear" aria-label="Clear"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button></span><span class="igroup" role="group" aria-label="Writing tool"><button type="button" data-tool="pen" aria-pressed="true" title="Pen" aria-label="Pen"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button><button type="button" data-tool="erase" aria-pressed="false" title="Stroke eraser: erases whole strokes" aria-label="Stroke eraser"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></button></span></div>
       </div>
       <div class="fbfoot">
-        <button class="link" id="overrideBtn">Claude misread my writing, count it as correct</button>
+        <button class="btn" type="button" id="overrideBtn" title="When your writing was right and it was read wrong">Mark it as correct</button>
         <button class="btn primary" id="nextBtn">Next word →</button>
       </div>
     </div>
@@ -242,11 +248,6 @@ colours.apply(...colours.saved()); // before anything is drawn
   <section id="history" class="wrap" style="gap:18px" hidden>
     <div class="qbar"><button class="ghost" id="histBack">← Back to practice</button></div>
     <div class="panel">
-<!--#if public-->
-      <div class="head"><h2>Your history</h2><span class="muted small" id="histWhere">Private to your account</span></div>
-<!--#else-->
-      <div class="head"><h2>Your history</h2><span class="muted small">Only you can see this</span></div>
-<!--#endif-->
       <div class="empty" id="hEmpty" hidden></div>
       <div class="stats" id="hStats">
         <div><span class="big" id="hTests">0</span><span class="muted small">practice sessions</span></div>
@@ -265,7 +266,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div id="acc"></div>
       </div>
       <div class="panel" id="hLovePanel">
-        <div class="head"><h3>Words that need the most love overall</h3><div class="headr"><div class="seg mini" id="loveTopSeg" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div></div></div>
+        <div class="head"><h3>Words that need the most love</h3><div class="headr"><div class="seg mini" id="loveTopSeg" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div></div></div>
         <ul class="love" id="hLove"></ul>
         <div class="listfoot"><nav class="pager" id="lovePager" aria-label="Word pages" hidden></nav><span class="muted small" id="loveCount"></span><div id="loveWin"></div><button class="btn primary" type="button" id="hPractise">Practice these</button></div>
       </div>
@@ -288,9 +289,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         <button type="button" data-set-tab="account">Account</button>
 <!--#endif-->
         <button type="button" data-set-tab="data">Data</button>
-        <button type="button" data-set-tab="history">Practice history</button>
 <!--#if public-->
-        <button type="button" data-set-tab="share">Handwriting sharing</button>
         <button type="button" data-set-tab="tools">Developer tools</button>
         <button type="button" data-set-tab="admin">Admin</button>
 <!--#endif-->
@@ -310,15 +309,18 @@ colours.apply(...colours.saved()); // before anything is drawn
             <p id="acctName"></p>
             <div class="tactions"><button class="btn" type="button" id="signOutBtn">Sign out</button></div>
             <p class="keyerr small" id="acctErr" hidden></p>
-            <p class="muted small" id="privacyLink"><a href="privacy/" target="_blank" rel="noopener">Privacy Policy</a></p>
           </section>
           <section id="nickRow" hidden><h3>Nickname</h3>
             <form class="nickform" id="nickForm"><input type="text" id="nickIn" maxlength="40" autocomplete="nickname" aria-label="Nickname"><button class="btn primary" type="submit" id="nickSave" disabled>Save</button><span class="muted small" id="nickMsg" role="status"></span></form>
-            <p class="muted small">Shown at the top right of the page. Leave it empty to show your Google name.</p>
           </section>
-          <section id="bornRow" hidden><h3 class="tiph" id="bornLab">Birth month and year <span id="bornTipAt"></span></h3>
-            <form class="bornrow" id="bornForm"><span id="bornIn" role="group" aria-labelledby="bornLab"></span><b id="bornNow" hidden></b><button class="btn primary" type="submit" id="bornSave" disabled>Save</button><button class="link" type="button" id="bornClear" hidden>Clear</button><span class="muted small" id="bornMsg" role="status"></span></form>
-            <p class="muted small">Optional. <span id="bornNote"></span></p>
+          <section id="bornRow" hidden><h3 class="tiph" id="bornLab">Birthday <span id="bornTipAt"></span></h3>
+            <form class="bornrow" id="bornForm"><span id="bornIn" role="group" aria-labelledby="bornLab"></span><b id="bornNow" hidden></b><button class="btn primary" type="submit" id="bornSave" disabled>Save</button><button class="link danger" type="button" id="bornClear" hidden>Delete</button><span class="muted small" id="bornMsg" role="status"></span></form>
+            <p class="muted small" id="bornNote"></p>
+          </section>
+          <section id="shareSet" hidden><h3>Handwriting sharing</h3>
+            <p class="muted small" id="shareInfo"></p>
+            <div class="tactions"><button class="btn" type="button" id="shareToggle">Turn on…</button><button class="link" type="button" id="shareDl" hidden>Download what I've shared</button><button class="link" type="button" id="shareDel" hidden>Delete what I've shared</button></div>
+            <div class="tactions" id="shareDelAsk" hidden><span class="small">Delete every answer you've shared, for good?</span><button class="btn danger" type="button" id="shareDelYes">Delete</button><button class="btn" type="button" id="shareDelNo">Cancel</button></div>
           </section>
           <section><h3>Delete</h3><div id="delAcct"></div></section>
         </div>
@@ -326,40 +328,29 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div class="setpane" data-set-pane="data"><h2>Data</h2>
           <section><h3>Vocabulary</h3><p class="muted" id="setStats"></p></section>
           <section id="portPanel" hidden><h3>Export / import</h3>
-            <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and views, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
             <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
 <!--#if public-->
-            <p class="muted small" id="aiHelp">Have a vocab list on paper, in a photo or in a PDF? <a href="ai/" target="_blank" rel="noopener">Let your AI make the file</a>.</p>
+            <p class="muted small" id="aiHelp">Need to create lots of sets? <a href="ai/" target="_blank" rel="noopener">AI can help</a>.</p>
 <!--#endif-->
             <p class="muted small" id="portMsg" hidden></p>
             <div class="impprev" id="importPreview" hidden></div>
           </section>
-        </div>
-        <div class="setpane" data-set-pane="history" id="histSet" hidden><h2>Practice history</h2>
-          <section>
+          <section class="histsec" hidden><h3>Progress tracking</h3>
             <p id="histSetInfo"></p>
             <p class="muted small" id="histSetWhere"></p>
-            <div class="tactions"><button class="btn" type="button" id="histSetToggle"></button><button class="link" type="button" id="histSetAll">See all history</button></div>
-            <div id="histPort" hidden>
-              <h3>Export and import</h3>
-              <p class="muted small">Save your practice history as a file, or add the sessions in a history file to the history here. Sessions already here are left as they are, so nothing is replaced or deleted.</p>
-              <div class="tactions"><button class="btn" type="button" id="histExport">Export history</button><button class="btn" type="button" id="histImport">Import a history file…</button><input type="file" id="histFile" accept=".json,application/json" hidden></div>
-              <p class="muted small" id="histPortMsg" hidden></p>
-              <div class="impprev" id="histImportPreview" hidden></div>
-            </div>
-            <h3>Words that need the most love</h3>
-            <p class="muted small">Which comes first on each word, so you can go down the list and test yourself on the other.</p>
+            <div class="tactions"><button class="btn" type="button" id="histSetToggle"></button><button class="link" type="button" id="histSetAll">See all progress</button></div>
+          </section>
+          <section id="histPort" hidden><h3>Progress export / import</h3>
+            <p class="muted small" id="histPortSample"></p>
+            <div class="tactions"><button class="btn" type="button" id="histExport">Export progress</button><button class="btn" type="button" id="histImport">Import a progress file…</button><input type="file" id="histFile" accept=".json,application/json" hidden></div>
+            <p class="muted small" id="histPortMsg" hidden></p>
+            <div class="impprev" id="histImportPreview" hidden></div>
+          </section>
+          <section class="histsec setrow" hidden><h3>Words that need the most love</h3>
             <div class="seg mini" id="histSetTop" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div>
           </section>
         </div>
 <!--#if public-->
-        <div class="setpane" data-set-pane="share" id="shareSet" hidden><h2>Handwriting sharing</h2>
-          <section><h3>Help train the checker</h3>
-            <p class="muted small" id="shareInfo"></p>
-            <div class="tactions"><button class="btn" type="button" id="shareToggle">Turn on…</button><button class="link" type="button" id="shareDl" hidden>Download what I've shared</button><button class="link" type="button" id="shareDel" hidden>Delete what I've shared</button></div>
-            <div class="tactions" id="shareDelAsk" hidden><span class="small">Delete every answer you've shared, for good?</span><button class="btn danger" type="button" id="shareDelYes">Delete</button><button class="btn" type="button" id="shareDelNo">Cancel</button></div>
-          </section>
-        </div>
         <div class="setpane" data-set-pane="tools" id="toolsSet"><h2>Developer tools</h2>
           <section>
             <p class="muted small">A look at how the page works. Each one stays off until you turn it on, in this browser.</p>
@@ -377,7 +368,7 @@ colours.apply(...colours.saved()); // before anything is drawn
             <div class="tactions"><button class="btn" type="button" id="devPolicyNow">Show it now</button><button class="btn" type="button" id="devPolicyNext">Show it on my next visit</button></div>
             <p class="muted small" id="devPolicyMsg" hidden></p>
           </section>
-          <section><h3>Birth month and year</h3>
+          <section><h3>Birthday</h3>
             <p class="muted small">Once given, it can be changed after 3 months. This ends the wait for your own account, so you can give it again.</p>
             <div class="tactions"><button class="btn" type="button" id="devBornReset">Reset the 3 month wait</button></div>
             <p class="muted small" id="devBornMsg" hidden></p>
@@ -397,7 +388,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     <div class="banner leaveask" id="leaveAsk" hidden></div>
     <div class="panel">
       <div class="ttop" id="tTop">
-        <div class="head"><h2>Vocabularies</h2>
+        <div class="head"><h2>Vocabulary</h2>
           <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="editColBtn" hidden>Edit collections</button>
             <span class="colbtns" id="colBtns" hidden><span class="editerr" id="colErr" role="status"></span><span class="muted small" id="colState"></span><button class="btn" type="button" id="colDiscard">Discard</button><button class="btn primary" type="button" id="colSave" disabled>Save</button></span>
             <div class="seg mini viewsw" id="tGroupSeg" role="group" aria-label="View" hidden></div>
@@ -444,6 +435,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   //#include page/dom.js
   //#include page/dropdown.js
   //#include page/drag.js
+  //#include page/hold.js
   //#include page/ask.js
   //#include page/core.js
   //#include page/settings.js
@@ -455,6 +447,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   //#include vocab/docs.js
   //#include vocab/data.js
   //#include practice/verbs.js
+  //#include vocab/word-card.js
   //#include vocab/setup.js
 
   //#include practice/practice.js
@@ -487,6 +480,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   //#include tour/tour.js
   //#include account/share.js
   //#include account/policy-notice.js
+  //#include study-tools/view.js
+  //#include page/address.js
   //#include practice/round-list.js
   //#endif
   //#include page/boot.js

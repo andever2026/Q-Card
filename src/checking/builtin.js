@@ -86,7 +86,6 @@
   // strokes for are marked by the student (selfMark).
   async function judge({ w, dir }) {
     $("#liveRead").hidden = true;
-    $("#overrideBtn").textContent = "The checker misread my writing, count it as correct";
     const res = await checkWriting(w, dir);
     return () => {
       if (res && !res.ok) showBoxes(res);

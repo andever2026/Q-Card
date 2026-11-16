@@ -73,7 +73,10 @@
   function cleanViews(d) {
     if (!d || typeof d !== "object" || !Array.isArray(d.views)) return null;
     const unit = (u) => ({ collection: tidy(u.collection, 100), unit: tidy(u.unit, 60) });
-    return { main: tidy(d.main, 60) || "Books", views: d.views.slice(0, 20).filter((v) => v && typeof v === "object" && Array.isArray(v.collections)).map((v) => ({ name: viewName(v.name, 60) || "View",
+    const out = { main: tidy(d.main, 60) || "Books", views: d.views.slice(0, 20).filter((v) => v && typeof v === "object" && Array.isArray(v.collections)).map((v) => ({ name: viewName(v.name, 60) || "View",
       collections: v.collections.slice(0, 100).filter((c) => c && typeof c === "object").map((c) => ({ name: viewName(c.name, 100) || "Untitled",
         units: (Array.isArray(c.units) ? c.units : []).slice(0, 1000).filter((u) => u && typeof u === "object" && u.unit).map(unit) })) })) };
+    // mainAt: where the main view sits among the views (0, first, if missing).
+    const at = Number.isInteger(d.mainAt) ? Math.min(d.mainAt, out.views.length) : 0;
+    return at > 0 ? { ...out, mainAt: at } : out;
   }

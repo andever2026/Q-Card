@@ -253,8 +253,8 @@ await part("3. Sharing handwriting", async () => {
   ok(!(await vis(page, "#shareSet")), "share: not offered to an account that isn't a developer");
   await page.click("#settingsClose");
   ok(await makeDev(page, uid), "share: (dev/<uid> made with admin access)");
-  await openSettings(page); await page.click('#setNav [data-set-tab="share"]'); // the tab is listed once the page knows this is a developer
-  ok(await until(() => vis(page, "#shareSet")) && /^Off\./.test(await text(page, "#shareInfo")), "share: offered to a developer, off to begin with", await text(page, "#shareInfo"));
+  await openSettings(page); await page.click('#setNav [data-set-tab="account"]'); // the tab is listed once the page knows this is a developer
+  ok(await until(() => vis(page, "#shareSet")) && /Change your mind at any time/.test(await text(page, "#shareInfo")), "share: offered to a developer, off to begin with", await text(page, "#shareInfo"));
   await page.click("#shareToggle");
   await until(() => page.evaluate(() => document.querySelector("#shareAsk").open));
   await sayYes(page);
@@ -275,7 +275,7 @@ await part("3. Sharing handwriting", async () => {
     "share: its strokes are stored as flat lists (points, timing, pressure)", JSON.stringify(st)?.slice(0, 120));
   await page.waitForTimeout(1500); // a right answer, then the next question
   await page.click("#quitBtn");
-  await openSettings(page); await page.click('#setNav [data-set-tab="share"]');
+  await openSettings(page); await page.click('#setNav [data-set-tab="account"]');
   ok(await until(async () => /1 answer shared/.test(await text(page, "#shareInfo")) && vis(page, "#shareDel")), "share: Settings counts the shared answer", await text(page, "#shareInfo"));
   await page.click("#shareDel"); await page.click("#shareDelYes");
   ok(await until(async () => !(await training()).length && /0 answers shared/.test(await text(page, "#shareInfo"))), "share: Settings → Delete what I've shared removes them from Firestore", (await training()).map(([p]) => p).join(", "));
@@ -305,11 +305,16 @@ await part("5. Delete my account", async () => {
   // Something in every place an account keeps things: history on (data/settings), sharing on and one shared answer (training,
   // which only developers can turn on for now).
   await makeDev(page, uid);
-  await until(() => vis(page, '#histAsk [data-hist="on"]'));
-  await page.click('#histAsk [data-hist="on"]');
-  await openSettings(page); await page.click('#setNav [data-set-tab="share"]'); await page.click("#shareToggle");
+  // Progress tracking is asked about on the Progress page (from the menu, behind ☰ on a narrower window).
+  if (!(await page.locator('#sideNav [data-go="history"]').isVisible())) { await page.click("#menuBtn"); await page.waitForTimeout(300); }
+  await page.click('#sideNav [data-go="history"]');
+  await until(() => vis(page, '#hEmpty [data-hist="on"]'));
+  await page.click('#hEmpty [data-hist="on"]');
+  await openSettings(page); await page.click('#setNav [data-set-tab="account"]'); await page.click("#shareToggle");
   await until(() => page.evaluate(() => document.querySelector("#shareAsk").open));
-  await sayYes(page); await page.click("#settingsClose");
+  await sayYes(page); await page.click("#settingsClose"); // back to Progress, where Settings was opened
+  if (!(await page.locator('#sideNav [data-go="setup"]').isVisible())) { await page.click("#menuBtn"); await page.waitForTimeout(300); }
+  await page.click('#sideNav [data-go="setup"]');
   await page.click('[data-set="samples-greetings"]'); await page.click("#dir-je"); await page.click("#startBtn");
   await until(() => vis(page, "#quiz"));
   await scribble(page); await page.click("#checkBtn");

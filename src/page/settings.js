@@ -1,6 +1,6 @@
   // ---------- Settings (the gear in the menu, page/nav.js) ----------
   // A page of its own: tabs down the left, the picked tab's part beside them. Each part is drawn by the code it belongs
-  // to (theme/pick.js, account/account.js, import-export/panel.js, practice/history.js, account/share.js); this file is
+  // to (theme/pick.js, account/account.js, import-export/panel.js, practice/history.js and import-export/history-file.js in Data, account/share.js in Account); this file is
   // the page around them. On a phone the tabs are a list and picking one opens it, so there no tab is picked at first.
   // Beside the sidebar of a big screen the tabs move into the sidebar, under Settings (nav.js).
   const phone = matchMedia("(max-width: 640px)");

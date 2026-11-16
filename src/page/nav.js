@@ -1,5 +1,5 @@
   // ---------- the menu: a sidebar on a big screen, ☰ on a smaller one ----------
-  // Practice, Vocab table, History (and Study tools, a page of its own, on the public site). The gear for Settings is at
+  // Practice, Vocabulary, Progress (and Extra tools, on the public site). The gear for Settings is at
   // the right end of the top bar (beside the account on the public site, account/menu.js, whose menu has Settings too).
   // On a big screen the menu is a sidebar down the left, and ☰ beside the title shrinks it to its icons. On Settings, Settings'
   // tabs take the sidebar and ☰ brings the menu in over the page (as YouTube does). On a smaller screen the header is a
@@ -15,6 +15,7 @@
     if (v === "settings") openSettings();
     else if (v === "history") openHistory();
     else if (v === "table") { renderTable(); show("table"); }
+    else if (v === "tools") openTools();
     else { show("setup"); renderSetup(); }
   }
   // Going somewhere from the menu. Unsaved changes in the vocab table are asked about first, wherever to (vocab/table.js).
@@ -33,6 +34,9 @@
     markCurrent([$("#settingsBtn")], () => at === "settings");
     $("#setNavSlot").hidden = at !== "settings";
     htmlCls().toggle("setview", at === "settings"); layMenu();
+    //#if public
+    syncHash(v);
+    //#endif
   }
   // The menu is a drawer (html.drawer: ☰ slides it in over the page) on a smaller screen and on Settings, else the sidebar.
   // Settings' tabs: in the sidebar on a big screen, at the side of the Settings page otherwise (a list on a phone).

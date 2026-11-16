@@ -19,8 +19,8 @@
     $("#acctList").innerHTML = account
       ? `<p class="small muted">Signed in as <b>${esc(account.email || account.name)}</b></p>
         <button type="button" role="menuitem" data-acct="settings">${gear()}Settings</button>
-        <button type="button" role="menuitem" data-acct="signout">${icon("M14.5 4.5 H18.5 a1.5 1.5 0 0 1 1.5 1.5 V18 a1.5 1.5 0 0 1-1.5 1.5 H14.5 M10 8 L6 12 L10 16 M6 12 H15.5")}Sign out</button>`
-      : `<p class="small muted">Not signed in. Your sets and history are kept in this browser.</p>
+        <button type="button" role="menuitem" class="danger" data-acct="signout">${icon("M14.5 4.5 H18.5 a1.5 1.5 0 0 1 1.5 1.5 V18 a1.5 1.5 0 0 1-1.5 1.5 H14.5 M10 8 L6 12 L10 16 M6 12 H15.5")}Sign out</button>`
+      : `<p class="small muted">Sign in to sync between devices.</p>
         <button type="button" role="menuitem" data-acct="signin">${icon("M9.5 4.5 H5.5 a1.5 1.5 0 0 0-1.5 1.5 V18 a1.5 1.5 0 0 0 1.5 1.5 H9.5 M14 8 L18 12 L14 16 M18 12 H8.5")}Sign in with Google</button>`;
     const item = (k) => $(`#acctList [data-acct="${k}"]`);
     if (account) {
@@ -42,13 +42,13 @@
   // The nickname: kept with the account, shown at the top right, changed in Settings → Account.
   const profileRef = () => db.doc(`data/users/${uid}/profile`);
   function watchProfile() {
-    profileRef().onSnapshot((snap) => { const p = snap.exists ? snap.data() : {}; nickname = tidy(p?.nickname, 40); born = cleanBorn(p?.born); bornAt = tidy(p?.bornAt, 30); renderAcctMenu(); renderNick(); renderBorn(); }, () => {});
+    profileRef().onSnapshot((snap) => { const p = snap.exists ? snap.data() : {}; nickname = tidy(p?.nickname, 40); born = cleanBorn(p?.born); bornAt = tidy(p?.bornAt, 30); bornCleared = tidy(p?.bornCleared, 30); renderAcctMenu(); renderNick(); renderBorn(); }, () => {});
   }
   // The profile is saved whole: what changes, with the rest as it is.
   async function saveProfile(change) {
-    const p = { nickname, born, bornAt, ...change };
+    const p = { nickname, born, bornAt, bornCleared, ...change };
     await profileRef().set({ ...p, updatedAt: new Date().toISOString() });
-    ({ nickname, born, bornAt } = p);
+    ({ nickname, born, bornAt, bornCleared } = p);
   }
   function renderNick() {
     $("#nickRow").hidden = !account;

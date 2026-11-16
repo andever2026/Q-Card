@@ -5,6 +5,8 @@
   // Finding an element, and making text safe to put into HTML: for the page and for the AI page's import.
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // A Save button while its work runs: "Saving…" and off, then "Save" again (and on, if run() said it failed). Gives run()'s result.
+  async function whileSaving(b, run) { b.disabled = true; b.textContent = "Saving…"; const ok = await run(); b.textContent = "Save"; if (!ok) b.disabled = false; return ok; }
   // A one-line message under a control: sayIn(el)("…") shows it, sayIn(el)("") takes it away.
   const sayIn = (el) => (m) => { el.hidden = !m; el.textContent = m || ""; };
   // Marks which of a menu's buttons is the one showing (the styles key on aria-current).
@@ -88,9 +90,12 @@
   function cleanViews(d) {
     if (!d || typeof d !== "object" || !Array.isArray(d.views)) return null;
     const unit = (u) => ({ collection: tidy(u.collection, 100), unit: tidy(u.unit, 60) });
-    return { main: tidy(d.main, 60) || "Books", views: d.views.slice(0, 20).filter((v) => v && typeof v === "object" && Array.isArray(v.collections)).map((v) => ({ name: viewName(v.name, 60) || "View",
+    const out = { main: tidy(d.main, 60) || "Books", views: d.views.slice(0, 20).filter((v) => v && typeof v === "object" && Array.isArray(v.collections)).map((v) => ({ name: viewName(v.name, 60) || "View",
       collections: v.collections.slice(0, 100).filter((c) => c && typeof c === "object").map((c) => ({ name: viewName(c.name, 100) || "Untitled",
         units: (Array.isArray(c.units) ? c.units : []).slice(0, 1000).filter((u) => u && typeof u === "object" && u.unit).map(unit) })) })) };
+    // mainAt: where the main view sits among the views (0, first, if missing).
+    const at = Number.isInteger(d.mainAt) ? Math.min(d.mainAt, out.views.length) : 0;
+    return at > 0 ? { ...out, mainAt: at } : out;
   }
   // ---------- importing a vocab file ----------
   // The one importer, used by Settings → Import and by the AI page (ai/). It reads the file, compares it with what's
@@ -197,7 +202,7 @@
       let file = null;
       try { file = JSON.parse(await f.text()); } catch {}
       if (!file) return say("That file couldn't be read. Pick a .json file made for Japanese Vocab Practice.");
-      if (file?.app === APP && file.kind === "history") return say("This is a practice history file. Import it in Settings → Practice history.");
+      if (file?.app === APP && file.kind === "history") return say("This is a progress file. Import it in Settings → Data → Progress export / import.");
       if (typeof file !== "object" || file.app !== APP || !Array.isArray(file.sets)) return say("This isn't a Japanese Vocab Practice file." + (hint && " " + hint));
       try { plan = planImport(file, f.name, await stored()); }
       catch { return say("Your vocab couldn't be read just now, so the file can't be compared with it. Reload the page and try again."); }

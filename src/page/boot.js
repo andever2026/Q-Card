@@ -26,6 +26,8 @@
     if (!platform) { $("#gate").innerHTML = "<b>The page couldn't start</b>Reload it to try again."; return; }
     let started = null;
     const start = ({ id, db: store }) => {
+      // The part the address names, read before anything below can show a part; only when the page loads, not when the account changes.
+      const part = start.once ? "setup" : hashPart(); start.once = true;
       started = uid = id;
       db = store; user = platform.user(uid); owner = canWrite = true; downloads = platform.downloads;
       document.body.classList.add("ready");
@@ -35,15 +37,17 @@
       if (id !== "local") { stopPrefs = syncPrefs(checkPolicy); watchProfile(); } else checkPolicy();
       renderAcctMenu();
       offerSamples();
+      // An address naming a part of the page (page/address.js) opens it.
+      if (part !== "setup") { syncHash.quiet = true; openView(part); syncHash.quiet = false; }
     };
     // As a guest, everything is kept in this browser (src/account/local.js); choosing it in the welcome pop-up is remembered.
     startLocal = () => {
       start(platform.storeFor(null));
-      $("#histWhere").textContent = "Saved only in this browser";
     };
     platform.onAuth((u) => {
-      // Signing in or out (here or in another tab) or switching accounts starts the page over.
-      if (started) { if ((u?.uid || "local") !== started && (u || started !== "local")) location.reload(); return; }
+      // Signing in or out (here or in another tab) or switching accounts starts the page over, on Practice (without the
+      // address of the part it was on).
+      if (started) { if ((u?.uid || "local") !== started && (u || started !== "local")) location.replace(location.pathname + location.search); return; }
       if (!u) {
         let guest = false;
         try { guest = localStorage.getItem("qcard:mode") === "local" || localStorage.getItem("qcard:welcomed") === "1"; } catch {}

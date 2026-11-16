@@ -38,7 +38,7 @@
     mode: store.get("mode", "default"),
     kanjiLists: [],      // [{id, collection, unit, kanji}]
     upto: store.get("uptoPick", "auto"), // "auto" follows the highest unit of the picked sets; older manual picks lived under "upto"
-    kdrafts: new Map(),  // listId -> edited kanji string
+    kdrafts: new Map(),  // listId -> { collection, unit, kanji } while that kanji list is being edited (vocab/table.js)
     kConfirmDel: null,
     drafts: new Map(),   // setId -> {words, vals}: the set being edited in the vocab table (vocab/table.js)
     editNew: null,       // a set just added, to open ready for typing
@@ -51,7 +51,6 @@
     touched: new Set(),  // word ids edited during the current search, kept visible
     kAll: false,         // kanji panel: every unit instead of the vocab table's units
     tAll: false,         // search: draw every match instead of the first TLIMIT
-    kEdit: null, kEditUnit: "", kEditCol: "",  // kanji list whose collection and unit are being edited
     formCol: null,                 // collection last filled into the new set / new kanji forms
     colOrder: [],                  // saved book order (meta/books); books not in it come after, by name
     colEdit: null,                 // the views and collections being edited in the vocab table (vocab/collections.js), or null
@@ -60,5 +59,8 @@
 
   // ---------- views ----------
   const views = ["setup", "quiz", "results", "table", "history", "settings"];
+  //#if public
+  views.push("tools"); // Extra tools (study-tools/view.js)
+  //#endif
   function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); markNav(v); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
   function banner(msg) { const b = $("#banner"); b.hidden = !msg; b.textContent = msg || ""; }

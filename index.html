@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-zFIMrrR4I98GX/2mdMqcM7xHvIPTzi1MqaD/YJRMp60=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-4znXN1fQ5ah0d63LqMq0Vlq7E+U46NL9hLGFkSFk88E=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -147,6 +147,7 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .acctlist button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 6px; background: none; color: var(--ink); font-size: .9rem; text-align: left; }
 .acctlist button:hover, .acctlist button:focus-visible { background: var(--sunk); outline: none; }
 .acctlist button svg { flex: none; color: var(--muted); }
+.acctlist button.danger, .acctlist button.danger svg { color: var(--shu); }
 .drawer .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--sunk); border-right: 1px solid var(--line);
   box-shadow: 0 0 28px rgba(0, 0, 0, .22); clip-path: inset(0 -40px 0 0); /* a shadow on the right side only */
   padding: max(18px, env(safe-area-inset-top, 0px)) 12px 18px max(12px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
@@ -223,6 +224,21 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .tiph .qtipbody { font-weight: 400; text-transform: none; letter-spacing: normal; }
 .bornpick { display: inline-flex; gap: 8px; }
 .bornrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* Extra tools (study-tools/): each tool is a card; printing shows only the sheet being printed. */
+.tool h2 { margin: 0; }
+.tool .sheet { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.tool .sheet svg { display: block; width: 100%; height: auto; }
+.tool .edge { fill: none; stroke: #c9ced8; stroke-dasharray: 3 3; stroke-width: .6; }
+#printSheet { display: none; }
+@media print {
+  :root:has(#tools:not([hidden])) body > .wrap > :not(#tools), #tools > :not(#printSheet), .notice { display: none !important; }
+  :root:has(#tools:not([hidden])) body { background: #fff; }
+  #tools { padding: 0; max-width: none; margin: 0; }
+  #printSheet { display: block; }
+  #printSheet svg { display: block; width: 11in; height: 8.5in; }
+  #printSheet .edge { display: none; }
+}
+@page { size: letter landscape; margin: 0; }
 /* The privacy policy notice (src/account/policy-notice.js): a small card in the corner until it's closed. */
 .notice { position: fixed; z-index: 30; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100vw - 32px));
   display: flex; align-items: flex-start; gap: 8px; padding: 12px 10px 12px 14px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px;
@@ -311,13 +327,6 @@ body.ready #gate { display: none; }
 /* While writing, the page is just the practice: the title and the menu step aside. */
 body.writing > .wrap > header { display: contents; }
 body.writing > .wrap > header > :not(dialog) { display: none !important; }
-.hist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.hist li { display: flex; justify-content: space-between; gap: 12px; font-size: .9rem; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
-.hist li span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-/* On a phone the date and score go under the set names when they don't fit beside them. */
-@media (max-width: 480px) { .hist li { flex-wrap: wrap; row-gap: 2px; } }
-.histask { display: grid; gap: 10px; }
-.histask p { margin: 0; font-size: .92rem; }
 
 /* Quiz */
 .qbar { display: flex; align-items: center; gap: 14px; }
@@ -342,6 +351,11 @@ body.writing > .wrap > header > :not(dialog) { display: none !important; }
 /* iPad: keep the Apple Pencil from selecting the labels or calling up the selection loupe while writing. */
 #quiz, body.writing { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .pad { -webkit-tap-highlight-color: transparent; }
+/* No double-tap zoom while practicing: Safari holds a tap back to see if a second one follows, which swallowed quick
+   second taps on the tool buttons and the first stroke after one. The buttons show a press without the slow grey flash. */
+#quiz { touch-action: manipulation; }
+#quiz button { -webkit-tap-highlight-color: transparent; }
+.igroup button:active { background: var(--sunk); }
 .mainwrap { position: relative; }
 /* A small name in the corner of a writing box; strokes draw straight through it and it never reaches the grader. */
 .padtag { position: absolute; top: 5px; left: 9px; font-size: .68rem; letter-spacing: .08em; color: var(--muted); opacity: .75; pointer-events: none; user-select: none; -webkit-user-select: none; }
@@ -360,6 +374,9 @@ body.writing > .wrap > header > :not(dialog) { display: none !important; }
 .read q { font-family: var(--font-jp); color: var(--ink); quotes: "「" "」"; }
 .read.live { margin: 8px 2px 0; }
 .fbfoot { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+/* The retry card: Mark it as correct beside a longer Next word. */
+#feedback .fbfoot #nextBtn { flex: 1 1 14rem; }
+.fb:not(.self) .stamp { font-family: var(--font-ui); transform: none; }
 .err { color: var(--shu); font-size: .9rem; }
 
 /* Results */
@@ -457,11 +474,11 @@ td.c { text-align: center; padding-inline: 0; }
 .dirty { color: var(--shu); font-size: .82rem; }
 .sel { font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; max-width: 100%; }
 .uptorow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.krow { display: grid; gap: 8px; }
-.krow + .krow { border-top: 1px dashed var(--line); padding-top: 14px; }
-.krow input { width: 100%; font: inherit; font-family: var(--font-jp); font-size: 1.15rem; letter-spacing: .08em; color: var(--ink); background: var(--sunk); border: 1px solid transparent; border-radius: 6px; padding: 7px 9px; }
-.krow input:hover { border-color: var(--line); }
-.krow .ro { font-family: var(--font-jp); font-size: 1.15rem; letter-spacing: .08em; overflow-wrap: anywhere; }
+/* A kanji list (vocab/table.js) reads like a set: its kanji as text until Edit. */
+.kset .kin { width: 100%; font: inherit; font-family: var(--font-jp); font-size: 1.15rem; letter-spacing: .08em; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; }
+.kset .kin.chg { border-color: var(--ai); background: var(--ai-soft); }
+.kset .kro { margin: 0; font-family: var(--font-jp); font-size: 1.15rem; letter-spacing: .08em; overflow-wrap: anywhere; }
+.kset .tsethead:hover .t { color: inherit; }
 .need { font-size: .9rem; color: var(--muted); text-align: center; }
 .need b { font-family: var(--font-jp); color: var(--ink); }
 /* History */
@@ -516,7 +533,7 @@ td.c { text-align: center; padding-inline: 0; }
 .newset input { font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 9rem; }
 .setedit { background: var(--sunk); border-radius: 8px; padding: 10px 12px; }
 .setedit input { background: var(--surface); }
-.setedit [data-ef="unit"], .setedit [data-kunit] { width: 8rem; }
+.setedit [data-ef="unit"], .setedit [data-kf="unit"] { width: 8rem; }
 .setedit [data-ef="label"], .setedit [data-ef="tags"] { width: 14rem; max-width: 100%; }
 .editerr { color: var(--shu); font-size: .85rem; align-self: center; }
 /* Edit collections (vocab/collections.js): the top of the vocab table becomes a card of its own, edge to edge, ending in a line. */
@@ -524,12 +541,18 @@ td.c { text-align: center; padding-inline: 0; }
 .ttop.editing { margin: -18px -18px 0; padding: 18px; background: var(--sunk); border-bottom: 1px solid var(--line); border-radius: calc(var(--r) - 1px) calc(var(--r) - 1px) 0 0; }
 .ttop.editing .tsearch { background: var(--surface); opacity: .55; }
 .colbtns { display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+/* Edit collections' Save and Discard take the place of its link without making the heading taller. */
+.ttop > .head { min-height: 32px; align-items: center; }
+#colBtns .btn { padding: 4px 12px; font-size: .88rem; } /* the id outweighs the theme's paired-button padding */
 .viewed { display: grid; gap: 10px; }
 .viewed .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .viewed .chip, .colrow .chip { padding: 4px 12px; font-size: .9rem; }
 .viewed .chip:not([aria-pressed="true"]) { background: var(--surface); }
 .chip.add { border-style: dashed; color: var(--muted); background: none; }
-.mainptr { display: inline-flex; align-items: center; gap: 2px; color: var(--muted); margin-right: 8px; }
+.vchips { display: grid; gap: 4px; }
+.mainptr { display: flex; align-items: center; gap: 2px; color: var(--muted); }
+.viewed .chip.dropbefore { box-shadow: -3px 0 0 var(--ai); }
+.viewed .chip.dropafter { box-shadow: 3px 0 0 var(--ai); }
 .mainptr .qtip svg { width: 17px; height: 17px; }
 .viewbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .viewbar label { display: flex; align-items: center; gap: 8px; color: var(--muted); }
@@ -570,6 +593,8 @@ body.dragging { cursor: grabbing; -webkit-user-select: none; user-select: none; 
 }
 @media (prefers-reduced-motion: reduce) { .chip.unit { transition: none; } }
 .empty { text-align: center; padding: 28px 12px; color: var(--muted); display: grid; gap: 6px; }
+.stats .big { font-size: clamp(2.2rem, 1rem + 2.4vw, 3.8rem); } /* the Stats card grows with the window */
+.stats .small { font-size: clamp(.82rem, .6rem + .4vw, 1rem); }
 @media (max-width: 480px) { .stats .big { font-size: 1.7rem; } }
 @media (prefers-reduced-motion: reduce) { .meter i { transition: none; } }
 /* A pop-up asking first (page/ask.js), and on the public site the one asking to share handwriting. */
@@ -586,6 +611,20 @@ body.dragging { cursor: grabbing; -webkit-user-select: none; user-select: none; 
 #bornAsk { overflow: visible; } /* its dropdowns open past its edge */
 body { margin: 0; }
 #welcome { border: none; border-radius: 14px; padding: 26px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--muted); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
+/* The card of words (vocab/word-card.js): as wide as its words, up to the window. */
+#wordCard { border: none; border-radius: 14px; padding: 0; width: fit-content; min-width: min(18rem, calc(100vw - 32px)); max-width: min(46rem, calc(100vw - 32px)); max-height: calc(100dvh - 48px); background: var(--surface); color: var(--ink); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
+#wordCard::backdrop { background: rgba(17, 20, 26, .5); }
+.wcardbox { display: flex; flex-direction: column; max-height: calc(100dvh - 48px); }
+.wcardhead { position: relative; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 18px 52px 10px 22px; }
+.wcardhead h2 { font-size: 1.1rem; }
+.wcardbody { overflow: auto; padding: 0 22px 20px; }
+.wcard { border-collapse: collapse; }
+.wcard th { text-align: left; font-size: .72rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 8px 18px 8px 0; border-bottom: 1px solid var(--line); }
+.wcard td { padding: 9px 18px 9px 0; border-bottom: 1px dashed var(--line); vertical-align: top; max-width: 16rem; overflow-wrap: anywhere; }
+.wcard td.jp { font-family: var(--font-jp); }
+.wcard .wset th { padding-top: 16px; text-transform: none; letter-spacing: 0; font-size: .85rem; color: var(--ink); border-bottom: 1px solid var(--line); }
+.wcard tbody:first-of-type .wset th { padding-top: 8px; }
+.holds :is(button, span) { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 #welcome::backdrop { background: rgba(17, 20, 26, .5); }
 @media (max-width: 480px) { #welcome { padding-top: 44px; } } /* on a phone the intro's first line would run under the ✕ */
 .welcome { display: grid; gap: 14px; text-align: center; }
@@ -661,7 +700,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     <dialog id="bornAsk" aria-labelledby="bornAskTitle"><form class="shareask" id="bornAskForm">
       <h2 id="bornAskTitle">One more thing: when were you born?</h2>
       <p>Sharing handwriting is for people 16 and older, so it takes your birth month and year. It's kept with your account.</p>
-      <div class="bornask"><span class="tiph" id="bornAskLab">Birth month and year <span id="bornAskTip"></span></span><span id="bornAskIn" role="group" aria-labelledby="bornAskLab"></span><b id="bornAskNow" hidden></b></div>
+      <div class="bornask"><span class="tiph" id="bornAskLab">Birthday <span id="bornAskTip"></span></span><span id="bornAskIn" role="group" aria-labelledby="bornAskLab"></span><b id="bornAskNow" hidden></b></div>
       <p class="muted small" id="bornAskNote"></p>
       <p id="bornAskYoung" role="status" hidden>Thank you for wanting to help! Sharing is for people 16 and older, so it stays off for now.</p>
       <p class="keyerr small" id="bornAskErr" role="status" hidden></p>
@@ -669,17 +708,17 @@ colours.apply(...colours.saved()); // before anything is drawn
     </form></dialog>
     <nav class="sidenav" id="sideNav" aria-label="Pages">
       <button type="button" data-go="setup"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z M13.6 7.4 L16.6 10.4"/></svg><span>Practice</span></button>
-      <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg><span>Vocabularies</span></button>
-      <button type="button" data-go="history"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.8 12 a8.2 8.2 0 1 0 2.4 -5.8 L3.8 8.6 M3.8 4.2 V8.6 H8.2 M12 7.6 V12 L15 13.8"/></svg><span>History</span></button>
-      <a href="study-tools/"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg><span>Study tools</span></a>
+      <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg><span>Vocabulary</span></button>
+      <button type="button" data-go="history"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20 H20 M7 16.5 V12 M12 16.5 V6.5 M17 16.5 V9.5"/></svg><span>Progress</span></button>
+      <button type="button" data-go="tools"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg><span>Extra tools</span></button>
     </nav>
     <div class="sideshade" id="sideShade"></div>
     <div class="topr">
-      <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
       <div class="acct" id="acct">
         <button type="button" class="acctbtn" id="acctBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="acctList"><span class="pfp" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="12" cy="8.6" r="4.1"/><path d="M4.2 20.2c.6-4 3.9-6.4 7.8-6.4s7.2 2.4 7.8 6.4z"/></svg></span><span class="acctname" id="acctLabel">Guest</span><svg class="chev" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="acctlist" id="acctList" role="menu" aria-labelledby="acctBtn" hidden></div>
       </div>
+      <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
     </div>
     <div class="setslot" id="setNavSlot" hidden></div>
     <footer class="foot">
@@ -693,13 +732,15 @@ colours.apply(...colours.saved()); // before anything is drawn
   <div class="gate" id="gate" role="status">Loading…</div>
   <dialog id="askDlg" aria-labelledby="askTitle"><form method="dialog" class="shareask"><h2 id="askTitle"></h2><div class="asktext" id="askText"></div>
     <div class="tactions shareact"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes" id="askYes"></button></div></form></dialog>
+  <dialog id="wordCard" aria-labelledby="wordCardTitle"><div class="wcardbox">
+    <div class="wcardhead"><h2 id="wordCardTitle"></h2><span class="muted small" id="wordCardN"></span><button type="button" class="dlgx" id="wordCardX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6 18 18 M18 6 6 18"/></svg></button></div>
+    <div class="wcardbody" id="wordCardBody"></div></div></dialog>
 
   <!-- SETUP -->
   <section id="setup" class="wrap">
     <div class="panel">
       <div class="head"><h3>Vocabulary sets</h3>
         <div class="headr"><div class="seg mini viewsw" id="groupSeg" role="group" aria-label="View" hidden></div>
-          <button class="link" id="toTable" aria-label="Edit vocabulary sets">edit</button>
         </div>
       </div>
       <div class="pbar" id="pickBar" hidden>
@@ -740,11 +781,13 @@ colours.apply(...colours.saved()); // before anything is drawn
         <span class="startbtns"><button class="btn" id="resumeBtn" hidden></button><button class="btn primary" id="startBtn" disabled>Start practice</button></span>
       </div>
     </div>
-    <div class="panel" id="histPanel" hidden>
-      <div class="head"><h3 id="histTitle">Your recent practice</h3><span class="tactions"><button class="ghost small" id="histOff" hidden>Turn off</button><button class="link" id="histAll">See all history</button></span></div>
-      <div class="histask" id="histAsk" hidden></div>
-      <ul class="hist" id="histList"></ul>
-    </div>
+  </section>
+
+  <!-- EXTRA TOOLS: each tool's card is drawn by js/tools.js (src/study-tools/), loaded the first time this opens -->
+  <section id="tools" class="wrap" style="gap:18px" hidden>
+    <div class="panel"><div class="head"><h2>Extra tools</h2></div><p class="muted">Extras to practice with away from the screen.</p></div>
+    <div id="toolList" style="display: grid; gap: 18px"><p class="muted small">Loading…</p></div>
+    <div id="printSheet"></div>
   </section>
 
   <!-- QUIZ -->
@@ -777,7 +820,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       <span class="itools"><span class="igroup"><button type="button" id="undoBtn" title="Undo" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></button><button type="button" id="clearBtn" title="Clear" aria-label="Clear"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button></span><span class="igroup" role="group" aria-label="Writing tool"><button type="button" data-tool="pen" aria-pressed="true" title="Pen" aria-label="Pen"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button><button type="button" data-tool="erase" aria-pressed="false" title="Stroke eraser: erases whole strokes" aria-label="Stroke eraser"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></button></span></span>
       <span class="spacer"></span>
       <span class="err" id="checkErr" hidden></span>
-      <button class="btn primary" id="checkBtn" disabled>Check</button>
+      <button class="btn primary" id="checkBtn">Check</button>
     </div>
     <div class="fb self" id="selfCheck" hidden>
       <div class="fbhead"><span class="stamp">自己採点</span><span id="selfHead">Compare what you wrote with the answer.</span></div>
@@ -785,7 +828,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       <div class="fbfoot"><button class="btn" type="button" id="selfMiss">I missed it</button><button class="btn primary" type="button" id="selfGot">I got it right</button></div>
     </div>
     <div class="fb" id="feedback" hidden>
-      <div class="fbhead"><span class="stamp">もう一度</span><span id="fbReason"></span></div>
+      <div class="fbhead"><span class="stamp">Not quite</span><span id="fbReason"></span></div>
       <div class="answer" id="fbAnswer"></div>
       <p class="need" id="fbNeed" hidden></p>
       <p class="read" id="fbRead"></p>
@@ -795,7 +838,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div class="itools"><span class="igroup"><button type="button" id="scratchUndo" title="Undo" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></button><button type="button" id="scratchClear" title="Clear" aria-label="Clear"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button></span><span class="igroup" role="group" aria-label="Writing tool"><button type="button" data-tool="pen" aria-pressed="true" title="Pen" aria-label="Pen"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button><button type="button" data-tool="erase" aria-pressed="false" title="Stroke eraser: erases whole strokes" aria-label="Stroke eraser"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></button></span></div>
       </div>
       <div class="fbfoot">
-        <button class="link" id="overrideBtn">Claude misread my writing, count it as correct</button>
+        <button class="btn" type="button" id="overrideBtn" title="When your writing was right and it was read wrong">Mark it as correct</button>
         <button class="btn primary" id="nextBtn">Next word →</button>
       </div>
     </div>
@@ -829,7 +872,6 @@ colours.apply(...colours.saved()); // before anything is drawn
   <section id="history" class="wrap" style="gap:18px" hidden>
     <div class="qbar"><button class="ghost" id="histBack">← Back to practice</button></div>
     <div class="panel">
-      <div class="head"><h2>Your history</h2><span class="muted small" id="histWhere">Private to your account</span></div>
       <div class="empty" id="hEmpty" hidden></div>
       <div class="stats" id="hStats">
         <div><span class="big" id="hTests">0</span><span class="muted small">practice sessions</span></div>
@@ -848,7 +890,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div id="acc"></div>
       </div>
       <div class="panel" id="hLovePanel">
-        <div class="head"><h3>Words that need the most love overall</h3><div class="headr"><div class="seg mini" id="loveTopSeg" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div></div></div>
+        <div class="head"><h3>Words that need the most love</h3><div class="headr"><div class="seg mini" id="loveTopSeg" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div></div></div>
         <ul class="love" id="hLove"></ul>
         <div class="listfoot"><nav class="pager" id="lovePager" aria-label="Word pages" hidden></nav><span class="muted small" id="loveCount"></span><div id="loveWin"></div><button class="btn primary" type="button" id="hPractise">Practice these</button></div>
       </div>
@@ -869,8 +911,6 @@ colours.apply(...colours.saved()); // before anything is drawn
         <button type="button" data-set-tab="look">Appearance</button>
         <button type="button" data-set-tab="account">Account</button>
         <button type="button" data-set-tab="data">Data</button>
-        <button type="button" data-set-tab="history">Practice history</button>
-        <button type="button" data-set-tab="share">Handwriting sharing</button>
         <button type="button" data-set-tab="tools">Developer tools</button>
         <button type="button" data-set-tab="admin">Admin</button>
       </nav>
@@ -888,50 +928,42 @@ colours.apply(...colours.saved()); // before anything is drawn
             <p id="acctName"></p>
             <div class="tactions"><button class="btn" type="button" id="signOutBtn">Sign out</button></div>
             <p class="keyerr small" id="acctErr" hidden></p>
-            <p class="muted small" id="privacyLink"><a href="privacy/" target="_blank" rel="noopener">Privacy Policy</a></p>
           </section>
           <section id="nickRow" hidden><h3>Nickname</h3>
             <form class="nickform" id="nickForm"><input type="text" id="nickIn" maxlength="40" autocomplete="nickname" aria-label="Nickname"><button class="btn primary" type="submit" id="nickSave" disabled>Save</button><span class="muted small" id="nickMsg" role="status"></span></form>
-            <p class="muted small">Shown at the top right of the page. Leave it empty to show your Google name.</p>
           </section>
-          <section id="bornRow" hidden><h3 class="tiph" id="bornLab">Birth month and year <span id="bornTipAt"></span></h3>
-            <form class="bornrow" id="bornForm"><span id="bornIn" role="group" aria-labelledby="bornLab"></span><b id="bornNow" hidden></b><button class="btn primary" type="submit" id="bornSave" disabled>Save</button><button class="link" type="button" id="bornClear" hidden>Clear</button><span class="muted small" id="bornMsg" role="status"></span></form>
-            <p class="muted small">Optional. <span id="bornNote"></span></p>
+          <section id="bornRow" hidden><h3 class="tiph" id="bornLab">Birthday <span id="bornTipAt"></span></h3>
+            <form class="bornrow" id="bornForm"><span id="bornIn" role="group" aria-labelledby="bornLab"></span><b id="bornNow" hidden></b><button class="btn primary" type="submit" id="bornSave" disabled>Save</button><button class="link danger" type="button" id="bornClear" hidden>Delete</button><span class="muted small" id="bornMsg" role="status"></span></form>
+            <p class="muted small" id="bornNote"></p>
+          </section>
+          <section id="shareSet" hidden><h3>Handwriting sharing</h3>
+            <p class="muted small" id="shareInfo"></p>
+            <div class="tactions"><button class="btn" type="button" id="shareToggle">Turn on…</button><button class="link" type="button" id="shareDl" hidden>Download what I've shared</button><button class="link" type="button" id="shareDel" hidden>Delete what I've shared</button></div>
+            <div class="tactions" id="shareDelAsk" hidden><span class="small">Delete every answer you've shared, for good?</span><button class="btn danger" type="button" id="shareDelYes">Delete</button><button class="btn" type="button" id="shareDelNo">Cancel</button></div>
           </section>
           <section><h3>Delete</h3><div id="delAcct"></div></section>
         </div>
         <div class="setpane" data-set-pane="data"><h2>Data</h2>
           <section><h3>Vocabulary</h3><p class="muted" id="setStats"></p></section>
           <section id="portPanel" hidden><h3>Export / import</h3>
-            <p class="muted small">Export saves every vocab set and kanji list, plus the collection order and views, as one file. Import reads a file like that: sets and lists already here are replaced by the file's version, new ones are added, and nothing is deleted. Export first if you want a copy to go back to.</p>
             <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
-            <p class="muted small" id="aiHelp">Have a vocab list on paper, in a photo or in a PDF? <a href="ai/" target="_blank" rel="noopener">Let your AI make the file</a>.</p>
+            <p class="muted small" id="aiHelp">Need to create lots of sets? <a href="ai/" target="_blank" rel="noopener">AI can help</a>.</p>
             <p class="muted small" id="portMsg" hidden></p>
             <div class="impprev" id="importPreview" hidden></div>
           </section>
-        </div>
-        <div class="setpane" data-set-pane="history" id="histSet" hidden><h2>Practice history</h2>
-          <section>
+          <section class="histsec" hidden><h3>Progress tracking</h3>
             <p id="histSetInfo"></p>
             <p class="muted small" id="histSetWhere"></p>
-            <div class="tactions"><button class="btn" type="button" id="histSetToggle"></button><button class="link" type="button" id="histSetAll">See all history</button></div>
-            <div id="histPort" hidden>
-              <h3>Export and import</h3>
-              <p class="muted small">Save your practice history as a file, or add the sessions in a history file to the history here. Sessions already here are left as they are, so nothing is replaced or deleted.</p>
-              <div class="tactions"><button class="btn" type="button" id="histExport">Export history</button><button class="btn" type="button" id="histImport">Import a history file…</button><input type="file" id="histFile" accept=".json,application/json" hidden></div>
-              <p class="muted small" id="histPortMsg" hidden></p>
-              <div class="impprev" id="histImportPreview" hidden></div>
-            </div>
-            <h3>Words that need the most love</h3>
-            <p class="muted small">Which comes first on each word, so you can go down the list and test yourself on the other.</p>
-            <div class="seg mini" id="histSetTop" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div>
+            <div class="tactions"><button class="btn" type="button" id="histSetToggle"></button><button class="link" type="button" id="histSetAll">See all progress</button></div>
           </section>
-        </div>
-        <div class="setpane" data-set-pane="share" id="shareSet" hidden><h2>Handwriting sharing</h2>
-          <section><h3>Help train the checker</h3>
-            <p class="muted small" id="shareInfo"></p>
-            <div class="tactions"><button class="btn" type="button" id="shareToggle">Turn on…</button><button class="link" type="button" id="shareDl" hidden>Download what I've shared</button><button class="link" type="button" id="shareDel" hidden>Delete what I've shared</button></div>
-            <div class="tactions" id="shareDelAsk" hidden><span class="small">Delete every answer you've shared, for good?</span><button class="btn danger" type="button" id="shareDelYes">Delete</button><button class="btn" type="button" id="shareDelNo">Cancel</button></div>
+          <section id="histPort" hidden><h3>Progress export / import</h3>
+            <p class="muted small" id="histPortSample"></p>
+            <div class="tactions"><button class="btn" type="button" id="histExport">Export progress</button><button class="btn" type="button" id="histImport">Import a progress file…</button><input type="file" id="histFile" accept=".json,application/json" hidden></div>
+            <p class="muted small" id="histPortMsg" hidden></p>
+            <div class="impprev" id="histImportPreview" hidden></div>
+          </section>
+          <section class="histsec setrow" hidden><h3>Words that need the most love</h3>
+            <div class="seg mini" id="histSetTop" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div>
           </section>
         </div>
         <div class="setpane" data-set-pane="tools" id="toolsSet"><h2>Developer tools</h2>
@@ -951,7 +983,7 @@ colours.apply(...colours.saved()); // before anything is drawn
             <div class="tactions"><button class="btn" type="button" id="devPolicyNow">Show it now</button><button class="btn" type="button" id="devPolicyNext">Show it on my next visit</button></div>
             <p class="muted small" id="devPolicyMsg" hidden></p>
           </section>
-          <section><h3>Birth month and year</h3>
+          <section><h3>Birthday</h3>
             <p class="muted small">Once given, it can be changed after 3 months. This ends the wait for your own account, so you can give it again.</p>
             <div class="tactions"><button class="btn" type="button" id="devBornReset">Reset the 3 month wait</button></div>
             <p class="muted small" id="devBornMsg" hidden></p>
@@ -970,7 +1002,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     <div class="banner leaveask" id="leaveAsk" hidden></div>
     <div class="panel">
       <div class="ttop" id="tTop">
-        <div class="head"><h2>Vocabularies</h2>
+        <div class="head"><h2>Vocabulary</h2>
           <div class="headr"><span class="muted small" id="tableRole" hidden>Read only</span><button class="link" type="button" id="editColBtn" hidden>Edit collections</button>
             <span class="colbtns" id="colBtns" hidden><span class="editerr" id="colErr" role="status"></span><span class="muted small" id="colState"></span><button class="btn" type="button" id="colDiscard">Discard</button><button class="btn primary" type="button" id="colSave" disabled>Save</button></span>
             <div class="seg mini viewsw" id="tGroupSeg" role="group" aria-label="View" hidden></div>
@@ -1015,6 +1047,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   // Finding an element, and making text safe to put into HTML: for the page and for the AI page's import.
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // A Save button while its work runs: "Saving…" and off, then "Save" again (and on, if run() said it failed). Gives run()'s result.
+  async function whileSaving(b, run) { b.disabled = true; b.textContent = "Saving…"; const ok = await run(); b.textContent = "Save"; if (!ok) b.disabled = false; return ok; }
   // A one-line message under a control: sayIn(el)("…") shows it, sayIn(el)("") takes it away.
   const sayIn = (el) => (m) => { el.hidden = !m; el.textContent = m || ""; };
   // Marks which of a menu's buttons is the one showing (the styles key on aria-current).
@@ -1126,12 +1160,40 @@ colours.apply(...colours.saved()); // before anything is drawn
     root.addEventListener("contextmenu", (e) => { if (d) e.preventDefault(); });
     return { busy: () => !!d?.live };
   }
+  // ---------- holding something down ----------
+  // onHold(root, sel, open): holding a finger or a pen still on an element matching sel inside root, or right-clicking
+  // it, runs open(el) instead of what a tap does. root stays while what's in it is drawn again.
+  function onHold(root, sel, open) {
+    const HOLD = 500, SLOP = 8;
+    let h = null, swallow = false;
+    const cancel = () => { if (h) clearTimeout(h.timer); h = null; };
+    const at = (e) => { const el = e.target.closest(sel); return el && root.contains(el) ? el : null; };
+    root.classList.add("holds");
+    root.addEventListener("pointerdown", (e) => {
+      cancel(); swallow = false;
+      const el = at(e);
+      if (!el || e.pointerType === "mouse") return;
+      h = { id: e.pointerId, x: e.clientX, y: e.clientY, timer: setTimeout(() => { h = null; swallow = true; open(el); }, HOLD) };
+    });
+    root.addEventListener("pointermove", (e) => { if (h && e.pointerId === h.id && Math.hypot(e.clientX - h.x, e.clientY - h.y) > SLOP) cancel(); }); // a scroll
+    ["pointerup", "pointercancel"].forEach((t) => root.addEventListener(t, (e) => { if (h && e.pointerId === h.id) cancel(); }));
+    // The tap that ends a hold doesn't also do what a tap does. A right-click (and Android's own long press) opens it too.
+    root.addEventListener("click", (e) => { if (swallow) { swallow = false; e.stopPropagation(); e.preventDefault(); } }, true);
+    root.addEventListener("contextmenu", (e) => {
+      const el = at(e);
+      if (!el) return;
+      e.preventDefault();
+      const opened = swallow;
+      cancel(); swallow = true;
+      if (!opened) open(el);
+    });
+  }
   // ---------- asking first ----------
   // A pop-up over the page before something that's hard to take back. ask(title, html, yes) resolves true for the yes
-  // button (labelled yes), false for Cancel or Escape.
-  function ask(title, html, yes) {
+  // button (labelled yes, red when danger), false for Cancel or Escape.
+  function ask(title, html, yes, danger = false) {
     const d = $("#askDlg");
-    $("#askTitle").textContent = title; $("#askText").innerHTML = html; $("#askYes").textContent = yes;
+    $("#askTitle").textContent = title; $("#askText").innerHTML = html; $("#askYes").textContent = yes; $("#askYes").className = danger ? "btn danger" : "btn primary";
     d.returnValue = ""; d.showModal(); $("#askYes").focus();
     return new Promise((done) => d.addEventListener("close", () => done(d.returnValue === "yes"), { once: true }));
   }
@@ -1175,7 +1237,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     mode: store.get("mode", "default"),
     kanjiLists: [],      // [{id, collection, unit, kanji}]
     upto: store.get("uptoPick", "auto"), // "auto" follows the highest unit of the picked sets; older manual picks lived under "upto"
-    kdrafts: new Map(),  // listId -> edited kanji string
+    kdrafts: new Map(),  // listId -> { collection, unit, kanji } while that kanji list is being edited (vocab/table.js)
     kConfirmDel: null,
     drafts: new Map(),   // setId -> {words, vals}: the set being edited in the vocab table (vocab/table.js)
     editNew: null,       // a set just added, to open ready for typing
@@ -1188,7 +1250,6 @@ colours.apply(...colours.saved()); // before anything is drawn
     touched: new Set(),  // word ids edited during the current search, kept visible
     kAll: false,         // kanji panel: every unit instead of the vocab table's units
     tAll: false,         // search: draw every match instead of the first TLIMIT
-    kEdit: null, kEditUnit: "", kEditCol: "",  // kanji list whose collection and unit are being edited
     formCol: null,                 // collection last filled into the new set / new kanji forms
     colOrder: [],                  // saved book order (meta/books); books not in it come after, by name
     colEdit: null,                 // the views and collections being edited in the vocab table (vocab/collections.js), or null
@@ -1197,11 +1258,12 @@ colours.apply(...colours.saved()); // before anything is drawn
 
   // ---------- views ----------
   const views = ["setup", "quiz", "results", "table", "history", "settings"];
+  views.push("tools"); // Extra tools (study-tools/view.js)
   function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); markNav(v); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
   function banner(msg) { const b = $("#banner"); b.hidden = !msg; b.textContent = msg || ""; }
   // ---------- Settings (the gear in the menu, page/nav.js) ----------
   // A page of its own: tabs down the left, the picked tab's part beside them. Each part is drawn by the code it belongs
-  // to (theme/pick.js, account/account.js, import-export/panel.js, practice/history.js, account/share.js); this file is
+  // to (theme/pick.js, account/account.js, import-export/panel.js, practice/history.js and import-export/history-file.js in Data, account/share.js in Account); this file is
   // the page around them. On a phone the tabs are a list and picking one opens it, so there no tab is picked at first.
   // Beside the sidebar of a big screen the tabs move into the sidebar, under Settings (nav.js).
   const phone = matchMedia("(max-width: 640px)");
@@ -1245,7 +1307,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     syncSetTabs();
   }
   // ---------- the menu: a sidebar on a big screen, ☰ on a smaller one ----------
-  // Practice, Vocab table, History (and Study tools, a page of its own, on the public site). The gear for Settings is at
+  // Practice, Vocabulary, Progress (and Extra tools, on the public site). The gear for Settings is at
   // the right end of the top bar (beside the account on the public site, account/menu.js, whose menu has Settings too).
   // On a big screen the menu is a sidebar down the left, and ☰ beside the title shrinks it to its icons. On Settings, Settings'
   // tabs take the sidebar and ☰ brings the menu in over the page (as YouTube does). On a smaller screen the header is a
@@ -1261,6 +1323,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (v === "settings") openSettings();
     else if (v === "history") openHistory();
     else if (v === "table") { renderTable(); show("table"); }
+    else if (v === "tools") openTools();
     else { show("setup"); renderSetup(); }
   }
   // Going somewhere from the menu. Unsaved changes in the vocab table are asked about first, wherever to (vocab/table.js).
@@ -1279,6 +1342,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     markCurrent([$("#settingsBtn")], () => at === "settings");
     $("#setNavSlot").hidden = at !== "settings";
     htmlCls().toggle("setview", at === "settings"); layMenu();
+    syncHash(v);
   }
   // The menu is a drawer (html.drawer: ☰ slides it in over the page) on a smaller screen and on Settings, else the sidebar.
   // Settings' tabs: in the sidebar on a big screen, at the side of the Settings page otherwise (a list on a phone).
@@ -1354,6 +1418,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // Every point the pointer passed through since the last event. Safari sometimes hands back an empty list, which would
   // drop the whole move, so the event itself stands in for it then.
   const coalesced = (e) => { const c = e.getCoalescedEvents ? e.getCoalescedEvents() : []; return c.length ? c : [e]; };
+  function endErase() { if (eraseG.erased.length) history.push({ erased: eraseG.erased }); eraseG = null; }
   class Pad {
     constructor(canvas, kind) {
       this.c = canvas; this.kind = kind; this.strokes = []; this.cur = null; this.onChange = () => {};
@@ -1365,7 +1430,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       canvas.addEventListener("pointerleave", (e) => { if (!active.has(e.pointerId) || active.get(e.pointerId) === this) this.up(e); });
       // The box keeps the pointer until the stroke ends; losing it any other way ends the stroke, so a pointerup
       // that never arrives can't leave the box refusing every stroke after it.
-      canvas.addEventListener("lostpointercapture", (e) => { if (this.cur && e.pointerId === this.curId) this.endCur(); });
+      canvas.addEventListener("lostpointercapture", (e) => { if (this.cur && e.pointerId === this.curId) this.endCur(); else if (eraseG?.id === e.pointerId) endErase(); });
       // iOS Safari still starts text selection and the loupe from touches (Apple Pencil included) unless the touch events themselves are cancelled.
       ["touchstart", "touchmove"].forEach((t) => canvas.addEventListener(t, (e) => e.preventDefault(), { passive: false }));
       new ResizeObserver(() => this.resize()).observe(canvas);
@@ -1377,14 +1442,15 @@ colours.apply(...colours.saved()); // before anything is drawn
         // A palm that landed just before the pencil already started a stroke: drop it.
         for (const p of pads) if (p.cur && p.curType === "touch") p.dropCur();
       } else if (e.pointerType === "touch" && (penDown || performance.now() - penAt < PALM_MS)) return;
-      // There is only ever one pencil, so a pen stroke still open when another starts never got its pointerup
-      // (iPadOS loses one now and then): end it rather than turn the new stroke away.
-      if (this.cur && e.pointerType === "pen" && this.curType === "pen" && e.pointerId !== this.curId) this.endCur();
+      // There is only ever one pencil, so a pen stroke or eraser drag still open when the pencil comes down again never
+      // got its pointerup (iPadOS loses one now and then, and gives the pencil the same id each time): end it rather
+      // than turn the new stroke away.
+      if (e.pointerType === "pen") { for (const p of pads) if (p.cur && p.curType === "pen") p.endCur(); if (eraseG?.pen) endErase(); }
       if (this.cur || eraseG) return; // one stroke at a time per box
       e.preventDefault();
       try { this.c.setPointerCapture(e.pointerId); } catch {} // a pointer already gone would throw and lose the stroke
       // Eraser mode, or a stylus's own eraser end (buttons bit 32), removes whole strokes instead of drawing.
-      if (erasing || (e.pointerType === "pen" && e.buttons & 32)) { eraseG = { id: e.pointerId, erased: [] }; eraseAt(e); return; }
+      if (erasing || (e.pointerType === "pen" && e.buttons & 32)) { eraseG = { id: e.pointerId, pen: e.pointerType === "pen", erased: [] }; eraseAt(e); return; }
       this.curType = e.pointerType; this.curId = e.pointerId; active.set(e.pointerId, this);
       this.ink = cssVar("--ink"); // read once a stroke, not once a point
       this.cur = [this.pt(e)]; this.cur.gid = ++gidSeq;
@@ -1420,7 +1486,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     }
     up(e) {
       if (e?.pointerType === "pen") { penDown = false; penAt = performance.now(); }
-      if (eraseG && (!e || e.pointerId === eraseG.id)) { if (eraseG.erased.length) history.push({ erased: eraseG.erased }); eraseG = null; return; }
+      if (eraseG && (!e || e.pointerId === eraseG.id)) return endErase();
       if (!this.cur || (e && e.pointerId !== this.curId)) return;
       this.endCur();
     }
@@ -1494,7 +1560,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   const redrawAll = () => pads.forEach((p) => p.draw());
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawAll);
   new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  const syncCheck = () => { $("#checkBtn").disabled = main.empty || Q.busy || Q.answered; };
+  // Check works with nothing written too: it shows the answer (checking/grading.js).
+  const syncCheck = () => { $("#checkBtn").disabled = Q.busy || Q.answered; };
   furi.onChange = main.onChange = () => { syncCheck(); inkChanged(); };
   // Undo the latest stroke or eraser drag that touched one of these boxes; entries whose strokes are already gone are skipped.
   function undoIn(ps) {
@@ -1622,9 +1689,12 @@ colours.apply(...colours.saved()); // before anything is drawn
   function cleanViews(d) {
     if (!d || typeof d !== "object" || !Array.isArray(d.views)) return null;
     const unit = (u) => ({ collection: tidy(u.collection, 100), unit: tidy(u.unit, 60) });
-    return { main: tidy(d.main, 60) || "Books", views: d.views.slice(0, 20).filter((v) => v && typeof v === "object" && Array.isArray(v.collections)).map((v) => ({ name: viewName(v.name, 60) || "View",
+    const out = { main: tidy(d.main, 60) || "Books", views: d.views.slice(0, 20).filter((v) => v && typeof v === "object" && Array.isArray(v.collections)).map((v) => ({ name: viewName(v.name, 60) || "View",
       collections: v.collections.slice(0, 100).filter((c) => c && typeof c === "object").map((c) => ({ name: viewName(c.name, 100) || "Untitled",
         units: (Array.isArray(c.units) ? c.units : []).slice(0, 1000).filter((u) => u && typeof u === "object" && u.unit).map(unit) })) })) };
+    // mainAt: where the main view sits among the views (0, first, if missing).
+    const at = Number.isInteger(d.mainAt) ? Math.min(d.mainAt, out.views.length) : 0;
+    return at > 0 ? { ...out, mainAt: at } : out;
   }
   // ---------- data ----------
   // The vocab as the page holds it: collections, their units and sets, in order (how a stored document is read: vocab/docs.js).
@@ -1804,6 +1874,30 @@ colours.apply(...colours.saved()); // before anything is drawn
       return { key: w.id + ":" + f, dir: "ej", vid: w.id, w: { ...w, id: w.id + "~" + f, en: `${w.en} · ${label}`, ven: w.en, vf: label, kana, kanji: kanjis.some(Boolean) ? kanjis.map((x, i) => x || conjEnd(alts[i].k, alts[i].t, f)).join("／") : "" } };
     });
   }
+  // ---------- a card of words ----------
+  // Holding down (or right-clicking) a set, a unit or a collection shows its words on a small card that can't be edited,
+  // as wide as its words need: something to look over on a phone, or to screenshot. parts: [{ name, words }], one per set;
+  // with more than one, each set's name heads its words.
+  function wordCard(title, parts) {
+    parts = parts.map((p) => ({ name: p.name, words: p.words.filter(wordReady) })).filter((p) => p.words.length);
+    const words = parts.flatMap((p) => p.words), kanji = words.some((w) => w.kanji);
+    const cell = (t) => `<td${KANJI.test(t) || /[ぁ-ヿ]/.test(t) ? ' class="jp"' : ""}>${esc(t)}</td>`;
+    const row = (w) => `<tr>${cell(w.en)}${cell(w.kana || "")}${kanji ? cell(w.kanji || "") : ""}</tr>`;
+    $("#wordCardTitle").textContent = title;
+    $("#wordCardN").textContent = `${words.length} word${words.length === 1 ? "" : "s"}`;
+    $("#wordCardBody").innerHTML = !words.length ? `<p class="muted">No words yet.</p>`
+      : `<table class="wcard"><thead><tr><th>English</th><th>Kana</th>${kanji ? "<th>Kanji</th>" : ""}</tr></thead>${parts.map((p) =>
+        `<tbody>${parts.length > 1 ? `<tr class="wset"><th colspan="${kanji ? 3 : 2}">${esc(p.name)}</th></tr>` : ""}${p.words.map(row).join("")}</tbody>`).join("")}</table>`;
+    const d = $("#wordCard");
+    if (!d.open) d.showModal();
+    $("#wordCardBody").scrollTop = 0;
+  }
+  $("#wordCardX").onclick = () => $("#wordCard").close();
+  // A tap outside the card closes it.
+  $("#wordCard").addEventListener("click", (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+  // The words of sets, as wordCard's parts: each named by its unit and name, or by its name alone (byName).
+  const cardParts = (sets, byName) => sets.map((s) => ({ name: byName ? s.name : `${s.unit} › ${s.name}`, words: s.words }));
+  const setsOfKeys = (keys) => keys.flatMap((k) => S.sets.filter((s) => unitKey(s) === k));
   // What each kanji rule does depends on the direction: it shapes what you write (ej), what the question shows (je), or
   // both. A rule that does the same whatever the direction has one line.
   const MODE_TEXT = {
@@ -1841,8 +1935,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   const setCols = () => cols().filter((b) => S.sets.some((s) => colOf(s) === b));
   const unitsOf = (col) => [...new Set(S.sets.filter((s) => colOf(s) === col).map((s) => s.unit))];
   const colKeys = (col) => unitsOf(col).map((c) => `${col}\u0001${c}`);
-  // A unit picker: one row of chips per collection of the view picked (vocab/views.js), with any units that view has in no
-  // collection under "Other".
+  // A unit picker: one row of chips per collection of the view picked (vocab/views.js); units that view hides aren't there.
   // Each collection shows all, none or some of its units: st.show maps collection -> "all" | "none" | "some" (missing = "all"),
   // and st.picks holds the unitKey()s shown for "some". o: { st, showKey, chsKey, cols(), keys(col), bar, rows, dot(key), onChange() }.
   function makePicker(o) {
@@ -1895,7 +1988,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         if (lab) {
           const ctx = (makePicker.cv ||= document.createElement("canvas")).getContext("2d");
           ctx.font = getComputedStyle(lab).font;
-          const names = [...o.cols().map(colLabel), ...altViews().flatMap((v) => v.collections.map((c) => c.name)), "Other"];
+          const names = [...o.cols().map(colLabel), ...altViews().flatMap((v) => v.collections.map((c) => c.name))];
           const w = Math.max(...names.flatMap((n) => n.split("\n")).map((t) => ctx.measureText(t).width));
           o.bar.style.setProperty("--labw", Math.ceil(w) + 1 + "px");
         }
@@ -1911,6 +2004,12 @@ colours.apply(...colours.saved()); // before anything is drawn
         }));
       },
     };
+    // Holding a unit, a row's All or its name shows the words of its sets (vocab/word-card.js).
+    onHold(o.rows, "[data-k], .chbook", (el) => {
+      const g = p.groups()[+el.closest("[data-g]").dataset.g], k = el.dataset.k, one = k != null && k !== "all";
+      const name = g.name.replace(/\n/g, " "), keys = one ? [g.keys[+k]] : g.keys;
+      wordCard(one ? `${name} › ${keyUnit(keys[0])}` : name, cardParts(setsOfKeys(keys), one));
+    });
     return p;
   }
   const PP = makePicker({ st: S.pick, showKey: "bookShow", chsKey: "pickChs", cols: setCols, keys: colKeys, bar: $("#pickBar"), rows: $("#pickChs"),
@@ -1946,6 +2045,11 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (on.length) $("#tagClear").onclick = () => { S.pickTags.clear(); save(); };
   }
   $("#pickClear").onclick = () => { if (S.selected.size) S.selected.clear(); else canPick.forEach((x) => S.selected.add(x.id)); saveSetup(); renderSetup(); };
+  // Holding a set, or a unit's name above its sets, shows their words.
+  onHold($("#setPicker"), "[data-set], [data-u]", (el) => {
+    const s = S.sets.find((x) => x.id === el.dataset.set), sets = s ? [s] : S.sets.filter((x) => unitKey(x) === el.dataset.u);
+    if (sets.length) wordCard([colOf(sets[0]), sets[0].unit, s?.name].filter(Boolean).join(" › "), cardParts(sets, true));
+  });
   function renderSetup() {
     const box = $("#setPicker");
     if (!S.loaded) return;
@@ -1954,7 +2058,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (!S.sets.length) {
       if (samplesState) box.innerHTML = `<div class="empty"><b>${samplesState === "adding" ? "Adding the sample sets…" : "Loading your sets…"}</b></div>`;
       else {
-        box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets in Vocabularies.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open Vocabularies</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
+        box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets in Vocabulary.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open Vocabulary</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
         $("#emptyImport").onclick = () => { openSettings("data"); $("#importBtn").click(); };
         $("#emptyTable").onclick = () => { renderTable(); show("table"); };
         $("#emptySamples").onclick = (e) => { e.target.disabled = true; addSamples().catch(() => { e.target.disabled = false; banner("The sample sets couldn't be added. Try again."); }); };
@@ -2000,7 +2104,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         : groups.map((sets, i) => {
         const name = esc(sets[0].unit);
         const usable = sets.filter((s) => readyCount(s.words)), all = usable.length && usable.every((s) => S.selected.has(s.id));
-        return `<div class="chapter"><div class="chrow"><span class="unit">${multi ? `${esc(colLabel(colOf(sets[0])))} › ${name}` : name}</span>${usable.length ? `<button class="link" data-all="${i}">${all ? "Clear" : "Select all"}</button>` : ""}</div>
+        return `<div class="chapter"><div class="chrow"><span class="unit" data-u="${esc(unitKey(sets[0]))}">${multi ? `${esc(colLabel(colOf(sets[0])))} › ${name}` : name}</span>${usable.length ? `<button class="link" data-all="${i}">${all ? "Clear" : "Select all"}</button>` : ""}</div>
           <div class="chips">${sets.map((s) => { const n = readyCount(s.words); return `<button class="chip" data-set="${esc(s.id)}" aria-pressed="${!!n && S.selected.has(s.id)}"${n ? "" : ` disabled title="No words yet"`}>${esc(s.name)}<span class="n">${n}</span></button>`; }).join("")}</div></div>`;
       }).join("");
       box.querySelectorAll("[data-set]").forEach((b) => (b.onclick = () => { const id = b.dataset.set; S.selected.has(id) ? S.selected.delete(id) : S.selected.add(id); saveSetup(); renderSetup(); }));
@@ -2044,7 +2148,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     sel.innerHTML = opts.map(opt).join("");
     const set = learnedSet(), key = uptoKey(), list = lists.find((k) => unitKey(k) === key);
     const upTo = S.upto !== "auto" ? "" : !S.selected.size ? "Follows the sets you pick" : list ? `Up to ${unitTitle(list)} · ` : "";
-    $("#uptoHint").textContent = !lists.length ? "Add kanji lists to units in Vocabularies to choose a unit." : S.upto === "auto" && !S.selected.size ? upTo : set ? `${upTo}${set.size} kanji learned` : "";
+    $("#uptoHint").textContent = !lists.length ? "Add kanji lists to units in Vocabulary to choose a unit." : S.upto === "auto" && !S.selected.size ? upTo : set ? `${upTo}${set.size} kanji learned` : "";
   }
   $("#uptoSel").onchange = (e) => { S.upto = e.target.value; store.set("uptoPick", S.upto); renderUpto(); };
   // The list "Highest unit of the picked sets" stands for: the last kanji list at or before the furthest picked unit
@@ -2061,7 +2165,6 @@ colours.apply(...colours.saved()); // before anything is drawn
   function saveSetup() { store.set("selected", [...S.selected]); store.set("dir", S.dir); store.set("mode", S.mode); }
   document.querySelectorAll("#dirSeg button").forEach((b) => (b.onclick = () => { S.dir = b.dataset.dir; saveSetup(); renderSetup(); }));
   document.querySelectorAll("#modeSeg button").forEach((b) => (b.onclick = () => { S.mode = b.dataset.mode; saveSetup(); renderSetup(); }));
-  $("#toTable").onclick = () => { renderTable(); show("table"); };
   $("#backBtn").onclick = () => leaveTable();
 
   // ---------- quiz ----------
@@ -2365,7 +2468,9 @@ colours.apply(...colours.saved()); // before anything is drawn
   // checking/claude.js, the built-in checker in checking/builtin.js) answers with what to do once the page is no longer
   // busy, and CHECK_ERR has that version's messages for what can go wrong.
   async function check() {
-    if (main.empty || Q.busy) return;
+    if (Q.busy || Q.answered) return;
+    // Nothing written: the answer and the scratch pad, with nothing to mark as correct.
+    if (main.empty) { grade(false, { reason: "Nothing was written. Here's the answer." }); $("#overrideBtn").hidden = true; return; }
     const cur = Q.cur;
     Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true;
     let then = null;
@@ -2486,7 +2591,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   S.local = false;
   const LOCAL_MAX = 300; // sessions kept in the browser; the oldest go first
   // History changed, or the choice to keep it: every place that shows it.
-  function histChanged() { renderRecent(); renderHistSet(); renderHistPort(); if (!$("#history").hidden) renderHistory(); }
+  function histChanged() { renderHistSet(); renderHistPort(); if (!$("#history").hidden) renderHistory(); }
   const inBrowser = () => S.local || uid === "local";
   const histChoice = (v) => (typeof v === "boolean" ? v : inBrowser() ? true : null);
   function loadLocal() {
@@ -2540,38 +2645,12 @@ colours.apply(...colours.saved()); // before anything is drawn
   const histBlockedText = () => `${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so practice history is off." : "Your access to this page doesn't allow saving practice history."} You can still practice as much as you like.`;
   const histWhereText = () => inBrowser()
     ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it in History at any time."
-    : "Only you and the site maintainers can see this data, and you can delete it from the server at any time.";
-  function renderRecent() {
-    const h = S.history, on = S.histOn, ask = $("#histAsk");
-    $("#histPanel").hidden = !S.histReady;
-    $("#histAll").hidden = !h.length;
-    $("#histAll").textContent = `See all ${h.length} →`;
-    $("#histOff").hidden = on !== true;
-    $("#histTitle").textContent = on === true && h.length ? "Your recent practice" : "Practice history";
-    const earlier = h.length ? `<p class="muted small">${h.length} earlier practice session${h.length === 1 ? " is" : "s are"} still saved. Open “See all” to look at or delete ${h.length === 1 ? "it" : "them"}.</p>` : "";
-    ask.hidden = on === true && h.length > 0;
-    ask.innerHTML = S.histBlocked
-      ? `<p class="muted">${histBlockedText()}</p>`
-      : on === null
-      ? `<p>Turn on data collection? Each finished practice session would be saved so you can see fun stats about your practice, like graphs, streaks and the words that need more work. ${histWhereText()}</p>${earlier}
-         <div class="tactions"><button class="btn primary" data-hist="on">Turn on data collection</button><button class="btn" data-hist="off">No thanks</button></div>`
-      : on === false
-      ? `<p class="muted">Data collection is off, so finished sessions aren't saved.</p>${earlier}<div class="tactions"><button class="btn" data-hist="on">Turn on data collection</button></div>`
-      : `<p class="muted">${inBrowser() ? "Practice history is on and saved only in this browser." : "Data collection is on."} Finish a practice session and it shows up here.</p>`;
-    ask.querySelectorAll("[data-hist]").forEach((b) => (b.onclick = async () => { b.disabled = true; if (await setHistory(b.dataset.hist === "on")) renderRecent(); else b.disabled = false; }));
-    $("#histList").hidden = on !== true || !h.length;
-    $("#histList").innerHTML = on !== true ? "" : h.slice(0, 5).map((t) => {
-      const { n, first } = firstTry(t);
-      return `<li><span>${esc((t.sets || []).join(", "))}</span><span>${esc(fmtWhen(t.finishedAt))} · ${first}/${n} first try</span></li>`;
-    }).join("");
-  }
-  $("#histAll").onclick = () => openHistory();
-  $("#histOff").onclick = async () => { if (await setHistory(false)) histChanged(); };
+    : "";
   const openHistory = () => { S.hConfirm = null; S.hPage = S.lovePage = 0; show("history"); renderHistory(); };
-  // Settings → Practice history: the same choice as on the practice page, where it can be found again later.
+  // Settings → Data → Progress tracking: the same choice as on the Progress page, where it can be found again later.
   function renderHistSet() {
     const on = S.histOn === true, n = S.history.length;
-    $("#histSet").hidden = !S.histReady; syncSetTabs();
+    document.querySelectorAll(".histsec").forEach((x) => (x.hidden = !S.histReady));
     $("#histSetInfo").textContent = S.histBlocked ? histBlockedText()
       : on ? "On. Each finished practice session is saved."
       : "Off, so finished practice sessions aren't saved. Turn it on to see stats about your practice, like graphs, streaks and the words that need more work.";
@@ -2588,9 +2667,11 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#hEmpty").hidden = !!h.length; $("#hBody").hidden = !h.length; $("#hStats").hidden = !h.length;
     if (!h.length) {
       $("#hEmpty").innerHTML = S.histOn === true ? `<b>No finished practice sessions yet.</b><span>Finish a practice session and it shows up here.</span>`
-        : S.histBlocked ? `<b>Practice history isn't available.</b><span>${S.local ? "This browser isn't letting the page save it." : "Your access to this page doesn't allow saving it."}</span>`
-        : `<b>Data collection is off.</b><span>Finished sessions aren't saved.</span><span><button class="btn" id="hTurnOn">Turn on data collection</button></span>`;
-      const b = $("#hTurnOn"); if (b) b.onclick = async () => { b.disabled = true; if (await setHistory(true)) { renderRecent(); renderHistory(); } else b.disabled = false; };
+        : S.histBlocked ? `<b>Progress tracking isn't available.</b><span>${S.local ? "This browser isn't letting the page save it." : "Your access to this page doesn't allow saving it."}</span>`
+        : S.histOn === null ? `<b>Turn on progress tracking?</b><span>Each finished practice session would be saved so you can see fun stats about your practice, like graphs, streaks and the words that need more work.</span>
+          <span class="tactions" style="justify-content:center"><button class="btn primary" data-hist="on">Turn on progress tracking</button><button class="btn" data-hist="off">No thanks</button></span>`
+        : `<b>Progress tracking is off.</b><span>Finished sessions aren't saved.</span><span><button class="btn" data-hist="on">Turn on progress tracking</button></span>`;
+      $("#hEmpty").querySelectorAll("[data-hist]").forEach((b) => (b.onclick = async () => { b.disabled = true; if (await setHistory(b.dataset.hist === "on")) histChanged(); else b.disabled = false; }));
       return;
     }
     const days = new Set(h.map((t) => dayKey(new Date(t.finishedAt))));
@@ -2700,7 +2781,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     }).join("");
   }
   // Which language comes first on each hard word, so the list can be gone down as a self-test. Set on the list or
-  // in Settings → Practice history.
+  // in Settings → Data.
   S.loveTop = store.get("loveTop", "jp") === "en" ? "en" : "jp";
   function showLoveTop() { document.querySelectorAll("#loveTopSeg [data-top], #histSetTop [data-top]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.top === S.loveTop)); }
   for (const id of ["#loveTopSeg", "#histSetTop"]) $(id).onclick = (e) => {
@@ -2857,66 +2938,48 @@ colours.apply(...colours.saved()); // before anything is drawn
     const box = $("#kanjiLists"), all = S.kanjiLists;
     // The lists for the units picked in the vocab table, or every list.
     const picked = all.filter((k) => TP.has(unitKey(k))), every = S.kAll || picked.length === all.length;
-    const lists = all.filter((k) => every || TP.has(unitKey(k)) || S.kdrafts.has(k.id)), name = unitTitle;
+    const lists = all.filter((k) => every || TP.has(unitKey(k)) || dirtyList(k)), name = unitTitle;
     $("#kanjiCount").textContent = lists.length ? `${new Set(lists.flatMap((k) => [...(k.kanji || "")])).size} kanji` : "";
     $("#kSummary").textContent = !all.length ? "" : every && all.length > 1 ? `All ${all.length} kanji lists` : lists.length === 1 ? name(lists[0]) : lists.length ? `${lists.length} kanji lists` : "";
     $("#kAllBtn").hidden = !all.length || picked.length === all.length;
     $("#kAllBtn").textContent = S.kAll ? "Show only the units shown above" : "Show all units";
     if (!all.length) { box.innerHTML = `<div class="empty"><span>No kanji lists yet${canWrite ? ". Add a unit below and paste its kanji." : "."}</span></div>`; return; }
     if (!lists.length) { box.innerHTML = `<div class="empty"><span>${TP.shownKeys().length ? "The units shown have no kanji lists" : "No units shown"}${canWrite ? ". Add one below if a unit teaches kanji." : "."}</span></div>`; return; }
+    // Like a set: the kanji read as text until Edit, which opens the collection, unit and kanji for editing; Save stores them.
     box.innerHTML = lists.map((k) => {
-      const dirty = S.kdrafts.has(k.id), v = dirty ? S.kdrafts.get(k.id) : k.kanji || "", del = S.kConfirmDel === k.id;
-      const editing = canWrite && S.kEdit === k.id;
-      const head = editing
-        ? `<form class="newset setedit" data-kform><label>Collection<input data-kcol list="colList" value="${esc(S.kEditCol)}" required></label><label>Unit<input data-kunit list="unitList" value="${esc(S.kEditUnit)}" required></label><button class="btn primary" type="submit">Save</button><button class="btn" type="button" data-kcancel>Cancel</button><span class="editerr" data-kerr></span></form>`
-        : `<div class="head"><h2>${esc(name(k))}</h2><span class="muted small" data-kcount="${esc(k.id)}">${onlyKanji(v).length} kanji</span></div>`;
-      if (!canWrite) return `<div class="krow">${head}<span class="ro">${esc(v) || "—"}</span></div>`;
-      return `<div class="krow" data-kid="${esc(k.id)}">${head}
-        <input type="text" id="k-${esc(k.id)}" value="${esc(v)}" placeholder="Paste this unit's kanji" aria-label="Kanji for ${esc(name(k))}">
-        <div class="tactions"><button class="btn primary" data-ksave ${dirty ? "" : "disabled"}>Save</button>${dirty ? `<span class="dirty">Unsaved changes</span><button class="link" data-kdiscard>Discard</button>` : ""}
-          <span style="flex:1"></span>${del ? `<span class="small">Delete this kanji list?</span><button class="btn danger" data-kdel-yes>Delete</button><button class="btn" data-kdel-no>Keep</button>` : `${editing ? "" : `<button class="ghost small" data-kedit>Edit unit</button>`}<button class="ghost small" data-kdel>Delete list</button>`}</div>
+      const d = canWrite ? S.kdrafts.get(k.id) : null, dirty = dirtyList(k), v = d ? d.kanji : k.kanji || "", del = S.kConfirmDel === k.id;
+      const field = (f, label, more = "") => `<label>${label}<input id="kf-${esc(k.id)}-${f}" data-kf="${f}" value="${esc(d[f])}"${more}${d[f] !== (f === "collection" ? colOf(k) : k[f]) ? ` class="chg"` : ""}></label>`;
+      return `<div class="tset open kset${d ? " editing" : ""}" data-kid="${esc(k.id)}">
+        <h3 class="tseth"><span class="tsethead"><span class="t">${esc(name(k))}</span><span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted" data-kcount>${onlyKanji(v).length} kanji</span></span></span>${canWrite && !d ? `<button class="btn" type="button" data-kedit>Edit</button>` : ""}</h3>
+        ${d ? `<div class="newset setedit">${field("collection", "Collection", ` list="colList"`)}${field("unit", "Unit", ` list="unitList"`)}</div>
+          <input type="text" class="kin${d.kanji !== (k.kanji || "") ? " chg" : ""}" id="k-${esc(k.id)}" data-kf="kanji" value="${esc(v)}" placeholder="Paste this unit's kanji" aria-label="Kanji for ${esc(name(k))}">
+          <div class="tactions editbar"><button class="btn primary" data-ksave ${dirty ? "" : "disabled"}>Save</button><button class="btn" data-kdiscard>${dirty ? "Discard changes" : "Cancel"}</button><span class="editerr" data-kerr></span>
+          <span style="flex:1"></span>${del ? `<span class="small">Delete this kanji list?</span><button class="btn danger" data-kdel-yes>Delete</button><button class="btn" data-kdel-no>Keep</button>` : `<button class="ghost small" data-kdel>Delete list</button>`}</div>`
+        : `<p class="kro">${esc(v) || `<span class="muted small">No kanji yet.${canWrite ? " Tap Edit to add some." : ""}</span>`}</p>`}
       </div>`;
     }).join("");
     if (!canWrite) return;
     box.querySelectorAll("[data-kid]").forEach((row) => {
-      const id = row.dataset.kid, k = lists.find((x) => x.id === id), inp = row.querySelector(`#k-${CSS.escape(id)}`);
-      inp.addEventListener("input", () => {
-        const was = S.kdrafts.has(id), now = inp.value !== (k.kanji || "");
-        now ? S.kdrafts.set(id, inp.value) : S.kdrafts.delete(id);
-        const kc = row.querySelector("[data-kcount]"); if (kc) kc.textContent = `${onlyKanji(inp.value).length} kanji`;
-        if (was !== now) { const pos = inp.selectionStart; renderKanji(); const el = document.getElementById(inp.id); el.focus(); el.setSelectionRange(pos, pos); }
-      });
-      inp.addEventListener("keydown", (e) => { if (e.key === "Enter" && S.kdrafts.has(id)) row.querySelector("[data-ksave]").click(); });
+      const id = row.dataset.kid, k = lists.find((x) => x.id === id), d = S.kdrafts.get(id);
+      const ke = row.querySelector("[data-kedit]");
+      if (ke) ke.onclick = () => { S.kdrafts.set(id, { collection: colOf(k), unit: k.unit, kanji: k.kanji || "" }); renderKanji(); const f = document.getElementById(`k-${id}`); f?.focus(); };
+      if (!d) return;
+      const err = (m) => { row.querySelector("[data-kerr]").textContent = m; };
+      const was = dirtyList(k);
+      row.querySelectorAll("[data-kf]").forEach((inp) => inp.addEventListener("input", () => {
+        const f = inp.dataset.kf; d[f] = inp.value; err("");
+        inp.classList.toggle("chg", inp.value !== (f === "collection" ? colOf(k) : f === "unit" ? k.unit : k.kanji || ""));
+        if (f === "kanji") row.querySelector("[data-kcount]").textContent = `${onlyKanji(inp.value).length} kanji`;
+        if (dirtyList(k) !== was) renderTableKeepFocus(inp.id);
+      }));
+      row.querySelector("#k-" + CSS.escape(id)).addEventListener("keydown", (e) => { if (e.key === "Enter" && dirtyList(k)) row.querySelector("[data-ksave]").click(); });
       row.querySelector("[data-ksave]").onclick = async (ev) => {
-        const b = ev.currentTarget;
-        b.disabled = true; b.textContent = "Saving…";
-        if (!(await saveKanji(id))) { b.textContent = "Save failed, try again"; b.disabled = false; return; }
-        renderKanji();
+        if (await whileSaving(ev.currentTarget, () => saveKanji(id, err))) renderTable();
       };
-      const dis = row.querySelector("[data-kdiscard]"); if (dis) dis.onclick = () => { S.kdrafts.delete(id); renderKanji(); };
+      row.querySelector("[data-kdiscard]").onclick = () => { S.kdrafts.delete(id); S.kConfirmDel = null; renderKanji(); };
       const d1 = row.querySelector("[data-kdel]"); if (d1) d1.onclick = () => { S.kConfirmDel = id; renderKanji(); };
       const dn = row.querySelector("[data-kdel-no]"); if (dn) dn.onclick = () => { S.kConfirmDel = null; renderKanji(); };
       const dy = row.querySelector("[data-kdel-yes]"); if (dy) dy.onclick = async () => { S.kConfirmDel = null; S.kdrafts.delete(id); try { await db.doc("kanji/" + id).delete(); } catch { banner("Couldn't delete that kanji list. Reload and try again."); } };
-      const ke = row.querySelector("[data-kedit]"); if (ke) ke.onclick = () => { S.kEdit = id; S.kEditUnit = k.unit; S.kEditCol = colOf(k); renderKanji(); row.ownerDocument.querySelector(`[data-kid="${CSS.escape(id)}"] [data-kunit]`)?.focus(); };
-      const kf = row.querySelector("[data-kform]");
-      if (kf) {
-        const err = (m) => { kf.querySelector("[data-kerr]").textContent = m; };
-        kf.querySelector("[data-kunit]").addEventListener("input", (e) => { S.kEditUnit = e.target.value; err(""); });
-        kf.querySelector("[data-kcol]").addEventListener("input", (e) => { S.kEditCol = e.target.value; err(""); });
-        kf.querySelector("[data-kcancel]").onclick = () => { S.kEdit = null; renderKanji(); };
-        kf.onsubmit = async (e) => {
-          e.preventDefault();
-          const col = canonCol(S.kEditCol), unit = canonUnit(col, S.kEditUnit);
-          if (!unit || !col) return err("Type a collection and a unit.");
-          if (S.kanjiLists.some((x) => x.id !== id && sameName(colOf(x), col) && sameName(x.unit, unit))) return err(`${col} › ${unit} already has a kanji list.`);
-          const b = kf.querySelector("[type=submit]"); b.disabled = true; b.textContent = "Saving…";
-          try { await db.doc("kanji/" + id).update({ collection: col, unit, updatedAt: new Date().toISOString() }); }
-          catch { b.disabled = false; b.textContent = "Save"; return err("Couldn't save. Try again."); }
-          if (S.upto === unitKey(k)) { S.upto = unitKey({ collection: col, unit }); store.set("uptoPick", S.upto); }
-          S.kEdit = null; pickUnit(unit, col);
-          renderTable(); renderUpto();
-        };
-      }
     });
   }
   $("#newKanjiForm").addEventListener("submit", async (e) => {
@@ -2935,9 +2998,21 @@ colours.apply(...colours.saved()); // before anything is drawn
     renderUpto(); renderTable(); renderSetup();
   }
 
-  async function saveKanji(id) {
-    try { await db.doc("kanji/" + id).update({ kanji: onlyKanji(S.kdrafts.get(id) || ""), updatedAt: new Date().toISOString() }); S.kdrafts.delete(id); return true; }
-    catch { return false; }
+  // A kanji list being edited (S.kdrafts: id -> { collection, unit, kanji }) with something different from what's stored.
+  const dirtyList = (k) => { const d = S.kdrafts.get(k.id); return !!d && (d.kanji !== (k.kanji || "") || d.collection.trim() !== colOf(k) || d.unit.trim() !== k.unit); };
+  // Stores an edited kanji list: its kanji, and its collection and unit if they changed. err shows what's wrong; true = saved.
+  async function saveKanji(id, err = () => {}) {
+    const k = S.kanjiLists.find((x) => x.id === id), d = S.kdrafts.get(id);
+    if (!k || !d) return true;
+    const col = canonCol(d.collection), unit = canonUnit(col, d.unit);
+    if (!unit || !col) { err("Type a collection and a unit."); return false; }
+    if (S.kanjiLists.some((x) => x.id !== id && sameName(colOf(x), col) && sameName(x.unit, unit))) { err(`${col} › ${unit} already has a kanji list.`); return false; }
+    try { await db.doc("kanji/" + id).update({ collection: col, unit, kanji: onlyKanji(d.kanji), updatedAt: new Date().toISOString() }); }
+    catch { err("Couldn't save. Try again."); return false; }
+    if (S.upto === unitKey(k) && unitKey({ collection: col, unit }) !== S.upto) { S.upto = unitKey({ collection: col, unit }); store.set("uptoPick", S.upto); renderUpto(); }
+    S.kdrafts.delete(id);
+    if (col !== colOf(k) || unit !== k.unit) pickUnit(unit, col);
+    return true;
   }
   // Units picked like on the practice page, sets folded until opened; a search looks across every unit.
   // Unit chips come from every unit used by a vocab set or a kanji list.
@@ -3021,14 +3096,15 @@ colours.apply(...colours.saved()); // before anything is drawn
   // A word's field grows with its text, so a long phrase wraps instead of scrolling sideways.
   const fit = CSS.supports("field-sizing", "content") ? () => {} : (t) => { t.style.height = "auto"; t.style.height = t.scrollHeight + 2 + "px"; };
   // Unsaved changes are asked about before they can be lost: on leaving the vocab table, and by the browser on leaving the page.
-  const unsavedSets = () => S.sets.filter(dirtySet), unsavedLists = () => S.kanjiLists.filter((k) => S.kdrafts.has(k.id));
+  const unsavedSets = () => S.sets.filter(dirtySet), unsavedLists = () => S.kanjiLists.filter(dirtyList);
   addEventListener("beforeunload", (e) => { if (unsavedSets().length || unsavedLists().length || colsDirty()) { e.preventDefault(); e.returnValue = ""; } });
   // to: the view to go to (page/nav.js), once the changes are saved or let go.
   function leaveTable(to = "setup") {
     // Whatever was opened for editing and left as it was just closes.
     for (const s of S.sets) if (!dirtySet(s)) S.drafts.delete(s.id);
+    for (const k of S.kanjiLists) if (!dirtyList(k)) S.kdrafts.delete(k.id);
     if (!colsDirty()) S.colEdit = null;
-    S.kEdit = S.confirmDel = S.kConfirmDel = null;
+    S.confirmDel = S.kConfirmDel = null;
     S.leaveTo = to; S.leaveAsk = true; renderLeave();
     if (!S.leaveAsk) openView(to); else window.scrollTo(0, 0);
   }
@@ -3195,7 +3271,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   // A view is one way of putting every unit into rows, the collections. The main view is the one the sets are saved in
   // (each set's own collection and unit, in the collection order of meta/books). Other views group the same units another
   // way, such as by course: meta/views { main, views: [{ name, collections: [{ name, units: [{ collection, unit }] }] }] }
-  // (vocab/docs.js). A unit no collection of a view has shows under "Other" there, so every view still has every unit.
+  // (vocab/docs.js). A unit no collection of a view has is hidden there (the Hidden row of Edit collections), units added
+  // later included: that view doesn't show it or its sets.
   // Before views, courses took ranges of units (meta/courses): they're read as one view, "Courses" (courseView in
   // vocab/docs.js), until views are saved.
   // Every unit there is (with a set or a kanji list), as unitKey()s, in the main view's order.
@@ -3217,13 +3294,12 @@ colours.apply(...colours.saved()); // before anything is drawn
     const vs = altViews(), g = S.groupBy;
     return vs.find((v) => v.name === g) ?? (g === "course" ? vs[0] : null) ?? null;
   }
-  // A view's rows among the keys given: each collection with the keys it has (once, in the first collection that has them),
-  // then the rest under "Other". Collections with none of the keys are left out.
+  // A view's rows among the keys given: each collection with the keys it has (once, in the first collection that has them).
+  // The rest are hidden in this view. Collections with none of the keys are left out.
   function viewRows(v, keys) {
     const used = new Set();
     const rows = v.collections.map((c) => { const has = new Set(c.units); const ks = keys.filter((k) => has.has(k) && !used.has(k)); ks.forEach((k) => used.add(k)); return { name: c.name, keys: ks }; });
-    const rest = keys.filter((k) => !used.has(k));
-    return [...rows.filter((r) => r.keys.length), ...(rest.length ? [{ name: "Other", keys: rest }] : [])];
+    return rows.filter((r) => r.keys.length);
   }
   // Where a row of another view has two units of one name (Ch. 1 of two books), each names its collection. ids are in
   // order; colOf(id) and nameOf(id) are a unit's collection and name. Gives what goes inside each one's chip.
@@ -3235,7 +3311,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const vs = altViews(), on = curView()?.name ?? "";
     box.hidden = !vs.length;
     if (box.hidden) return;
-    const opts = [["", mainName()], ...vs.map((v) => [v.name, v.name])];
+    const opts = vs.map((v) => [v.name, v.name]); opts.splice(S.viewDoc?.mainAt || 0, 0, ["", mainName()]);
     const pick = (v) => { S.groupBy = v || "main"; store.set("groupBy", S.groupBy); renderSetup(); renderTable(); };
     box.className = "seg mini viewsw";
     box.innerHTML = opts.map(([v, t]) => `<button type="button" data-view="${esc(v)}" aria-pressed="${v === on}">${esc(t.replace("\n", " "))}</button>`).join("");
@@ -3250,13 +3326,14 @@ colours.apply(...colours.saved()); // before anything is drawn
   // ---------- editing collections ----------
   // "Edit collections" turns the top of the vocab table into an editor for every view at once (vocab/views.js); nothing
   // is stored until Save. While it's open, S.colEdit is
-  //   { at, mainName, main: [col], others: [{ name, was, cols: [col] }], units: { [id]: { name, srcs } }, was }
-  // with col = { id, name, units: [unit id], was }: at is the view being edited (-1 for the main one), a view's or col's was
+  //   { at, mainName, mainPos, main: [col], others: [{ name, was, cols: [col] }], units: { [id]: { name, srcs } }, was }
+  // with col = { id, name, units: [unit id], was }: at is the view being edited (-1 for the main one), mainPos is where the
+  // main view sits among the views (they can be dragged into any order), a view's or col's was
   // is its name when editing began (null for one added, or for the main view turned into another), a unit's id is the
   // unitKey() it had when editing began, and srcs are the unitKey()s it stands for (more than one once two are merged).
   // In the main view, moving a unit moves its sets and kanji list into that collection, and a unit of the same name there
   // merges with it (after asking). In another view, moving a unit only regroups it. Units sort by name in a collection.
-  const colSnap = (e) => JSON.stringify([e.mainName, e.main, e.others, e.units]);
+  const colSnap = (e) => JSON.stringify([e.mainName, e.mainPos, e.main, e.others, e.units]);
   const colsDirty = () => !!S.colEdit && colSnap(S.colEdit) !== S.colEdit.was;
   const newCol = (name, units) => ({ id: rid(), name, units, was: name });
   $("#editColBtn").onclick = () => {
@@ -3264,17 +3341,14 @@ colours.apply(...colours.saved()); // before anything is drawn
     for (const k of keys) units[k] = { name: keyUnit(k), srcs: [k] };
     // A unit is in at most one collection of a view: the first that has it.
     const once = (list) => { const used = new Set(); return list.map((c) => newCol(c.name, c.units.filter((u) => keys.has(u) && !used.has(u) && used.add(u)))); };
-    S.colEdit = { at: -1, mainName: mainName(), main: cols().map((b) => newCol(b, tKeys(b))), others: altViews().map((v) => ({ name: v.name, was: v.name, cols: once(v.collections) })), units };
+    S.colEdit = { at: -1, mainName: mainName(), mainPos: S.viewDoc?.mainAt || 0, main: cols().map((b) => newCol(b, tKeys(b))), others: altViews().map((v) => ({ name: v.name, was: v.name, cols: once(v.collections) })), units };
     S.colEdit.was = colSnap(S.colEdit);
     clearSearch(); renderTable();
     $("#colDiscard").focus();
   };
   $("#colDiscard").onclick = () => { S.colEdit = null; renderTable(); $("#editColBtn").focus(); };
   $("#colSave").onclick = async (ev) => {
-    const b = ev.currentTarget; b.disabled = true; b.textContent = "Saving…";
-    const ok = await saveCols((m) => { $("#colErr").textContent = m; });
-    b.textContent = "Save";
-    if (ok) renderTable(); else b.disabled = false;
+    if (await whileSaving(ev.currentTarget, () => saveCols((m) => { $("#colErr").textContent = m; }))) renderTable();
   };
   const binIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6.5 H19.5 M9.5 6.5 V4.5 H14.5 V6.5 M6.5 6.5 L7.5 19.5 H16.5 L17.5 6.5 M10.3 10.5 V16 M13.7 10.5 V16"/></svg>`;
   const viewCols = (e) => (e.at < 0 ? e.main : e.others[e.at].cols);
@@ -3287,25 +3361,26 @@ colours.apply(...colours.saved()); // before anything is drawn
     vEd.hidden = cEd.hidden = !e;
     if (!e) { vEd.innerHTML = cEd.innerHTML = ""; return; }
     const chip = (i, name) => `<button type="button" class="chip" data-view="${i}" aria-pressed="${e.at === i}">${esc(name.replace("\n", " ") || "Untitled view")}</button>`;
-    vEd.innerHTML = `<div class="chips" role="group" aria-label="Views">${chip(-1, e.mainName)}<span class="mainptr small">← main view${qtip("mainTip", "What the main view is", "Your sets are saved in the main view's collections. Other views group the same units another way without changing them, and any of them can become the main view.")}</span>
-        ${e.others.map((v, i) => chip(i, v.name)).join("")}<button type="button" class="chip add" data-vadd>+ New view</button></div>
+    const order = e.others.map((v, i) => i); order.splice(e.mainPos, 0, -1);
+    vEd.innerHTML = `<div class="vchips"><div class="chips" role="group" aria-label="Views (drag to reorder)">${order.map((i) => chip(i, i < 0 ? e.mainName : e.others[i].name)).join("")}<button type="button" class="chip add" data-vadd>+ New view</button></div>
+        <div class="mainptr small"><span data-ptr>⬑ main view</span>${qtip("mainTip", "What the main view is", "Your sets are saved in the main view's collections. Other views group the same units another way without changing them, and any of them can become the main view.")}</div></div>
       <div class="viewbar"><label class="small">View name <input type="text" data-vname maxlength="60" value="${esc(e.at < 0 ? e.mainName : e.others[e.at].name.replace("\n", " "))}"></label>
-        ${e.at >= 0 ? `<button class="link" type="button" data-vmain>Make this the main view</button><button class="link danger" type="button" data-vdel>Delete view</button>` : `<span class="muted small">Moving a unit here moves its sets to that collection.</span>`}</div>`;
+        ${e.at >= 0 ? `<button class="link" type="button" data-vmain>Make this the main view</button><button class="link danger" type="button" data-vdel>Delete view</button>` : ""}</div>`;
     const list = viewCols(e), at = mainAt(e), main = e.at < 0;
     const sorted = (ids) => ids.slice().sort((a, b) => (main ? 0 : (at[a] ?? 1e9) - (at[b] ?? 1e9)) || byUnit(e.units[a].name, e.units[b].name));
     const inOther = main ? [] : Object.keys(e.units).filter((u) => !list.some((c) => c.units.includes(u)));
     const chips = (ids, where) => {
       const list = sorted(ids), colName = (u) => e.main[at[u]]?.name ?? "", tags = main ? [] : twinTags(list, colName, (u) => e.units[u].name);
       return list.map((u, i) => `<button type="button" class="chip unit" data-u="${esc(u)}" aria-label="${esc(e.units[u].name)}${main ? "" : ` (${esc(colName(u))})`} in ${esc(where)}. Drag it, or press the up or down arrow to move it to the collection above or below.">${esc(e.units[u].name)}${tags[i] || ""}</button>`).join("")
-        || `<span class="muted small">Drag units here</span>`;
+        || `<span class="muted small">${where === "Hidden" ? "Drag units here to hide them in this view" : "Drag units here"}</span>`;
     };
     cEd.innerHTML = list.map((c, i) => `<div class="colrow" data-col="${c.id}">
         <span class="colctl"><button class="grip" type="button" aria-label="Drag to move ${esc(c.name || "this collection")}" title="Drag to move">⠿</button><button class="ghost" type="button" data-cmove="-1" aria-label="Move ${esc(c.name || "this collection")} up"${i ? "" : " disabled"}>↑</button><button class="ghost" type="button" data-cmove="1" aria-label="Move ${esc(c.name || "this collection")} down"${i < list.length - 1 ? "" : " disabled"}>↓</button><button class="ghost cdel" type="button" data-cdel aria-label="Delete ${esc(c.name || "this collection")}"${main && c.units.length ? ` disabled title="Move its units to other collections first"` : ` title="Delete"`}>${binIcon}</button></span>
         <textarea class="colname" rows="${c.name.includes("\n") ? 2 : 1}" data-cname maxlength="100" placeholder="Collection name" aria-label="Name of collection ${i + 1}">${esc(c.name)}</textarea>
         <div class="colunits" data-drop="${c.id}">${chips(c.units, c.name)}</div></div>`).join("")
-      + (main ? "" : `<div class="colrow other" data-col="other"><span class="colctl"></span><span class="colname">Other</span><div class="colunits" data-drop="other">${chips(inOther, "Other")}</div></div>`)
-      + `<div class="row"><button class="btn" type="button" data-cadd>+ Add collection</button><span class="muted small">${main ? "" : "Units in no collection of this view show under “Other”."}${main ? "" : " Press Enter in a name to put it on two lines."}</span></div>`;
-    syncColBtns(); tipTaps(vEd);
+      + (main ? "" : `<div class="colrow other" data-col="other"><span class="colctl"></span><span class="colname">Hidden</span><div class="colunits" data-drop="other">${chips(inOther, "Hidden")}</div></div>`)
+      + `<div class="row"><button class="btn" type="button" data-cadd>+ Add collection</button></div>`;
+    syncColBtns(); tipTaps(vEd); placePtr();
     const redo = (focus) => { renderColEdit(); renderLeave(); if (focus) document.querySelector(focus)?.focus(); };
     vEd.querySelectorAll("[data-view]").forEach((b) => (b.onclick = () => { e.at = +b.dataset.view; redo(`#viewEd [data-view="${e.at}"]`); }));
     vEd.querySelector("[data-vname]").addEventListener("input", (ev) => {
@@ -3320,7 +3395,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     const vdel = vEd.querySelector("[data-vdel]");
     if (vdel) vdel.onclick = async () => {
       const v = e.others[e.at];
-      if (!(await ask("Delete this view?", `<p>The view <b>${esc(v.name)}</b> and the way it groups the units go. Your sets, units and other views stay as they are.</p><p>Nothing is changed until you press Save.</p>`, "Delete view"))) return;
+      if (!(await ask("Delete this view?", `<p>You will lose the custom ordering for the units.</p>`, "Delete view", true))) return;
+      if (e.at < e.mainPos) e.mainPos--;
       e.others.splice(e.at, 1); e.at = -1; redo(`#viewEd [data-view="-1"]`);
     };
     const vmain = vEd.querySelector("[data-vmain]");
@@ -3333,7 +3409,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       row.querySelector("[data-cdel]").onclick = () => { list.splice(i, 1); redo(`#colEd [data-cadd]`); };
     });
     cEd.querySelector("[data-cadd]").onclick = () => { const c = newCol("", []); list.push(c); redo(`[data-col="${c.id}"] [data-cname]`); };
-    // The arrow keys move a unit to the collection above or below (in another view, "Other" is the last).
+    // The arrow keys move a unit to the collection above or below (in another view, Hidden is the last).
     cEd.querySelectorAll(".chip.unit").forEach((b) => b.addEventListener("keydown", (ev) => {
       if (ev.key !== "ArrowUp" && ev.key !== "ArrowDown") return;
       ev.preventDefault();
@@ -3341,6 +3417,31 @@ colours.apply(...colours.saved()); // before anything is drawn
       if (rows[i]) moveUnit(b.dataset.u, rows[i].dataset.drop);
     }));
   }
+  // "main view" under the main view's chip, its arrow pointing up at it from the left (or from the right, past the middle).
+  function placePtr() {
+    const box = $("#viewEd .vchips"), chip = box?.querySelector('[data-view="-1"]'), ptr = box?.querySelector(".mainptr");
+    if (!chip || !box.clientWidth) return;
+    const b = box.getBoundingClientRect(), r = chip.getBoundingClientRect(), right = r.left + r.width / 2 - b.left > b.width / 2;
+    ptr.querySelector("[data-ptr]").textContent = right ? "main view ⬏" : "⬑ main view";
+    ptr.style.justifyContent = right ? "flex-end" : "flex-start";
+    ptr.style.paddingLeft = right ? "" : `${Math.round(r.left - b.left)}px`; ptr.style.paddingRight = right ? `${Math.round(b.right - r.right)}px` : "";
+  }
+  new ResizeObserver(placePtr).observe($("#viewEd"));
+  // Views are dragged into any order: before or after the chip they're let go on.
+  const viewSlot = (x, y) => { const t = document.elementFromPoint(x, y)?.closest("#viewEd [data-view]"); if (!t) return null; const r = t.getBoundingClientRect(); return { t, after: x > r.left + r.width / 2 }; };
+  const markView = (s) => { $("#viewEd").querySelectorAll(".dropbefore, .dropafter").forEach((x) => x.classList.remove("dropbefore", "dropafter")); if (s) s.t.classList.add(s.after ? "dropafter" : "dropbefore"); };
+  makeDrag($("#viewEd"), "[data-view]", {
+    over: (el, x, y) => { const s = viewSlot(x, y); markView(s && s.t !== el ? s : null); },
+    drop: (el, x, y) => {
+      const s = viewSlot(x, y), e = S.colEdit;
+      if (!s || s.t === el) return;
+      const obj = (id) => (id < 0 ? "main" : e.others[id]), at = obj(e.at), order = [...$("#viewEd").querySelectorAll("[data-view]")].map((b) => obj(+b.dataset.view));
+      const me = obj(+el.dataset.view); order.splice(order.indexOf(me), 1); order.splice(order.indexOf(obj(+s.t.dataset.view)) + (s.after ? 1 : 0), 0, me);
+      e.mainPos = order.indexOf("main"); e.others = order.filter((v) => v !== "main"); e.at = at === "main" ? -1 : e.others.indexOf(at);
+      renderColEdit(); renderLeave(); $(`#viewEd [data-view="${me === "main" ? -1 : e.others.indexOf(me)}"]`)?.focus();
+    },
+    end: () => markView(null),
+  });
   const freeName = (base, taken) => { let n = base, k = 2; while (taken.some((t) => sameName(t, n))) n = `${base} ${k++}`; return n; };
   function syncColBtns() {
     const ch = colsDirty();
@@ -3405,9 +3506,9 @@ colours.apply(...colours.saved()); // before anything is drawn
     for (const c of next) { const by = new Map(); for (const u of c.units) { const k = e.units[u].name.toLowerCase(); if (by.has(k)) merges.push([u, by.get(k), c.name]); else by.set(k, u); } }
     const said = [...new Set(merges.map(([, into, col]) => `${e.units[into].name} in ${col}`))];
     const n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`;
-    if (!(await ask(`Make “${v.name.replace("\n", " ")}” the main view?`, `<p>Your sets will be saved in its collections: each set moves to the collection its unit has in <b>${esc(v.name)}</b>. <b>${esc(e.mainName)}</b> stays as another view, so you can switch back.</p>
+    if (!(await ask(`Make “${v.name.replace("\n", " ")}” the main view?`, `<p>All new views will adopt the layout of this view at creation.</p>
       ${said.length ? `<p>Units with the same name in one collection become one unit, their sets together and their kanji lists combined: ${esc(said.join(", "))}.</p>` : ""}
-      ${rest.length ? `<p>${n(rest.length, "unit")} in no collection of ${esc(v.name)} ${rest.length === 1 ? "goes" : "go"} into a collection called Other.</p>` : ""}<p>Nothing is changed until you press Save.</p>`, "Make it the main view"))) return;
+      ${rest.length ? `<p>${n(rest.length, "unit")} in no collection of ${esc(v.name)} ${rest.length === 1 ? "goes" : "go"} into a collection called Other.</p>` : ""}`, "Make it the main view"))) return;
     e.others.splice(i, 1, { name: e.mainName, was: null, cols: e.main.map((c) => newCol(c.name, [...c.units])) });
     e.mainName = v.name.replace(/\s*\n\s*/g, " "); e.main = next;
     for (const [u, into] of merges) mergeUnit(u, into);
@@ -3443,7 +3544,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       for (const k of more) jobs.push(["delete", "kanji/" + k.id]);
     }
     if (JSON.stringify(colNames) !== JSON.stringify(cols())) jobs.push(["set", "meta/books", { order: colNames, updatedAt: now }]);
-    const doc = { main: vNames[0], views: e.others.map((v, i) => ({ name: vNames[i + 1], collections: v.cols.map((c) => ({ name: viewName(c.name, 100), units: c.units.filter((u) => to[u]).map((u) => to[u]) })) })) };
+    const doc = { main: vNames[0], views: e.others.map((v, i) => ({ name: vNames[i + 1], collections: v.cols.map((c) => ({ name: viewName(c.name, 100), units: c.units.filter((u) => to[u]).map((u) => to[u]) })) })), ...(e.mainPos ? { mainAt: e.mainPos } : {}) };
     if (JSON.stringify(doc) !== JSON.stringify(S.viewDoc)) jobs.push(["set", "meta/views", { ...doc, updatedAt: now }]);
     let n = 0;
     try { for (const [how, path, d] of jobs) { await (how === "delete" ? db.doc(path).delete() : how === "set" ? db.doc(path).set(d) : db.doc(path).update(d)); n++; } }
@@ -3565,7 +3666,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       let file = null;
       try { file = JSON.parse(await f.text()); } catch {}
       if (!file) return say("That file couldn't be read. Pick a .json file made for Japanese Vocab Practice.");
-      if (file?.app === APP && file.kind === "history") return say("This is a practice history file. Import it in Settings → Practice history.");
+      if (file?.app === APP && file.kind === "history") return say("This is a progress file. Import it in Settings → Data → Progress export / import.");
       if (typeof file !== "object" || file.app !== APP || !Array.isArray(file.sets)) return say("This isn't a Japanese Vocab Practice file." + (hint && " " + hint));
       try { plan = planImport(file, f.name, await stored()); }
       catch { return say("Your vocab couldn't be read just now, so the file can't be compared with it. Reload the page and try again."); }
@@ -3603,7 +3704,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#exportBtn").title = downloads ? "" : "Saving files isn't available in this view.";
   }
   $("#exportBtn").onclick = exportVocab;
-  // ---------- Settings → Practice history: the history as a file ----------
+  // ---------- Settings → Data → Progress export / import: the practice history as a file ----------
   // Export saves every session. Import adds the file's sessions that aren't here yet (matched by id), so a file from
   // another browser or account merges into this history; sessions already here are left as they are, none is deleted.
   const histPortMsg = sayIn($("#histPortMsg"));
@@ -3622,7 +3723,10 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#histExport").disabled = !downloads || !S.history.length || histBusy;
     $("#histExport").title = !downloads ? "Saving files isn't available in this view." : S.history.length ? "" : "No practice sessions to export yet.";
     $("#histImport").disabled = off || histBusy;
-    $("#histImport").title = off ? "Turn on practice history first." : "";
+    $("#histImport").title = off ? "Turn on progress tracking first." : "";
+    // What an export holds now, in place of words about it.
+    const h = S.history, nw = h.reduce((a, t) => a + (t.words || []).length, 0);
+    $("#histPortSample").textContent = h.length ? `${h.length} session${h.length === 1 ? "" : "s"} · ${nw} word${nw === 1 ? "" : "s"} · ${fmtDay(h[h.length - 1].finishedAt)} to ${fmtDay(h[0].finishedAt)}` : "No practice sessions yet.";
     const p = histPlan, box = $("#histImportPreview");
     box.hidden = !p;
     if (!p) { box.innerHTML = ""; return; }
@@ -3645,8 +3749,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     histPortMsg(""); histPlan = null;
     let file = null;
     try { file = JSON.parse(await f.text()); } catch {}
-    if (file?.app === APP && Array.isArray(file.sets)) { renderHistPort(); return histPortMsg("This is a vocab file. Import it in Settings → Data."); }
-    if (file?.app !== APP || file.kind !== "history" || !Array.isArray(file.sessions)) { renderHistPort(); return histPortMsg("This isn't a practice history file. Pick a .json file saved with Export history."); }
+    if (file?.app === APP && Array.isArray(file.sets)) { renderHistPort(); return histPortMsg("This is a vocab file. Import it under Export / import above."); }
+    if (file?.app !== APP || file.kind !== "history" || !Array.isArray(file.sessions)) { renderHistPort(); return histPortMsg("This isn't a progress file. Pick a .json file saved with Export progress."); }
     const here = new Set(S.history.map((t) => t.id)), add = new Map();
     let skipped = 0, have = 0;
     for (const d of file.sessions) { const c = cleanSession(d); if (!c) skipped++; else if (here.has(String(d.id))) have++; else add.set(String(d.id), { id: String(d.id), ...c }); }
@@ -3716,8 +3820,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (!n) { sampleAsk = false; return; }
     el.innerHTML = sampleAsk
       ? `Remove the ${n} sample ${n === 1 ? "set" : "sets"} and their kanji lists? <button class="link" type="button" id="sampleYes">Remove</button> · <button class="link" type="button" id="sampleNo">Keep them</button>`
-      : `The sample sets are here so you can try the page right away. Add your own in Vocabularies, or import a file from Settings, whenever you're ready. <button class="link" type="button" id="sampleRemove">Remove the sample sets</button>`;
-    if (!sampleAsk) { $("#sampleRemove").onclick = () => { sampleAsk = true; renderSampleNote(); }; return; }
+      : `These are sample sets. Manage sets in <button class="link" type="button" id="sampleToTable">Vocabulary</button>, or import a file from Settings, whenever you're ready. <button class="link" type="button" id="sampleRemove">Remove the sample sets</button>`;
+    if (!sampleAsk) { $("#sampleRemove").onclick = () => { sampleAsk = true; renderSampleNote(); }; $("#sampleToTable").onclick = () => go("table"); return; }
     $("#sampleNo").onclick = () => { sampleAsk = false; renderSampleNote(); };
     $("#sampleYes").onclick = async () => {
       sampleAsk = false;
@@ -3816,7 +3920,6 @@ colours.apply(...colours.saved()); // before anything is drawn
   // strokes for are marked by the student (selfMark).
   async function judge({ w, dir }) {
     $("#liveRead").hidden = true;
-    $("#overrideBtn").textContent = "The checker misread my writing, count it as correct";
     const res = await checkWriting(w, dir);
     return () => {
       if (res && !res.ok) showBoxes(res);
@@ -3909,7 +4012,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     renderNick(); renderBorn();
     $("#acctName").innerHTML = account ? `Signed in with Google as <b>${esc(account.email || account.name || "")}</b>.`
       : "Not signed in. As a guest, everything is kept in this browser on this device.";
-    $("#signOutBtn").textContent = account ? "Sign out" : "Sign in with Google";
+    $("#signOutBtn").textContent = account ? "Sign out" : "Sign in with Google"; $("#signOutBtn").classList.toggle("danger", !!account);
     $("#acctErr").hidden = true;
     $("#signOutBtn").onclick = account ? () => platform.signOut() : () => signIn($("#signOutBtn"), (m) => { $("#acctErr").textContent = m; $("#acctErr").hidden = false; });
     const what = account ? "your account and its sets, kanji lists and practice history" : "the sets, kanji lists and practice history saved in this browser";
@@ -3968,8 +4071,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#acctList").innerHTML = account
       ? `<p class="small muted">Signed in as <b>${esc(account.email || account.name)}</b></p>
         <button type="button" role="menuitem" data-acct="settings">${gear()}Settings</button>
-        <button type="button" role="menuitem" data-acct="signout">${icon("M14.5 4.5 H18.5 a1.5 1.5 0 0 1 1.5 1.5 V18 a1.5 1.5 0 0 1-1.5 1.5 H14.5 M10 8 L6 12 L10 16 M6 12 H15.5")}Sign out</button>`
-      : `<p class="small muted">Not signed in. Your sets and history are kept in this browser.</p>
+        <button type="button" role="menuitem" class="danger" data-acct="signout">${icon("M14.5 4.5 H18.5 a1.5 1.5 0 0 1 1.5 1.5 V18 a1.5 1.5 0 0 1-1.5 1.5 H14.5 M10 8 L6 12 L10 16 M6 12 H15.5")}Sign out</button>`
+      : `<p class="small muted">Sign in to sync between devices.</p>
         <button type="button" role="menuitem" data-acct="signin">${icon("M9.5 4.5 H5.5 a1.5 1.5 0 0 0-1.5 1.5 V18 a1.5 1.5 0 0 0 1.5 1.5 H9.5 M14 8 L18 12 L14 16 M18 12 H8.5")}Sign in with Google</button>`;
     const item = (k) => $(`#acctList [data-acct="${k}"]`);
     if (account) {
@@ -3991,13 +4094,13 @@ colours.apply(...colours.saved()); // before anything is drawn
   // The nickname: kept with the account, shown at the top right, changed in Settings → Account.
   const profileRef = () => db.doc(`data/users/${uid}/profile`);
   function watchProfile() {
-    profileRef().onSnapshot((snap) => { const p = snap.exists ? snap.data() : {}; nickname = tidy(p?.nickname, 40); born = cleanBorn(p?.born); bornAt = tidy(p?.bornAt, 30); renderAcctMenu(); renderNick(); renderBorn(); }, () => {});
+    profileRef().onSnapshot((snap) => { const p = snap.exists ? snap.data() : {}; nickname = tidy(p?.nickname, 40); born = cleanBorn(p?.born); bornAt = tidy(p?.bornAt, 30); bornCleared = tidy(p?.bornCleared, 30); renderAcctMenu(); renderNick(); renderBorn(); }, () => {});
   }
   // The profile is saved whole: what changes, with the rest as it is.
   async function saveProfile(change) {
-    const p = { nickname, born, bornAt, ...change };
+    const p = { nickname, born, bornAt, bornCleared, ...change };
     await profileRef().set({ ...p, updatedAt: new Date().toISOString() });
-    ({ nickname, born, bornAt } = p);
+    ({ nickname, born, bornAt, bornCleared } = p);
   }
   function renderNick() {
     $("#nickRow").hidden = !account;
@@ -4022,24 +4125,26 @@ colours.apply(...colours.saved()); // before anything is drawn
   // born: "YYYY-MM", bornAt: when it was given), empty until then, and Settings → Account shows it and lets it be given,
   // changed or cleared. Month and year only: enough to tell an age, and less to keep than a birthday. Once given it
   // stays for 3 months (the owner, 2026-11-14), so an age that didn't fit can't just be picked again; clearing it is
-  // always possible and doesn't shorten the wait. The wait is the page's own: firestore.rules lets an account write
-  // its profile as it likes.
-  let born = "", bornAt = "";
+  // always possible and doesn't shorten the wait (bornCleared: when). Saving and deleting are confirmed in a pop-up first.
+  // The wait is the page's own: firestore.rules lets an account write its profile as it likes.
+  let born = "", bornAt = "", bornCleared = "";
   const BORN_TIP = "Age information is used for handwriting consent, and for advertising if we add it later.", BORN_WAIT = 3;
   const cleanBorn = (v) => (/^(19|20)\d\d-(0[1-9]|1[0-2])$/.test(v) ? v : "");
   // Certainly 16: the month they turn 16 in is over (the day isn't known).
   const oldEnough = (b, now = new Date()) => { const [y, m] = b.split("-").map(Number); return (now.getFullYear() - y) * 12 + now.getMonth() + 1 - m > 16 * 12; };
   const tooYoung = (b) => !!b && !oldEnough(b);
   const monthName = (m) => new Date(2000, m - 1, 1).toLocaleDateString("en", { month: "long" });
-  const bornText = (b) => (b ? `${monthName(+b.slice(5))} ${b.slice(0, 4)}` : "Not given");
+  const dayText = (d) => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  // While the wait runs after deleting it, the text says when it was deleted (the line under it, when it can be given again).
+  const bornText = (b) => (b ? `${monthName(+b.slice(5))} ${b.slice(0, 4)}` : bornCleared && bornWait() ? `Cleared on ${dayText(bornCleared)}` : "Not given");
   // The day it can be given or changed again, or null when it can be now.
   function bornWait() {
     const d = new Date(bornAt || NaN); d.setMonth(d.getMonth() + BORN_WAIT);
     return d > new Date() ? d : null;
   }
-  const waitText = (d) => `It can be changed after ${d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}.`;
+  const waitText = (d) => `It can be ${born ? "changed" : "updated"} after ${dayText(d)}.`;
   // Giving or changing it starts the wait; clearing it leaves the wait as it is.
-  const saveBorn = (b) => saveProfile(b ? { born: b, bornAt: new Date().toISOString() } : { born: "" });
+  const saveBorn = (b) => saveProfile(b ? { born: b, bornAt: new Date().toISOString(), bornCleared: "" } : { born: "", bornCleared: new Date().toISOString() });
   // The (?) beside wherever it's asked.
   const bornTip = (at, id) => { at.innerHTML = qtip(id, "What this is used for", BORN_TIP); tipTaps(at); };
   // Month and year dropdowns in box; changed() runs on each pick. get() is "YYYY-MM", or "" until both are picked.
@@ -4055,14 +4160,14 @@ colours.apply(...colours.saved()); // before anything is drawn
     return { set, get: () => (m && y ? `${y}-${m}` : "") };
   }
   // One place it's asked: the dropdowns (the month and year as text during the wait), and a line saying when it can
-  // change. ids: pick, now, note. Returns the dropdowns, with draw() to show which of the two it is now.
+  // change. ids: pick, now, note, and rule (say how often it can change, in the pop-up). Returns the dropdowns, with draw() to show which of the two it is now.
   function bornField(ids, changed) {
     const pick = birthPick($(ids.pick), changed);
     pick.draw = () => {
       const wait = bornWait();
       $(ids.pick).hidden = !!wait;
       $(ids.now).hidden = !wait; $(ids.now).textContent = bornText(born);
-      $(ids.note).textContent = wait ? waitText(wait) : `It can be changed once every ${BORN_WAIT} months.`;
+      $(ids.note).textContent = wait ? waitText(wait) : ids.rule ? `It can be changed once every ${BORN_WAIT} months.` : "";
       return wait;
     };
     return pick;
@@ -4071,7 +4176,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // The pop-up after a yes to sharing handwriting. yes() runs once a birth month and year of 16 or older is on the
   // account; under 16 it's saved all the same, and the pop-up stays to say sharing is for 16 and older.
   let bornYes = () => {};
-  const askPick = bornField({ pick: "#bornAskIn", now: "#bornAskNow", note: "#bornAskNote" }, () => drawBornAsk());
+  const askPick = bornField({ pick: "#bornAskIn", now: "#bornAskNow", note: "#bornAskNote", rule: true }, () => drawBornAsk());
   bornTip($("#bornAskTip"), "bornAskTipText");
   function drawBornAsk(err = "") {
     const wait = askPick.draw();
@@ -4094,7 +4199,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#bornAsk").close(); bornYes();
   };
 
-  // Settings → Account: Save keeps what's picked, Clear empties it.
+  // Settings → Account: Save keeps what's picked and Delete empties it, each after a pop-up saying what it means.
   const bornMsg = (t) => { $("#bornMsg").textContent = t; };
   const syncBorn = () => { $("#bornSave").disabled = !bornIn.get() || bornIn.get() === born; };
   const bornIn = bornField({ pick: "#bornIn", now: "#bornNow", note: "#bornNote" }, () => { bornMsg(""); syncBorn(); });
@@ -4104,8 +4209,17 @@ colours.apply(...colours.saved()); // before anything is drawn
     catch { bornMsg("It couldn't be saved. Try again."); }
     renderBorn();
   }
-  $("#bornForm").onsubmit = (e) => { e.preventDefault(); if (bornIn.get() && !bornWait()) keepBorn(bornIn.get()); };
-  $("#bornClear").onclick = () => keepBorn("");
+  $("#bornForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const b = bornIn.get();
+    if (!b || bornWait()) return;
+    if (await ask("Confirm your birthday", `<p>Confirming your birthday is <b>${esc(bornText(b))}</b>.</p><p>This information can only be changed once every ${BORN_WAIT} months. It can be deleted at any time.</p>`, "Confirm")) keepBorn(b);
+  };
+  $("#bornClear").onclick = async () => {
+    const until = new Date(bornAt || Date.now()); until.setMonth(until.getMonth() + BORN_WAIT);
+    const again = until > new Date() ? `any time after ${dayText(until)}` : "at any time";
+    if (await ask("Delete your birthday?", `<p>This information will be cleared from our database. You can choose to give your birthday again ${again}.</p>`, "Delete", true)) keepBorn("");
+  };
   $("#settings").addEventListener("leave", () => { bornMsg(""); renderBorn(); });
   // Admin: the wait ended for the developer's own account, to try giving it again.
   $("#devBornReset").onclick = async () => {
@@ -4155,7 +4269,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       text: "Write the answer, then tap Check. Not sure? Write your best guess: you'll see the answer either way.",
       done: () => tour.checked && !vis($("#checking")), ready: () => !$("#checkBtn").disabled, act: () => $("#checkBtn").click(), skip: "quit" },
     { view: "quiz", at: () => firstVis("#selfCheck", "#feedback", "#quiz .prompt"), title: "The result",
-      text: "A right answer moves on to the next word by itself. Otherwise you see the answer and a scratch pad to practice it. When the checker can't read your writing you mark it yourself, and if it misreads a right answer you can count it as correct." },
+      text: "A right answer moves on to the next word by itself. Otherwise you see the answer and a scratch pad to practice it. When the checker can't read your writing you mark it yourself, and if it misreads a right answer you can mark it as correct." },
     { view: "quiz", at: () => firstVis("#scratchPad"), title: "Scratch pad",
       text: "Practice the right answer here as many times as you like. It isn't marked." },
     { view: "quiz", id: "quit", at: () => $("#quitBtn"), title: "Stop any time",
@@ -4163,10 +4277,8 @@ colours.apply(...colours.saved()); // before anything is drawn
       done: () => vis($("#setup")), act: () => $("#quitBtn").click() },
     { view: "setup", at: () => firstVis("#resumeBtn"), title: "Pick up where you left off",
       text: "Because you left midway, Resume last practice carries on where you stopped, even with what you'd written. Start practice begins a new one." },
-    { view: "setup", at: () => firstVis("#histPanel"), title: "Your practice",
-      text: "Your recent practice shows up here, with your progress and the words that need the most love. Practice history can be turned on or off in Settings." },
-    { view: "setup", at: () => $("#toTable"), title: "Vocabularies", text: "Tap edit to see the words in every set, and to change them.",
-      done: () => vis($("#table")), act: () => $("#toTable").click() },
+    { view: "setup", at: () => firstVis('#sideNav [data-go="table"]', "#menuBtn"), title: "Vocabulary", text: "Vocabulary in the menu shows the words in every set, and lets you change them.",
+      done: () => vis($("#table")), act: () => go("table") },
     { view: "table", at: () => firstVis("#setTables"), title: "Your sets",
       text: "Open a set to see its words. You can edit them, and the set's details and tags." },
     { view: "table", at: () => firstVis("#newSetForm"), title: "Add your own sets",
@@ -4175,10 +4287,10 @@ colours.apply(...colours.saved()); // before anything is drawn
       text: "One list per unit with the kanji it teaches. Kanji learned up to counts these." },
     // Beside the sidebar of a big screen there's no ← Back: Practice in the sidebar goes back.
     { view: "table", at: () => firstVis("#backBtn", '#sideNav [data-go="setup"]'), title: "Back to practice",
-      get text() { return vis($("#backBtn")) ? "Tap ← Back to practice." : "Tap Practice in the menu on the left to go back. It takes you to History and Study tools too."; },
+      get text() { return vis($("#backBtn")) ? "Tap ← Back to practice." : "Tap Practice in the menu on the left to go back. It takes you to Progress and Extra tools too."; },
       done: () => vis($("#setup")), act: () => $("#backBtn").click() },
-    { view: "setup", at: () => [$("#settingsBtn"), $("#acctBtn")], title: "Settings and your account",
-      get text() { return `${isWide() ? "" : "☰ opens the menu: Vocabularies, History and Study tools. "}The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data. Beside it, Guest is where you sign in.`; } },
+    { view: "setup", at: () => [$("#acctBtn"), $("#settingsBtn")], title: "Settings and your account",
+      get text() { return `${isWide() ? "" : "☰ opens the menu: Vocabulary, Progress and Extra tools. "}Guest is where you sign in. Beside it, the gear opens Settings: colours, light or dark, your account, export / import, and deleting your data.`; } },
     { title: "That's the tour!", end: true,
       text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and history on all your devices." },
   ];
@@ -4357,7 +4469,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const s = shareState(), n = s.n || 0, when = s.at && !isNaN(new Date(s.at)) ? new Date(s.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
     $("#shareInfo").textContent = s.on
       ? `On${when ? " since " + when : ""}. ${n} ${n === 1 ? "answer" : "answers"} shared: the strokes, the word and how it was marked, kept to build better handwriting recognition.`
-      : `Off. Turn it on to let your handwriting help train the checker.${n ? ` ${n} ${n === 1 ? "answer is" : "answers are"} still kept from before.` : ""}`;
+      : "We hope to develop our own handwriting recognition tool someday. Change your mind at any time.";
     $("#shareToggle").textContent = s.on ? "Turn off" : "Turn on…";
     $("#shareDl").hidden = !n || shareDelAsk;
     $("#shareDel").hidden = !n || shareDelAsk;
@@ -4412,6 +4524,37 @@ colours.apply(...colours.saved()); // before anything is drawn
   $("#devPolicyInfo").textContent = `The policy was last updated ${policyDay(POLICY_UPDATED)}. Anyone who last saw an older version gets the notice once.`;
   $("#devPolicyNow").onclick = showPolicyNote;
   $("#devPolicyNext").onclick = () => { store.set("policySeen", "2000-01-01"); sayIn($("#devPolicyMsg"))("Reload the page to see it as a returning visitor would."); };
+  // ---------- Extra tools (public site) ----------
+  // A view of the page like the others, with the menu beside it. Its tools are js/tools.js (src/study-tools/tools.js),
+  // loaded the first time it opens, so the page itself doesn't carry them. Its address is #tools (page/address.js; the old
+  // study-tools/ page sends people there).
+  let toolsLoaded = false;
+  function openTools() {
+    show("tools");
+    if (toolsLoaded) return;
+    toolsLoaded = true;
+    const s = Object.assign(document.createElement("script"), { src: "js/tools.js" });
+    s.onerror = () => { toolsLoaded = false; $("#toolList").innerHTML = `<p class="muted small">The tools couldn't load. Check your connection and open Extra tools again.</p>`; };
+    document.head.append(s);
+  }
+  // ---------- each part of the page has its own address (public site) ----------
+  // The page loads once and swaps what it shows, so the part after # names the part on screen: …/#vocabulary, #progress,
+  // #tools, #settings (Practice has none). Going to a part adds a step to the browser's history, so ← back and forward
+  // step through the parts, and a link or bookmark opens the part it names. A practice and its results add no step.
+  function partHash(v) { return { setup: "", table: "#vocabulary", history: "#progress", settings: "#settings", tools: "#tools" }[v]; }
+  function hashPart() { return ["table", "history", "settings", "tools"].find((v) => partHash(v) === location.hash) || "setup"; }
+  // From show(): the address follows, unless it's the address that moved (back or forward), or the page is still starting
+  // (boot.js opens the part the address names).
+  function syncHash(v) {
+    const h = partHash(v);
+    if (h == null || syncHash.quiet || location.hash === h || !document.body.classList.contains("ready")) return;
+    window.history.pushState(null, "", h || location.pathname + location.search); // window.: history is the pads' undo list
+  }
+  addEventListener("popstate", () => {
+    if (!document.body.classList.contains("ready")) return;
+    syncHash.quiet = true;
+    try { go(hashPart()); } finally { syncHash.quiet = false; }
+  });
   // ---------- public site, Admin: the words of this round, during a practice ----------
   // A developer's look at what's left (Settings → Admin, off until turned on, in this browser): the word on screen, the
   // ones still to come this round, and the ones missed this round, which come back in the next.
@@ -4433,6 +4576,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (!platform) { $("#gate").innerHTML = "<b>The page couldn't start</b>Reload it to try again."; return; }
     let started = null;
     const start = ({ id, db: store }) => {
+      // The part the address names, read before anything below can show a part; only when the page loads, not when the account changes.
+      const part = start.once ? "setup" : hashPart(); start.once = true;
       started = uid = id;
       db = store; user = platform.user(uid); owner = canWrite = true; downloads = platform.downloads;
       document.body.classList.add("ready");
@@ -4442,15 +4587,17 @@ colours.apply(...colours.saved()); // before anything is drawn
       if (id !== "local") { stopPrefs = syncPrefs(checkPolicy); watchProfile(); } else checkPolicy();
       renderAcctMenu();
       offerSamples();
+      // An address naming a part of the page (page/address.js) opens it.
+      if (part !== "setup") { syncHash.quiet = true; openView(part); syncHash.quiet = false; }
     };
     // As a guest, everything is kept in this browser (src/account/local.js); choosing it in the welcome pop-up is remembered.
     startLocal = () => {
       start(platform.storeFor(null));
-      $("#histWhere").textContent = "Saved only in this browser";
     };
     platform.onAuth((u) => {
-      // Signing in or out (here or in another tab) or switching accounts starts the page over.
-      if (started) { if ((u?.uid || "local") !== started && (u || started !== "local")) location.reload(); return; }
+      // Signing in or out (here or in another tab) or switching accounts starts the page over, on Practice (without the
+      // address of the part it was on).
+      if (started) { if ((u?.uid || "local") !== started && (u || started !== "local")) location.replace(location.pathname + location.search); return; }
       if (!u) {
         let guest = false;
         try { guest = localStorage.getItem("qcard:mode") === "local" || localStorage.getItem("qcard:welcomed") === "1"; } catch {}

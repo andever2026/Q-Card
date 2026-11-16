@@ -64,6 +64,7 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .acctlist button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 6px; background: none; color: var(--ink); font-size: .9rem; text-align: left; }
 .acctlist button:hover, .acctlist button:focus-visible { background: var(--sunk); outline: none; }
 .acctlist button svg { flex: none; color: var(--muted); }
+.acctlist button.danger, .acctlist button.danger svg { color: var(--shu); }
 .drawer .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--sunk); border-right: 1px solid var(--line);
   box-shadow: 0 0 28px rgba(0, 0, 0, .22); clip-path: inset(0 -40px 0 0); /* a shadow on the right side only */
   padding: max(18px, env(safe-area-inset-top, 0px)) 12px 18px max(12px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
@@ -140,6 +141,21 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .tiph .qtipbody { font-weight: 400; text-transform: none; letter-spacing: normal; }
 .bornpick { display: inline-flex; gap: 8px; }
 .bornrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* Extra tools (study-tools/): each tool is a card; printing shows only the sheet being printed. */
+.tool h2 { margin: 0; }
+.tool .sheet { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.tool .sheet svg { display: block; width: 100%; height: auto; }
+.tool .edge { fill: none; stroke: #c9ced8; stroke-dasharray: 3 3; stroke-width: .6; }
+#printSheet { display: none; }
+@media print {
+  :root:has(#tools:not([hidden])) body > .wrap > :not(#tools), #tools > :not(#printSheet), .notice { display: none !important; }
+  :root:has(#tools:not([hidden])) body { background: #fff; }
+  #tools { padding: 0; max-width: none; margin: 0; }
+  #printSheet { display: block; }
+  #printSheet svg { display: block; width: 11in; height: 8.5in; }
+  #printSheet .edge { display: none; }
+}
+@page { size: letter landscape; margin: 0; }
 /* The privacy policy notice (src/account/policy-notice.js): a small card in the corner until it's closed. */
 .notice { position: fixed; z-index: 30; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100vw - 32px));
   display: flex; align-items: flex-start; gap: 8px; padding: 12px 10px 12px 14px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px;
@@ -228,13 +244,6 @@ body.ready #gate { display: none; }
 /* While writing, the page is just the practice: the title and the menu step aside. */
 body.writing > .wrap > header { display: contents; }
 body.writing > .wrap > header > :not(dialog) { display: none !important; }
-.hist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.hist li { display: flex; justify-content: space-between; gap: 12px; font-size: .9rem; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
-.hist li span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-/* On a phone the date and score go under the set names when they don't fit beside them. */
-@media (max-width: 480px) { .hist li { flex-wrap: wrap; row-gap: 2px; } }
-.histask { display: grid; gap: 10px; }
-.histask p { margin: 0; font-size: .92rem; }
 
 /* Quiz */
 .qbar { display: flex; align-items: center; gap: 14px; }
@@ -259,6 +268,11 @@ body.writing > .wrap > header > :not(dialog) { display: none !important; }
 /* iPad: keep the Apple Pencil from selecting the labels or calling up the selection loupe while writing. */
 #quiz, body.writing { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .pad { -webkit-tap-highlight-color: transparent; }
+/* No double-tap zoom while practicing: Safari holds a tap back to see if a second one follows, which swallowed quick
+   second taps on the tool buttons and the first stroke after one. The buttons show a press without the slow grey flash. */
+#quiz { touch-action: manipulation; }
+#quiz button { -webkit-tap-highlight-color: transparent; }
+.igroup button:active { background: var(--sunk); }
 .mainwrap { position: relative; }
 /* A small name in the corner of a writing box; strokes draw straight through it and it never reaches the grader. */
 .padtag { position: absolute; top: 5px; left: 9px; font-size: .68rem; letter-spacing: .08em; color: var(--muted); opacity: .75; pointer-events: none; user-select: none; -webkit-user-select: none; }
@@ -277,6 +291,9 @@ body.writing > .wrap > header > :not(dialog) { display: none !important; }
 .read q { font-family: var(--font-jp); color: var(--ink); quotes: "「" "」"; }
 .read.live { margin: 8px 2px 0; }
 .fbfoot { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+/* The retry card: Mark it as correct beside a longer Next word. */
+#feedback .fbfoot #nextBtn { flex: 1 1 14rem; }
+.fb:not(.self) .stamp { font-family: var(--font-ui); transform: none; }
 .err { color: var(--shu); font-size: .9rem; }
 
 /* Results */
@@ -371,11 +388,11 @@ td.c { text-align: center; padding-inline: 0; }
 .dirty { color: var(--shu); font-size: .82rem; }
 .sel { font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; max-width: 100%; }
 .uptorow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.krow { display: grid; gap: 8px; }
-.krow + .krow { border-top: 1px dashed var(--line); padding-top: 14px; }
-.krow input { width: 100%; font: inherit; font-family: var(--font-jp); font-size: 1.15rem; letter-spacing: .08em; color: var(--ink); background: var(--sunk); border: 1px solid transparent; border-radius: 6px; padding: 7px 9px; }
-.krow input:hover { border-color: var(--line); }
-.krow .ro { font-family: var(--font-jp); font-size: 1.15rem; letter-spacing: .08em; overflow-wrap: anywhere; }
+/* A kanji list (vocab/table.js) reads like a set: its kanji as text until Edit. */
+.kset .kin { width: 100%; font: inherit; font-family: var(--font-jp); font-size: 1.15rem; letter-spacing: .08em; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; }
+.kset .kin.chg { border-color: var(--ai); background: var(--ai-soft); }
+.kset .kro { margin: 0; font-family: var(--font-jp); font-size: 1.15rem; letter-spacing: .08em; overflow-wrap: anywhere; }
+.kset .tsethead:hover .t { color: inherit; }
 .need { font-size: .9rem; color: var(--muted); text-align: center; }
 .need b { font-family: var(--font-jp); color: var(--ink); }
 /* History */
@@ -430,7 +447,7 @@ td.c { text-align: center; padding-inline: 0; }
 .newset input { font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 9rem; }
 .setedit { background: var(--sunk); border-radius: 8px; padding: 10px 12px; }
 .setedit input { background: var(--surface); }
-.setedit [data-ef="unit"], .setedit [data-kunit] { width: 8rem; }
+.setedit [data-ef="unit"], .setedit [data-kf="unit"] { width: 8rem; }
 .setedit [data-ef="label"], .setedit [data-ef="tags"] { width: 14rem; max-width: 100%; }
 .editerr { color: var(--shu); font-size: .85rem; align-self: center; }
 /* Edit collections (vocab/collections.js): the top of the vocab table becomes a card of its own, edge to edge, ending in a line. */
@@ -438,12 +455,18 @@ td.c { text-align: center; padding-inline: 0; }
 .ttop.editing { margin: -18px -18px 0; padding: 18px; background: var(--sunk); border-bottom: 1px solid var(--line); border-radius: calc(var(--r) - 1px) calc(var(--r) - 1px) 0 0; }
 .ttop.editing .tsearch { background: var(--surface); opacity: .55; }
 .colbtns { display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+/* Edit collections' Save and Discard take the place of its link without making the heading taller. */
+.ttop > .head { min-height: 32px; align-items: center; }
+#colBtns .btn { padding: 4px 12px; font-size: .88rem; } /* the id outweighs the theme's paired-button padding */
 .viewed { display: grid; gap: 10px; }
 .viewed .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .viewed .chip, .colrow .chip { padding: 4px 12px; font-size: .9rem; }
 .viewed .chip:not([aria-pressed="true"]) { background: var(--surface); }
 .chip.add { border-style: dashed; color: var(--muted); background: none; }
-.mainptr { display: inline-flex; align-items: center; gap: 2px; color: var(--muted); margin-right: 8px; }
+.vchips { display: grid; gap: 4px; }
+.mainptr { display: flex; align-items: center; gap: 2px; color: var(--muted); }
+.viewed .chip.dropbefore { box-shadow: -3px 0 0 var(--ai); }
+.viewed .chip.dropafter { box-shadow: 3px 0 0 var(--ai); }
 .mainptr .qtip svg { width: 17px; height: 17px; }
 .viewbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .viewbar label { display: flex; align-items: center; gap: 8px; color: var(--muted); }
@@ -484,6 +507,8 @@ body.dragging { cursor: grabbing; -webkit-user-select: none; user-select: none; 
 }
 @media (prefers-reduced-motion: reduce) { .chip.unit { transition: none; } }
 .empty { text-align: center; padding: 28px 12px; color: var(--muted); display: grid; gap: 6px; }
+.stats .big { font-size: clamp(2.2rem, 1rem + 2.4vw, 3.8rem); } /* the Stats card grows with the window */
+.stats .small { font-size: clamp(.82rem, .6rem + .4vw, 1rem); }
 @media (max-width: 480px) { .stats .big { font-size: 1.7rem; } }
 @media (prefers-reduced-motion: reduce) { .meter i { transition: none; } }
 /* A pop-up asking first (page/ask.js), and on the public site the one asking to share handwriting. */
@@ -501,6 +526,20 @@ body.dragging { cursor: grabbing; -webkit-user-select: none; user-select: none; 
 /*#if public*/
 body { margin: 0; }
 #welcome { border: none; border-radius: 14px; padding: 26px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--muted); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
+/* The card of words (vocab/word-card.js): as wide as its words, up to the window. */
+#wordCard { border: none; border-radius: 14px; padding: 0; width: fit-content; min-width: min(18rem, calc(100vw - 32px)); max-width: min(46rem, calc(100vw - 32px)); max-height: calc(100dvh - 48px); background: var(--surface); color: var(--ink); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
+#wordCard::backdrop { background: rgba(17, 20, 26, .5); }
+.wcardbox { display: flex; flex-direction: column; max-height: calc(100dvh - 48px); }
+.wcardhead { position: relative; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 18px 52px 10px 22px; }
+.wcardhead h2 { font-size: 1.1rem; }
+.wcardbody { overflow: auto; padding: 0 22px 20px; }
+.wcard { border-collapse: collapse; }
+.wcard th { text-align: left; font-size: .72rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 8px 18px 8px 0; border-bottom: 1px solid var(--line); }
+.wcard td { padding: 9px 18px 9px 0; border-bottom: 1px dashed var(--line); vertical-align: top; max-width: 16rem; overflow-wrap: anywhere; }
+.wcard td.jp { font-family: var(--font-jp); }
+.wcard .wset th { padding-top: 16px; text-transform: none; letter-spacing: 0; font-size: .85rem; color: var(--ink); border-bottom: 1px solid var(--line); }
+.wcard tbody:first-of-type .wset th { padding-top: 8px; }
+.holds :is(button, span) { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 #welcome::backdrop { background: rgba(17, 20, 26, .5); }
 @media (max-width: 480px) { #welcome { padding-top: 44px; } } /* on a phone the intro's first line would run under the ✕ */
 .welcome { display: grid; gap: 14px; text-align: center; }

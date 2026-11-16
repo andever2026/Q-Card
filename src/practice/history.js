@@ -8,7 +8,7 @@
   S.local = false;
   const LOCAL_MAX = 300; // sessions kept in the browser; the oldest go first
   // History changed, or the choice to keep it: every place that shows it.
-  function histChanged() { renderRecent(); renderHistSet(); renderHistPort(); if (!$("#history").hidden) renderHistory(); }
+  function histChanged() { renderHistSet(); renderHistPort(); if (!$("#history").hidden) renderHistory(); }
   const inBrowser = () => S.local || uid === "local";
   const histChoice = (v) => (typeof v === "boolean" ? v : inBrowser() ? true : null);
   function loadLocal() {
@@ -62,38 +62,12 @@
   const histBlockedText = () => `${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so practice history is off." : "Your access to this page doesn't allow saving practice history."} You can still practice as much as you like.`;
   const histWhereText = () => inBrowser()
     ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it in History at any time."
-    : "Only you and the site maintainers can see this data, and you can delete it from the server at any time.";
-  function renderRecent() {
-    const h = S.history, on = S.histOn, ask = $("#histAsk");
-    $("#histPanel").hidden = !S.histReady;
-    $("#histAll").hidden = !h.length;
-    $("#histAll").textContent = `See all ${h.length} →`;
-    $("#histOff").hidden = on !== true;
-    $("#histTitle").textContent = on === true && h.length ? "Your recent practice" : "Practice history";
-    const earlier = h.length ? `<p class="muted small">${h.length} earlier practice session${h.length === 1 ? " is" : "s are"} still saved. Open “See all” to look at or delete ${h.length === 1 ? "it" : "them"}.</p>` : "";
-    ask.hidden = on === true && h.length > 0;
-    ask.innerHTML = S.histBlocked
-      ? `<p class="muted">${histBlockedText()}</p>`
-      : on === null
-      ? `<p>Turn on data collection? Each finished practice session would be saved so you can see fun stats about your practice, like graphs, streaks and the words that need more work. ${histWhereText()}</p>${earlier}
-         <div class="tactions"><button class="btn primary" data-hist="on">Turn on data collection</button><button class="btn" data-hist="off">No thanks</button></div>`
-      : on === false
-      ? `<p class="muted">Data collection is off, so finished sessions aren't saved.</p>${earlier}<div class="tactions"><button class="btn" data-hist="on">Turn on data collection</button></div>`
-      : `<p class="muted">${inBrowser() ? "Practice history is on and saved only in this browser." : "Data collection is on."} Finish a practice session and it shows up here.</p>`;
-    ask.querySelectorAll("[data-hist]").forEach((b) => (b.onclick = async () => { b.disabled = true; if (await setHistory(b.dataset.hist === "on")) renderRecent(); else b.disabled = false; }));
-    $("#histList").hidden = on !== true || !h.length;
-    $("#histList").innerHTML = on !== true ? "" : h.slice(0, 5).map((t) => {
-      const { n, first } = firstTry(t);
-      return `<li><span>${esc((t.sets || []).join(", "))}</span><span>${esc(fmtWhen(t.finishedAt))} · ${first}/${n} first try</span></li>`;
-    }).join("");
-  }
-  $("#histAll").onclick = () => openHistory();
-  $("#histOff").onclick = async () => { if (await setHistory(false)) histChanged(); };
+    : "";
   const openHistory = () => { S.hConfirm = null; S.hPage = S.lovePage = 0; show("history"); renderHistory(); };
-  // Settings → Practice history: the same choice as on the practice page, where it can be found again later.
+  // Settings → Data → Progress tracking: the same choice as on the Progress page, where it can be found again later.
   function renderHistSet() {
     const on = S.histOn === true, n = S.history.length;
-    $("#histSet").hidden = !S.histReady; syncSetTabs();
+    document.querySelectorAll(".histsec").forEach((x) => (x.hidden = !S.histReady));
     $("#histSetInfo").textContent = S.histBlocked ? histBlockedText()
       : on ? "On. Each finished practice session is saved."
       : "Off, so finished practice sessions aren't saved. Turn it on to see stats about your practice, like graphs, streaks and the words that need more work.";
@@ -110,9 +84,11 @@
     $("#hEmpty").hidden = !!h.length; $("#hBody").hidden = !h.length; $("#hStats").hidden = !h.length;
     if (!h.length) {
       $("#hEmpty").innerHTML = S.histOn === true ? `<b>No finished practice sessions yet.</b><span>Finish a practice session and it shows up here.</span>`
-        : S.histBlocked ? `<b>Practice history isn't available.</b><span>${S.local ? "This browser isn't letting the page save it." : "Your access to this page doesn't allow saving it."}</span>`
-        : `<b>Data collection is off.</b><span>Finished sessions aren't saved.</span><span><button class="btn" id="hTurnOn">Turn on data collection</button></span>`;
-      const b = $("#hTurnOn"); if (b) b.onclick = async () => { b.disabled = true; if (await setHistory(true)) { renderRecent(); renderHistory(); } else b.disabled = false; };
+        : S.histBlocked ? `<b>Progress tracking isn't available.</b><span>${S.local ? "This browser isn't letting the page save it." : "Your access to this page doesn't allow saving it."}</span>`
+        : S.histOn === null ? `<b>Turn on progress tracking?</b><span>Each finished practice session would be saved so you can see fun stats about your practice, like graphs, streaks and the words that need more work.</span>
+          <span class="tactions" style="justify-content:center"><button class="btn primary" data-hist="on">Turn on progress tracking</button><button class="btn" data-hist="off">No thanks</button></span>`
+        : `<b>Progress tracking is off.</b><span>Finished sessions aren't saved.</span><span><button class="btn" data-hist="on">Turn on progress tracking</button></span>`;
+      $("#hEmpty").querySelectorAll("[data-hist]").forEach((b) => (b.onclick = async () => { b.disabled = true; if (await setHistory(b.dataset.hist === "on")) histChanged(); else b.disabled = false; }));
       return;
     }
     const days = new Set(h.map((t) => dayKey(new Date(t.finishedAt))));
@@ -222,7 +198,7 @@
     }).join("");
   }
   // Which language comes first on each hard word, so the list can be gone down as a self-test. Set on the list or
-  // in Settings → Practice history.
+  // in Settings → Data.
   S.loveTop = store.get("loveTop", "jp") === "en" ? "en" : "jp";
   function showLoveTop() { document.querySelectorAll("#loveTopSeg [data-top], #histSetTop [data-top]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.top === S.loveTop)); }
   for (const id of ["#loveTopSeg", "#histSetTop"]) $(id).onclick = (e) => {
