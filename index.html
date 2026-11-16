@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-bumMbYNB4FQUi8XNVHV5bTWKVskAJRokTToz6XTKMOk=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-g5Lnl9c7PTgw4lCMkjIUGVpCCYPgSkqyjcy5FoZOl6c=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -984,6 +984,10 @@ colours.apply(...colours.saved()); // before anything is drawn
           <section><h3>The sharing question</h3>
             <p class="muted small">Only developers see this tab. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
             <div class="tactions"><button class="btn" type="button" id="devAsk1">First time</button><button class="btn" type="button" id="devAsk2">Later times</button></div>
+          </section>
+          <section><h3>The tour</h3>
+            <p class="muted small">The tour from the welcome pop-up, started here as your own account. It picks a set, starts a practice and leaves it midway, so Resume last practice is replaced.</p>
+            <div class="tactions"><button class="btn" type="button" id="devTour">Start the tour</button></div>
           </section>
           <section><h3>The privacy policy notice</h3>
             <p class="muted small" id="devPolicyInfo"></p>
@@ -4300,10 +4304,12 @@ colours.apply(...colours.saved()); // before anything is drawn
   // visitor to do it, and Next does it for them (`act`); a step whose part isn't on the page is skipped (after `grace` ms,
   // for a part that may still be loading).
   const vis = (el) => !!el && el.getClientRects().length > 0;
-  const firstVis = (...sels) => sels.map((s) => $(s)).find(vis) || null;
+  // A part slid off the side (the closed menu on a smaller screen) doesn't count: the next choice is ringed instead.
+  const onScreen = (el) => { if (!vis(el)) return false; const r = el.getBoundingClientRect(); return r.right > 0 && r.left < innerWidth; };
+  const firstVis = (...sels) => sels.map((s) => $(s)).find(onScreen) || null;
   const TOUR = [
     { title: "Welcome to the tour", next: "Start the tour",
-      text: "In about 5 minutes you'll practice a word with the sample sets and see where everything is. You're using the page as a guest for now. Leave any time with the ✕." },
+      get text() { return `In about 5 minutes you'll practice a word${account ? "" : " with the sample sets"} and see where everything is.${account ? "" : " You're using the page as a guest for now."} Leave any time with the ✕.`; } },
     { view: "setup", at: () => $("#setPicker [data-set]:not(:disabled)"), title: "Pick a set", grace: 2000,
       text: "These are your vocab sets, grouped Collection › Unit › Set. The sample sets are here to try. Tap a set to pick it (you can pick more than one).",
       done: () => S.selected.size > 0, act: () => $("#setPicker [data-set]:not(:disabled)")?.click() },
@@ -4313,7 +4319,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       text: "English → 日本語 shows the English and you write the Japanese. 日本語 → English is the other way round, and Both mixes them. We'll use English → 日本語.",
       leave: () => { if (S.dir !== "ej") $("#dir-ej").click(); } },
     { view: "setup", at: () => $("#modeSeg"), title: "Modes",
-      text: "Modes change what you're asked: Kana only, Force kanji (the kanji you've learned), Katakana only, or Verb forms (five forms of each verb). Default takes any correct mix of kana and kanji.",
+      text: "Modes change what you're asked: Force kanji (the kanji you've learned), Kana only, Katakana only, or Verb forms (five forms of each verb). Default takes any correct mix of kana and kanji.",
       leave: () => { if (S.mode !== "default") $("#mode-default").click(); } },
     { view: "setup", at: () => firstVis(".uptorow"), title: "Kanji learned up to",
       text: "Tell the page how far you've got with kanji. It goes by your kanji lists to decide what Force kanji asks for and how 日本語 → English questions are shown." },
@@ -4339,22 +4345,23 @@ colours.apply(...colours.saved()); // before anything is drawn
       done: () => vis($("#setup")), act: () => $("#quitBtn").click() },
     { view: "setup", at: () => firstVis("#resumeBtn"), title: "Pick up where you left off",
       text: "Because you left midway, Resume last practice carries on where you stopped, even with what you'd written. Start practice begins a new one." },
-    { view: "setup", at: () => firstVis('#sideNav [data-go="table"]', "#menuBtn"), title: "Vocabulary", text: "Vocabulary in the menu shows the words in every set, and lets you change them.",
+    { view: "setup", at: () => firstVis('#sideNav [data-go="table"]', "#menuBtn"), title: "Vocabulary",
+      get text() { return `${onScreen($('#sideNav [data-go="table"]')) ? "Vocabulary in the menu" : "☰ opens the menu. Vocabulary there"} shows the words in every set, and lets you change them.`; },
       done: () => vis($("#table")), act: () => go("table") },
     { view: "table", at: () => firstVis("#setTables"), title: "Your sets",
       text: "Open a set to see its words. You can edit them, and the set's details and tags." },
     { view: "table", at: () => firstVis("#newSetForm"), title: "Add your own sets",
       text: "Give a new set its collection (a textbook or course), its unit (like Ch. 3 or Week 1) and a name, then type in the words. You can also import a file from Settings." },
-    { view: "table", at: () => firstVis("#kanjiLists")?.closest(".panel"), title: "Kanji lists",
+    { view: "table", at: () => firstVis("#kanjiLists")?.closest(".panel"), title: "Kanji by unit",
       text: "One list per unit with the kanji it teaches. Kanji learned up to counts these." },
     // Beside the sidebar of a big screen there's no ← Back: Practice in the sidebar goes back.
     { view: "table", at: () => firstVis("#backBtn", '#sideNav [data-go="setup"]'), title: "Back to practice",
-      get text() { return vis($("#backBtn")) ? "Tap ← Back to practice." : "Tap Practice in the menu on the left to go back. It takes you to Progress and Extra tools too."; },
+      get text() { return vis($("#backBtn")) ? "Tap ← Back to practice." : "Tap Practice in the menu on the left to go back. Progress and Extra tools are in the menu too."; },
       done: () => vis($("#setup")), act: () => $("#backBtn").click() },
     { view: "setup", at: () => [$("#acctBtn"), $("#settingsBtn")], title: "Settings and your account",
-      get text() { return `${isWide() ? "" : "☰ opens the menu: Vocabulary, Progress and Extra tools. "}Guest is where you sign in. Beside it, the gear opens Settings: colours, light or dark, your account, export / import, and deleting your data.`; } },
+      get text() { return `${isWide() ? "" : "☰ opens the menu: Vocabulary, Progress and Extra tools. "}${account ? "Your name opens your account menu." : "Guest is where you sign in."} Beside it, the gear opens Settings: colours, light or dark, your account, export / import, and deleting your data.`; } },
     { title: "That's the tour!", end: true,
-      text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and progress on all your devices." },
+      get text() { return account ? "Your sets and progress are saved to your account, on all your devices." : "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and progress on all your devices."; } },
   ];
   const tour = { i: -1, on: false, checked: false, doneAtStart: false, since: 0, frame: 0, card: null, spot: null };
   const tourEls = (st) => { const a = st?.at?.(); return (Array.isArray(a) ? a : [a]).filter(vis); };
@@ -4400,8 +4407,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   function renderTourCard() {
     const st = TOUR[tour.i], n = TOUR.length;
     const back = backIndex() >= 0 ? `<button class="ghost" type="button" data-tour="back">Back</button>` : "";
-    const btns = st.end
-      ? `<button class="btn" type="button" data-tour="close">Keep going as a guest</button><button class="btn primary" type="button" data-tour="signin">Sign in with Google</button>`
+    const btns = st.end && account ? `<button class="btn primary" type="button" data-tour="close">Done</button>`
+      : st.end ? `<button class="btn" type="button" data-tour="close">Keep going as a guest</button><button class="btn primary" type="button" data-tour="signin">Sign in with Google</button>`
       : `${st.skip ? `<button class="link" type="button" data-tour="skip">Skip this</button>` : ""}${back}<button class="btn primary" type="button" data-tour="next">${st.next || "Next"}</button>`;
     tour.card.innerHTML = `<div class="tourhead"><span class="muted small">${tour.i + 1} of ${n}</span>
         <button class="dlgx" type="button" data-tour="close" aria-label="End the tour" title="End the tour"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18"/></svg></button></div>
@@ -4456,6 +4463,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   document.addEventListener("keydown", (e) => { if (tour.on && e.key === "Escape" && !document.querySelector("dialog[open]")) endTour(); });
   $("#tourBtn").onclick = () => { $("#guestBtn").click(); startTour(); };
+  // Admin (developers): the same tour from Settings, as whoever is signed in. Practice first, where it starts.
+  $("#devTour").onclick = () => { go("setup"); startTour(); };
   // ---------- public site: sharing handwriting to train the checker ----------
   // For dev accounts only for now (the owner, 2026-10-22: no "give us your data" while the site is a demo with few users; the
   // tool comes first). Everyone else gets no question and no Settings section, and an earlier yes saves nothing. To offer

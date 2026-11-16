@@ -769,13 +769,17 @@ for (const width of [1280, 900, 375]) {
   for (let i = 0; i < 40 && await vis(tp, ".tourcard"); i++) {
     const title = await text(tp, ".tourcard .tourtitle");
     if (titles.at(-1) !== title) titles.push(title);
-    if (["Pick a set", "Your turn", "The result", "Kanji lists"].includes(title) || (tag !== "wide" && ["The answer box", "Back to practice", "Settings"].includes(title)))
+    if (["Pick a set", "Your turn", "The result", "Kanji by unit"].includes(title) || (tag !== "wide" && ["The answer box", "Back to practice", "Settings"].includes(title)))
       await tp.screenshot({ path: join(out, `13-tour-${tag}-${title.toLowerCase().replace(/[^a-z]+/g, "-")}.png`) });
     if (title === "That's the tour!") break;
     if (title === "Your turn") { await scribble(tp); await tp.waitForTimeout(100); }
+    if (title === "Vocabulary" && titles.filter((t) => t === "Vocabulary").length === 1) {
+      const ring = await tp.evaluate(() => { const r = document.querySelector(".tourspot").getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.width > 0; });
+      ok(ring && (tag === "sidebar" ? /in the menu shows/ : /☰ opens the menu/).test(await text(tp, ".tourcard")), `tour (${tag}): the Vocabulary step rings something on screen (the sidebar's Vocabulary, or ☰ when the menu is closed)`, await text(tp, ".tourcard"));
+    }
     await tp.click('.tourcard [data-tour="next"]'); await tp.waitForTimeout(500);
   }
-  const want = ["Welcome to the tour", "Pick a set", "Direction", "Modes", "Kanji learned up to", "Start practicing", "The question", "The answer box", "Furigana", "Writing tools", "Your turn", "The result", "Stop any time", "Pick up where you left off", "Vocabulary", "Your sets", "Add your own sets", "Kanji lists", "Back to practice", "Settings and your account", "That's the tour!"];
+  const want = ["Welcome to the tour", "Pick a set", "Direction", "Modes", "Kanji learned up to", "Start practicing", "The question", "The answer box", "Furigana", "Writing tools", "Your turn", "The result", "Stop any time", "Pick up where you left off", "Vocabulary", "Your sets", "Add your own sets", "Kanji by unit", "Back to practice", "Settings and your account", "That's the tour!"];
   ok(want.every((t) => titles.includes(t)), `tour (${tag}): goes from the welcome step through practice, the vocab table and Settings to the end`, titles.join(" › "));
   ok(await vis(tp, "#setup") && await vis(tp, "#resumeBtn"), `tour (${tag}): ends back on the practice page, with the practice left midway to resume`);
   await tp.click('.tourcard [data-tour="close"]'); await tp.waitForTimeout(200);
@@ -993,7 +997,11 @@ await settings(op, "admin"); await op.click("#devBornReset"); await op.waitForTi
 const resetSaid = await text(op, "#devBornMsg");
 await settings(op, "account"); await op.waitForTimeout(200);
 ok(waiting && /wait is over/.test(resetSaid) && (await fsData(op))["users/t1/data/profile"]?.bornAt === "" && await vis(op, "#bornIn") && await vis(op, "#bornSave"), "admin: Reset the 3 month wait lets the birth month and year be given again", resetSaid);
-await op.click("#settingsClose");
+// Admin: the tour, started as the signed-in developer
+await settings(op, "admin"); await op.click("#devTour"); await op.waitForTimeout(400);
+ok(await vis(op, "#setup") && await vis(op, ".tourcard") && /Welcome to the tour/.test(await text(op, ".tourcard")) && !/guest/.test(await text(op, ".tourcard")), "admin: Start the tour goes to Practice and starts the tour, without calling the account a guest", await text(op, ".tourcard"));
+await op.click('.tourcard [data-tour="close"]'); await op.waitForTimeout(200);
+ok(!(await vis(op, ".tourcard")) && await op.evaluate(() => localStorage.getItem("qcard:mode")) !== "local", "admin: the tour closes and the developer stays signed in");
 ok(op.errors.length === 0, "dev tools: no page errors", op.errors.join(" | "));
 // guests are never asked: their handwriting stays in the browser
 const gp = await newPage(await browser.newContext(), { init: () => {
