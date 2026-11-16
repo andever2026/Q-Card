@@ -15,7 +15,9 @@
     if (v === "settings") openSettings();
     else if (v === "history") openHistory();
     else if (v === "table") { renderTable(); show("table"); }
+    //#if public
     else if (v === "tools") openTools();
+    //#endif
     else { show("setup"); renderSetup(); }
   }
   // Going somewhere from the menu. Unsaved changes in the vocab table are asked about first, wherever to (vocab/table.js).

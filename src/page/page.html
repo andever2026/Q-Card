@@ -190,7 +190,7 @@ colours.apply(...colours.saved()); // before anything is drawn
 <!--#if public-->
     <p class="read live" id="liveRead" hidden></p>
 <!--#endif-->
-    <div class="tools" id="tools">
+    <div class="tools" id="writeTools">
       <span class="itools"><span class="igroup"><button type="button" id="undoBtn" title="Undo" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></button><button type="button" id="clearBtn" title="Clear" aria-label="Clear"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button></span><span class="igroup" role="group" aria-label="Writing tool"><button type="button" data-tool="pen" aria-pressed="true" title="Pen" aria-label="Pen"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button><button type="button" data-tool="erase" aria-pressed="false" title="Stroke eraser: erases whole strokes" aria-label="Stroke eraser"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></button></span></span>
       <span class="spacer"></span>
       <span class="err" id="checkErr" hidden></span>
@@ -450,6 +450,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   //#include vocab/word-card.js
   //#include vocab/setup.js
 
+  //#include practice/shuffle.js
   //#include practice/practice.js
   //#include checking/answers.js
   //#include checking/grading.js

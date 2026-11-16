@@ -1,6 +1,10 @@
   // Finding an element, and making text safe to put into HTML: for the page and for the AI page's import.
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // A count with its word: "1 set", "3 sets".
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  // A day as people read it: "Nov 16, 2026" (in their own language's order).
+  const dayText = (d) => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   // A Save button while its work runs: "Saving…" and off, then "Save" again (and on, if run() said it failed). Gives run()'s result.
   async function whileSaving(b, run) { b.disabled = true; b.textContent = "Saving…"; const ok = await run(); b.textContent = "Save"; if (!ok) b.disabled = false; return ok; }
   // A one-line message under a control: sayIn(el)("…") shows it, sayIn(el)("") takes it away.

@@ -13,7 +13,6 @@
   const oldEnough = (b, now = new Date()) => { const [y, m] = b.split("-").map(Number); return (now.getFullYear() - y) * 12 + now.getMonth() + 1 - m > 16 * 12; };
   const tooYoung = (b) => !!b && !oldEnough(b);
   const monthName = (m) => new Date(2000, m - 1, 1).toLocaleDateString("en", { month: "long" });
-  const dayText = (d) => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   // While the wait runs after deleting it, the text says when it was deleted (the line under it, when it can be given again).
   const bornText = (b) => (b ? `${monthName(+b.slice(5))} ${b.slice(0, 4)}` : bornCleared && bornWait() ? `Cleared on ${dayText(bornCleared)}` : "Not given");
   // The day it can be given or changed again, or null when it can be now.
@@ -95,8 +94,7 @@
     if (await ask("Confirm your birthday", `<p>Confirming your birthday is <b>${esc(bornText(b))}</b>.</p><p>This information can only be changed once every ${BORN_WAIT} months. It can be deleted at any time.</p>`, "Confirm")) keepBorn(b);
   };
   $("#bornClear").onclick = async () => {
-    const until = new Date(bornAt || Date.now()); until.setMonth(until.getMonth() + BORN_WAIT);
-    const again = until > new Date() ? `any time after ${dayText(until)}` : "at any time";
+    const wait = bornWait(), again = wait ? `any time after ${dayText(wait)}` : "at any time";
     if (await ask("Delete your birthday?", `<p>This information will be cleared from our database. You can choose to give your birthday again ${again}.</p>`, "Delete", true)) keepBorn("");
   };
   $("#settings").addEventListener("leave", () => { bornMsg(""); renderBorn(); });

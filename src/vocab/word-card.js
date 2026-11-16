@@ -8,7 +8,7 @@
     const cell = (t) => `<td${KANJI.test(t) || /[ぁ-ヿ]/.test(t) ? ' class="jp"' : ""}>${esc(t)}</td>`;
     const row = (w) => `<tr>${cell(w.en)}${cell(w.kana || "")}${kanji ? cell(w.kanji || "") : ""}</tr>`;
     $("#wordCardTitle").textContent = title;
-    $("#wordCardN").textContent = `${words.length} word${words.length === 1 ? "" : "s"}`;
+    $("#wordCardN").textContent = plural(words.length, "word");
     $("#wordCardBody").innerHTML = !words.length ? `<p class="muted">No words yet.</p>`
       : `<table class="wcard"><thead><tr><th>English</th><th>Kana</th>${kanji ? "<th>Kanji</th>" : ""}</tr></thead>${parts.map((p) =>
         `<tbody>${parts.length > 1 ? `<tr class="wset"><th colspan="${kanji ? 3 : 2}">${esc(p.name)}</th></tr>` : ""}${p.words.map(row).join("")}</tbody>`).join("")}</table>`;

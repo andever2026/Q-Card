@@ -678,7 +678,12 @@ ok((await up.$eval("#uptoSel", (s) => s.value)) === "Nakama\u0001Ch. 2" && /Naka
 await up.click('#groupSeg [data-view="Courses"]'); await up.waitForTimeout(200);
 rows = await rowsOf("#pickChs");
 ok(rows === "J1: All, Ch. 1, Ch. 2*", "units: an older course (chapters 1 to 2) covers units Ch. 1 and Ch. 2, and units in no course are hidden in that view", rows);
-await up.click('#groupSeg [data-view=""]');
+ok((await chipNames()) === "A · Food, Extras", "views: a unit the view hides takes its sets off the page too", await chipNames());
+// Showing a row there doesn't touch the units that view hides: back on the main view they're as they were.
+await up.click('#pickChs .pchrow:nth-child(1) [data-k="all"]'); await up.click('#groupSeg [data-view=""]'); await up.waitForTimeout(150);
+rows = await rowsOf("#pickChs");
+ok(rows === "Mine: All*, Week 1, Week 2, Week 10 | Nakama: All, Ch. 1*, Ch. 2*, Ch. 10", "views: showing a row there leaves the units that view hides as they were", rows);
+await up.click('#pickChs .pchrow:nth-child(2) [data-k="0"]');
 // The sets card: its heading with edit at the right end, and the line under the rows, there even with nothing picked.
 const sumRow = () => up.evaluate(() => [document.querySelector("#pickSum").textContent, document.querySelector("#pickClear").textContent, document.querySelector("#pickClear").disabled].join("|"));
 ok((await text(up, "#setup .panel .head h3")) === "Vocabulary sets" && !(await up.$("#toTable"))
@@ -1029,7 +1034,10 @@ await qp.waitForTimeout(1400);
 ok(await vis(qp, "#quiz") && (await text(qp, "#qText")) === q2 && /^1 of 3 done/.test(await text(qp, "#progLbl")), "Quit and Resume right after a right answer: the word resumed on stays, none is skipped", `${q2} → ${await text(qp, "#qText")}`);
 // Check with nothing written: the retry card with the answer, and nothing to mark as correct.
 const emptyOn = !(await qp.$eval("#checkBtn", (b) => b.disabled));
+// (Extra tools, #tools, once shared its id with the writing tools: it showed over every question, and the tools stayed after Check.)
+const toolsOn = await vis(qp, "#writeTools") && !(await vis(qp, "#tools"));
 await qp.click("#checkBtn"); await qp.waitForTimeout(200);
+ok(toolsOn && !(await vis(qp, "#writeTools")) && !(await vis(qp, "#tools")) && await vis(qp, "#scratchPad"), "a practice: the writing tools show with a question and step aside once it's checked; Extra tools isn't on the page");
 ok(emptyOn && await vis(qp, "#feedback") && !(await vis(qp, "#overrideBtn")) && /Nothing was written/.test(await text(qp, "#fbReason")) && !!(await text(qp, "#fbAnswer")),
   "Check with nothing written: it can be pressed, and shows the retry card with the answer", await text(qp, "#fbReason"));
 await qp.click("#nextBtn"); await qp.waitForTimeout(200);
@@ -1782,6 +1790,19 @@ if (entry.length > 1) {
   await op.click('#tGroupSeg [data-view="Courses"]'); await op.waitForTimeout(150);
   ok(/Courses: will change/.test(preview) && (await stored("meta/courses", op))?.courses?.[0]?.name === "First term" && (await tRows(op)) === "First term: Ch. 1",
     "import: in an account without views, an older file's courses read as the view Courses", await tRows(op));
+  // A set added to a unit this view hides (as other views do with a new unit) shows: the table goes to the main view.
+  await op.fill("#nsCol", "Old"); await op.fill("#nsUnit", "Ch. 2"); await op.fill("#nsName", "More");
+  await op.click('#newSetForm [type="submit"]'); await op.waitForTimeout(400);
+  ok((await switchOf(op)) === "Books*,Courses" && await op.evaluate(() => /More/.test(document.activeElement?.closest(".tset.editing")?.querySelector(".tsethead").textContent || "")),
+    "views: a set added to a unit the view hides opens on the main view, ready to type in", await switchOf(op));
+  await op.click(".tset.editing [data-discard]");
+  // A view may be called anything, "main" too: the main view can still be picked.
+  await op.click("#editColBtn"); await op.click('#viewEd [data-view="0"]'); await op.fill("#viewEd [data-vname]", "main");
+  await op.click("#colSave"); await op.waitForTimeout(500);
+  await op.click('#tGroupSeg [data-view="main"]'); await op.waitForTimeout(150);
+  const onMain = await switchOf(op);
+  await op.click('#tGroupSeg [data-view=""]'); await op.waitForTimeout(150);
+  ok(onMain === "Books,main*" && (await switchOf(op)) === "Books*,main", "views: a view called main can be picked, and so can the main view after it", `${onMain} → ${await switchOf(op)}`);
   ok(ep.errors.length === 0 && op.errors.length === 0, "collections import: no page errors", [...ep.errors, ...op.errors].join(" | "));
   await ectx.close(); await octx.close();
   // The switch between views is a dropdown once its buttons would take more than half the header.

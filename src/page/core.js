@@ -15,7 +15,6 @@
     if (!Array.isArray(k) || !k.length || k.length >= 3) return [];
     return k.map((x) => ({ main: "main sets", extras: "extras", supp: "supp." })[x]).filter(Boolean);
   }
-  const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
   let db = null, user = null, sample = null, uid = null, canWrite = false, owner = false;
   // Export / import works from the documents exactly as stored, not the tidied copies the page renders from.
@@ -29,7 +28,7 @@
     // (Older pages also stored the books shown, in pickBooks or pickBook, and bare chapter numbers, read as chapters of the first book.)
     pick: { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", null) ?? [store.get("pickCh", "all")].filter((c) => c !== "all")) },
     tpick: { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) },
-    groupBy: store.get("groupBy", "main"), // the view the unit rows follow, by name ("main" for the main view; "book" and "course" from before views)
+    groupBy: store.get("groupBy", "main"), // the view the unit rows follow: "main", or "view:<name>" (pickView and curView in vocab/views.js)
     courses: [],                           // meta/courses, from before views: [{name, parts: [{collection, from, to}]}], read as the view "Courses"
     oldBooks: store.get("pickBooks", null) ?? (store.get("pickBook", null) != null ? [store.get("pickBook", null)] : null),
     tableBook: store.get("tableBook", null), // book shown in the vocab table

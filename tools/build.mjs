@@ -16,7 +16,7 @@
 // `node tools/build.mjs --beta` builds the beta site instead (see .github/workflows/pages.yml); it's never committed.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
 
@@ -78,11 +78,16 @@ const noRegex = { name: "no-re2js", setup(b) {
   b.onResolve({ filter: /^re2js$/ }, () => ({ path: "re2js", namespace: "stub" }));
   b.onLoad({ filter: /.*/, namespace: "stub" }, () => ({ contents: 'export const RE2JS = { compile() { throw new Error("regex pipelines are not included"); } };' }));
 } };
+// The Extra tools are modules of their own (src/study-tools/), and may #include a piece of the page's code like the
+// page's scripts do, so what both need (practice/shuffle.js) is still written once.
+const includes = { name: "includes", setup(b) {
+  b.onLoad({ filter: /[\\/]src[\\/]study-tools[\\/][^\\/]+\.js$/ }, (a) => ({ contents: preprocess(expand(relative(root, a.path)), "public"), loader: "js" }));
+} };
 const LICENSES = "Firebase JS SDK (Apache-2.0), Q-Card code (AGPL-3.0)";
 async function bundle(imports, licenses = LICENSES) {
   const r = await esbuild.build({
     stdin: { contents: imports.map((f) => `import "./${f}";`).join("\n"), resolveDir: root, sourcefile: "entry.js" },
-    bundle: true, format: "iife", minify: true, target: "es2020", write: false, legalComments: "eof", plugins: [noRegex],
+    bundle: true, format: "iife", minify: true, target: "es2020", write: false, legalComments: "eof", plugins: [noRegex, includes],
     banner: { js: `/* Q-Card, built by tools/build.mjs from src/ (edit those, not this file). Includes ${licenses}. */` },
   });
   return r.outputFiles[0].text;
@@ -109,7 +114,15 @@ const dataScript = (name) => ({
 
 const made = (f) => `Made by tools/build.mjs from src/${f}; edit that file instead.`;
 const script = (f) => variant(`// ${made(f)}\n${preprocess(expand(`src/${f}`), "public")}`, `js/${f.split("/").at(-1)}`);
-const sidePage = (f, load) => variant(csp(preprocess(expand(`src/${f}`), "public"), load).replace("<head>\n", `<head>\n<!-- ${made(f)} -->\n`), f);
+const sidePage = (f, load) => variant(csp(uniqueIds(preprocess(expand(`src/${f}`), "public"), f), load).replace("<head>\n", `<head>\n<!-- ${made(f)} -->\n`), f);
+// An id names one element: a page's markup (outside its scripts) may use each only once. Two elements sharing one
+// (the writing tools and the Extra tools part were both "tools", 2026-11) leave the code holding the wrong one.
+function uniqueIds(html, name) {
+  const ids = [...html.replace(/<script[\s\S]*?<\/script>/g, "").matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+  const twice = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))];
+  if (twice.length) throw new Error(`${name}: more than one element has the id ${twice.join(", ")}`);
+  return html;
+}
 const src = expand("src/page/page.html");
 // The privacy policy notice (src/account/policy-notice.js) compares with the policy's own "Last updated" line.
 function policyDate(html) {
@@ -117,7 +130,8 @@ function policyDate(html) {
   if (!d || isNaN(d) || !html.includes('"%PRIVACY_LAST_UPDATED%"')) throw new Error("privacy notice: couldn't find the policy's Last updated date, or where it goes");
   return html.replace('"%PRIVACY_LAST_UPDATED%"', JSON.stringify(d.toISOString().slice(0, 10)));
 }
-const page = variant(policyDate(preprocess(src, "public")), "index.html");
+const page = variant(policyDate(uniqueIds(preprocess(src, "public"), "index.html")), "index.html");
+const claudePage = uniqueIds(preprocess(src, "claude"), "build/claude-ai.html");
 const files = {
   "index.html": csp(page, { firebase: true, images: "'self' data: blob:" }),
   "js/platform.js": variant(await bundle(["src/account/firebase.js", ...(existsSync(at("src/checking/checker.js")) ? ["src/checking/checker.js"] : [])]), "js/platform.js"),
@@ -143,6 +157,6 @@ if (check) {
 } else {
   for (const [p, t] of Object.entries(files)) { mkdirSync(dirname(at(p)), { recursive: true }); writeFileSync(at(p), t); }
   mkdirSync(at("build"), { recursive: true });
-  writeFileSync(at("build/claude-ai.html"), preprocess(src, "claude"));
+  writeFileSync(at("build/claude-ai.html"), claudePage);
   console.log(`Wrote ${Object.keys(files).join(", ")} and build/claude-ai.html`);
 }

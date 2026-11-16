@@ -44,7 +44,7 @@
     // A right answer goes straight on to the next word (the 花丸 that used to be drawn first was taken out, 2026-10-23).
     if (ok) { Q.done.add(key); saveResume(); nextItem(); return; }
     Q.wrong.push(Q.cur); saveResume();
-    $("#tools").hidden = true;
+    $("#writeTools").hidden = true;
     $("#fbReason").textContent = r?.reason || "";
     writeAnswer($("#fbAnswer"));
     const need = dir === "ej" && S.mode === "kanji" ? requiredKanji(w) : [], nb = $("#fbNeed");

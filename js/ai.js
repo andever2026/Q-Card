@@ -5,6 +5,10 @@
   // Finding an element, and making text safe to put into HTML: for the page and for the AI page's import.
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // A count with its word: "1 set", "3 sets".
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  // A day as people read it: "Nov 16, 2026" (in their own language's order).
+  const dayText = (d) => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   // A Save button while its work runs: "Saving…" and off, then "Save" again (and on, if run() said it failed). Gives run()'s result.
   async function whileSaving(b, run) { b.disabled = true; b.textContent = "Saving…"; const ok = await run(); b.textContent = "Save"; if (!ok) b.disabled = false; return ok; }
   // A one-line message under a control: sayIn(el)("…") shows it, sayIn(el)("") takes it away.
@@ -113,7 +117,7 @@
   // The top of an import preview (the file's name and when it was exported) and its line about entries it skips; the
   // history import (history-file.js) draws its preview with them too.
   const previewHead = (p) => `<div><b>${esc(p.name)}</b><span class="muted small">${p.exportedAt && !isNaN(new Date(p.exportedAt))
-    ? ` · exported ${esc(new Date(p.exportedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }))}` : ""}</span></div>`;
+    ? ` · exported ${esc(dayText(p.exportedAt))}` : ""}</span></div>`;
   const skippedLine = (n) => (n ? `<li>${n} ${n === 1 ? "entry isn't" : "entries aren't"} valid and will be skipped</li>` : "");
   function makeImporter({ button, input, box, say, stored, write, where, hint = "", changed = () => {}, done = () => {} }) {
     const me = { busy: false };
@@ -184,7 +188,7 @@
       let n = 0;
       try {
         for (const [path, doc] of jobs) { say(`Importing ${n + 1} of ${jobs.length}…`); await write(path, doc); n++; }
-        const pl = (k, w) => k && `${k} ${w}${k === 1 ? "" : "s"}`;
+        const pl = (k, w) => k && plural(k, w);
         say(`Imported: ${[pl(count(p.sets, "new"), "new set"), pl(count(p.sets, "changed"), "updated set"), pl(todo(p.kanji).length, "kanji list"),
           p.books?.changed && "collection order", p.courses?.changed && "courses", p.views?.changed && "views"].filter(Boolean).join(", ")}.`);
       } catch (e) {

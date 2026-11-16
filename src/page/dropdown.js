@@ -39,8 +39,9 @@
       // (Escape closes the list only, not a pop-up the dropdown is in.)
       else if (e.key === "Escape" || e.key === "Tab") { if (e.key === "Escape") e.preventDefault(); open(false); btn.focus({ preventScroll: true }); }
     };
-    // (A dropdown drawn over by its page lets go of the listener the next time anything is pressed.)
-    const away = (e) => { if (!box.isConnected) document.removeEventListener("pointerdown", away); else if (!list.hidden && !box.contains(e.target)) open(false); };
+    // (A dropdown drawn over, by its page or by another dropdown made in the same box, lets go of the listener the next
+    // time anything is pressed.)
+    const away = (e) => { if (!list.isConnected) document.removeEventListener("pointerdown", away); else if (!list.hidden && !box.contains(e.target)) open(false); };
     document.addEventListener("pointerdown", away);
     return { set };
   }

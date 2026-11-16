@@ -70,9 +70,9 @@
     $("#devSet").hidden = !isDev;
     $("#shareSet").hidden = !offered(); syncSetTabs();
     if (!offered()) return;
-    const s = shareState(), n = s.n || 0, when = s.at && !isNaN(new Date(s.at)) ? new Date(s.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
+    const s = shareState(), n = s.n || 0, when = s.at && !isNaN(new Date(s.at)) ? dayText(s.at) : "";
     $("#shareInfo").textContent = s.on
-      ? `On${when ? " since " + when : ""}. ${n} ${n === 1 ? "answer" : "answers"} shared: the strokes, the word and how it was marked, kept to build better handwriting recognition.`
+      ? `On${when ? " since " + when : ""}. ${plural(n, "answer")} shared: the strokes, the word and how it was marked, kept to build better handwriting recognition.`
       : "We hope to develop our own handwriting recognition tool someday. Change your mind at any time.";
     $("#shareToggle").textContent = s.on ? "Turn off" : "Turn on…";
     $("#shareDl").hidden = !n || shareDelAsk;

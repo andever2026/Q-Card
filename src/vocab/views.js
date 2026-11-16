@@ -19,12 +19,18 @@
     S.viewDoc = cleanViews(raw.views);
     renderSetup(); renderTable();
   }
-  // The view the unit rows follow (S.groupBy names it), or null for the main view. Choices from before views: "course"
-  // was the courses, "book" the main view.
+  // The view the unit rows follow (S.groupBy names it, see pickView), or null for the main view. Choices kept before
+  // pickView are a view's bare name; from before views, "course" was the courses and "book" the main view.
   function curView() {
     const vs = altViews(), g = S.groupBy;
-    return vs.find((v) => v.name === g) ?? (g === "course" ? vs[0] : null) ?? null;
+    if (g === "main") return null;
+    return vs.find((v) => "view:" + v.name === g) ?? vs.find((v) => v.name === g) ?? (g === "course" ? vs[0] : null) ?? null;
   }
+  // Picks the view the unit rows follow, on both pages: another view by its name, or "" for the main view. Another view
+  // is kept as "view:<name>", so one that happens to be called "main" isn't taken for the main view.
+  function pickView(name) { S.groupBy = name ? "view:" + name : "main"; store.set("groupBy", S.groupBy); }
+  // Whether the view picked leaves this unit out (the main view has every unit).
+  function viewHides(k) { const v = curView(); return !!v && !v.collections.some((c) => c.units.includes(k)); }
   // A view's rows among the keys given: each collection with the keys it has (once, in the first collection that has them).
   // The rest are hidden in this view. Collections with none of the keys are left out.
   function viewRows(v, keys) {
@@ -43,7 +49,7 @@
     box.hidden = !vs.length;
     if (box.hidden) return;
     const opts = vs.map((v) => [v.name, v.name]); opts.splice(S.viewDoc?.mainAt || 0, 0, ["", mainName()]);
-    const pick = (v) => { S.groupBy = v || "main"; store.set("groupBy", S.groupBy); renderSetup(); renderTable(); };
+    const pick = (v) => { pickView(v); renderSetup(); renderTable(); };
     box.className = "seg mini viewsw";
     box.innerHTML = opts.map(([v, t]) => `<button type="button" data-view="${esc(v)}" aria-pressed="${v === on}">${esc(t.replace("\n", " "))}</button>`).join("");
     box.querySelectorAll("[data-view]").forEach((b) => (b.onclick = () => pick(b.dataset.view)));

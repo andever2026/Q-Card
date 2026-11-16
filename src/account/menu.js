@@ -44,11 +44,13 @@
   function watchProfile() {
     profileRef().onSnapshot((snap) => { const p = snap.exists ? snap.data() : {}; nickname = tidy(p?.nickname, 40); born = cleanBorn(p?.born); bornAt = tidy(p?.bornAt, 30); bornCleared = tidy(p?.bornCleared, 30); renderAcctMenu(); renderNick(); renderBorn(); }, () => {});
   }
-  // The profile is saved whole: what changes, with the rest as it is.
+  // Only what changes is written (the first save makes the profile), so a save made before the profile has loaded,
+  // or from a tab opened earlier, can't blank the rest of it.
   async function saveProfile(change) {
-    const p = { nickname, born, bornAt, bornCleared, ...change };
-    await profileRef().set({ ...p, updatedAt: new Date().toISOString() });
-    ({ nickname, born, bornAt, bornCleared } = p);
+    const d = { ...change, updatedAt: new Date().toISOString() };
+    try { await profileRef().update(d); }
+    catch (e) { if (e?.code !== "not-found") throw e; await profileRef().set(d); }
+    ({ nickname, born, bornAt, bornCleared } = { nickname, born, bornAt, bornCleared, ...change });
   }
   function renderNick() {
     $("#nickRow").hidden = !account;

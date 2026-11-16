@@ -69,7 +69,6 @@
     };
     const vdel = vEd.querySelector("[data-vdel]");
     if (vdel) vdel.onclick = async () => {
-      const v = e.others[e.at];
       if (!(await ask("Delete this view?", `<p>You will lose the custom ordering for the units.</p>`, "Delete view", true))) return;
       if (e.at < e.mainPos) e.mainPos--;
       e.others.splice(e.at, 1); e.at = -1; redo(`#viewEd [data-view="-1"]`);
@@ -180,10 +179,9 @@
     const merges = [];
     for (const c of next) { const by = new Map(); for (const u of c.units) { const k = e.units[u].name.toLowerCase(); if (by.has(k)) merges.push([u, by.get(k), c.name]); else by.set(k, u); } }
     const said = [...new Set(merges.map(([, into, col]) => `${e.units[into].name} in ${col}`))];
-    const n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`;
     if (!(await ask(`Make “${v.name.replace("\n", " ")}” the main view?`, `<p>All new views will adopt the layout of this view at creation.</p>
       ${said.length ? `<p>Units with the same name in one collection become one unit, their sets together and their kanji lists combined: ${esc(said.join(", "))}.</p>` : ""}
-      ${rest.length ? `<p>${n(rest.length, "unit")} in no collection of ${esc(v.name)} ${rest.length === 1 ? "goes" : "go"} into a collection called Other.</p>` : ""}`, "Make it the main view"))) return;
+      ${rest.length ? `<p>${plural(rest.length, "unit")} in no collection of ${esc(v.name)} ${rest.length === 1 ? "goes" : "go"} into a collection called Other.</p>` : ""}`, "Make it the main view"))) return;
     e.others.splice(i, 1, { name: e.mainName, was: null, cols: e.main.map((c) => newCol(c.name, [...c.units])) });
     e.mainName = v.name.replace(/\s*\n\s*/g, " "); e.main = next;
     for (const [u, into] of merges) mergeUnit(u, into);
@@ -231,7 +229,7 @@
     if (moved.has(S.upto)) { S.upto = moved.get(S.upto); store.set("uptoPick", S.upto); }
     // The unit rows stay on the view they showed, under its new name; on the main view if it became that or went.
     const stay = showing == null ? -1 : e.others.findIndex((v) => v.was === showing);
-    S.groupBy = stay < 0 ? "main" : vNames[stay + 1]; store.set("groupBy", S.groupBy);
+    pickView(stay < 0 ? "" : vNames[stay + 1]);
     S.viewDoc = cleanViews(doc); S.colEdit = null;
     return true;
   }

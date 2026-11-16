@@ -37,8 +37,8 @@
     $("#settingsClose").textContent = phone.matches && setTab != null ? "← Settings" : "← Back";
   }
   function renderSettings() {
-    const n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`, words = S.sets.reduce((a, s) => a + readyCount(s.words || []), 0);
-    $("#setStats").textContent = [n(S.sets.length, "set"), n(words, "word"), n(S.kanjiLists.length, "kanji list"), ...(S.history?.length ? [n(S.history.length, "practice session") + " saved"] : [])].join(" · ");
+    const words = S.sets.reduce((a, s) => a + readyCount(s.words || []), 0);
+    $("#setStats").textContent = [plural(S.sets.length, "set"), plural(words, "word"), plural(S.kanjiLists.length, "kanji list"), ...(S.history?.length ? [plural(S.history.length, "practice session") + " saved"] : [])].join(" · ");
     renderPort(); renderHistSet();
     //#if public
     renderAccount(); renderShare();

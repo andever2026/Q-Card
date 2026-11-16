@@ -13,17 +13,13 @@ const W = 792, H = 612, MARGIN = 0.3 * 72, GAP = 0.12 * 72, PANELS = 3, COLS = 6
 const PW = (W - 2 * MARGIN - (PANELS - 1) * GAP) / PANELS, PH = (H - 2 * MARGIN - (PANELS - 1) * GAP) / PANELS;
 const CW = PW / COLS, CH = PH / Math.ceil(ROMAJI.length / COLS);
 
-function shuffled(xs) {
-  const a = xs.slice();
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-  return a;
-}
+//#include practice/shuffle.js
 // Every label on a new sheet, placed as in the PDF (from the bottom left).
 function newSheet() {
   const items = [];
   for (let p = 0; p < PANELS * PANELS; p++) {
     const x0 = MARGIN + (p % PANELS) * (PW + GAP), top = H - MARGIN - Math.floor(p / PANELS) * (PH + GAP);
-    shuffled(ROMAJI).forEach((text, i) => items.push({ x: x0 + (i % COLS) * CW + 2, y: top - Math.floor(i / COLS) * CH - 7, size: SIZE, text }));
+    shuffle(ROMAJI).forEach((text, i) => items.push({ x: x0 + (i % COLS) * CW + 2, y: top - Math.floor(i / COLS) * CH - 7, size: SIZE, text }));
   }
   return items;
 }

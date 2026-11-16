@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-ACeedPbmqr+1K1NCDKeky8q4NwuxQePIFibTHx23TwY=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-A+LdRCQDKyLo2HOypWU7pkQBH7NJQZx4eXvAbAtz4LA=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -816,7 +816,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       </div>
     </div>
     <p class="read live" id="liveRead" hidden></p>
-    <div class="tools" id="tools">
+    <div class="tools" id="writeTools">
       <span class="itools"><span class="igroup"><button type="button" id="undoBtn" title="Undo" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></button><button type="button" id="clearBtn" title="Clear" aria-label="Clear"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button></span><span class="igroup" role="group" aria-label="Writing tool"><button type="button" data-tool="pen" aria-pressed="true" title="Pen" aria-label="Pen"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button><button type="button" data-tool="erase" aria-pressed="false" title="Stroke eraser: erases whole strokes" aria-label="Stroke eraser"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></button></span></span>
       <span class="spacer"></span>
       <span class="err" id="checkErr" hidden></span>
@@ -1047,6 +1047,10 @@ colours.apply(...colours.saved()); // before anything is drawn
   // Finding an element, and making text safe to put into HTML: for the page and for the AI page's import.
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // A count with its word: "1 set", "3 sets".
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  // A day as people read it: "Nov 16, 2026" (in their own language's order).
+  const dayText = (d) => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   // A Save button while its work runs: "Saving…" and off, then "Save" again (and on, if run() said it failed). Gives run()'s result.
   async function whileSaving(b, run) { b.disabled = true; b.textContent = "Saving…"; const ok = await run(); b.textContent = "Save"; if (!ok) b.disabled = false; return ok; }
   // A one-line message under a control: sayIn(el)("…") shows it, sayIn(el)("") takes it away.
@@ -1098,8 +1102,9 @@ colours.apply(...colours.saved()); // before anything is drawn
       // (Escape closes the list only, not a pop-up the dropdown is in.)
       else if (e.key === "Escape" || e.key === "Tab") { if (e.key === "Escape") e.preventDefault(); open(false); btn.focus({ preventScroll: true }); }
     };
-    // (A dropdown drawn over by its page lets go of the listener the next time anything is pressed.)
-    const away = (e) => { if (!box.isConnected) document.removeEventListener("pointerdown", away); else if (!list.hidden && !box.contains(e.target)) open(false); };
+    // (A dropdown drawn over, by its page or by another dropdown made in the same box, lets go of the listener the next
+    // time anything is pressed.)
+    const away = (e) => { if (!list.isConnected) document.removeEventListener("pointerdown", away); else if (!list.hidden && !box.contains(e.target)) open(false); };
     document.addEventListener("pointerdown", away);
     return { set };
   }
@@ -1214,7 +1219,6 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (!Array.isArray(k) || !k.length || k.length >= 3) return [];
     return k.map((x) => ({ main: "main sets", extras: "extras", supp: "supp." })[x]).filter(Boolean);
   }
-  const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
   let db = null, user = null, sample = null, uid = null, canWrite = false, owner = false;
   // Export / import works from the documents exactly as stored, not the tidied copies the page renders from.
@@ -1228,7 +1232,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     // (Older pages also stored the books shown, in pickBooks or pickBook, and bare chapter numbers, read as chapters of the first book.)
     pick: { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", null) ?? [store.get("pickCh", "all")].filter((c) => c !== "all")) },
     tpick: { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) },
-    groupBy: store.get("groupBy", "main"), // the view the unit rows follow, by name ("main" for the main view; "book" and "course" from before views)
+    groupBy: store.get("groupBy", "main"), // the view the unit rows follow: "main", or "view:<name>" (pickView and curView in vocab/views.js)
     courses: [],                           // meta/courses, from before views: [{name, parts: [{collection, from, to}]}], read as the view "Courses"
     oldBooks: store.get("pickBooks", null) ?? (store.get("pickBook", null) != null ? [store.get("pickBook", null)] : null),
     tableBook: store.get("tableBook", null), // book shown in the vocab table
@@ -1300,8 +1304,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#settingsClose").textContent = phone.matches && setTab != null ? "← Settings" : "← Back";
   }
   function renderSettings() {
-    const n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`, words = S.sets.reduce((a, s) => a + readyCount(s.words || []), 0);
-    $("#setStats").textContent = [n(S.sets.length, "set"), n(words, "word"), n(S.kanjiLists.length, "kanji list"), ...(S.history?.length ? [n(S.history.length, "practice session") + " saved"] : [])].join(" · ");
+    const words = S.sets.reduce((a, s) => a + readyCount(s.words || []), 0);
+    $("#setStats").textContent = [plural(S.sets.length, "set"), plural(words, "word"), plural(S.kanjiLists.length, "kanji list"), ...(S.history?.length ? [plural(S.history.length, "practice session") + " saved"] : [])].join(" · ");
     renderPort(); renderHistSet();
     renderAccount(); renderShare();
     syncSetTabs();
@@ -1608,7 +1612,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const el = document.activeElement;
     if ($("#quiz").hidden || /^(INPUT|TEXTAREA|SELECT)$/.test(el?.tagName || "") || el?.isContentEditable) return;
     e.preventDefault();
-    if (!$("#tools").hidden) undoIn([furi, main]);
+    if (!$("#writeTools").hidden) undoIn([furi, main]);
     else if (!$("#feedback").hidden) undoIn([scratch]);
   });
   $("#clearBtn").onclick = () => { furi.clear(); main.clear(); };
@@ -1884,7 +1888,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const cell = (t) => `<td${KANJI.test(t) || /[ぁ-ヿ]/.test(t) ? ' class="jp"' : ""}>${esc(t)}</td>`;
     const row = (w) => `<tr>${cell(w.en)}${cell(w.kana || "")}${kanji ? cell(w.kanji || "") : ""}</tr>`;
     $("#wordCardTitle").textContent = title;
-    $("#wordCardN").textContent = `${words.length} word${words.length === 1 ? "" : "s"}`;
+    $("#wordCardN").textContent = plural(words.length, "word");
     $("#wordCardBody").innerHTML = !words.length ? `<p class="muted">No words yet.</p>`
       : `<table class="wcard"><thead><tr><th>English</th><th>Kana</th>${kanji ? "<th>Kanji</th>" : ""}</tr></thead>${parts.map((p) =>
         `<tbody>${parts.length > 1 ? `<tr class="wset"><th colspan="${kanji ? 3 : 2}">${esc(p.name)}</th></tr>` : ""}${p.words.map(row).join("")}</tbody>`).join("")}</table>`;
@@ -1946,22 +1950,27 @@ colours.apply(...colours.saved()); // before anything is drawn
       picksOf,
       // "some" with no units left counts as "none".
       state(b) { const m = st.show?.[b] ?? "all"; return m === "some" && !picksOf(b).length ? "none" : m; },
-      has(k) { const b = k.split("\u0001")[0], m = p.state(b); return m === "all" || (m === "some" && st.picks.has(k)); },
+      // on: the unit's own choice. has: whether it shows, which also takes the view picked having it (a unit the view
+      // hides is not there, nor are its sets, whatever its choice; the choice is back with a view that has it).
+      on(k) { const b = k.split("\u0001")[0], m = p.state(b); return m === "all" || (m === "some" && st.picks.has(k)); },
+      has: (k) => p.on(k) && !viewHides(k),
       shownKeys: () => o.cols().flatMap(o.keys).filter(p.has),
-      // Shows exactly the unit keys given.
+      // Shows exactly the unit keys given (units the view hides keep their choice).
       set(keys) {
         const show = { ...st.show };
         for (const b of o.cols()) {
-          const ks = o.keys(b), on = ks.filter((k) => keys.has(k));
+          const ks = o.keys(b), on = ks.filter((k) => (viewHides(k) ? p.on(k) : keys.has(k)));
           show[b] = on.length === ks.length ? "all" : on.length ? "some" : "none";
           picksOf(b).forEach((k) => st.picks.delete(k));
           if (show[b] === "some") on.forEach((k) => st.picks.add(k));
         }
         st.show = show; save();
       },
-      // Makes sure one unit shows, even one that is only about to be added.
+      // Makes sure one unit shows, even one that is only about to be added: a view that hides it (as other views do
+      // with a new unit) gives way to the main view.
       add(k) {
         const b = k.split("\u0001")[0], m = p.state(b);
+        if (viewHides(k)) pickView("");
         if (m === "all") return;
         if (m === "none") picksOf(b).forEach((x) => st.picks.delete(x));
         st.picks.add(k); st.show = { ...st.show, [b]: "some" }; save();
@@ -2027,7 +2036,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     PP.render(); syncGroupSegs();
     const n = S.selected.size, c = $("#pickClear");
     canPick = pickable;
-    $("#pickSum").textContent = `${n} set${n === 1 ? "" : "s"} picked`;
+    $("#pickSum").textContent = `${plural(n, "set")} picked`;
     c.textContent = n ? "Clear all picks" : "Pick all sets"; c.disabled = !n && !pickable.length;
   }
   // The Filter row: every tag in use, each with how many sets picking it hides (the sets without it), most hidden first.
@@ -2122,9 +2131,9 @@ colours.apply(...colours.saved()); // before anything is drawn
     document.querySelectorAll("#modeSeg [data-mode] span").forEach((sp) => (sp.textContent = modeText(sp.parentNode.dataset.mode, S.dir)));
     const n = selectedWords().length, items = S.dir === "both" ? n * 2 : n;
     const kata = S.mode === "kata" ? "katakana " : "";
-    $("#countLbl").textContent = n && S.mode === "verb" ? `${n} verb${n === 1 ? "" : "s"}, ${n * VFORMS.length} questions`
+    $("#countLbl").textContent = n && S.mode === "verb" ? `${plural(n, "verb")}, ${n * VFORMS.length} questions`
       : !n && S.mode === "verb" && S.selected.size ? "No verbs in the picked set(s)."
-      : n ? `${n} ${kata}word${n === 1 ? "" : "s"}${S.dir === "both" ? `, ${items} questions` : ""}`
+      : n ? `${plural(n, kata + "word")}${S.dir === "both" ? `, ${items} questions` : ""}`
       : kata && S.selected.size ? "No katakana words in the picked set(s)." : "Pick at least one set.";
     $("#startBtn").disabled = !n;
     renderResume();
@@ -2167,6 +2176,9 @@ colours.apply(...colours.saved()); // before anything is drawn
   document.querySelectorAll("#modeSeg button").forEach((b) => (b.onclick = () => { S.mode = b.dataset.mode; saveSetup(); renderSetup(); }));
   $("#backBtn").onclick = () => leaveTable();
 
+  // A copy of a list in random order: the questions of a practice (practice.js), and the romaji of a printed sheet
+  // (study-tools/romaji-sheet.js, which includes this file too).
+  const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   // ---------- quiz ----------
   const Q = { items: [], queue: [], wrong: [], round: 1, cur: null, tries: {}, busy: false, answered: false, total: 0, done: new Set(), meta: null };
   // The "Kanji learned up to" list the practice in progress counts, fixed when it starts (a resumed one keeps its own).
@@ -2265,7 +2277,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     }
     Q.cur = Q.queue.shift(); Q.answered = false; Q.busy = false;
     const { w, dir } = Q.cur;
-    $("#feedback").hidden = true; $("#tools").hidden = false; $("#checkErr").hidden = true;
+    $("#feedback").hidden = true; $("#writeTools").hidden = false; $("#checkErr").hidden = true;
     $("#selfCheck").hidden = true;
     main.c.classList.remove("locked"); furi.c.classList.remove("locked");
     furi.clear(); main.clear(); scratch.clear(); history.length = 0; setErasing(false);
@@ -2505,7 +2517,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     // A right answer goes straight on to the next word (the 花丸 that used to be drawn first was taken out, 2026-10-23).
     if (ok) { Q.done.add(key); saveResume(); nextItem(); return; }
     Q.wrong.push(Q.cur); saveResume();
-    $("#tools").hidden = true;
+    $("#writeTools").hidden = true;
     $("#fbReason").textContent = r?.reason || "";
     writeAnswer($("#fbAnswer"));
     const need = dir === "ej" && S.mode === "kanji" ? requiredKanji(w) : [], nb = $("#fbNeed");
@@ -2644,7 +2656,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   const histBlockedText = () => `${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so practice history is off." : "Your access to this page doesn't allow saving practice history."} You can still practice as much as you like.`;
   const histWhereText = () => inBrowser()
-    ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it in History at any time."
+    ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it in Progress at any time."
     : "";
   const openHistory = () => { S.hConfirm = null; S.hPage = S.lovePage = 0; show("history"); renderHistory(); };
   // Settings → Data → Progress tracking: the same choice as on the Progress page, where it can be found again later.
@@ -2707,7 +2719,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       if (day > end) continue;
       const n = counts.get(dayKey(day)) || 0, lv = n === 0 ? 0 : n === 1 ? 1 : n === 2 ? 2 : n <= 4 ? 3 : 4;
       const x = left + wk * (c + g), y = top + dow * (c + g);
-      const label = `${day.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}: ${n} session${n === 1 ? "" : "s"}`;
+      const label = `${day.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}: ${plural(n, "session")}`;
       cells += `<rect class="h${lv}" x="${x}" y="${y}" width="${c}" height="${c}" rx="3" data-tip="${esc(label)}"></rect>`;
       if (dow === 0 && day.getMonth() !== lastM && wk < weeks - 1 && x - lastX >= 3 * (c + g)) { lastM = day.getMonth(); lastX = x; months += `<text class="ax" x="${x}" y="10">${day.toLocaleDateString(undefined, { month: "short" })}</text>`; }
     }
@@ -2777,7 +2789,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     showLoveTop();
     $("#hLove").innerHTML = top.map((a) => {
       const jp = `<div class="jp">${jpRuby(liveWord(a.w)?.w || { kanji: a.w.jp })}</div>`, en = `<div class="en">${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</div>`;
-      return `<li><span class="tries">${a.misses}</span><div><div class="pair ${S.loveTop}">${S.loveTop === "en" ? en + jp : jp + en}</div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${a.tests} session${a.tests === 1 ? "" : "s"}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`;
+      return `<li><span class="tries">${a.misses}</span><div><div class="pair ${S.loveTop}">${S.loveTop === "en" ? en + jp : jp + en}</div><p>Missed ${plural(a.misses, "time")} across ${plural(a.tests, "session")}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`;
     }).join("");
   }
   // Which language comes first on each hard word, so the list can be gone down as a self-test. Set on the list or
@@ -3113,7 +3125,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (!n) S.leaveAsk = false;
     box.hidden = !S.leaveAsk;
     if (box.hidden) return;
-    const count = (k, w) => (k ? [`${k} ${w}${k === 1 ? "" : "s"}`] : []);
+    const count = (k, w) => (k ? [plural(k, w)] : []);
     box.innerHTML = `<span>${[...count(sets.length, "set"), ...count(lists.length, "kanji list"), ...(crs ? ["the collections"] : [])].join(" and ")} ${n === 1 && !crs ? "has" : "have"} unsaved changes.${why ? ` <span class="keyerr">${esc(why)}</span>` : ""}</span>
       <span class="tactions"><button class="btn primary" type="button" data-lsave>Save all</button><button class="btn" type="button" data-ldiscard>Discard all</button><button class="link" type="button" data-lkeep>Keep editing</button></span>`;
     box.querySelector("[data-lkeep]").onclick = () => { S.leaveAsk = false; renderLeave(); };
@@ -3172,7 +3184,6 @@ colours.apply(...colours.saved()); // before anything is drawn
         shown.push({ s, words, idx: words.map((w, i) => i), open: !ed && S.openSets.has(s.id) });
       }
     }
-    const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
     const [b1, c1] = (keys[0] || "").split("\u0001");
     const where = keys.length === 1 ? `${multiCol() ? colLabel(b1) + " › " : ""}${c1}` : keys.length === allKeys.length ? (multiCol() ? "All collections" : "All units") : plural(keys.length, "unit");
     $("#tSummary").textContent = q
@@ -3187,7 +3198,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     box.innerHTML = shown.map(({ s, words, idx, open }) => {
       const d = canWrite ? S.drafts.get(s.id) : null, dirty = dirtySet(s), was = new Map(s.words.map((w) => [w.id, w]));
       const head = `<h3 class="tseth"><button class="tsethead" type="button" data-toggle aria-expanded="${open}"><span class="t"><span class="car" aria-hidden="true">›</span>${esc(q || manyCols ? setName(s) : `${s.unit} › ${s.name}`)}${cleanTags(s.tags).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</span>
-        <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button>${open && canWrite && !d ? `<button class="btn" type="button" data-edit title="Edit this set. Double-clicking a word does the same, at that word.">Edit</button>` : ""}</h3>`;
+        <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button>${open && canWrite && !d ? `<button class="btn" type="button" data-edit>Edit</button>` : ""}</h3>`;
       if (!open) return `<div class="tset" data-sid="${esc(s.id)}">${head}</div>`;
       const cell = (w, i, f, name) => `<textarea rows="1" id="w-${s.id}-${w.id}-${f}" data-i="${i}" data-f="${f}" placeholder="${name}" aria-label="${name}"${(w[f] || "").trim() !== (was.get(w.id)?.[f] || "").trim() ? ` class="chg"` : ""}>${esc(w[f])}</textarea>`;
       const rows = idx.map((i) => { const w = words[i]; return d
@@ -3288,12 +3299,18 @@ colours.apply(...colours.saved()); // before anything is drawn
     S.viewDoc = cleanViews(raw.views);
     renderSetup(); renderTable();
   }
-  // The view the unit rows follow (S.groupBy names it), or null for the main view. Choices from before views: "course"
-  // was the courses, "book" the main view.
+  // The view the unit rows follow (S.groupBy names it, see pickView), or null for the main view. Choices kept before
+  // pickView are a view's bare name; from before views, "course" was the courses and "book" the main view.
   function curView() {
     const vs = altViews(), g = S.groupBy;
-    return vs.find((v) => v.name === g) ?? (g === "course" ? vs[0] : null) ?? null;
+    if (g === "main") return null;
+    return vs.find((v) => "view:" + v.name === g) ?? vs.find((v) => v.name === g) ?? (g === "course" ? vs[0] : null) ?? null;
   }
+  // Picks the view the unit rows follow, on both pages: another view by its name, or "" for the main view. Another view
+  // is kept as "view:<name>", so one that happens to be called "main" isn't taken for the main view.
+  function pickView(name) { S.groupBy = name ? "view:" + name : "main"; store.set("groupBy", S.groupBy); }
+  // Whether the view picked leaves this unit out (the main view has every unit).
+  function viewHides(k) { const v = curView(); return !!v && !v.collections.some((c) => c.units.includes(k)); }
   // A view's rows among the keys given: each collection with the keys it has (once, in the first collection that has them).
   // The rest are hidden in this view. Collections with none of the keys are left out.
   function viewRows(v, keys) {
@@ -3312,7 +3329,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     box.hidden = !vs.length;
     if (box.hidden) return;
     const opts = vs.map((v) => [v.name, v.name]); opts.splice(S.viewDoc?.mainAt || 0, 0, ["", mainName()]);
-    const pick = (v) => { S.groupBy = v || "main"; store.set("groupBy", S.groupBy); renderSetup(); renderTable(); };
+    const pick = (v) => { pickView(v); renderSetup(); renderTable(); };
     box.className = "seg mini viewsw";
     box.innerHTML = opts.map(([v, t]) => `<button type="button" data-view="${esc(v)}" aria-pressed="${v === on}">${esc(t.replace("\n", " "))}</button>`).join("");
     box.querySelectorAll("[data-view]").forEach((b) => (b.onclick = () => pick(b.dataset.view)));
@@ -3394,7 +3411,6 @@ colours.apply(...colours.saved()); // before anything is drawn
     };
     const vdel = vEd.querySelector("[data-vdel]");
     if (vdel) vdel.onclick = async () => {
-      const v = e.others[e.at];
       if (!(await ask("Delete this view?", `<p>You will lose the custom ordering for the units.</p>`, "Delete view", true))) return;
       if (e.at < e.mainPos) e.mainPos--;
       e.others.splice(e.at, 1); e.at = -1; redo(`#viewEd [data-view="-1"]`);
@@ -3505,10 +3521,9 @@ colours.apply(...colours.saved()); // before anything is drawn
     const merges = [];
     for (const c of next) { const by = new Map(); for (const u of c.units) { const k = e.units[u].name.toLowerCase(); if (by.has(k)) merges.push([u, by.get(k), c.name]); else by.set(k, u); } }
     const said = [...new Set(merges.map(([, into, col]) => `${e.units[into].name} in ${col}`))];
-    const n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`;
     if (!(await ask(`Make “${v.name.replace("\n", " ")}” the main view?`, `<p>All new views will adopt the layout of this view at creation.</p>
       ${said.length ? `<p>Units with the same name in one collection become one unit, their sets together and their kanji lists combined: ${esc(said.join(", "))}.</p>` : ""}
-      ${rest.length ? `<p>${n(rest.length, "unit")} in no collection of ${esc(v.name)} ${rest.length === 1 ? "goes" : "go"} into a collection called Other.</p>` : ""}`, "Make it the main view"))) return;
+      ${rest.length ? `<p>${plural(rest.length, "unit")} in no collection of ${esc(v.name)} ${rest.length === 1 ? "goes" : "go"} into a collection called Other.</p>` : ""}`, "Make it the main view"))) return;
     e.others.splice(i, 1, { name: e.mainName, was: null, cols: e.main.map((c) => newCol(c.name, [...c.units])) });
     e.mainName = v.name.replace(/\s*\n\s*/g, " "); e.main = next;
     for (const [u, into] of merges) mergeUnit(u, into);
@@ -3556,7 +3571,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (moved.has(S.upto)) { S.upto = moved.get(S.upto); store.set("uptoPick", S.upto); }
     // The unit rows stay on the view they showed, under its new name; on the main view if it became that or went.
     const stay = showing == null ? -1 : e.others.findIndex((v) => v.was === showing);
-    S.groupBy = stay < 0 ? "main" : vNames[stay + 1]; store.set("groupBy", S.groupBy);
+    pickView(stay < 0 ? "" : vNames[stay + 1]);
     S.viewDoc = cleanViews(doc); S.colEdit = null;
     return true;
   }
@@ -3577,7 +3592,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // The top of an import preview (the file's name and when it was exported) and its line about entries it skips; the
   // history import (history-file.js) draws its preview with them too.
   const previewHead = (p) => `<div><b>${esc(p.name)}</b><span class="muted small">${p.exportedAt && !isNaN(new Date(p.exportedAt))
-    ? ` · exported ${esc(new Date(p.exportedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }))}` : ""}</span></div>`;
+    ? ` · exported ${esc(dayText(p.exportedAt))}` : ""}</span></div>`;
   const skippedLine = (n) => (n ? `<li>${n} ${n === 1 ? "entry isn't" : "entries aren't"} valid and will be skipped</li>` : "");
   function makeImporter({ button, input, box, say, stored, write, where, hint = "", changed = () => {}, done = () => {} }) {
     const me = { busy: false };
@@ -3648,7 +3663,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       let n = 0;
       try {
         for (const [path, doc] of jobs) { say(`Importing ${n + 1} of ${jobs.length}…`); await write(path, doc); n++; }
-        const pl = (k, w) => k && `${k} ${w}${k === 1 ? "" : "s"}`;
+        const pl = (k, w) => k && plural(k, w);
         say(`Imported: ${[pl(count(p.sets, "new"), "new set"), pl(count(p.sets, "changed"), "updated set"), pl(todo(p.kanji).length, "kanji list"),
           p.books?.changed && "collection order", p.courses?.changed && "courses", p.views?.changed && "views"].filter(Boolean).join(", ")}.`);
       } catch (e) {
@@ -3726,16 +3741,15 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#histImport").title = off ? "Turn on progress tracking first." : "";
     // What an export holds now, in place of words about it.
     const h = S.history, nw = h.reduce((a, t) => a + (t.words || []).length, 0);
-    $("#histPortSample").textContent = h.length ? `${h.length} session${h.length === 1 ? "" : "s"} · ${nw} word${nw === 1 ? "" : "s"} · ${fmtDay(h[h.length - 1].finishedAt)} to ${fmtDay(h[0].finishedAt)}` : "No practice sessions yet.";
+    $("#histPortSample").textContent = h.length ? `${plural(h.length, "session")} · ${plural(nw, "word")} · ${fmtDay(h[h.length - 1].finishedAt)} to ${fmtDay(h[0].finishedAt)}` : "No practice sessions yet.";
     const p = histPlan, box = $("#histImportPreview");
     box.hidden = !p;
     if (!p) { box.innerHTML = ""; return; }
-    const pl = (k, w = "session") => `${k} ${w}${k === 1 ? "" : "s"}`;
     const span = p.add.length ? `<li>From ${esc(fmtDay(p.add[p.add.length - 1].finishedAt))} to ${esc(fmtDay(p.add[0].finishedAt))}</li>` : "";
     box.innerHTML = `${previewHead(p)}
-      <ul class="small"><li>${p.add.length ? `${pl(p.add.length, "new session")} to add` : "No new sessions"}</li>${span}${p.have ? `<li>${pl(p.have)} already here, left as they are</li>` : ""}
+      <ul class="small"><li>${p.add.length ? `${plural(p.add.length, "new session")} to add` : "No new sessions"}</li>${span}${p.have ? `<li>${plural(p.have, "session")} already here, left as they are</li>` : ""}
       ${skippedLine(p.skipped)}</ul>
-      <div class="tactions">${p.add.length ? `<button class="btn primary" type="button" id="histImportGo">Add ${pl(p.add.length)}</button><button class="link" type="button" id="histImportCancel">Cancel</button>`
+      <div class="tactions">${p.add.length ? `<button class="btn primary" type="button" id="histImportGo">Add ${plural(p.add.length, "session")}</button><button class="link" type="button" id="histImportCancel">Cancel</button>`
         : `<span class="muted small">Every session in this file is already here.</span><button class="link" type="button" id="histImportCancel">Close</button>`}</div>`;
     box.querySelector("#histImportCancel").onclick = () => { histPlan = null; renderHistPort(); };
     if (p.add.length) box.querySelector("#histImportGo").onclick = importHistory;
@@ -3766,7 +3780,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       histPortMsg(`Adding ${n + 1} of ${add.length}…`);
       try { await db.collection("data/users/" + uid).doc(id).set(doc); n++; } catch { break; }
     }
-    histPortMsg(n === add.length ? `Added ${n} session${n === 1 ? "" : "s"} to your history.` : `Stopped after ${n} of ${add.length}. Import the file again to add the rest.`);
+    histPortMsg(n === add.length ? `Added ${plural(n, "session")} to your history.` : `Stopped after ${n} of ${add.length}. Import the file again to add the rest.`);
     histBusy = false; renderHistPort();
   }
 
@@ -3972,7 +3986,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#selfHead").textContent = unmatched ? "The checker couldn't match this to the wording below. Did you mean the same thing?" : "Compare what you wrote with the answer.";
     Q.answered = true; syncCheck();
     lockPads();
-    $("#tools").hidden = true; setErasing(false);
+    $("#writeTools").hidden = true; setErasing(false);
     writeAnswer($("#selfAnswer"));
     $("#selfCheck").hidden = false;
     requestAnimationFrame(() => $("#selfCheck").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" }));
@@ -4096,11 +4110,13 @@ colours.apply(...colours.saved()); // before anything is drawn
   function watchProfile() {
     profileRef().onSnapshot((snap) => { const p = snap.exists ? snap.data() : {}; nickname = tidy(p?.nickname, 40); born = cleanBorn(p?.born); bornAt = tidy(p?.bornAt, 30); bornCleared = tidy(p?.bornCleared, 30); renderAcctMenu(); renderNick(); renderBorn(); }, () => {});
   }
-  // The profile is saved whole: what changes, with the rest as it is.
+  // Only what changes is written (the first save makes the profile), so a save made before the profile has loaded,
+  // or from a tab opened earlier, can't blank the rest of it.
   async function saveProfile(change) {
-    const p = { nickname, born, bornAt, bornCleared, ...change };
-    await profileRef().set({ ...p, updatedAt: new Date().toISOString() });
-    ({ nickname, born, bornAt, bornCleared } = p);
+    const d = { ...change, updatedAt: new Date().toISOString() };
+    try { await profileRef().update(d); }
+    catch (e) { if (e?.code !== "not-found") throw e; await profileRef().set(d); }
+    ({ nickname, born, bornAt, bornCleared } = { nickname, born, bornAt, bornCleared, ...change });
   }
   function renderNick() {
     $("#nickRow").hidden = !account;
@@ -4134,7 +4150,6 @@ colours.apply(...colours.saved()); // before anything is drawn
   const oldEnough = (b, now = new Date()) => { const [y, m] = b.split("-").map(Number); return (now.getFullYear() - y) * 12 + now.getMonth() + 1 - m > 16 * 12; };
   const tooYoung = (b) => !!b && !oldEnough(b);
   const monthName = (m) => new Date(2000, m - 1, 1).toLocaleDateString("en", { month: "long" });
-  const dayText = (d) => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   // While the wait runs after deleting it, the text says when it was deleted (the line under it, when it can be given again).
   const bornText = (b) => (b ? `${monthName(+b.slice(5))} ${b.slice(0, 4)}` : bornCleared && bornWait() ? `Cleared on ${dayText(bornCleared)}` : "Not given");
   // The day it can be given or changed again, or null when it can be now.
@@ -4216,8 +4231,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (await ask("Confirm your birthday", `<p>Confirming your birthday is <b>${esc(bornText(b))}</b>.</p><p>This information can only be changed once every ${BORN_WAIT} months. It can be deleted at any time.</p>`, "Confirm")) keepBorn(b);
   };
   $("#bornClear").onclick = async () => {
-    const until = new Date(bornAt || Date.now()); until.setMonth(until.getMonth() + BORN_WAIT);
-    const again = until > new Date() ? `any time after ${dayText(until)}` : "at any time";
+    const wait = bornWait(), again = wait ? `any time after ${dayText(wait)}` : "at any time";
     if (await ask("Delete your birthday?", `<p>This information will be cleared from our database. You can choose to give your birthday again ${again}.</p>`, "Delete", true)) keepBorn("");
   };
   $("#settings").addEventListener("leave", () => { bornMsg(""); renderBorn(); });
@@ -4263,9 +4277,9 @@ colours.apply(...colours.saved()); // before anything is drawn
       text: "Write here with a finger, a stylus or the mouse. Neatness and stroke order don't matter." },
     { view: "quiz", at: () => $("#furiPad"), title: "Furigana",
       text: "Wrote kanji? You can add its reading in this thin strip above it. It's optional." },
-    { view: "quiz", at: () => $("#tools .itools"), title: "Writing tools",
+    { view: "quiz", at: () => $("#writeTools .itools"), title: "Writing tools",
       text: "Undo takes back the last stroke (Ctrl+Z works too), the bin clears everything, and the switch turns the pen into an eraser that removes whole strokes." },
-    { view: "quiz", id: "write", at: () => [$("#quiz .sheet"), $("#tools")], title: "Your turn", next: "Check",
+    { view: "quiz", id: "write", at: () => [$("#quiz .sheet"), $("#writeTools")], title: "Your turn", next: "Check",
       text: "Write the answer, then tap Check. Not sure? Write your best guess: you'll see the answer either way.",
       done: () => tour.checked && !vis($("#checking")), ready: () => !$("#checkBtn").disabled, act: () => $("#checkBtn").click(), skip: "quit" },
     { view: "quiz", at: () => firstVis("#selfCheck", "#feedback", "#quiz .prompt"), title: "The result",
@@ -4466,9 +4480,9 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#devSet").hidden = !isDev;
     $("#shareSet").hidden = !offered(); syncSetTabs();
     if (!offered()) return;
-    const s = shareState(), n = s.n || 0, when = s.at && !isNaN(new Date(s.at)) ? new Date(s.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
+    const s = shareState(), n = s.n || 0, when = s.at && !isNaN(new Date(s.at)) ? dayText(s.at) : "";
     $("#shareInfo").textContent = s.on
-      ? `On${when ? " since " + when : ""}. ${n} ${n === 1 ? "answer" : "answers"} shared: the strokes, the word and how it was marked, kept to build better handwriting recognition.`
+      ? `On${when ? " since " + when : ""}. ${plural(n, "answer")} shared: the strokes, the word and how it was marked, kept to build better handwriting recognition.`
       : "We hope to develop our own handwriting recognition tool someday. Change your mind at any time.";
     $("#shareToggle").textContent = s.on ? "Turn off" : "Turn on…";
     $("#shareDl").hidden = !n || shareDelAsk;

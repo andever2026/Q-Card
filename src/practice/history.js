@@ -61,7 +61,7 @@
   }
   const histBlockedText = () => `${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so practice history is off." : "Your access to this page doesn't allow saving practice history."} You can still practice as much as you like.`;
   const histWhereText = () => inBrowser()
-    ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it in History at any time."
+    ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it in Progress at any time."
     : "";
   const openHistory = () => { S.hConfirm = null; S.hPage = S.lovePage = 0; show("history"); renderHistory(); };
   // Settings → Data → Progress tracking: the same choice as on the Progress page, where it can be found again later.
@@ -124,7 +124,7 @@
       if (day > end) continue;
       const n = counts.get(dayKey(day)) || 0, lv = n === 0 ? 0 : n === 1 ? 1 : n === 2 ? 2 : n <= 4 ? 3 : 4;
       const x = left + wk * (c + g), y = top + dow * (c + g);
-      const label = `${day.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}: ${n} session${n === 1 ? "" : "s"}`;
+      const label = `${day.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}: ${plural(n, "session")}`;
       cells += `<rect class="h${lv}" x="${x}" y="${y}" width="${c}" height="${c}" rx="3" data-tip="${esc(label)}"></rect>`;
       if (dow === 0 && day.getMonth() !== lastM && wk < weeks - 1 && x - lastX >= 3 * (c + g)) { lastM = day.getMonth(); lastX = x; months += `<text class="ax" x="${x}" y="10">${day.toLocaleDateString(undefined, { month: "short" })}</text>`; }
     }
@@ -194,7 +194,7 @@
     showLoveTop();
     $("#hLove").innerHTML = top.map((a) => {
       const jp = `<div class="jp">${jpRuby(liveWord(a.w)?.w || { kanji: a.w.jp })}</div>`, en = `<div class="en">${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</div>`;
-      return `<li><span class="tries">${a.misses}</span><div><div class="pair ${S.loveTop}">${S.loveTop === "en" ? en + jp : jp + en}</div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${a.tests} session${a.tests === 1 ? "" : "s"}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`;
+      return `<li><span class="tries">${a.misses}</span><div><div class="pair ${S.loveTop}">${S.loveTop === "en" ? en + jp : jp + en}</div><p>Missed ${plural(a.misses, "time")} across ${plural(a.tests, "session")}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`;
     }).join("");
   }
   // Which language comes first on each hard word, so the list can be gone down as a self-test. Set on the list or

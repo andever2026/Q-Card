@@ -205,7 +205,7 @@
     const el = document.activeElement;
     if ($("#quiz").hidden || /^(INPUT|TEXTAREA|SELECT)$/.test(el?.tagName || "") || el?.isContentEditable) return;
     e.preventDefault();
-    if (!$("#tools").hidden) undoIn([furi, main]);
+    if (!$("#writeTools").hidden) undoIn([furi, main]);
     else if (!$("#feedback").hidden) undoIn([scratch]);
   });
   $("#clearBtn").onclick = () => { furi.clear(); main.clear(); };

@@ -20,16 +20,15 @@
     $("#histImport").title = off ? "Turn on progress tracking first." : "";
     // What an export holds now, in place of words about it.
     const h = S.history, nw = h.reduce((a, t) => a + (t.words || []).length, 0);
-    $("#histPortSample").textContent = h.length ? `${h.length} session${h.length === 1 ? "" : "s"} · ${nw} word${nw === 1 ? "" : "s"} · ${fmtDay(h[h.length - 1].finishedAt)} to ${fmtDay(h[0].finishedAt)}` : "No practice sessions yet.";
+    $("#histPortSample").textContent = h.length ? `${plural(h.length, "session")} · ${plural(nw, "word")} · ${fmtDay(h[h.length - 1].finishedAt)} to ${fmtDay(h[0].finishedAt)}` : "No practice sessions yet.";
     const p = histPlan, box = $("#histImportPreview");
     box.hidden = !p;
     if (!p) { box.innerHTML = ""; return; }
-    const pl = (k, w = "session") => `${k} ${w}${k === 1 ? "" : "s"}`;
     const span = p.add.length ? `<li>From ${esc(fmtDay(p.add[p.add.length - 1].finishedAt))} to ${esc(fmtDay(p.add[0].finishedAt))}</li>` : "";
     box.innerHTML = `${previewHead(p)}
-      <ul class="small"><li>${p.add.length ? `${pl(p.add.length, "new session")} to add` : "No new sessions"}</li>${span}${p.have ? `<li>${pl(p.have)} already here, left as they are</li>` : ""}
+      <ul class="small"><li>${p.add.length ? `${plural(p.add.length, "new session")} to add` : "No new sessions"}</li>${span}${p.have ? `<li>${plural(p.have, "session")} already here, left as they are</li>` : ""}
       ${skippedLine(p.skipped)}</ul>
-      <div class="tactions">${p.add.length ? `<button class="btn primary" type="button" id="histImportGo">Add ${pl(p.add.length)}</button><button class="link" type="button" id="histImportCancel">Cancel</button>`
+      <div class="tactions">${p.add.length ? `<button class="btn primary" type="button" id="histImportGo">Add ${plural(p.add.length, "session")}</button><button class="link" type="button" id="histImportCancel">Cancel</button>`
         : `<span class="muted small">Every session in this file is already here.</span><button class="link" type="button" id="histImportCancel">Close</button>`}</div>`;
     box.querySelector("#histImportCancel").onclick = () => { histPlan = null; renderHistPort(); };
     if (p.add.length) box.querySelector("#histImportGo").onclick = importHistory;
@@ -60,6 +59,6 @@
       histPortMsg(`Adding ${n + 1} of ${add.length}…`);
       try { await db.collection("data/users/" + uid).doc(id).set(doc); n++; } catch { break; }
     }
-    histPortMsg(n === add.length ? `Added ${n} session${n === 1 ? "" : "s"} to your history.` : `Stopped after ${n} of ${add.length}. Import the file again to add the rest.`);
+    histPortMsg(n === add.length ? `Added ${plural(n, "session")} to your history.` : `Stopped after ${n} of ${add.length}. Import the file again to add the rest.`);
     histBusy = false; renderHistPort();
   }

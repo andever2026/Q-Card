@@ -138,7 +138,7 @@
     $("#selfHead").textContent = unmatched ? "The checker couldn't match this to the wording below. Did you mean the same thing?" : "Compare what you wrote with the answer.";
     Q.answered = true; syncCheck();
     lockPads();
-    $("#tools").hidden = true; setErasing(false);
+    $("#writeTools").hidden = true; setErasing(false);
     writeAnswer($("#selfAnswer"));
     $("#selfCheck").hidden = false;
     requestAnimationFrame(() => $("#selfCheck").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" }));

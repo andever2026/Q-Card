@@ -46,22 +46,27 @@
       picksOf,
       // "some" with no units left counts as "none".
       state(b) { const m = st.show?.[b] ?? "all"; return m === "some" && !picksOf(b).length ? "none" : m; },
-      has(k) { const b = k.split("\u0001")[0], m = p.state(b); return m === "all" || (m === "some" && st.picks.has(k)); },
+      // on: the unit's own choice. has: whether it shows, which also takes the view picked having it (a unit the view
+      // hides is not there, nor are its sets, whatever its choice; the choice is back with a view that has it).
+      on(k) { const b = k.split("\u0001")[0], m = p.state(b); return m === "all" || (m === "some" && st.picks.has(k)); },
+      has: (k) => p.on(k) && !viewHides(k),
       shownKeys: () => o.cols().flatMap(o.keys).filter(p.has),
-      // Shows exactly the unit keys given.
+      // Shows exactly the unit keys given (units the view hides keep their choice).
       set(keys) {
         const show = { ...st.show };
         for (const b of o.cols()) {
-          const ks = o.keys(b), on = ks.filter((k) => keys.has(k));
+          const ks = o.keys(b), on = ks.filter((k) => (viewHides(k) ? p.on(k) : keys.has(k)));
           show[b] = on.length === ks.length ? "all" : on.length ? "some" : "none";
           picksOf(b).forEach((k) => st.picks.delete(k));
           if (show[b] === "some") on.forEach((k) => st.picks.add(k));
         }
         st.show = show; save();
       },
-      // Makes sure one unit shows, even one that is only about to be added.
+      // Makes sure one unit shows, even one that is only about to be added: a view that hides it (as other views do
+      // with a new unit) gives way to the main view.
       add(k) {
         const b = k.split("\u0001")[0], m = p.state(b);
+        if (viewHides(k)) pickView("");
         if (m === "all") return;
         if (m === "none") picksOf(b).forEach((x) => st.picks.delete(x));
         st.picks.add(k); st.show = { ...st.show, [b]: "some" }; save();
@@ -127,7 +132,7 @@
     PP.render(); syncGroupSegs();
     const n = S.selected.size, c = $("#pickClear");
     canPick = pickable;
-    $("#pickSum").textContent = `${n} set${n === 1 ? "" : "s"} picked`;
+    $("#pickSum").textContent = `${plural(n, "set")} picked`;
     c.textContent = n ? "Clear all picks" : "Pick all sets"; c.disabled = !n && !pickable.length;
   }
   // The Filter row: every tag in use, each with how many sets picking it hides (the sets without it), most hidden first.
@@ -228,9 +233,9 @@
     document.querySelectorAll("#modeSeg [data-mode] span").forEach((sp) => (sp.textContent = modeText(sp.parentNode.dataset.mode, S.dir)));
     const n = selectedWords().length, items = S.dir === "both" ? n * 2 : n;
     const kata = S.mode === "kata" ? "katakana " : "";
-    $("#countLbl").textContent = n && S.mode === "verb" ? `${n} verb${n === 1 ? "" : "s"}, ${n * VFORMS.length} questions`
+    $("#countLbl").textContent = n && S.mode === "verb" ? `${plural(n, "verb")}, ${n * VFORMS.length} questions`
       : !n && S.mode === "verb" && S.selected.size ? "No verbs in the picked set(s)."
-      : n ? `${n} ${kata}word${n === 1 ? "" : "s"}${S.dir === "both" ? `, ${items} questions` : ""}`
+      : n ? `${plural(n, kata + "word")}${S.dir === "both" ? `, ${items} questions` : ""}`
       : kata && S.selected.size ? "No katakana words in the picked set(s)." : "Pick at least one set.";
     $("#startBtn").disabled = !n;
     renderResume();

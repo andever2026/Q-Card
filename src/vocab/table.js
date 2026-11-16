@@ -180,7 +180,7 @@
     if (!n) S.leaveAsk = false;
     box.hidden = !S.leaveAsk;
     if (box.hidden) return;
-    const count = (k, w) => (k ? [`${k} ${w}${k === 1 ? "" : "s"}`] : []);
+    const count = (k, w) => (k ? [plural(k, w)] : []);
     box.innerHTML = `<span>${[...count(sets.length, "set"), ...count(lists.length, "kanji list"), ...(crs ? ["the collections"] : [])].join(" and ")} ${n === 1 && !crs ? "has" : "have"} unsaved changes.${why ? ` <span class="keyerr">${esc(why)}</span>` : ""}</span>
       <span class="tactions"><button class="btn primary" type="button" data-lsave>Save all</button><button class="btn" type="button" data-ldiscard>Discard all</button><button class="link" type="button" data-lkeep>Keep editing</button></span>`;
     box.querySelector("[data-lkeep]").onclick = () => { S.leaveAsk = false; renderLeave(); };
@@ -239,7 +239,6 @@
         shown.push({ s, words, idx: words.map((w, i) => i), open: !ed && S.openSets.has(s.id) });
       }
     }
-    const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
     const [b1, c1] = (keys[0] || "").split("\u0001");
     const where = keys.length === 1 ? `${multiCol() ? colLabel(b1) + " › " : ""}${c1}` : keys.length === allKeys.length ? (multiCol() ? "All collections" : "All units") : plural(keys.length, "unit");
     $("#tSummary").textContent = q
@@ -254,7 +253,7 @@
     box.innerHTML = shown.map(({ s, words, idx, open }) => {
       const d = canWrite ? S.drafts.get(s.id) : null, dirty = dirtySet(s), was = new Map(s.words.map((w) => [w.id, w]));
       const head = `<h3 class="tseth"><button class="tsethead" type="button" data-toggle aria-expanded="${open}"><span class="t"><span class="car" aria-hidden="true">›</span>${esc(q || manyCols ? setName(s) : `${s.unit} › ${s.name}`)}${cleanTags(s.tags).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</span>
-        <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button>${open && canWrite && !d ? `<button class="btn" type="button" data-edit title="Edit this set. Double-clicking a word does the same, at that word.">Edit</button>` : ""}</h3>`;
+        <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button>${open && canWrite && !d ? `<button class="btn" type="button" data-edit>Edit</button>` : ""}</h3>`;
       if (!open) return `<div class="tset" data-sid="${esc(s.id)}">${head}</div>`;
       const cell = (w, i, f, name) => `<textarea rows="1" id="w-${s.id}-${w.id}-${f}" data-i="${i}" data-f="${f}" placeholder="${name}" aria-label="${name}"${(w[f] || "").trim() !== (was.get(w.id)?.[f] || "").trim() ? ` class="chg"` : ""}>${esc(w[f])}</textarea>`;
       const rows = idx.map((i) => { const w = words[i]; return d
