@@ -9,8 +9,11 @@
   let born = "", bornAt = "", bornCleared = "";
   const BORN_TIP = "Age information is used for handwriting consent, and for advertising if we add it later.", BORN_WAIT = 3;
   const cleanBorn = (v) => (/^(19|20)\d\d-(0[1-9]|1[0-2])$/.test(v) ? v : "");
-  // Certainly 16: the month they turn 16 in is over (the day isn't known).
-  const oldEnough = (b, now = new Date()) => { const [y, m] = b.split("-").map(Number); return (now.getFullYear() - y) * 12 + now.getMonth() + 1 - m > 16 * 12; };
+  // Months from the start of the birth month to now. The day isn't known, so an age is certain once the month they turn
+  // it in is over: 16 for sharing is certain, while under 13 gives that month the benefit of the doubt.
+  const monthsOld = (b, now = new Date()) => { const [y, m] = b.split("-").map(Number); return (now.getFullYear() - y) * 12 + now.getMonth() + 1 - m; };
+  const oldEnough = (b) => monthsOld(b) > 16 * 12;
+  const underThirteen = (b) => !!b && monthsOld(b) < 13 * 12;
   const tooYoung = (b) => !!b && !oldEnough(b);
   const monthName = (m) => new Date(2000, m - 1, 1).toLocaleDateString("en", { month: "long" });
   // While the wait runs after deleting it, the text says when it was deleted (the line under it, when it can be given again).
@@ -23,6 +26,8 @@
   const waitText = (d) => `It can be ${born ? "changed" : "updated"} after ${dayText(d)}.`;
   // Giving or changing it starts the wait; clearing it leaves the wait as it is.
   const saveBorn = (b) => saveProfile(b ? { born: b, bornAt: new Date().toISOString(), bornCleared: "" } : { born: "", bornCleared: new Date().toISOString() });
+  // Every birthday given is confirmed first, in the same words wherever it's given.
+  const confirmBorn = (b) => ask(`Is ${bornText(b)} correct?`, `<p>It can only be changed once every ${BORN_WAIT} months. It can be deleted at any time.</p>`, "Yes, it's correct");
   // The (?) beside wherever it's asked.
   const bornTip = (at, id) => { at.innerHTML = qtip(id, "What this is used for", BORN_TIP); tipTaps(at); };
   // Month and year dropdowns in box; changed() runs on each pick. get() is "YYYY-MM", or "" until both are picked.
@@ -72,7 +77,11 @@
     e.preventDefault();
     const b = askPick.get();
     if (!b) return drawBornAsk("Pick both the month and the year.");
-    if (b !== born) try { await saveBorn(b); renderBorn(); } catch { return drawBornAsk("It couldn't be saved. Try again."); }
+    if (b !== born) {
+      if (!(await confirmBorn(b))) return;
+      try { await saveBorn(b); renderBorn(); } catch { return drawBornAsk("It couldn't be saved. Try again."); }
+    }
+    if (underThirteen(born)) return; // renderBorn closed this pop-up for the one saying the account goes
     if (tooYoung(born)) return drawBornAsk();
     $("#bornAsk").close(); bornYes();
   };
@@ -91,7 +100,7 @@
     e.preventDefault();
     const b = bornIn.get();
     if (!b || bornWait()) return;
-    if (await ask("Confirm your birthday", `<p>Confirming your birthday is <b>${esc(bornText(b))}</b>.</p><p>This information can only be changed once every ${BORN_WAIT} months. It can be deleted at any time.</p>`, "Confirm")) keepBorn(b);
+    if (await confirmBorn(b)) keepBorn(b);
   };
   $("#bornClear").onclick = async () => {
     const wait = bornWait(), again = wait ? `any time after ${dayText(wait)}` : "at any time";
@@ -108,4 +117,22 @@
   function renderBorn() {
     $("#bornRow").hidden = !account;
     bornIn.set(born); $("#bornSave").hidden = !!bornIn.draw(); $("#bornClear").hidden = !born; syncBorn();
+    closeYoung();
   }
+
+  // A birthday under 13 closes the account: accounts are for 13 and older (the privacy policy). The birthday is saved
+  // first, so until the account is gone it can't be used: this pop-up comes back on every visit. OK deletes everything
+  // the way Settings' Delete does (account/account.js) and the page starts over as a guest.
+  let youngGoing = false;
+  function closeYoung() {
+    if (!account || !underThirteen(born) || $("#tooYoung").open) return;
+    if ($("#bornAsk").open) $("#bornAsk").close();
+    $("#tooYoung").showModal();
+  }
+  $("#tooYoung").addEventListener("cancel", (e) => e.preventDefault());
+  $("#tooYoung").addEventListener("close", () => { if (!youngGoing) closeYoung(); });
+  $("#tooYoungOk").onclick = async (e) => {
+    youngGoing = true; e.target.disabled = true; e.target.textContent = "Deleting…"; $("#tooYoungErr").hidden = true;
+    try { await deleteEverything(true); }
+    catch { youngGoing = false; e.target.disabled = false; e.target.textContent = "Try again"; $("#tooYoungErr").textContent = "Something went wrong. Check your connection, then try again."; $("#tooYoungErr").hidden = false; }
+  };

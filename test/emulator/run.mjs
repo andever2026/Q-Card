@@ -188,7 +188,7 @@ const clean = async (page, label) => {
 // Signed in, Settings opens from the account menu at the top right (src/account/menu.js).
 async function openSettings(page) { await page.click("#acctBtn"); await page.click('#acctList [data-acct="settings"]'); }
 // Yes to sharing handwriting, then the birth month and year its second pop-up asks for.
-async function sayYes(page) { await page.click("#shareYes"); for (const [k, v] of [["M", "01"], ["Y", "1990"]]) { await page.click(`#bornAskIn${k} .dd-btn`); await page.click(`#bornAskIn${k} li[data-v="${v}"]`); } await page.click("#bornAskGo"); }
+async function sayYes(page) { await page.click("#shareYes"); for (const [k, v] of [["M", "01"], ["Y", "1990"]]) { await page.click(`#bornAskIn${k} .dd-btn`); await page.click(`#bornAskIn${k} li[data-v="${v}"]`); } await page.click("#bornAskGo"); await page.click("#askYes"); }
 // One part of the tests; an exception fails it and the rest still run.
 async function part(name, fn) {
   console.log(`\n${name}`);

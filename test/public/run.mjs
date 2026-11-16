@@ -521,7 +521,12 @@ ok(/deletes your account/.test(await text(page, "#delAcct")) && await vis(page, 
 await page.screenshot({ path: join(out, "8-delete.png") });
 await page.click("#delNo");
 ok(await vis(page, "#delStart") && !(await page.$("#delYes")), "delete: Cancel backs out");
-await page.evaluate(() => { window.__staleLogin = true; });
+await page.evaluate(() => { window.__oldSignIn = true; window.__signInError = "auth/popup-closed-by-user"; });
+await page.click("#delStart"); await page.click("#delYes"); await page.waitForTimeout(600);
+ok(/^Nothing was deleted: Google needs to confirm it's you first\. Try again\.$/.test(await text(page, "#delErr")) && Object.keys(await fsData(page)).some((p) => p.startsWith("users/u2/sets/")),
+  "delete: with an old sign-in, Google's confirmation comes first; closing it deletes nothing and says so", await text(page, "#delErr"));
+await page.click("#delNo");
+await page.evaluate(() => { window.__signInError = null; window.__staleLogin = true; });
 await page.click("#delStart"); await page.click("#delYes"); await page.waitForTimeout(1500);
 data = await fsData(page);
 ok(!Object.keys(data).some((p) => p.startsWith("users/u2/")) && Object.keys(data).some((p) => p.startsWith("users/u1/")), "delete: everything of that account is gone, other accounts untouched", Object.keys(data).filter((p) => p.startsWith("users/u2/")).join(", "));
@@ -835,7 +840,11 @@ await settings(sp, "account"); await sp.click("#shareToggle"); await sp.click("#
 await sp.click("#bornAskInM .dd-btn"); await sp.click(`#bornAskInM li[data-v="${m16}"]`);
 ok((await text(sp, "#bornAskInM .dd-btn")) !== "Month" && !(await acct("profile"))?.born, "birth: a month picked stays while the year is picked, and nothing is saved before Save");
 await pickBorn(sp, "#bornAskIn", m16, y16);
-await sp.click("#bornAskGo"); await sp.waitForTimeout(1300);
+await sp.click("#bornAskGo"); await sp.waitForTimeout(200);
+ok(await sp.$eval("#askDlg", (d) => d.open) && (await text(sp, "#askTitle")) === `Is ${said16} correct?` && /once every 3 months/.test(await text(sp, "#askText")) && !(await acct("profile"))?.born,
+  "birth: Save and continue asks \"Is <month year> correct?\" first, and saves nothing before Yes", await text(sp, "#askTitle"));
+await sp.locator("#askDlg").screenshot({ path: join(out, "14-born-confirm.png") });
+await sp.click("#askYes"); await sp.waitForTimeout(1300);
 ok(!(await bornOpen()) && (await acct("prefs"))?.share?.on === true && (await acct("profile"))?.born === `${y16}-${m16}` && Date.now() - new Date((await acct("profile"))?.bornAt) < 60000,
   "share: with a month and year of 16 or older, the yes is saved with the account's choices and the month and year with the account", JSON.stringify(await acct("profile")));
 await sp.click("#settingsClose");
@@ -873,8 +882,8 @@ await sp.locator('[data-set-pane="account"]').screenshot({ path: join(out, "14-b
 await pickBorn(sp, "#bornIn", m15, y15); await sp.waitForTimeout(300);
 ok((await acct("profile"))?.born === `${y16}-${m16}` && !(await sp.$eval("#bornSave", (b) => b.disabled)), "birth: picking saves nothing until Save is pressed");
 await sp.click("#bornSave"); await sp.waitForTimeout(200);
-ok(await sp.$eval("#askDlg", (d) => d.open) && new RegExp(`Confirming your birthday is ${said15}\\.`).test(await text(sp, "#askText")) && /once every 3 months/.test(await text(sp, "#askText")) && (await acct("profile"))?.born === `${y16}-${m16}`,
-  "birth: Save asks to confirm the birthday first, saying it can change once every 3 months", await text(sp, "#askText"));
+ok(await sp.$eval("#askDlg", (d) => d.open) && (await text(sp, "#askTitle")) === `Is ${said15} correct?` && /once every 3 months/.test(await text(sp, "#askText")) && (await acct("profile"))?.born === `${y16}-${m16}`,
+  "birth: Save asks \"Is <month year> correct?\" the same way, saying it can change once every 3 months", await text(sp, "#askText"));
 await sp.click("#askYes"); await sp.waitForTimeout(1300);
 ok((await acct("profile"))?.born === `${y15}-${m15}` && /Saved\..*off now/.test(await text(sp, "#bornMsg")) && (await acct("prefs"))?.share?.on === false && (await text(sp, "#bornNow")) === said15 && !(await vis(sp, "#bornIn")),
   "birth: changed to under 16 in Settings, it's saved, sharing goes off and it says so, and the 3 months start again", await text(sp, "#bornMsg"));
@@ -908,6 +917,42 @@ ok((await acct("profile"))?.born === "" && /^Cleared on \w+ \d+, \d{4}$/.test(aw
   "birth: deleted, it says when it was cleared and when it can be updated", `${await text(sp, "#bornNow")} / ${await text(sp, "#bornNote")}`);
 await sp.click("#settingsClose");
 ok(sp.errors.length === 0, "share: no page errors", sp.errors.join(" | "));
+// Accounts are for 13 and older: a birthday under 13, once confirmed, closes the account (the owner, 2026-11-16). The month
+// they turn 13 in gets the benefit of the doubt.
+const bornAgo = (years, back) => { const d = new Date(new Date().getFullYear() - years, new Date().getMonth() - back, 1); return [String(d.getMonth() + 1).padStart(2, "0"), String(d.getFullYear())]; };
+const yctx = await browser.newContext();
+const yp = await newPage(yctx, { init: () => {
+  if (localStorage.getItem("fake:seeded")) return;
+  localStorage.setItem("fake:seeded", "1");
+  localStorage.setItem("fake:user", JSON.stringify({ uid: "y1", displayName: "Young", email: "y@example.com" }));
+  localStorage.setItem("fake:fs", JSON.stringify({ "users/y1/meta/samples": { offeredAt: "x" }, "users/y1/sets/one": { collection: "S", unit: "U", name: "One", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }] } }));
+} });
+await yp.waitForTimeout(600);
+const yOpen = () => yp.evaluate(() => document.querySelector("#tooYoung").open);
+await settings(yp, "account"); await yp.waitForTimeout(200);
+const [m13, y13] = bornAgo(13, 0), [m12, y12] = bornAgo(13, -1);
+await pickBorn(yp, "#bornIn", m13, y13); await yp.click("#bornSave"); await yp.click("#askYes"); await yp.waitForTimeout(600);
+ok(!(await yOpen()) && (await fsData(yp))["users/y1/data/profile"]?.born === `${y13}-${m13}`, "13+: someone who may have turned 13 this month keeps the account");
+await yp.evaluate(() => { const fs = JSON.parse(localStorage.getItem("fake:fs")); fs["users/y1/data/profile"].bornAt = ""; localStorage.setItem("fake:fs", JSON.stringify(fs)); });
+await yp.reload(); await yp.waitForTimeout(800); await settings(yp, "account"); await yp.waitForTimeout(200);
+await pickBorn(yp, "#bornIn", m12, y12); await yp.click("#bornSave"); await yp.waitForTimeout(200);
+ok(/^Is \w+ \d{4} correct\?$/.test(await text(yp, "#askTitle")) && !/\b13\b/.test(await text(yp, "#askDlg")), "13+: the confirmation is the same neutral question, with nothing about 13", await text(yp, "#askDlg"));
+await yp.click("#askYes"); await yp.waitForTimeout(600);
+ok(await yOpen() && /13 or older/.test(await text(yp, "#tooYoung")) && /will be deleted/.test(await text(yp, "#tooYoung")) && /as a guest/.test(await text(yp, "#tooYoung")) && (await fsData(yp))["users/y1/data/profile"]?.born === `${y12}-${m12}`,
+  "13+: confirmed under 13, the birthday is saved and a pop-up says accounts are for 13 and older, the account will be deleted, and guest practice stays", await text(yp, "#tooYoung"));
+await yp.locator("#tooYoung").screenshot({ path: join(out, "14-too-young.png") });
+await yp.keyboard.press("Escape"); await yp.waitForTimeout(200);
+ok(await yOpen(), "13+: Escape doesn't close it");
+await yp.reload(); await yp.waitForTimeout(1000);
+ok(await yOpen(), "13+: it's back on the next visit until the account is gone");
+await yp.evaluate(() => { window.__staleLogin = true; });
+await yp.click("#tooYoungOk"); await yp.waitForTimeout(1500);
+ok(!Object.keys(await fsData(yp)).some((p) => p.startsWith("users/y1/")) && (await yp.evaluate(() => JSON.parse(localStorage.getItem("fake:deleted") || "[]"))).includes("y1"),
+  "13+: OK deletes the account's data and the Google account (through the same code as Delete my account)");
+ok(!(await yOpen()) && !(await yp.evaluate(() => document.querySelector("#welcome").open)) && await yp.evaluate(() => localStorage.getItem("qcard:mode") === "local" && !localStorage.getItem("fake:user")),
+  "13+: the page starts over as a guest, without the welcome pop-up");
+ok(yp.errors.length === 0, "13+: no page errors", yp.errors.join(" | "));
+await yctx.close();
 // a developer (dev/<uid>, made in the Firebase console) gets Dev tools in Settings to open the question themselves
 const op = await newPage(sctx);
 await op.waitForTimeout(600); await settings(op, "admin"); await op.waitForTimeout(200);

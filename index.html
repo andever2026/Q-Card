@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-A+LdRCQDKyLo2HOypWU7pkQBH7NJQZx4eXvAbAtz4LA=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-cykLwUaj+XHm7hKjnqrzdO9RqFZ8zNyViJSyYPh7Aqw=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -706,6 +706,13 @@ colours.apply(...colours.saved()); // before anything is drawn
       <p class="keyerr small" id="bornAskErr" role="status" hidden></p>
       <div class="tactions shareact"><button class="btn" type="button" id="bornAskNo">Cancel</button><button class="btn primary" type="submit" id="bornAskGo">Save and continue</button></div>
     </form></dialog>
+    <dialog id="tooYoung" aria-labelledby="tooYoungTitle"><div class="shareask">
+      <h2 id="tooYoungTitle">Accounts are for 13 and older</h2>
+      <p>Thank you for practicing here! You need to be 13 or older to have an account, so this account and its data will be deleted. Google may ask you to confirm it's you first.</p>
+      <p>You can keep practicing as a guest. Your sets are then kept in this browser.</p>
+      <p class="keyerr small" id="tooYoungErr" role="status" hidden></p>
+      <div class="tactions shareact"><button class="btn primary" type="button" id="tooYoungOk">OK</button></div>
+    </div></dialog>
     <nav class="sidenav" id="sideNav" aria-label="Pages">
       <button type="button" data-go="setup"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z M13.6 7.4 L16.6 10.4"/></svg><span>Practice</span></button>
       <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg><span>Vocabulary</span></button>
@@ -4045,24 +4052,38 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#delNo").onclick = () => { delAsk = false; renderAccount(); };
     $("#delYes").onclick = async (e) => {
       e.target.disabled = true; e.target.textContent = "Deleting…";
-      stopPrefs();
-      try {
-        const paths = [];
-        for (const c of ["sets", "kanji", "training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
-        for (const p of [...paths, "meta/books", "meta/courses", "meta/views", "meta/samples"]) await db.doc(p).delete();
-        try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
-        // Every choice this site kept in this browser goes too (colours, picks, a practice to resume with its writing): signed in,
-        // they're the account's copy. A guest's own sets and history (qcard:local:…) stay unless it's the guest being deleted.
-        try { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:") || (!account && k.startsWith("qcard:"))) localStorage.removeItem(k); } catch {}
-        if (account) await platform.deleteAccount(); // which signs out, and the page starts over (see boot)
-        else location.reload(); // a guest starts over as a new visitor
-      } catch (err) {
+      try { await deleteEverything(); }
+      catch (err) {
         e.target.disabled = false; e.target.textContent = "Delete everything";
+        const blocked = err?.code === "auth/popup-blocked";
         $("#delErr").hidden = false;
-        $("#delErr").textContent = err?.code === "auth/popup-blocked" ? "Your data is deleted. To delete the account itself, allow pop-ups for this site so Google can confirm it's you, then try again."
+        $("#delErr").textContent = err?.early ? `Nothing was deleted: Google needs to confirm it's you first. ${blocked ? "Allow pop-ups for this site, then try again." : "Try again."}`
+          : blocked ? "Your data is deleted. To delete the account itself, allow pop-ups for this site so Google can confirm it's you, then try again."
           : "Something went wrong. Try again.";
       }
     };
+  }
+  // Deletes everything the site keeps for this person: an account's data in the database and its sign-in, or a guest's
+  // data in this browser. Settings' Delete and a birthday under 13 (account/birth.js) both use it. forced: the site is
+  // closing the account, so it goes even if Google's confirmation is closed (the bare sign-in stays then, signed out), and
+  // the page starts over as a guest instead of at the welcome pop-up.
+  async function deleteEverything(forced = false) {
+    let confirmed = true;
+    // Google's confirmation comes first, while the click still lets its window open (err.early: nothing deleted yet).
+    if (account) try { await platform.confirmSignIn(); } catch (err) { if (!forced) throw Object.assign(err, { early: true }); confirmed = false; }
+    stopPrefs();
+    const paths = [];
+    for (const c of ["sets", "kanji", "training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
+    for (const p of [...paths, "meta/books", "meta/courses", "meta/views", "meta/samples"]) await db.doc(p).delete();
+    try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
+    // Every choice this site kept in this browser goes too (colours, picks, a practice to resume with its writing): signed in,
+    // they're the account's copy. A guest's own sets and history (qcard:local:…) stay unless it's the guest being deleted.
+    try { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:") || (!account && k.startsWith("qcard:"))) localStorage.removeItem(k); } catch {}
+    if (forced) { try { localStorage.setItem("qcard:mode", "local"); } catch {} welcomed(); }
+    if (!account) return location.reload(); // a guest starts over as a new visitor
+    // Deleting the account signs out, and the page starts over (see boot).
+    if (!confirmed) return platform.signOut();
+    try { await platform.deleteAccount(); } catch (err) { if (!forced) throw err; await platform.signOut(); }
   }
   // ---------- public site: the account at the top right ----------
   // Beside the gear: a guest says so, and its menu offers signing in. Signed in, the gear steps aside and the person's
@@ -4146,8 +4167,11 @@ colours.apply(...colours.saved()); // before anything is drawn
   let born = "", bornAt = "", bornCleared = "";
   const BORN_TIP = "Age information is used for handwriting consent, and for advertising if we add it later.", BORN_WAIT = 3;
   const cleanBorn = (v) => (/^(19|20)\d\d-(0[1-9]|1[0-2])$/.test(v) ? v : "");
-  // Certainly 16: the month they turn 16 in is over (the day isn't known).
-  const oldEnough = (b, now = new Date()) => { const [y, m] = b.split("-").map(Number); return (now.getFullYear() - y) * 12 + now.getMonth() + 1 - m > 16 * 12; };
+  // Months from the start of the birth month to now. The day isn't known, so an age is certain once the month they turn
+  // it in is over: 16 for sharing is certain, while under 13 gives that month the benefit of the doubt.
+  const monthsOld = (b, now = new Date()) => { const [y, m] = b.split("-").map(Number); return (now.getFullYear() - y) * 12 + now.getMonth() + 1 - m; };
+  const oldEnough = (b) => monthsOld(b) > 16 * 12;
+  const underThirteen = (b) => !!b && monthsOld(b) < 13 * 12;
   const tooYoung = (b) => !!b && !oldEnough(b);
   const monthName = (m) => new Date(2000, m - 1, 1).toLocaleDateString("en", { month: "long" });
   // While the wait runs after deleting it, the text says when it was deleted (the line under it, when it can be given again).
@@ -4160,6 +4184,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   const waitText = (d) => `It can be ${born ? "changed" : "updated"} after ${dayText(d)}.`;
   // Giving or changing it starts the wait; clearing it leaves the wait as it is.
   const saveBorn = (b) => saveProfile(b ? { born: b, bornAt: new Date().toISOString(), bornCleared: "" } : { born: "", bornCleared: new Date().toISOString() });
+  // Every birthday given is confirmed first, in the same words wherever it's given.
+  const confirmBorn = (b) => ask(`Is ${bornText(b)} correct?`, `<p>It can only be changed once every ${BORN_WAIT} months. It can be deleted at any time.</p>`, "Yes, it's correct");
   // The (?) beside wherever it's asked.
   const bornTip = (at, id) => { at.innerHTML = qtip(id, "What this is used for", BORN_TIP); tipTaps(at); };
   // Month and year dropdowns in box; changed() runs on each pick. get() is "YYYY-MM", or "" until both are picked.
@@ -4209,7 +4235,11 @@ colours.apply(...colours.saved()); // before anything is drawn
     e.preventDefault();
     const b = askPick.get();
     if (!b) return drawBornAsk("Pick both the month and the year.");
-    if (b !== born) try { await saveBorn(b); renderBorn(); } catch { return drawBornAsk("It couldn't be saved. Try again."); }
+    if (b !== born) {
+      if (!(await confirmBorn(b))) return;
+      try { await saveBorn(b); renderBorn(); } catch { return drawBornAsk("It couldn't be saved. Try again."); }
+    }
+    if (underThirteen(born)) return; // renderBorn closed this pop-up for the one saying the account goes
     if (tooYoung(born)) return drawBornAsk();
     $("#bornAsk").close(); bornYes();
   };
@@ -4228,7 +4258,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     e.preventDefault();
     const b = bornIn.get();
     if (!b || bornWait()) return;
-    if (await ask("Confirm your birthday", `<p>Confirming your birthday is <b>${esc(bornText(b))}</b>.</p><p>This information can only be changed once every ${BORN_WAIT} months. It can be deleted at any time.</p>`, "Confirm")) keepBorn(b);
+    if (await confirmBorn(b)) keepBorn(b);
   };
   $("#bornClear").onclick = async () => {
     const wait = bornWait(), again = wait ? `any time after ${dayText(wait)}` : "at any time";
@@ -4245,7 +4275,25 @@ colours.apply(...colours.saved()); // before anything is drawn
   function renderBorn() {
     $("#bornRow").hidden = !account;
     bornIn.set(born); $("#bornSave").hidden = !!bornIn.draw(); $("#bornClear").hidden = !born; syncBorn();
+    closeYoung();
   }
+
+  // A birthday under 13 closes the account: accounts are for 13 and older (the privacy policy). The birthday is saved
+  // first, so until the account is gone it can't be used: this pop-up comes back on every visit. OK deletes everything
+  // the way Settings' Delete does (account/account.js) and the page starts over as a guest.
+  let youngGoing = false;
+  function closeYoung() {
+    if (!account || !underThirteen(born) || $("#tooYoung").open) return;
+    if ($("#bornAsk").open) $("#bornAsk").close();
+    $("#tooYoung").showModal();
+  }
+  $("#tooYoung").addEventListener("cancel", (e) => e.preventDefault());
+  $("#tooYoung").addEventListener("close", () => { if (!youngGoing) closeYoung(); });
+  $("#tooYoungOk").onclick = async (e) => {
+    youngGoing = true; e.target.disabled = true; e.target.textContent = "Deleting…"; $("#tooYoungErr").hidden = true;
+    try { await deleteEverything(true); }
+    catch { youngGoing = false; e.target.disabled = false; e.target.textContent = "Try again"; $("#tooYoungErr").textContent = "Something went wrong. Check your connection, then try again."; $("#tooYoungErr").hidden = false; }
+  };
   // ---------- public site: the tour ----------
   // "First time here? Take the 5-minute tour" in the welcome pop-up: a guided first practice as a guest. Each step rings
   // part of the page (the rest is dimmed but still works) and says what it's for. A step with `done` waits for the

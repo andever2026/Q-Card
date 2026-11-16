@@ -63,6 +63,13 @@ colours.apply(...colours.saved()); // before anything is drawn
       <p class="keyerr small" id="bornAskErr" role="status" hidden></p>
       <div class="tactions shareact"><button class="btn" type="button" id="bornAskNo">Cancel</button><button class="btn primary" type="submit" id="bornAskGo">Save and continue</button></div>
     </form></dialog>
+    <dialog id="tooYoung" aria-labelledby="tooYoungTitle"><div class="shareask">
+      <h2 id="tooYoungTitle">Accounts are for 13 and older</h2>
+      <p>Thank you for practicing here! You need to be 13 or older to have an account, so this account and its data will be deleted. Google may ask you to confirm it's you first.</p>
+      <p>You can keep practicing as a guest. Your sets are then kept in this browser.</p>
+      <p class="keyerr small" id="tooYoungErr" role="status" hidden></p>
+      <div class="tactions shareact"><button class="btn primary" type="button" id="tooYoungOk">OK</button></div>
+    </div></dialog>
 <!--#endif-->
     <nav class="sidenav" id="sideNav" aria-label="Pages">
       <button type="button" data-go="setup"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z M13.6 7.4 L16.6 10.4"/></svg><span>Practice</span></button>

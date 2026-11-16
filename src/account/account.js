@@ -49,22 +49,36 @@
     $("#delNo").onclick = () => { delAsk = false; renderAccount(); };
     $("#delYes").onclick = async (e) => {
       e.target.disabled = true; e.target.textContent = "Deleting…";
-      stopPrefs();
-      try {
-        const paths = [];
-        for (const c of ["sets", "kanji", "training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
-        for (const p of [...paths, "meta/books", "meta/courses", "meta/views", "meta/samples"]) await db.doc(p).delete();
-        try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
-        // Every choice this site kept in this browser goes too (colours, picks, a practice to resume with its writing): signed in,
-        // they're the account's copy. A guest's own sets and history (qcard:local:…) stay unless it's the guest being deleted.
-        try { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:") || (!account && k.startsWith("qcard:"))) localStorage.removeItem(k); } catch {}
-        if (account) await platform.deleteAccount(); // which signs out, and the page starts over (see boot)
-        else location.reload(); // a guest starts over as a new visitor
-      } catch (err) {
+      try { await deleteEverything(); }
+      catch (err) {
         e.target.disabled = false; e.target.textContent = "Delete everything";
+        const blocked = err?.code === "auth/popup-blocked";
         $("#delErr").hidden = false;
-        $("#delErr").textContent = err?.code === "auth/popup-blocked" ? "Your data is deleted. To delete the account itself, allow pop-ups for this site so Google can confirm it's you, then try again."
+        $("#delErr").textContent = err?.early ? `Nothing was deleted: Google needs to confirm it's you first. ${blocked ? "Allow pop-ups for this site, then try again." : "Try again."}`
+          : blocked ? "Your data is deleted. To delete the account itself, allow pop-ups for this site so Google can confirm it's you, then try again."
           : "Something went wrong. Try again.";
       }
     };
+  }
+  // Deletes everything the site keeps for this person: an account's data in the database and its sign-in, or a guest's
+  // data in this browser. Settings' Delete and a birthday under 13 (account/birth.js) both use it. forced: the site is
+  // closing the account, so it goes even if Google's confirmation is closed (the bare sign-in stays then, signed out), and
+  // the page starts over as a guest instead of at the welcome pop-up.
+  async function deleteEverything(forced = false) {
+    let confirmed = true;
+    // Google's confirmation comes first, while the click still lets its window open (err.early: nothing deleted yet).
+    if (account) try { await platform.confirmSignIn(); } catch (err) { if (!forced) throw Object.assign(err, { early: true }); confirmed = false; }
+    stopPrefs();
+    const paths = [];
+    for (const c of ["sets", "kanji", "training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
+    for (const p of [...paths, "meta/books", "meta/courses", "meta/views", "meta/samples"]) await db.doc(p).delete();
+    try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
+    // Every choice this site kept in this browser goes too (colours, picks, a practice to resume with its writing): signed in,
+    // they're the account's copy. A guest's own sets and history (qcard:local:…) stay unless it's the guest being deleted.
+    try { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:") || (!account && k.startsWith("qcard:"))) localStorage.removeItem(k); } catch {}
+    if (forced) { try { localStorage.setItem("qcard:mode", "local"); } catch {} welcomed(); }
+    if (!account) return location.reload(); // a guest starts over as a new visitor
+    // Deleting the account signs out, and the page starts over (see boot).
+    if (!confirmed) return platform.signOut();
+    try { await platform.deleteAccount(); } catch (err) { if (!forced) throw err; await platform.signOut(); }
   }

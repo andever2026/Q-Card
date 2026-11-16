@@ -62,6 +62,12 @@ window.qcardPlatform = {
   onAuth: (cb) => onAuthStateChanged(auth, (u) => cb(who(u))),
   signIn: () => signInWithPopup(auth, new GoogleAuthProvider()),
   signOut: () => signOut(auth),
+  // Deleting an account needs a sign-in from the last 5 minutes. Older, Google's "confirm it's you" opens here, before
+  // anything is deleted, straight from the click (a browser may block the window once the deleting has taken a while).
+  confirmSignIn: async () => {
+    const u = auth.currentUser;
+    if (u && Date.now() - Date.parse(u.metadata?.lastSignInTime) > 4 * 60e3) await reauthenticateWithPopup(u, new GoogleAuthProvider());
+  },
   // Deleting the sign-in itself needs a recent sign-in; after a while Google asks the person to confirm it's them first.
   deleteAccount: async () => {
     const u = auth.currentUser;
