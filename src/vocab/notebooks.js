@@ -73,7 +73,8 @@
     catch { S.notebooks = was; renderNotebooks(); banner("Couldn't save that. Try again."); return false; }
   }
   // One notebook's line in the list, replaced.
-  const saveNb = (n) => saveNotebooks(nbList().map((x) => (x.id === n.id ? n : x)));
+  // (A group's notebook saves its own line: n.save, groups/groups.js.)
+  const saveNb = (n) => (n.save ? n.save(n) : saveNotebooks(nbList().map((x) => (x.id === n.id ? n : x))));
   // Every vocab document in one place (a notebook, or a notebook's shared copy), deleted.
   async function emptyVocab(at) {
     for (const c of ["sets", "kanji"]) for (const d of (await at.collection(c).get()).docs) await at.doc(`${c}/${d.id}`).delete();

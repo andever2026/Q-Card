@@ -519,6 +519,14 @@ await part("7. Group rules", async () => {
   ok(await as("olga", "PATCH", `shares/${S}`, info) === 200 && await as(eve, "PATCH", `shares/${S}/sets/a`, doc) === 200 && await as("mo", "PATCH", `shares/${S}/sets/a`, doc) === 403 && await as(null, "GET", `shares/${S}/sets/a`) === 200
     && await as("olga", "PATCH", `listed/${S}`, line) === 403 && await as(eve, "DELETE", `shareOwners/${S}`) === 403 && await as("mo", "GET", `shareOwners/${S}`) === 403,
     "groups: its copy is kept up to date by whoever may share or edit, anyone with the link reads it, it can't go on Browse, and Stop sharing takes Share by link");
+  ok(await as("olga", "PATCH", at("/roles/sharer"), role("Sharer", "share")) === 200 && await as("olga", "PATCH", at("/roles/keeper"), role("Keeper", "notebooks")) === 200
+    && await as("olga", "PATCH", at("/members/max"), member("max", "sharer")) === 200 && await as("olga", "PATCH", at("/members/ann"), member("ann", "keeper")) === 200, "(Max may share by link, Ann may manage notebooks)");
+  const nbLine = (share, name = "A") => ({ fields: { name: str(name), share: share ? str(share) : { nullValue: null } } });
+  ok(await as("max", "PATCH", at("/notebooks/n1"), nbLine(S)) === 200 && await as("max", "PATCH", at("/notebooks/n1"), nbLine(S, "B")) === 403 && await as(eve, "PATCH", at("/notebooks/n1"), nbLine(null)) === 403
+    && await as("ann", "PATCH", at("/notebooks/n1"), nbLine(null, "B")) === 200 && await as("ann", "PATCH", at("/notebooks/n1"), nbLine(S, "A")) === 200 && await as("ann", "PATCH", at("/notebooks/n1"), { fields: { name: str("A"), share: { integerValue: "1" } } }) === 403,
+    "groups: a group notebook's line says it's shared (share): Share by link sets only that, Manage notebooks anything");
+  ok(await as("ann", "PATCH", `shares/${S}/sets/b`, doc) === 200 && await as("ann", "GET", `shareOwners/${S}`) === 200 && await as("max", "GET", `shareOwners/${S}`) === 200,
+    "groups: Manage notebooks keeps the shared copy up to date too, and can stop sharing it");
   // Handing it over, leaving, deleting
   ok(await as("olga", "PATCH", at(), group("eve", [T2, "member", true])) === 403 && await as(eve, "PATCH", at("/members/eve"), member("Eve", "owner", "mail")) === 403
     && await together("olga", [[at(), group("eve", [T2, "member", true])], [at("/members/eve"), member("Eve", "owner", "mail")]]) === 403
@@ -627,6 +635,32 @@ await part("9. Joining a group by link or invite", async () => {
   ok(await until(async () => !(await getDoc(at())) && !(await getDoc(`groupLinks/${token2}`)) && !(await getDoc(`groupMail/${g}_late@example.com`))), "delete group: its link's page and invites go with it");
   await clean(page, "join (owner)"); await clean(mo, "join (Mo)"); await clean(ivy, "join (Ivy)"); await clean(eve, "invites (Eve)");
   for (const p of [page, mo, ivy, eve]) await p.context().close();
+});
+
+await part("10. Sharing a group's notebook by link", async () => {
+  const { page, uid } = await newAccount("olga");
+  await menu(page, '[data-nb-do="newGroup"]'); await nameIt(page, "Club");
+  const g = await groupOf(uid), at = (p = "") => `groups/${g}${p}`;
+  await menu(page, '[data-nb-do="groupNb"]'); await nameIt(page, "Kana");
+  await until(async () => (await text(page, "#nbName")) === "Kana");
+  await goTable(page);
+  await page.fill("#nsCol", "Kana"); await page.fill("#nsUnit", "Week 1"); await page.fill("#nsName", "Vowels"); await page.click('#newSetForm [type="submit"]');
+  const n = await until(async () => { const d = await docsAt(at()), id = Object.keys(d).find((p) => /\/notebooks\/[^/]+$/.test(p) && d[p].name === "Kana")?.split("/").at(-1); return id && Object.keys(d).some((p) => p.includes(`/notebooks/${id}/sets/`)) && id; });
+  await menu(page, '[data-nb-do="share"]'); await page.click("#askYes");
+  const sid = await until(async () => (await getDoc(at(`/notebooks/${n}`)))?.share);
+  ok(!!sid && (await getDoc(`shareOwners/${sid}`))?.group === g && await until(async () => Object.keys(await docsAt(`shares/${sid}`)).some((p) => p.includes("/sets/"))) && !(await page.$("#shareListed")),
+    "group share: the group shares its notebook, in writes the rules accept, with the copy made and no Browse option");
+  await page.click("#askYes");
+  // A Member opens it: nothing tries to write the copy.
+  const mo = await openSite("mo"), mid = await signIn(mo);
+  await as("admin", "PATCH", at(`/members/${mid}`), { fields: { name: str("mo"), role: str("member"), joinedAt: str("x"), via: str("x") } });
+  await as("admin", "PATCH", `users/${mid}/meta/groups`, { fields: { list: { arrayValue: { values: [{ mapValue: { fields: { id: str(g), name: str("Club") } } }] } } } });
+  await menu(mo, `[data-nb="${g}/${n}"]`); await until(async () => (await text(mo, "#nbName")) === "Kana"); await sleep(2500);
+  await clean(mo, "group share (member)");
+  await gs(page); await page.click("#gsDelete"); await page.click("#askYes");
+  ok(await until(async () => !(await getDoc(at())) && !(await getDoc(`shareOwners/${sid}`)) && !(await getDoc(`shares/${sid}`)) && !Object.keys(await docsAt(`shares/${sid}`)).length), "delete group: its notebook's shared copy goes with it");
+  await clean(page, "group share (owner)");
+  for (const p of [page, mo]) await p.context().close();
 });
 
 await browser.close(); server.close();

@@ -18,13 +18,14 @@ service cloud.firestore {
     // not: the id is long and random, and the collection can't be listed. shareOwners/<id>, made first and never
     // changed, says whose it is: only that account can write the copy, and nobody else can read whose it is.
     // A group's notebook (groups/, below) is shared by the group instead: shareOwners/<id> names the group, and its
-    // members who may share or edit its notebooks keep the copy up to date. A group's shared notebook is never listed.
+    // members who may share, edit or manage its notebooks keep the copy up to date. A group's shared notebook is never listed.
     function ownsShare(id) {
       let o = get(/databases/$(database)/documents/shareOwners/$(id)).data;
-      return request.auth != null && (o.get('uid', '') == request.auth.uid || o.get('group', '') != '' && (can(o.group, 'share') || can(o.group, 'edit')));
+      return request.auth != null && (o.get('uid', '') == request.auth.uid || o.get('group', '') != '' && (can(o.group, 'share') || can(o.group, 'edit') || can(o.group, 'notebooks')));
     }
     match /shareOwners/{id} {
-      allow get, delete: if request.auth != null && (resource.data.get('uid', '') == request.auth.uid || (resource.data.get('group', '') != '' && can(resource.data.group, 'share')));
+      allow get, delete: if request.auth != null && (resource.data.get('uid', '') == request.auth.uid
+        || (resource.data.get('group', '') != '' && (can(resource.data.group, 'share') || can(resource.data.group, 'notebooks'))));
       allow create: if request.auth != null && id.size() >= 20 && (request.resource.data.keys().hasOnly(['uid', 'nb', 'createdAt']) && request.resource.data.uid == request.auth.uid
         || request.resource.data.keys().hasOnly(['group', 'nb', 'createdAt']) && request.resource.data.group is string && can(request.resource.data.group, 'share'));
     }
@@ -160,7 +161,10 @@ service cloud.firestore {
       // renaming and deleting them takes Manage notebooks.
       match /notebooks/{nb} {
         allow read: if inGroup(g);
-        allow create, update: if can(g, 'notebooks') && request.resource.data.keys().hasOnly(['name', 'at']) && okName(request.resource.data.name, 60);
+        // Its line { name, at, share }: share, the id of its shared copy while it's shared by link, set by whoever may share.
+        allow create, update: if request.resource.data.keys().hasOnly(['name', 'at', 'share']) && okName(request.resource.data.name, 60)
+          && (request.resource.data.get('share', null) == null || request.resource.data.share is string)
+          && (can(g, 'notebooks') || resource != null && can(g, 'share') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['share']));
         allow delete: if can(g, 'notebooks') || owns(g);
         match /{kind}/{doc} {
           allow read: if inGroup(g);

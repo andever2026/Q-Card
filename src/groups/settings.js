@@ -120,11 +120,14 @@
     try { await emptyGroup(g.id); } catch { banner("Couldn't delete all of the group. Try again."); return syncGroups(); }
     await saveGroups(groupIndex.filter((x) => x.id !== g.id));
   }
-  // Everything in a group, deleted in the order the rules allow: its notebooks, roles and requests, then everyone in it
+  // Everything in a group, deleted in the order the rules allow: its notebooks (and their shared copies), roles and requests, then everyone in it
   // (its owner last), its join link's page, and the group.
   async function emptyGroup(id) {
     const at = platform.group(id), info = dataOrNull(await at.info.get()), list = async (c) => (await at.db.collection(c).get()).docs.map((d) => d.id);
-    for (const n of await list("notebooks")) { await emptyVocab(inNotebook(at.db, n)); await at.db.doc("notebooks/" + n).delete(); }
+    for (const d of (await at.db.collection("notebooks").get()).docs) {
+      if (d.data().share) await dropShare(d.data().share); // shared-notebooks/publish.js
+      await emptyVocab(inNotebook(at.db, d.id)); await at.db.doc("notebooks/" + d.id).delete();
+    }
     for (const c of ["roles", "requests"]) for (const d of await list(c)) await at.db.doc(`${c}/${d}`).delete();
     for (const u of (await list("members")).filter((u) => u !== uid)) await at.db.doc("members/" + u).delete();
     for (const end of groupGone) await end(id, info);

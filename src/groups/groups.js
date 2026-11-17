@@ -29,8 +29,12 @@
   const splitNb = (id) => { const [g, n] = String(id).split("/"); return n ? { g, n } : null; };
 
   // The groups' notebooks, as the notebook menu and the rest of the page see them (vocab/notebooks.js).
+  // Sharing one by link (shared-notebooks/publish.js): canShare, who may; keeps, who keeps its copy up to date (firestore.rules,
+  // ownsShare); save keeps the id of its copy (share) on its line.
   nbOthers = () => [...groups.values()].filter(groupReady).flatMap((g) => g.notebooks.map((n) => ({ id: `${g.id}/${n.id}`, name: n.name, group: g.id,
-    edit: perm(g, "edit") || perm(g, "notebooks"), ...(perm(g, "notebooks") ? { rename: (name) => saveGroupNb(g, n, name), drop: () => dropGroupNb(g, n) } : {}) })));
+    edit: perm(g, "edit") || perm(g, "notebooks"), ...(perm(g, "notebooks") ? { rename: (name) => saveGroupNb(g, n, name), drop: () => dropGroupNb(g, n) } : {}),
+    ...(n.share ? { share: n.share } : {}), canShare: perm(g, "share") || perm(g, "notebooks"), keeps: perm(g, "share") || perm(g, "edit") || perm(g, "notebooks"),
+    save: (x) => saveGroupNb(g, n, x.name, x.share || null) })));
   nbPending = (id) => { const x = splitNb(id); return !!x && !!account && (groupIndex === null || (groupIndex.some((y) => y.id === x.g) && !groupReady(groups.get(x.g)))); };
   const ownAt = nbAt;
   nbAt = (id) => { const x = splitNb(id); return x && account ? inNotebook(platform.group(x.g).db, x.n) : ownAt(id); };
@@ -61,7 +65,8 @@
     g.off = [at.db.doc("members/" + uid).onSnapshot(hear("me", (s) => { g.me = dataOrNull(s); if (!g.me) lost(); }), lost),
       at.info.onSnapshot(hear("info", (s) => (g.info = dataOrNull(s))), lost),
       at.db.collection("roles").onSnapshot(hear("roles", (s) => (g.roles = new Map(s.docs.map((d) => [d.id, d.data()])))), lost),
-      at.db.collection("notebooks").onSnapshot(hear("notebooks", (s) => (g.notebooks = s.docs.map((d) => ({ id: d.id, name: tidy(d.data().name, 60) || NB_NAME, at: String(d.data().at || "") }))
+      at.db.collection("notebooks").onSnapshot(hear("notebooks", (s) => (g.notebooks = s.docs.map((d) => ({ id: d.id, name: tidy(d.data().name, 60) || NB_NAME, at: String(d.data().at || ""),
+        ...(/^[A-Za-z0-9]{20,40}$/.test(String(d.data().share ?? "")) ? { share: d.data().share } : {}) }))
         .sort((a, b) => a.at.localeCompare(b.at) || coll.compare(a.name, b.name)))), lost)];
   }
   async function lostGroup(g) {
@@ -116,9 +121,13 @@
     openNotebook(`${id}/${n.id}`);
   }
   nbActs.groupNb = newGroupNb;
-  async function saveGroupNb(g, n, name) {
-    try { await platform.group(g.id).db.doc("notebooks/" + n.id).set({ name, at: n.at || new Date().toISOString() }); return true; }
+  // A new line, or (an existing one) its name and, given, its share: shown at once, before the database's answer comes back.
+  async function saveGroupNb(g, n, name, share) {
+    const line = platform.group(g.id).db.doc("notebooks/" + n.id), had = g.notebooks.find((x) => x.id === n.id);
+    try { await (had ? line.update({ name, ...(share !== undefined ? { share } : {}) }) : line.set({ name, at: n.at || new Date().toISOString() })); }
     catch { banner("Couldn't save that. Try again."); return false; }
+    if (had) { Object.assign(had, { name }, share !== undefined ? { share: share || undefined } : {}); renderNotebooks(); }
+    return true;
   }
   async function dropGroupNb(g, n) {
     try { await platform.group(g.id).db.doc("notebooks/" + n.id).delete(); return true; } catch { banner("Couldn't delete that notebook. Try again."); return false; }

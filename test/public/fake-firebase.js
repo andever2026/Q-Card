@@ -43,9 +43,13 @@ const segs = (p) => p.split("/").filter(Boolean);
 function allowed(path, write = false, v, q, after = data) {
   const s = segs(path), no = () => { throw { code: "permission-denied", message: "rules: " + path }; };
   const isDev = () => !!current && `dev/${current.uid}` in data;
+  // A group's permission, for this account (groups, below).
+  const canIn = (G, ...ps) => { const m = current && data[`groups/${G}/members/${current.uid}`]; return !!m && (m.role === "owner" || ps.some((p) => data[`groups/${G}/roles/${m.role}`]?.perms?.[p] === true)); };
   // Shared notebooks (firestore.rules): anyone reads a share they have the id of; only its owner writes it; whose it is, only the owner reads.
+  // A group's shared notebook: whoever in the group may share, edit or manage its notebooks writes it.
+  const ownsShare = (id) => { const o = data[`shareOwners/${id}`]; return !!current && (o?.uid === current.uid || (!!o?.group && canIn(o.group, "share", "edit", "notebooks"))); };
   if (s[0] === "shares") {
-    const mine = () => !!current && data[`shareOwners/${s[1]}`]?.uid === current.uid;
+    const mine = () => ownsShare(s[1]);
     if (s.length === 1 || s.length > 4) no();
     if (!write) { if (`takedowns/${s[1]}` in data && !isDev() && !mine()) no(); return; } // taken down: its owner and developers only
     if (!mine() || (s.length > 2 && !["sets", "kanji", "meta"].includes(s[2]))) no();
@@ -55,12 +59,15 @@ function allowed(path, write = false, v, q, after = data) {
   if (s[0] === "shareOwners") {
     const has = data[path];
     if (s.length !== 2 || !current) no();
-    if (write === "set" && !has ? !(s[1].length >= 20 && v.uid === current.uid && Object.keys(v).every((k) => ["uid", "nb", "createdAt"].includes(k))) : !(write !== "set" && write !== "update" && has?.uid === current.uid)) no();
+    const ours = (o) => o?.uid === current.uid || (!!o?.group && canIn(o.group, "share", "notebooks"));
+    if (write === "set" && !has ? !(s[1].length >= 20 && Object.keys(v).every((k) => ["uid", "group", "nb", "createdAt"].includes(k)) && (v.uid ? v.uid === current.uid && !v.group : !!v.group && canIn(v.group, "share")))
+      : !(write !== "set" && write !== "update" && ours(has))) no();
     return;
   }
-  // The Browse page's lines: anyone reads them; the owner writes one (not while taken down); the owner or a developer deletes it.
+  // The Browse page's lines: anyone reads them; the owner writes one (not while taken down, never a group's); the owner or a
+  // developer deletes it.
   if (s[0] === "listed") {
-    const mine = !!current && data[`shareOwners/${s[1]}`]?.uid === current.uid;
+    const mine = ownsShare(s[1]) && (write === "delete" || !data[`shareOwners/${s[1]}`]?.group);
     if (!write && s.length <= 2) return;
     if (s.length !== 2 || (write === "delete" ? !mine && !isDev() : !mine || `takedowns/${s[1]}` in data || Object.keys(v).some((k) => !["name", "about", "sets", "words", "updatedAt"].includes(k))
       || typeof v.name !== "string" || v.name.length > 100 || typeof v.about !== "string" || v.about.length > 200 || !Number.isInteger(v.sets) || !Number.isInteger(v.words) || typeof v.updatedAt !== "string")) no();
@@ -113,7 +120,9 @@ function allowed(path, write = false, v, q, after = data) {
       if (write === "delete" ? s[3] !== me && !can("approve") && !owns : s[3] !== me || !!mine || G?.link?.approve !== true || v.token !== G.link.token || v.role !== G.link.role) no();
       return;
     }
-    if (s[2] === "notebooks") { if (s.length === 4 ? !can("notebooks") && !(write === "delete" && owns) : !["sets", "kanji", "meta"].includes(s[4]) || !(can("edit") || can("notebooks"))) no(); return; }
+    // (A notebook's line: Share by link changes only its share.)
+    const onlyShare = () => !!was && write !== "delete" && Object.keys({ ...was, ...v }).every((k) => k === "share" || JSON.stringify(was[k]) === JSON.stringify(v[k]));
+    if (s[2] === "notebooks") { if (s.length === 4 ? !can("notebooks") && !(write === "delete" && owns) && !(can("share") && onlyShare()) : !["sets", "kanji", "meta"].includes(s[4]) || !(can("edit") || can("notebooks"))) no(); return; }
     no();
   }
   // Invites to a group by email address: whoever signed in with that address reads (and lists) theirs and deletes them;

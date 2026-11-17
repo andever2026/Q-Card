@@ -23,7 +23,7 @@
   let shareAt = "", shareRev = new Map(), shareName = "", shareLine = "", shareBusy = false, shareAgain = false, shareTimer = 0;
   async function syncShare() {
     const n = nbNow(), id = n?.share;
-    if (!id || !account || !vocabIn()) return; // all of it, or what hasn't come in yet would be deleted from the copy
+    if (!id || !account || !vocabIn() || n.keeps === false) return; // all of it, or what hasn't come in yet would be deleted from the copy
     if (shareBusy) { shareAgain = true; return; }
     shareBusy = true;
     try {
@@ -48,7 +48,7 @@
   // Shares the open notebook: "" if it couldn't be.
   async function startShare() {
     const id = newLinkId(), sh = platform.shared(id), n = nbNow(), now = new Date().toISOString();
-    try { await sh.owner.set({ uid, nb: n.id, createdAt: now }); await sh.info.set({ name: n.name, rev: [], updatedAt: now }); }
+    try { await sh.owner.set({ ...(n.group ? { group: n.group } : { uid }), nb: n.id, createdAt: now }); await sh.info.set({ name: n.name, rev: [], updatedAt: now }); }
     catch { banner("Couldn't share it. Try again."); return ""; }
     if (!(await saveNb({ ...n, share: id }))) { dropShare(id).catch(() => {}); return ""; }
     await syncShare();
@@ -62,7 +62,7 @@
     if (shareAt === id) shareAt = "";
   }
   // A notebook that's deleted (or the whole account) takes its shared copy with it.
-  nbGone.push(async (id) => { const share = nbList().find((n) => n.id === id)?.share; if (share) await dropShare(share); });
+  nbGone.push(async (id) => { const share = allNbs().find((n) => n.id === id)?.share; if (share) await dropShare(share); });
   async function stopShare() {
     const { share, listed, about, ...rest } = nbNow();
     try { await dropShare(share); } catch { return banner("Couldn't stop sharing. Try again."); }
@@ -75,24 +75,26 @@
         <p class="muted small">Only the notebook is shared, not your progress, your settings or your other notebooks.</p>`, "Create link");
       if (!ok || !(await startShare())) return;
     }
-    const id = nbNow().share, down = await takenDown(id);
+    // (A group's notebook is never listed on Browse: its group shares it with whoever has the link, nobody else.)
+    const id = nbNow().share, down = await takenDown(id), lists = !down && !nbNow().group;
     const closed = ask(`“${nbNow().name}” is shared`, `<p>${down ? "This notebook was reported and taken down, so its link works only for you now." : "Anyone who has this link can look at it and add it to their own account."}</p>
       <input class="tsearch" id="shareLinkIn" readonly aria-label="Link" value="${esc(shareLink(id))}">
       <p class="tactions sharedo"><button class="btn" type="button" id="shareCopy">Copy link</button><button class="link" type="button" id="shareStop">Stop sharing</button></p>
-      ${down ? "" : `<label class="checkrow"><input type="checkbox" id="shareListed"${nbNow().listed ? " checked" : ""}> Also list it on the Browse page, where anyone can find it</label>
+      ${!lists ? "" : `<label class="checkrow"><input type="checkbox" id="shareListed"${nbNow().listed ? " checked" : ""}> Also list it on the Browse page, where anyone can find it</label>
       <input class="tsearch" id="shareAbout" maxlength="200" aria-label="About this notebook" placeholder="What's in it, in a few words (optional)" value="${esc(nbNow().about || "")}"${nbNow().listed ? "" : " hidden"}>`}`, "Done");
     let stop = false;
-    if (!down) {
+    if (lists) {
       $("#shareListed").onchange = (e) => { $("#shareAbout").hidden = !e.target.checked; };
       enterYes($("#shareAbout"));
     }
     copyLink($("#shareCopy"), $("#shareLinkIn"));
     $("#shareStop").onclick = () => { stop = true; $("#askDlg").close("no"); };
-    const done = await closed, listed = !down && $("#shareListed").checked, about = listed ? tidy($("#shareAbout").value, 200) : "";
+    const done = await closed, listed = lists && $("#shareListed").checked, about = listed ? tidy($("#shareAbout").value, 200) : "";
     // Done keeps the choice about the Browse page; Cancel leaves it as it was.
-    if (done && !down && (listed !== !!nbNow().listed || about !== (nbNow().about || ""))) { const { listed: was, about: old, ...n } = nbNow(); if (await saveNb({ ...n, ...(listed ? { listed, about } : {}) })) await syncShare(); }
+    if (done && lists && (listed !== !!nbNow().listed || about !== (nbNow().about || ""))) { const { listed: was, about: old, ...n } = nbNow(); if (await saveNb({ ...n, ...(listed ? { listed, about } : {}) })) await syncShare(); }
     if (stop && await ask(`Stop sharing “${nbNow().name}”?`, `<p>The link stops working. People who already added this notebook keep what they have, and get no more changes from you.</p>`, "Stop sharing", true)) await stopShare();
   }
-  // (Not a notebook that was added from somebody else's shared one: that one is its owner's to share.)
+  // (Not a notebook that was added from somebody else's shared one: that one is its owner's to share. A group's notebook, for
+  // whoever in it may share it.)
   nbMore.push({ key: "share", label: () => (nbNow()?.share ? "Shared: link and options" : "Share this notebook"), icon: "M8.6 13.5 L15.4 17.5 M15.4 6.5 L8.6 10.5 M21 5 a3 3 0 1 1 -6 0 a3 3 0 0 1 6 0 M9 12 a3 3 0 1 1 -6 0 a3 3 0 0 1 6 0 M21 19 a3 3 0 1 1 -6 0 a3 3 0 0 1 6 0",
-    run: shareDialog, when: () => !!account && !nbNow()?.from && !nbNow()?.group });
+    run: shareDialog, when: () => !!account && !nbNow()?.from && (!nbNow()?.group || nbNow().canShare) });

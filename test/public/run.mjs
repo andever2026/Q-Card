@@ -2487,7 +2487,7 @@ if (entry.length > 1) {
   const kana = Object.keys(d).find((p) => p.startsWith(at("/notebooks/")) && d[p].name === "Kana")?.split("/")[3];
   ok(!!kana && (await text(gp, "#nbName")) === "Kana", "groups: New notebook in the group makes it there and opens it");
   m = await menuText();
-  ok(m === "Notebooks, My notebook, Food words, Study group, Kana*, New notebook in Study group, |, New notebook, Rename this notebook, New group, Delete this notebook", "groups: its owner can rename and delete it; it isn't shared or moved like her own", m);
+  ok(m === "Notebooks, My notebook, Food words, Study group, Kana*, New notebook in Study group, |, New notebook, Rename this notebook, Share this notebook, New group, Delete this notebook", "groups: its owner can rename, share and delete it; it isn't moved like her own", m);
   await goTable(gp);
   await gp.fill("#nsCol", "Kana"); await gp.fill("#nsUnit", "Week 1"); await gp.fill("#nsName", "Vowels"); await gp.click('#newSetForm [type="submit"]'); await gp.waitForTimeout(500);
   d = await fs();
@@ -2654,6 +2654,15 @@ if (entry.length > 1) {
   ok(!(await fs())[mail("q@example.com")] && !/invited you/.test(await menuText()), "invites: Decline takes it away");
   // One left waiting goes when the group is deleted.
   await as(O); await gsOpen(); await gp.fill("#gsMailIn", "late@example.com"); await gp.click("#gsMailGo"); await gp.waitForTimeout(300); await gp.click("#askYes");
+  // A group's notebook shared by link (shared-notebooks/publish.js): the group owns the copy, which is never on Browse.
+  await openNb("Food words"); await nbDo("share"); await gp.click("#askYes"); await gp.waitForTimeout(900);
+  d = await fs();
+  const sid = d[at(`/notebooks/${food}`)]?.share;
+  ok(!!sid && JSON.stringify(d[`shareOwners/${sid}`]) === JSON.stringify({ group: gid, nb: `${gid}/${food}`, createdAt: d[`shareOwners/${sid}`]?.createdAt }) && d[`shares/${sid}`]?.name === "Food words" && !!d[`shares/${sid}/sets/food`]
+    && (await gp.inputValue("#shareLinkIn")).endsWith(`#shared/${sid}`) && !(await gp.$("#shareListed")), "group share: its notebook is shared by the group, its line keeps the link's id, and it can't go on Browse", JSON.stringify(d[`shareOwners/${sid}`]));
+  await gp.click("#askYes");
+  await put(at(`/notebooks/${food}/sets/extra`), { collection: "Made up", unit: "Week 3", name: "Extra", words: [{ id: "a", en: "bread", kana: "パン", kanji: "" }], updatedAt: "x" }); await gp.waitForTimeout(2500);
+  ok(!!(await fs())[`shares/${sid}/sets/extra`] && /Shared: link and options/.test(await menuText()), "group share: what changes in the group's notebook reaches the shared copy");
   // Delete my account waits while she owns a group.
   await settings(gp, "account"); await gp.click("#delStart"); await gp.waitForTimeout(200);
   ok(/You own “Japanese club”\. Hand it over/.test(await text(gp, "#delOwn")) && !(await gp.$("#delYes")), "delete account: not while she owns a group; it says to hand it over or delete it first", await text(gp, "#delOwn"));
@@ -2676,7 +2685,8 @@ if (entry.length > 1) {
   ok(/^Delete “Japanese club”\?$/.test(await text(gp, "#askTitle")) && /Its notebook and everything in it/.test(await text(gp, "#askText")), "delete group: asks first, saying what goes", await text(gp, "#askText"));
   await gp.click("#askYes"); await gp.waitForTimeout(1200);
   d = await fs();
-  ok(!Object.keys(d).some((p) => p.startsWith(at() + "/") || p === at()) && !d[`groupLinks/${token3}`] && !d[mail("late@example.com")] && JSON.stringify(d["users/m1/meta/groups"].list) === "[]", "delete group: all of it is deleted, its link's page and invites too, and it leaves his list");
+  ok(!Object.keys(d).some((p) => p.startsWith(at() + "/") || p === at() || p.startsWith(`shares/${sid}`)) && !d[`shareOwners/${sid}`] && !d[`groupLinks/${token3}`] && !d[mail("late@example.com")] && JSON.stringify(d["users/m1/meta/groups"].list) === "[]",
+    "delete group: all of it is deleted, its notebook's shared copy, its link's page and invites too, and it leaves his list");
   // Closed by the site (a birthday under 13), an account hands each group it owns on: to whoever has been in it longest of
   // those whose role can do the most (Eve, an Editor, before Olga, a Member who joined first).
   await nbDo("newGroup"); await named("Club two");
