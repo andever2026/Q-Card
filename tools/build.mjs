@@ -13,7 +13,7 @@
 //   <!--#if public-->  //#if claude  /*#if public*/   …   #else   …   #endif
 // Marker lines themselves never reach the output.
 // `node tools/build.mjs --check` fails if the committed public files are out of date.
-// `node tools/build.mjs --beta` builds the beta site instead (see .github/workflows/pages.yml); it's never committed.
+// `node tools/build.mjs --beta` (or `--dev`) builds that test site instead (see .github/workflows/pages.yml); it's never committed.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join, relative } from "node:path";
@@ -23,7 +23,7 @@ import * as esbuild from "esbuild";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const at = (p) => join(root, p);
 const check = process.argv.includes("--check");
-const beta = process.argv.includes("--beta");
+const preview = ["beta", "dev"].find((name) => process.argv.includes(`--${name}`)); // the test site being built, if any
 
 const INCLUDE = /^\s*(?:<!--|\/\/|\/\*)\s*#include\s+(\S+?)\s*(?:-->|\*\/)?\s*$/;
 export function expand(file, seen = []) {
@@ -93,19 +93,20 @@ async function bundle(imports, licenses = LICENSES) {
   return r.outputFiles[0].text;
 }
 
-// The beta site lives on the same site as the live one (/Q-Card/beta/), so it gets its own browser storage keys
-// ("jpq-beta:…", "qcard-beta:…"): trying things there never touches the live site's guest data or settings.
-// Signing in with Google is shared, so beta uses the same account and its data.
-function toBeta(text, file) {
-  const out = text.replaceAll('"jpq:', '"jpq-beta:').replaceAll('"qcard:', '"qcard-beta:');
+// The test sites live on the same site as the live one (/Q-Card/beta/, /Q-Card/dev/), so each gets its own browser storage
+// keys ("jpq-beta:…", "qcard-dev:…"): trying things there never touches the live site's guest data or settings.
+// Signing in with Google is shared, so they use the same account and its data.
+function toPreview(text, file) {
+  const out = text.replaceAll('"jpq:', `"jpq-${preview}:`).replaceAll('"qcard:', `"qcard-${preview}:`);
   if (file !== "index.html") return out;
-  const tag = '<span style="font-size:.45em; vertical-align:middle; padding:2px 8px; border-radius:99px; background:var(--ink); color:var(--surface)">Beta</span>';
-  const page = out.replaceAll("<title>Japanese Vocab Practice</title>", "<title>Japanese Vocab Practice (beta)</title>")
+  const label = preview[0].toUpperCase() + preview.slice(1);
+  const tag = `<span style="font-size:.45em; vertical-align:middle; padding:2px 8px; border-radius:99px; background:var(--ink); color:var(--surface)">${label}</span>`;
+  const page = out.replaceAll("<title>Japanese Vocab Practice</title>", `<title>Japanese Vocab Practice (${preview})</title>`)
     .replace("<h1>Japanese Vocab Practice</h1>", `<h1>Japanese Vocab Practice ${tag}</h1>`);
-  if (!page.includes(tag)) throw new Error("beta: couldn't find the page title to tag");
+  if (!page.includes(tag)) throw new Error(`${preview}: couldn't find the page title to tag`);
   return page;
 }
-const variant = (text, file) => (beta ? toBeta(text, file) : text);
+const variant = (text, file) => (preview ? toPreview(text, file) : text);
 // data/<name>.json as js/<name>.js, which leaves it in window.QCardData[name] for the page to pick up (see dataFile in src/page/data-files.js).
 const dataScript = (name) => ({
   [`js/${name}.js`]: `// Made by tools/build.mjs from data/${name}.json; edit that file instead.\n` +
@@ -149,7 +150,7 @@ const files = {
   "study-tools/index.html": sidePage("study-tools/tools.html"),
 };
 
-if (check && beta) throw new Error("--check is for the committed files; the beta build is never committed");
+if (check && preview) throw new Error(`--check is for the committed files; the ${preview} build is never committed`);
 if (check) {
   const stale = Object.entries(files).filter(([p, t]) => !existsSync(at(p)) || readFileSync(at(p), "utf8") !== t).map(([p]) => p);
   if (stale.length) { console.error(`Out of date: ${stale.join(", ")}. Run npm run build and commit the result.`); process.exit(1); }

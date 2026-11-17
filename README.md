@@ -48,7 +48,7 @@ Q-Card sets no cookies for tracking or ads and has no analytics. What it stores 
 | `tools/build.mjs` | Builds the site (`index.html`, `ai/index.html`, `privacy/index.html`, `study-tools/index.html`, `js/*.js`, `css/theme.css`) and `build/claude-ai.html` (the claude.ai copy). It stops if two elements of a page share an id. |
 | `tools/repeats.mjs` | Fails when the same code is written in two places under `src/`. Part of `npm run check`. |
 | `llms.txt` | A short pointer for AI tools to the AI page (`ai/`), the page people give to their AI assistant to make an import file (see Vocab files). Everything on that page is in its HTML, for AI tools that don't run scripts. |
-| `index.html`, `ai/`, `privacy/`, `study-tools/`, `js/`, `css/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus a beta build of the `beta` branch. `js/templates.js` and `js/samples.js` are the two data files above as scripts, which a page opened straight from disk may load (it can't fetch files), so a downloaded copy works offline as a guest by opening `index.html`. The privacy policy's git history (`src/side-pages/privacy.html`) is the list of changes to it. |
+| `index.html`, `ai/`, `privacy/`, `study-tools/`, `js/`, `css/` | Built files, committed. `.github/workflows/pages.yml` publishes them from `main`, plus test builds of the `beta` and `dev` branches. `js/templates.js` and `js/samples.js` are the two data files above as scripts, which a page opened straight from disk may load (it can't fetch files), so a downloaded copy works offline as a guest by opening `index.html`. The privacy policy's git history (`src/side-pages/privacy.html`) is the list of changes to it. |
 | `.nvmrc` | The Node version the build and the tests run on: GitHub reads it, and so does `nvm use`. |
 | `CLAUDE.md` | Working rules for Claude sessions on this repo (what to never commit, how changes reach the site). |
 | `test/` | Browser tests for the public site (`test/public` with a fake Firebase, `test/emulator` with the real one on the Firebase emulators) and for the claude.ai copy (`test/claude`, with a stand-in for claude.ai), and the checker's accuracy tests (`test/checker`). |
@@ -90,11 +90,19 @@ Or keep the emulators running (`npx firebase emulators:start` with the same opti
 
 The versions GitHub uses are each written once: Node's in `.nvmrc`, Playwright's and the Firebase CLI's at the top of `.github/workflows/check.yml`.
 
-### Beta site
+### Beta and dev sites
 
-Changes go to the `beta` branch first. After the build check passes, `.github/workflows/pages.yml` publishes it at [/Q-Card/beta/](https://andever2026.github.io/Q-Card/beta/), next to the live site from `main`. When beta looks right, a pull request from `beta` into `main` runs the full browser tests, and merging it updates the live site.
+The site has three branches, each published by `.github/workflows/pages.yml` after the build check passes:
 
-The beta page is built with `node tools/build.mjs --beta`: it carries a Beta tag and keeps its own browser storage, so guest data and settings there never mix with the live site's. Google sign-in is shared, so signing in on beta uses the same account and data. Publishing needs Settings → Pages → Source set to **GitHub Actions**.
+| Branch | Site | What it holds |
+|---|---|---|
+| `main` | [/Q-Card/](https://andever2026.github.io/Q-Card/) | The live site. |
+| `beta` | [/Q-Card/beta/](https://andever2026.github.io/Q-Card/beta/) | Fixes for what is live, and whatever is about to go live. |
+| `dev` | [/Q-Card/dev/](https://andever2026.github.io/Q-Card/dev/) | New features being built. |
+
+A fix goes to `beta`, and `beta` is merged into `dev` so features are built on the fixed code. A feature goes to `dev`; when it's ready, `dev` is merged into `beta`. A pull request from `beta` into `main` runs the full browser tests, and merging it updates the live site. After each release, `main` is merged back into `beta` and `dev`. Branches are always merged, never rebased, squashed or force-pushed.
+
+The two test sites are built with `node tools/build.mjs --beta` and `--dev`: each carries a Beta or Dev tag and keeps its own browser storage, so guest data and settings there never mix with the live site's. Google sign-in is shared, so signing in on either uses the same account and data. Publishing needs Settings → Pages → Source set to **GitHub Actions**.
 
 ### Firebase setup (for a copy of this project)
 
