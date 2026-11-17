@@ -70,11 +70,11 @@ function allowed(path, write = false, v) {
     if (s.length > 2 || !isDev() || (write && write !== "delete" && Object.keys(v).some((k) => k !== "at"))) no();
     return;
   }
-  // Reports: anyone sends one about a notebook that is shared; only developers read or delete them.
+  // Reports: anyone signed in sends one about a notebook that is shared; only developers read or delete them.
   if (s[0] === "reports") {
     if (s.length > 2) no();
     if (!write || write === "delete") { if (!isDev()) no(); return; }
-    if (s.length !== 2 || write !== "set" || path in data || Object.keys(v).some((k) => !["share", "why", "note", "at"].includes(k)) || typeof v.share !== "string" || !/^[A-Za-z0-9]{20,40}$/.test(v.share) || !(`shares/${v.share}` in data)
+    if (!current || s.length !== 2 || write !== "set" || path in data || Object.keys(v).some((k) => !["share", "why", "note", "at"].includes(k)) || typeof v.share !== "string" || !/^[A-Za-z0-9]{20,40}$/.test(v.share) || !(`shares/${v.share}` in data)
       || !["wrong", "unsuitable", "rights", "other"].includes(v.why) || typeof v.note !== "string" || v.note.length > 1000 || typeof v.at !== "string" || v.at.length > 40) no();
     return;
   }

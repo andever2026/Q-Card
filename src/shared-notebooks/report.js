@@ -1,11 +1,13 @@
   // ---------- reporting a shared notebook (public site) ----------
   // Sharing passes along what other people typed in, so the page a shared notebook's link opens has "Report this
-  // notebook". Anyone can send a report, signed in or not: which notebook, one of the reasons and what they wrote, and
-  // nothing about who sent it. Only developers can read reports (firestore.rules); theirs is Settings → Admin (moderation.js).
+  // notebook". Sending a report needs an account (signed out, the button offers to sign in): which notebook, one of the
+  // reasons and what they wrote, and nothing about who sent it. Only developers can read reports (firestore.rules); theirs is Settings → Admin (moderation.js).
   // The reasons: what the person picks from, and the short name Admin lists it under.
   const REPORT_WHY = { wrong: ["It has mistakes", "Mistakes"], unsuitable: ["It doesn't belong on a study site", "Doesn't belong"], rights: ["It shares material that isn't theirs to share", "Not theirs to share"], other: ["Something else", "Something else"] };
   // True once the report is sent.
   async function reportShared(id) {
+    // Signed out: sign in first. The page comes back to this notebook afterwards (preview.js).
+    if (!account) { if (await ask("Report this notebook", `<p>Sign in to report this notebook.</p>`, "Sign in")) signIn($("#sharedReport"), banner); return false; }
     const sent = ask("Report this notebook", `<p>What's wrong with it?</p>
       ${Object.entries(REPORT_WHY).map(([k, [t]]) => `<label class="checkrow"><input type="radio" name="repWhy" value="${k}"> ${t}</label>`).join("")}
       <textarea class="repnote" id="repNote" maxlength="1000" rows="4" aria-label="Details" placeholder="Anything that helps us look into it (optional)"></textarea>

@@ -89,7 +89,7 @@ window.qcardPlatform = {
   // listed/<id> is its line on the Browse page, there while its owner lists it for everyone (anyone can read those).
   shared: (id) => ({ info: all.doc(`shares/${id}`), owner: all.doc(`shareOwners/${id}`), down: all.doc(`takedowns/${id}`), listing: all.doc(`listed/${id}`), db: makeDb((p) => `shares/${id}/${p}`) }),
   listed: all.collection("listed"),
-  // Reports of shared notebooks: anyone may send one, only developers can read or delete them, and only developers can
+  // Reports of shared notebooks: anyone signed in may send one, only developers can read or delete them, and only developers can
   // list what is taken down.
   reports: all.collection("reports"), takedowns: all.collection("takedowns"),
   user: makeUser,

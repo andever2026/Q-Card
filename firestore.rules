@@ -62,10 +62,10 @@ service cloud.firestore {
         && request.resource.data.updatedAt is string && request.resource.data.updatedAt.size() <= 40;
       allow delete: if isDev() || ownsShare(id);
     }
-    // Reports of shared notebooks. Anyone may send one, signed in or not, about a notebook that is shared: which one,
+    // Reports of shared notebooks. Anyone who is signed in may send one about a notebook that is shared: which one,
     // one of the reasons, a note and the time, and nothing about who sent it. Only developers can read or delete them.
     match /reports/{id} {
-      allow create: if request.resource.data.keys().hasOnly(['share', 'why', 'note', 'at'])
+      allow create: if request.auth != null && request.resource.data.keys().hasOnly(['share', 'why', 'note', 'at'])
         && request.resource.data.share is string && request.resource.data.share.matches('^[A-Za-z0-9]{20,40}$')
         && exists(/databases/$(database)/documents/shares/$(request.resource.data.share))
         && request.resource.data.why in ['wrong', 'unsuitable', 'rights', 'other']
