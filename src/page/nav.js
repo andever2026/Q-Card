@@ -56,12 +56,12 @@
     const side = $("header.side");
     if (open === side.classList.contains("open")) return;
     side.classList.toggle("open", open); syncMenuBtn();
-    if (open) $("#sideNav > *").focus(); else if (refocus) $("#menuBtn").focus();
+    if (open) $("#sideNav [data-go]").focus(); else if (refocus) $("#menuBtn").focus();
   }
   // The sidebar shrunk to its icons, each named when pointed at. Kept for this device only.
   function shrink(on) {
     htmlCls().toggle("sidemini", on);
-    $("#sideNav").querySelectorAll(":scope > :not(.foot)").forEach((b) => (on ? (b.title = b.textContent.trim()) : b.removeAttribute("title")));
+    $("#sideNav").querySelectorAll("[data-go], #nbBtn").forEach((b) => (on ? (b.title = b.textContent.trim()) : b.removeAttribute("title")));
     syncMenuBtn();
   }
   function syncMenuBtn() { $("#menuBtn").setAttribute("aria-expanded", htmlCls().contains("drawer") ? $("header.side").classList.contains("open") : !htmlCls().contains("sidemini")); }

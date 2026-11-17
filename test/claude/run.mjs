@@ -132,7 +132,7 @@ await page.click("#settingsClose");
 ok(await vis('[data-set="drinks"]'), "import: the new set shows on the page");
 
 // ---------- 4. the menu, the same as the public site's without Study tools (a page of the public site) ----------
-ok(await page.evaluate(() => [...document.querySelectorAll("#sideNav > *")].map((b) => b.textContent.trim()).join(", ")) === "Practice, Vocabulary, Progress", "menu: Practice, Vocabulary and Progress, without the public site's Study tools");
+ok(await page.evaluate(() => [...document.querySelectorAll("#nbName, #sideNav > [data-go]")].map((b) => b.textContent.trim()).join(", ")) === "My notebook, Practice, Vocabulary, Progress", "menu: the notebook, then Practice, Vocabulary and Progress, without the public site's Study tools");
 await page.setViewportSize({ width: 1280, height: 1000 });
 await page.click('#sideNav [data-go="history"]'); await page.waitForTimeout(300);
 ok(await vis("#history") && await page.evaluate(() => getComputedStyle(document.querySelector("header.side")).position === "fixed"), "menu: a sidebar on a big screen, and History opens from it");
@@ -148,6 +148,22 @@ await page.click('#tGroupSeg [data-view="Term 1"]'); await page.waitForTimeout(2
 ok(edClosed && mainCols && await page.$$eval("#tChs .chbook", (ls) => ls.map((l) => l.textContent).join("|")) === mainCols,
   "views: a view added in Edit collections is saved and its rows of units show", await page.$$eval("#tChs .chbook", (ls) => ls.map((l) => l.textContent).join("|")));
 await page.click('#sideNav [data-go="setup"]'); await page.waitForTimeout(200);
+
+// ---------- 6. notebooks: a second one is stored in this copy's database beside the first, and Claude's sets stay where they were ----------
+await page.click("#nbBtn"); await page.click('#nbList [data-nb-do="add"]'); await page.fill("#nbNameIn", "Second"); await page.keyboard.press("Enter"); await page.waitForTimeout(500);
+const nbs = await page.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:meta/notebooks") || "null")?.list || []);
+ok(nbs.length === 2 && nbs[0].id === "main" && nbs[1].name === "Second" && (await text("#nbName")) === "Second" && /No vocab sets yet/.test(await text("#setPicker")) && !(await page.$("#emptySamples")),
+  "notebooks: a new one is saved in the database and opens empty (no sample sets in this copy)", JSON.stringify(nbs));
+await page.click('#sideNav [data-go="table"]'); await page.waitForTimeout(300);
+await page.fill("#nsCol", "Made up"); await page.fill("#nsUnit", "Week 9"); await page.fill("#nsName", "Later");
+await page.click('#newSetForm [type="submit"]'); await page.waitForTimeout(500);
+const inNb = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("qcard:local:notebooks/")).map((k) => k.slice(12)));
+ok(inNb.length === 1 && inNb[0].startsWith(`notebooks/${nbs[1]?.id}/sets/`) && await page.evaluate(() => !!localStorage.getItem("qcard:local:sets/food")), "notebooks: a set added there is saved under that notebook; the first notebook's sets are untouched", inNb.join(", "));
+if (await vis(".tset.editing [data-discard]")) await page.click(".tset.editing [data-discard]");
+await page.click("#nbBtn"); await page.click('#nbList [data-nb="main"]'); await page.waitForTimeout(400);
+if (await vis("#leaveAsk [data-ldiscard]")) { await page.click("#leaveAsk [data-ldiscard]"); await page.waitForTimeout(300); }
+await page.click('#sideNav [data-go="setup"]'); await page.waitForTimeout(200);
+ok((await text("#nbName")) === "My notebook" && await vis('[data-set="food"]'), "notebooks: back in the first one, its sets are there");
 
 ok(errors.length === 0, "no page errors", errors.join(" | "));
 await browser.close(); server.close();

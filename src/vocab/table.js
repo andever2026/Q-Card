@@ -46,7 +46,7 @@
       row.querySelector("[data-kdiscard]").onclick = () => { S.kdrafts.delete(id); S.kConfirmDel = null; renderKanji(); };
       const d1 = row.querySelector("[data-kdel]"); if (d1) d1.onclick = () => { S.kConfirmDel = id; renderKanji(); };
       const dn = row.querySelector("[data-kdel-no]"); if (dn) dn.onclick = () => { S.kConfirmDel = null; renderKanji(); };
-      const dy = row.querySelector("[data-kdel-yes]"); if (dy) dy.onclick = async () => { S.kConfirmDel = null; S.kdrafts.delete(id); try { await db.doc("kanji/" + id).delete(); } catch { banner("Couldn't delete that kanji list. Reload and try again."); } };
+      const dy = row.querySelector("[data-kdel-yes]"); if (dy) dy.onclick = async () => { S.kConfirmDel = null; S.kdrafts.delete(id); try { await vdb.doc("kanji/" + id).delete(); } catch { banner("Couldn't delete that kanji list. Reload and try again."); } };
     });
   }
   $("#newKanjiForm").addEventListener("submit", async (e) => {
@@ -55,14 +55,14 @@
     pickUnit(unit, col); renderTable();
     if (S.kanjiLists.some((k) => sameName(colOf(k), col) && sameName(k.unit, unit))) { e.target.reset(); $("#nkCol").value = col; return; }
     const id = freeId(slug(`${col}-${unit}`, "kanji"), new Set(S.kanjiLists.map((k) => k.id)));
-    try { await db.doc("kanji/" + id).set({ collection: col, unit, kanji: "", updatedAt: new Date().toISOString() }); e.target.reset(); $("#nkCol").value = col; }
+    try { await vdb.doc("kanji/" + id).set({ collection: col, unit, kanji: "", updatedAt: new Date().toISOString() }); e.target.reset(); $("#nkCol").value = col; }
     catch { banner("Couldn't add the kanji list. Only the owner and editors can change the table."); }
   });
   function onKanji(snap) {
     raw.kanji = withIds(snap);
     S.kLoaded = true;
     S.kanjiLists = snap.docs.map((d) => { const x = d.data(); return { id: d.id, collection: docCol(x), unit: docUnit(x), kanji: String(x.kanji ?? "") }; }).sort(sortLists);
-    renderUpto(); renderTable(); renderSetup();
+    renderUpto(); renderTable(); renderSetup(); renderStats();
   }
 
   // A kanji list being edited (S.kdrafts: id -> { collection, unit, kanji }) with something different from what's stored.
@@ -74,7 +74,7 @@
     const col = canonCol(d.collection), unit = canonUnit(col, d.unit);
     if (!unit || !col) { err("Type a collection and a unit."); return false; }
     if (S.kanjiLists.some((x) => x.id !== id && sameName(colOf(x), col) && sameName(x.unit, unit))) { err(`${col} › ${unit} already has a kanji list.`); return false; }
-    try { await db.doc("kanji/" + id).update({ collection: col, unit, kanji: onlyKanji(d.kanji), updatedAt: new Date().toISOString() }); }
+    try { await vdb.doc("kanji/" + id).update({ collection: col, unit, kanji: onlyKanji(d.kanji), updatedAt: new Date().toISOString() }); }
     catch { err("Couldn't save. Try again."); return false; }
     if (S.upto === unitKey(k) && unitKey({ collection: col, unit }) !== S.upto) { S.upto = unitKey({ collection: col, unit }); store.set("uptoPick", S.upto); renderUpto(); }
     S.kdrafts.delete(id);
@@ -154,7 +154,7 @@
     const col = canonCol(d.vals.collection), unit = canonUnit(col, d.vals.unit), name = tidy(d.vals.name, 200), tags = cleanTags(d.vals.tags);
     if (det && (!col || !unit || !name)) { say("Collection, unit and set name can't be empty."); return false; }
     if (det && S.sets.some((x) => x.id !== s.id && sameName(colOf(x), col) && sameName(x.unit, unit) && sameName(x.name, name))) { say(`${col} › ${unit} › ${name} already exists.`); return false; }
-    try { await db.doc("sets/" + s.id).update({ ...(det ? { collection: col, unit, name, tags } : {}), words: keptWords(d.words).map((w) => ({ ...w, id: w.id || rid() })), updatedAt: new Date().toISOString() }); }
+    try { await vdb.doc("sets/" + s.id).update({ ...(det ? { collection: col, unit, name, tags } : {}), words: keptWords(d.words).map((w) => ({ ...w, id: w.id || rid() })), updatedAt: new Date().toISOString() }); }
     catch { say("Couldn't save. Try again."); return false; }
     S.drafts.delete(s.id);
     if (det) { S.openSets.add(s.id); pickUnit(unit, col); }
@@ -165,7 +165,8 @@
   // Unsaved changes are asked about before they can be lost: on leaving the vocab table, and by the browser on leaving the page.
   const unsavedSets = () => S.sets.filter(dirtySet), unsavedLists = () => S.kanjiLists.filter(dirtyList);
   addEventListener("beforeunload", (e) => { if (unsavedSets().length || unsavedLists().length || colsDirty()) { e.preventDefault(); e.returnValue = ""; } });
-  // to: the view to go to (page/nav.js), once the changes are saved or let go.
+  // to: the view to go to (page/nav.js), or what to do (opening another notebook), once the changes are saved or let go.
+  const leaveGo = () => (typeof S.leaveTo === "function" ? S.leaveTo() : openView(S.leaveTo));
   function leaveTable(to = "setup") {
     // Whatever was opened for editing and left as it was just closes.
     for (const s of S.sets) if (!dirtySet(s)) S.drafts.delete(s.id);
@@ -173,7 +174,7 @@
     if (!colsDirty()) S.colEdit = null;
     S.confirmDel = S.kConfirmDel = null;
     S.leaveTo = to; S.leaveAsk = true; renderLeave();
-    if (!S.leaveAsk) openView(to); else window.scrollTo(0, 0);
+    if (!S.leaveAsk) leaveGo(); else window.scrollTo(0, 0);
   }
   function renderLeave(why = "") {
     const sets = unsavedSets(), lists = unsavedLists(), crs = colsDirty(), n = sets.length + lists.length + crs, box = $("#leaveAsk");
@@ -184,7 +185,7 @@
     box.innerHTML = `<span>${[...count(sets.length, "set"), ...count(lists.length, "kanji list"), ...(crs ? ["the collections"] : [])].join(" and ")} ${n === 1 && !crs ? "has" : "have"} unsaved changes.${why ? ` <span class="keyerr">${esc(why)}</span>` : ""}</span>
       <span class="tactions"><button class="btn primary" type="button" data-lsave>Save all</button><button class="btn" type="button" data-ldiscard>Discard all</button><button class="link" type="button" data-lkeep>Keep editing</button></span>`;
     box.querySelector("[data-lkeep]").onclick = () => { S.leaveAsk = false; renderLeave(); };
-    box.querySelector("[data-ldiscard]").onclick = () => { S.drafts.clear(); S.kdrafts.clear(); S.colEdit = null; renderTable(); openView(S.leaveTo); };
+    box.querySelector("[data-ldiscard]").onclick = () => { S.drafts.clear(); S.kdrafts.clear(); S.colEdit = null; renderTable(); leaveGo(); };
     box.querySelector("[data-lsave]").onclick = async (e) => {
       e.target.disabled = true; e.target.textContent = "Saving…";
       let bad = "";
@@ -192,7 +193,7 @@
       for (const k of lists) if (!bad && !(await saveKanji(k.id))) bad = "Couldn't save. Try again.";
       if (crs && !bad && !(await saveCols((m) => { bad = `Collections: ${m}`; })) && !bad) bad = "Couldn't save. Try again.";
       renderTable();
-      if (bad) renderLeave(bad); else openView(S.leaveTo);
+      if (bad) renderLeave(bad); else leaveGo();
     };
   }
 
@@ -312,7 +313,7 @@
       el.querySelector("[data-discard]").onclick = () => { S.drafts.delete(sid); S.confirmDel = null; renderTable(); };
       const d1 = el.querySelector("[data-delset]"); if (d1) d1.onclick = () => { S.confirmDel = sid; renderTable(); };
       const dn = el.querySelector("[data-delset-no]"); if (dn) dn.onclick = () => { S.confirmDel = null; renderTable(); };
-      const dy = el.querySelector("[data-delset-yes]"); if (dy) dy.onclick = async () => { S.confirmDel = null; S.drafts.delete(sid); try { await db.doc("sets/" + sid).delete(); } catch {} };
+      const dy = el.querySelector("[data-delset-yes]"); if (dy) dy.onclick = async () => { S.confirmDel = null; S.drafts.delete(sid); try { await vdb.doc("sets/" + sid).delete(); } catch {} };
     });
     const back = fresh ? box.querySelector(`[data-sid="${CSS.escape(fresh)}"] textarea`) : typing && document.getElementById(typing.id);
     if (back && back !== document.activeElement) { back.focus(); if (!fresh && typing.pos != null && back.setSelectionRange) back.setSelectionRange(typing.pos, typing.pos); }
@@ -329,7 +330,7 @@
     S.openSets.add(id); S.editNew = id;
     clearSearch();
     try {
-      await db.doc("sets/" + id).set({ collection: col, unit, name, ...(tags.length ? { tags } : {}), words: [blankWord()], updatedAt: new Date().toISOString() });
+      await vdb.doc("sets/" + id).set({ collection: col, unit, name, ...(tags.length ? { tags } : {}), words: [blankWord()], updatedAt: new Date().toISOString() });
       e.target.reset(); $("#nsCol").value = col; $("#nsUnit").value = unit;
     } catch { banner("Couldn't add the set. Only the owner and editors can change the table."); }
   });

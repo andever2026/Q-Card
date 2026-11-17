@@ -9,7 +9,24 @@
   // Vocab is grouped Collection › Unit › Set: a collection (a textbook, a course, any list of lists) has units (Ch. 3,
   // Week 1, any name), and each unit has sets; kanji lists go by unit. Documents saved before October 2026 name a book,
   // a numbered chapter and a section with an optional label: they're read as collection, unit "Ch. N" and set name "A · Label".
+  //   meta/notebooks { list: [{ id, name }] }           the notebooks, in order (below)
   const tidy = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+  // Notebooks: an account (or a guest's browser) holds one or more, each with its own sets, kanji lists, collection order
+  // and views. The first one's documents are where they always were (sets/<id>, kanji/<id>, meta/books …); any other
+  // notebook keeps the same documents under notebooks/<its id>/. meta/notebooks, beside the first one's documents, lists
+  // them all; until it's saved there's just the first, under NB_NAME.
+  const MAIN_NB = "main", NB_NAME = "My notebook", NB_MAX = 50;
+  // The store as one notebook sees it: the same doc() and collection(), inside that notebook.
+  const inNotebook = (db, id) => { const at = id === MAIN_NB ? "" : `notebooks/${id}/`; return { doc: (p) => db.doc(at + p), collection: (p) => db.collection(at + p) }; };
+  // meta/notebooks as read: [{ id, name }], never empty.
+  function cleanNotebooks(d) {
+    const seen = new Set(), list = [];
+    for (const n of Array.isArray(d?.list) ? d.list : []) {
+      const id = String(n?.id ?? "");
+      if (/^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/.test(id) && !seen.has(id) && list.length < NB_MAX) { seen.add(id); list.push({ id, name: tidy(n.name, 60) || NB_NAME }); }
+    }
+    return list.length ? list : [{ id: MAIN_NB, name: NB_NAME }];
+  }
   const oldUnit = (v) => { const c = tidy(v, 60).replace(/^ch(apter)?\.?\s*(?=\d)/i, ""); return /^\d+$/.test(c) ? `Ch. ${+c}` : c; };
   const docCol = (d) => tidy(d.collection ?? d.book, 100);
   const docUnit = (d) => (d.unit != null ? tidy(d.unit, 60) : oldUnit(d.chapter)) || "No unit";

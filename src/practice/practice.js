@@ -16,7 +16,7 @@
     const keys = new Set();
     for (const it of items) { let k = it.key, n = 2; while (keys.has(k)) k = `${it.key}#${n++}`; keys.add(k); it.key = k; }
     Object.assign(Q, { items, queue: order(items), wrong: [], round: 1, tries: {}, done: new Set(), total: items.length,
-      meta: { dir: S.dir, mode: S.mode, sets: [...new Set(words.map((w) => w.set))] } });
+      meta: { dir: S.dir, mode: S.mode, sets: [...new Set(words.map((w) => w.set))], nb } });
     show("quiz");
     nextItem();
   }

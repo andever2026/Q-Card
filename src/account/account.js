@@ -69,9 +69,10 @@
     // Google's confirmation comes first, while the click still lets its window open (err.early: nothing deleted yet).
     if (account) try { await platform.confirmSignIn(); } catch (err) { if (!forced) throw Object.assign(err, { early: true }); confirmed = false; }
     stopPrefs();
+    for (const id of new Set([MAIN_NB, ...nbList().map((n) => n.id)])) await emptyNotebook(id);
     const paths = [];
-    for (const c of ["sets", "kanji", "training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
-    for (const p of [...paths, "meta/books", "meta/courses", "meta/views", "meta/samples"]) await db.doc(p).delete();
+    for (const c of ["training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
+    for (const p of [...paths, "meta/samples", "meta/notebooks"]) await db.doc(p).delete();
     try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
     // Every choice this site kept in this browser goes too (colours, picks, a practice to resume with its writing): signed in,
     // they're the account's copy. A guest's own sets and history (qcard:local:…) stay unless it's the guest being deleted.

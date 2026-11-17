@@ -1,13 +1,24 @@
   // Choices people make on the page. They're kept in this browser and, for someone signed in, in their account
   // too (data/users/<id>/prefs, see syncPrefs in account/choices.js), so they come along to other devices.
-  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "sessPer", "loveTop", "palette", "theme", "resume", "share", "practices", "policySeen"];
+  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "sessPer", "loveTop", "palette", "theme", "resume", "share", "practices", "policySeen", "notebook", "nbPicks"];
   let prefsChanged = () => {};
-  const store = {
+  // This browser's copy of them, each under its own name.
+  const kept = {
     get(k, d) { try { const v = localStorage.getItem("jpq:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
     set(k, v) {
       if (PREF_KEYS.includes(k)) prefsChanged();
       try { localStorage.setItem("jpq:" + k, JSON.stringify(v)); return true; } catch { return false; }
     },
+  };
+  // The notebook that's open (vocab/notebooks.js), and the choices that are a notebook's own: which sets are picked,
+  // which units show, and so on. The first notebook's are kept under their own names, where they always were; any
+  // other notebook's are together under "nbPicks", by its id. The page reads and saves through store, which knows which.
+  let nb = String(kept.get("notebook", MAIN_NB) || MAIN_NB);
+  const NB_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "uptoPick"];
+  const ofNotebook = (k) => nb !== MAIN_NB && NB_KEYS.includes(k);
+  const store = {
+    get(k, d) { if (!ofNotebook(k)) return kept.get(k, d); const v = kept.get("nbPicks", null)?.[nb]?.[k]; return v == null ? d : v; },
+    set(k, v) { if (!ofNotebook(k)) return kept.set(k, v); const all = kept.get("nbPicks", null) || {}; return kept.set("nbPicks", { ...all, [nb]: { ...all[nb], [k]: v } }); },
   };
   // Before tags, the Show row switched kinds of sets off; the kinds left on carry over as picked tags.
   function oldKindPicks() {
@@ -54,7 +65,17 @@
     colOrder: [],                  // saved book order (meta/books); books not in it come after, by name
     colEdit: null,                 // the views and collections being edited in the vocab table (vocab/collections.js), or null
     viewDoc: null,                 // meta/views as read (vocab/views.js), or null before views are saved
+    notebooks: null,               // meta/notebooks as read ([{ id, name }], vocab/notebooks.js), or null until it loads
   };
+  // The open notebook's choices, read again: the account's copy arrived, or another notebook was opened.
+  function readPicks() {
+    S.selected = new Set(store.get("selected", []));
+    Object.assign(S.pick, { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", [])) });
+    Object.assign(S.tpick, { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) });
+    S.groupBy = store.get("groupBy", "main");
+    S.pickTags = new Set(store.get("pickTags", []));
+    S.upto = store.get("uptoPick", "auto");
+  }
 
   // ---------- views ----------
   const views = ["setup", "quiz", "results", "table", "history", "settings"];

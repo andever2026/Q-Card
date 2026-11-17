@@ -42,8 +42,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
    take the sidebar and ☰ brings the menu in over the page, as on a smaller screen (html.drawer). */
 #menuBtn { margin-left: -6px; }
 .sidenav { display: grid; gap: 2px; align-content: start; }
-.sidenav > :not(.foot), .side .setnav button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
-.sidenav > :not(.foot):hover, .side .setnav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.sidenav > button, .nbbtn, .side .setnav button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
+.sidenav > button:hover, .nbbtn:hover, .side .setnav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
 .sidenav svg { flex: none; color: var(--muted); }
 .sidenav > [aria-current="page"] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
 .sidenav > [aria-current="page"] svg { color: inherit; }
@@ -58,20 +58,30 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .acctbtn .pfp svg { margin-top: 5px; width: 22px; height: 22px; }
 .acctname { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acctbtn .chev { color: var(--muted); }
-.acctlist { position: absolute; right: 0; top: calc(100% + 6px); z-index: 45; min-width: 230px; max-width: min(300px, calc(100vw - 32px)); padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / .14); }
-.acctlist p { margin: 0; padding: 6px 10px 8px; overflow-wrap: anywhere; }
+/* A menu under its button (page/menu.js): the account's, and the notebooks'. */
+.popmenu { position: absolute; top: calc(100% + 6px); z-index: 45; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / .14); }
+.acctlist { right: 0; min-width: 230px; max-width: min(300px, calc(100vw - 32px)); }
+.popmenu p { margin: 0; padding: 6px 10px 8px; overflow-wrap: anywhere; }
+.popmenu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
 .acctlist p + button { border-top: 1px solid var(--line); border-top-left-radius: 0; border-top-right-radius: 0; margin-top: 2px; padding-top: 10px; }
-.acctlist button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 6px; background: none; color: var(--ink); font-size: .9rem; text-align: left; }
-.acctlist button:hover, .acctlist button:focus-visible { background: var(--sunk); outline: none; }
-.acctlist button svg { flex: none; color: var(--muted); }
-.acctlist button.danger, .acctlist button.danger svg { color: var(--shu); }
+.popmenu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 6px; background: none; color: var(--ink); font-size: .9rem; text-align: left; }
+.popmenu button:hover, .popmenu button:focus-visible { background: var(--sunk); outline: none; }
+.popmenu button svg { flex: none; color: var(--muted); }
+.popmenu button.danger, .popmenu button.danger svg { color: var(--shu); }
+/* The notebook that's open, at the top of the menu; its own menu opens the others (vocab/notebooks.js). */
+.nbpick { position: relative; margin-bottom: 10px; }
+.nbbtn { border: 1px solid var(--line); background: var(--surface); }
+.nbbtn #nbName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nbmenu { left: 0; right: 0; max-height: min(60vh, 420px); overflow-y: auto; }
+.nbmenu [aria-checked="true"] { font-weight: 700; }
+.nbmenu [aria-checked="true"] svg { color: var(--ai); }
 .drawer .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--sunk); border-right: 1px solid var(--line);
   box-shadow: 0 0 28px rgba(0, 0, 0, .22); clip-path: inset(0 -40px 0 0); /* a shadow on the right side only */
   padding: max(18px, env(safe-area-inset-top, 0px)) 12px 18px max(12px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
 .drawer .side.open .sidenav { transform: none; visibility: visible; transition: transform .2s ease; }
 .drawer .sideshade { display: block; position: fixed; z-index: 39; inset: 0; background: rgba(17, 20, 26, .4); opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
 .drawer .side.open .sideshade { opacity: 1; visibility: visible; transition: opacity .2s; }
-@media not all and (min-width: 1000px) { .sidenav > :not(.foot) { padding-block: 11px; } }
+@media not all and (min-width: 1000px) { .sidenav > button, .nbbtn { padding-block: 11px; } }
 @media (max-width: 480px) { .side { flex-wrap: nowrap; gap: 8px; } .side h1 { font-size: 1.2rem; min-width: 0; } .acctname, .acctbtn .chev { display: none; } .acctbtn { padding-right: 3px; } }
 @media (min-width: 1000px) {
   :root:has(> body:not(.writing)) { --side: 1; scroll-padding-top: calc(var(--topbar) + 12px); } /* the widths follow, theme/theme.css */
@@ -85,7 +95,11 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
   :root.sidemini:not(.drawer) { --sidebar: 64px; }
   /* The names fold to nothing but keep their line, so the icons stay exactly where they are in the full sidebar. */
   .sidemini:not(.drawer) .sidenav span { width: 0; overflow: hidden; white-space: nowrap; opacity: 0; }
-  .sidemini:not(.drawer) .sidenav > * { gap: 0; } /* so the highlight is a square around the icon */
+  .sidemini:not(.drawer) .sidenav > *, .sidemini:not(.drawer) .nbbtn { gap: 0; } /* so the highlight is a square around the icon */
+  /* The notebooks' menu opens beside the shrunk sidebar, which is too narrow for it (and would cut it off). */
+  .sidemini:not(.drawer) .nbbtn { border-color: transparent; background: none; }
+  .sidemini:not(.drawer) .nbbtn .chev { display: none; }
+  .sidemini:not(.drawer) .nbmenu { position: fixed; top: calc(var(--topbar) + 14px); left: calc(var(--sidebar) + 6px); right: auto; width: 240px; }
   /* On Settings: its tabs fill the sidebar, and the menu comes in over the page under the title's bar. */
   .drawer .sidenav, .drawer .sideshade { top: var(--topbar); }
   .drawer .sidenav { width: var(--sidebar); padding: 14px 12px; }
@@ -202,7 +216,7 @@ body.ready #gate { display: none; }
 .pbar .chips { gap: 6px; }
 .chip.soft[aria-pressed="true"] { background: var(--ai-soft); border-color: var(--ai); color: var(--ai); }
 .chip.soft[aria-pressed="true"]::before { content: "✓"; }
-.tsethead .tag { display: inline-block; padding: 0 8px; text-transform: none; letter-spacing: normal; border: 1px solid var(--line); border-radius: 999px; background: var(--sunk); color: var(--muted); font-size: .72rem; font-weight: 500; line-height: 1.6; vertical-align: 1px; }
+.tsethead .tag, .test .tag { display: inline-block; padding: 0 8px; text-transform: none; letter-spacing: normal; border: 1px solid var(--line); border-radius: 999px; background: var(--sunk); color: var(--muted); font-size: .72rem; font-weight: 500; line-height: 1.6; vertical-align: 1px; }
 .chip:disabled { opacity: .5; cursor: not-allowed; }
 .seg { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; width: fit-content; max-width: 100%; }
 .seg button { border: none; background: var(--surface); padding: 8px 14px; border-right: 1px solid var(--line); }

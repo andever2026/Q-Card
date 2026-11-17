@@ -7,18 +7,19 @@
     let first = true, timer = null, stopped = false;
     // Firestore refuses a whole document with an empty field name, and sets with no collection are under "" in bookShow and tShow:
     // that one row's choice stays in this browser.
-    const named = (v) => (v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).filter(([k]) => k)) : v);
+    // (The same inside "nbPicks", which holds those choices for each other notebook.)
+    const named = (v) => (v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).filter(([k]) => k).map(([k, x]) => [k, named(x)])) : v);
     const save = () => {
       clearTimeout(timer); timer = null;
       if (stopped) return;
-      const p = Object.fromEntries(PREF_KEYS.map((k) => [k, named(store.get(k, null))]).filter(([, v]) => v != null));
+      const p = Object.fromEntries(PREF_KEYS.map((k) => [k, named(kept.get(k, null))]).filter(([, v]) => v != null));
       Promise.resolve().then(() => ref.set({ ...p, updatedAt: new Date().toISOString() })).catch(() => {});
     };
     const off = ref.onSnapshot((snap) => {
       if (!first) return;
       first = false; setTimeout(() => typeof off === "function" && off(), 0);
       // A yes to sharing handwriting left in this browser is another account's, so a first sign-in doesn't take it along.
-      if (snap.exists) usePrefs(snap.data() || {}); else { store.set("share", null); save(); }
+      if (snap.exists) usePrefs(snap.data() || {}); else { kept.set("share", null); save(); }
       prefsChanged = () => { clearTimeout(timer); timer = setTimeout(save, 800); };
       loaded();
       const flush = () => { if (timer) save(); };
@@ -30,13 +31,10 @@
   function usePrefs(p) {
     // A practice to resume is the account's, or none: one left in this browser may be from another account or already finished elsewhere.
     // So is the answer to sharing handwriting: only the account's own yes counts.
-    for (const k of PREF_KEYS) if (p[k] != null || k === "resume" || k === "share") store.set(k, p[k] ?? null);
-    S.selected = new Set(store.get("selected", []));
-    Object.assign(S.pick, { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", [])) });
-    Object.assign(S.tpick, { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) });
-    S.groupBy = store.get("groupBy", "main");
-    S.pickTags = new Set(store.get("pickTags", []));
-    S.dir = store.get("dir", "ej"); S.mode = store.get("mode", "default"); S.upto = store.get("uptoPick", "auto");
+    for (const k of PREF_KEYS) if (p[k] != null || k === "resume" || k === "share") kept.set(k, p[k] ?? null);
+    // The notebook that account had open is opened here too (which reads its choices); the same one's are read again.
+    if (!openNotebook(String(kept.get("notebook", MAIN_NB) || MAIN_NB))) readPicks();
+    S.dir = store.get("dir", "ej"); S.mode = store.get("mode", "default");
     S.loveWin = String(store.get("loveWin", "10")); S.sessPer = String(store.get("sessPer", "20")); S.loveTop = store.get("loveTop", "jp") === "en" ? "en" : "jp";
     setPalette(store.get("palette", "indigo"));
     setTheme(store.get("theme", ""));

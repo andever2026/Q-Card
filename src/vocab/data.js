@@ -31,10 +31,15 @@
 
   // Listens to the vocab where it's kept, so a change from anywhere (another tab or device too) shows at once. failed: what
   // to say when the sets can't load.
-  function watchVocab(failed) {
-    db.collection("kanji").onSnapshot(onKanji, () => {});
-    db.collection("sets").onSnapshot(onSets, () => banner(failed));
-    for (const [path, on] of [["meta/books", onBookOrder], ["meta/courses", onCourses], ["meta/views", onViews]]) db.doc(path).onSnapshot(on, () => {});
+  // It's the open notebook's vocab (vdb: the store as that notebook sees it, vocab/docs.js); opening another notebook
+  // (vocab/notebooks.js) calls this again, and what the notebook before still sends is dropped.
+  let vdb = null, watching = 0, watchOff = [], watchFailed = "";
+  function watchVocab(failed = watchFailed) {
+    watchOff.forEach((off) => typeof off === "function" && off());
+    const mine = ++watching, now = (on) => (snap) => { if (mine === watching) on(snap); };
+    watchFailed = failed; vdb = inNotebook(db, nb);
+    watchOff = [vdb.collection("kanji").onSnapshot(now(onKanji), () => {}), vdb.collection("sets").onSnapshot(now(onSets), now(() => banner(failed))),
+      ...[["meta/books", onBookOrder], ["meta/courses", onCourses], ["meta/views", onViews]].map(([path, on]) => vdb.doc(path).onSnapshot(now(on), () => {}))];
   }
   function onCourses(snap) {
     raw.courses = dataOrNull(snap);
@@ -61,6 +66,7 @@
     for (const id of [...S.drafts.keys()]) if (!ids.has(id)) S.drafts.delete(id);
     renderSetup();
     renderTable();
+    renderStats();
   }
 
   // ---------- setup ----------

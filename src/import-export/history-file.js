@@ -7,7 +7,7 @@
   const cleanSession = (d) => {
     if (!d || typeof d !== "object" || !/^t\d+$/.test(String(d.id)) || isNaN(new Date(d.finishedAt)) || !Array.isArray(d.words)) return null;
     const str = (v) => (v == null ? "" : String(v));
-    return { finishedAt: new Date(d.finishedAt).toISOString(), dir: str(d.dir), mode: str(d.mode), sets: (Array.isArray(d.sets) ? d.sets : []).map(str),
+    return { finishedAt: new Date(d.finishedAt).toISOString(), dir: str(d.dir), mode: str(d.mode), sets: (Array.isArray(d.sets) ? d.sets : []).map(str), ...(d.nb ? { nb: str(d.nb) } : {}),
       words: d.words.filter((w) => w && typeof w === "object").map((w) => ({ id: str(w.id), en: str(w.en), jp: str(w.jp), dir: str(w.dir),
         tries: Math.max(1, Math.round(+w.tries) || 1), ...(w.skip === true ? { skip: true } : {}) })) };
   };

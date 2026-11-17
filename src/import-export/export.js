@@ -4,7 +4,7 @@
   async function exportVocab() {
     const setById = new Map(raw.sets.map((d) => [d.id, d])), kById = new Map(raw.kanji.map((d) => [d.id, d]));
     const tidied = (list, byId, clean) => list.map((x) => byId.get(x.id)).filter(Boolean).map((d) => ({ id: d.id, ...clean(d) }));
-    const file = { app: APP, version: 2, exportedAt: new Date().toISOString(),
+    const file = { app: APP, version: 2, exportedAt: new Date().toISOString(), notebook: nbName(),
       sets: tidied(S.sets, setById, cleanSet), kanji: tidied(S.kanjiLists, kById, cleanKanji),
       collections: cleanBooks(raw.books), ...(S.viewDoc ? { views: S.viewDoc } : { courses: cleanCourses(raw.courses) }) };
     await saveJsonFile("", file, portMsg);

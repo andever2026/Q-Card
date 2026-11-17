@@ -23,13 +23,22 @@
     s.onload = () => { const p = window.qcardPlatform; if (!p) return no(); p.onAuth((who) => { home = { who, db: p.storeFor(who).db }; ok(); }); };
     document.head.append(s);
   }).catch((e) => { ready = null; throw e; }));
+  // The import goes into the notebook that's open on the site (its choice "notebook", kept in this browser), if this
+  // person has it, else their first one. It's named only when they have more than one.
+  async function openNotebook({ who, db }) {
+    const list = cleanNotebooks(dataOrNull(await db.doc("meta/notebooks").get()));
+    let id = MAIN_NB;
+    try { id = JSON.parse(localStorage.getItem("jpq:notebook")) ?? id; } catch {}
+    const nb = list.find((n) => n.id === id) ?? list[0];
+    return { who, db: inNotebook(db, nb.id), name: list.length > 1 ? nb.name : "" };
+  }
   let into = null; // where the preview on screen will be saved: the import goes there even if `home` changes meanwhile
   makeImporter({ button: $("#aiImportBtn"), input: $("#aiImportFile"), box: $("#aiImportPreview"), say: sayIn($("#aiImportMsg")),
     hint: "Ask your AI to make it the way this page says.",
-    stored: async () => { $("#aiImportDone").hidden = true; await open(); into = home; return readVocab(into.db); },
+    stored: async () => { $("#aiImportDone").hidden = true; await open(); into = await openNotebook(home); return readVocab(into.db); },
     write: (path, doc) => into.db.doc(path).set(doc),
     where: () => (into.who ? `This saves to your account${into.who.email ? ` (${into.who.email})` : ""}.`
-      : "You're not signed in, so this saves in this browser only. To save to an account, sign in on the site first, then import here."),
+      : "You're not signed in, so this saves in this browser only. To save to an account, sign in on the site first, then import here.") + (into.name ? ` It goes into the notebook “${into.name}”.` : ""),
     done: () => { $("#aiImportDone").hidden = false; },
   });
 })();

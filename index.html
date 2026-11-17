@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-g5Lnl9c7PTgw4lCMkjIUGVpCCYPgSkqyjcy5FoZOl6c=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-u+OQ/ype+VByeFLMzUbe05EcoIP6ZHLJr6A8l4NaZ6E=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -125,8 +125,8 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
    take the sidebar and ☰ brings the menu in over the page, as on a smaller screen (html.drawer). */
 #menuBtn { margin-left: -6px; }
 .sidenav { display: grid; gap: 2px; align-content: start; }
-.sidenav > :not(.foot), .side .setnav button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
-.sidenav > :not(.foot):hover, .side .setnav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.sidenav > button, .nbbtn, .side .setnav button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
+.sidenav > button:hover, .nbbtn:hover, .side .setnav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
 .sidenav svg { flex: none; color: var(--muted); }
 .sidenav > [aria-current="page"] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
 .sidenav > [aria-current="page"] svg { color: inherit; }
@@ -141,20 +141,30 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .acctbtn .pfp svg { margin-top: 5px; width: 22px; height: 22px; }
 .acctname { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acctbtn .chev { color: var(--muted); }
-.acctlist { position: absolute; right: 0; top: calc(100% + 6px); z-index: 45; min-width: 230px; max-width: min(300px, calc(100vw - 32px)); padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / .14); }
-.acctlist p { margin: 0; padding: 6px 10px 8px; overflow-wrap: anywhere; }
+/* A menu under its button (page/menu.js): the account's, and the notebooks'. */
+.popmenu { position: absolute; top: calc(100% + 6px); z-index: 45; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / .14); }
+.acctlist { right: 0; min-width: 230px; max-width: min(300px, calc(100vw - 32px)); }
+.popmenu p { margin: 0; padding: 6px 10px 8px; overflow-wrap: anywhere; }
+.popmenu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
 .acctlist p + button { border-top: 1px solid var(--line); border-top-left-radius: 0; border-top-right-radius: 0; margin-top: 2px; padding-top: 10px; }
-.acctlist button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 6px; background: none; color: var(--ink); font-size: .9rem; text-align: left; }
-.acctlist button:hover, .acctlist button:focus-visible { background: var(--sunk); outline: none; }
-.acctlist button svg { flex: none; color: var(--muted); }
-.acctlist button.danger, .acctlist button.danger svg { color: var(--shu); }
+.popmenu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 6px; background: none; color: var(--ink); font-size: .9rem; text-align: left; }
+.popmenu button:hover, .popmenu button:focus-visible { background: var(--sunk); outline: none; }
+.popmenu button svg { flex: none; color: var(--muted); }
+.popmenu button.danger, .popmenu button.danger svg { color: var(--shu); }
+/* The notebook that's open, at the top of the menu; its own menu opens the others (vocab/notebooks.js). */
+.nbpick { position: relative; margin-bottom: 10px; }
+.nbbtn { border: 1px solid var(--line); background: var(--surface); }
+.nbbtn #nbName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nbmenu { left: 0; right: 0; max-height: min(60vh, 420px); overflow-y: auto; }
+.nbmenu [aria-checked="true"] { font-weight: 700; }
+.nbmenu [aria-checked="true"] svg { color: var(--ai); }
 .drawer .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--sunk); border-right: 1px solid var(--line);
   box-shadow: 0 0 28px rgba(0, 0, 0, .22); clip-path: inset(0 -40px 0 0); /* a shadow on the right side only */
   padding: max(18px, env(safe-area-inset-top, 0px)) 12px 18px max(12px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
 .drawer .side.open .sidenav { transform: none; visibility: visible; transition: transform .2s ease; }
 .drawer .sideshade { display: block; position: fixed; z-index: 39; inset: 0; background: rgba(17, 20, 26, .4); opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
 .drawer .side.open .sideshade { opacity: 1; visibility: visible; transition: opacity .2s; }
-@media not all and (min-width: 1000px) { .sidenav > :not(.foot) { padding-block: 11px; } }
+@media not all and (min-width: 1000px) { .sidenav > button, .nbbtn { padding-block: 11px; } }
 @media (max-width: 480px) { .side { flex-wrap: nowrap; gap: 8px; } .side h1 { font-size: 1.2rem; min-width: 0; } .acctname, .acctbtn .chev { display: none; } .acctbtn { padding-right: 3px; } }
 @media (min-width: 1000px) {
   :root:has(> body:not(.writing)) { --side: 1; scroll-padding-top: calc(var(--topbar) + 12px); } /* the widths follow, theme/theme.css */
@@ -168,7 +178,11 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
   :root.sidemini:not(.drawer) { --sidebar: 64px; }
   /* The names fold to nothing but keep their line, so the icons stay exactly where they are in the full sidebar. */
   .sidemini:not(.drawer) .sidenav span { width: 0; overflow: hidden; white-space: nowrap; opacity: 0; }
-  .sidemini:not(.drawer) .sidenav > * { gap: 0; } /* so the highlight is a square around the icon */
+  .sidemini:not(.drawer) .sidenav > *, .sidemini:not(.drawer) .nbbtn { gap: 0; } /* so the highlight is a square around the icon */
+  /* The notebooks' menu opens beside the shrunk sidebar, which is too narrow for it (and would cut it off). */
+  .sidemini:not(.drawer) .nbbtn { border-color: transparent; background: none; }
+  .sidemini:not(.drawer) .nbbtn .chev { display: none; }
+  .sidemini:not(.drawer) .nbmenu { position: fixed; top: calc(var(--topbar) + 14px); left: calc(var(--sidebar) + 6px); right: auto; width: 240px; }
   /* On Settings: its tabs fill the sidebar, and the menu comes in over the page under the title's bar. */
   .drawer .sidenav, .drawer .sideshade { top: var(--topbar); }
   .drawer .sidenav { width: var(--sidebar); padding: 14px 12px; }
@@ -285,7 +299,7 @@ body.ready #gate { display: none; }
 .pbar .chips { gap: 6px; }
 .chip.soft[aria-pressed="true"] { background: var(--ai-soft); border-color: var(--ai); color: var(--ai); }
 .chip.soft[aria-pressed="true"]::before { content: "✓"; }
-.tsethead .tag { display: inline-block; padding: 0 8px; text-transform: none; letter-spacing: normal; border: 1px solid var(--line); border-radius: 999px; background: var(--sunk); color: var(--muted); font-size: .72rem; font-weight: 500; line-height: 1.6; vertical-align: 1px; }
+.tsethead .tag, .test .tag { display: inline-block; padding: 0 8px; text-transform: none; letter-spacing: normal; border: 1px solid var(--line); border-radius: 999px; background: var(--sunk); color: var(--muted); font-size: .72rem; font-weight: 500; line-height: 1.6; vertical-align: 1px; }
 .chip:disabled { opacity: .5; cursor: not-allowed; }
 .seg { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; width: fit-content; max-width: 100%; }
 .seg button { border: none; background: var(--surface); padding: 8px 14px; border-right: 1px solid var(--line); }
@@ -724,6 +738,10 @@ colours.apply(...colours.saved()); // before anything is drawn
       <div class="tactions shareact"><button class="btn primary" type="button" id="tooYoungOk">OK</button></div>
     </div></dialog>
     <nav class="sidenav" id="sideNav" aria-label="Pages">
+      <div class="nbpick" id="nbPick">
+        <button type="button" class="nbbtn" id="nbBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="nbList"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5 H17.5 a1.5 1.5 0 0 1 1.5 1.5 V19 a1.5 1.5 0 0 1-1.5 1.5 H7 a2 2 0 0 1-2-2 V5.5 a2 2 0 0 1 2-2Z M8.5 3.5 V20.5 M12 8 H15.5"/></svg><span id="nbName">My notebook</span><svg class="chev" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="popmenu nbmenu" id="nbList" role="menu" aria-labelledby="nbBtn" hidden></div>
+      </div>
       <button type="button" data-go="setup"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z M13.6 7.4 L16.6 10.4"/></svg><span>Practice</span></button>
       <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg><span>Vocabulary</span></button>
       <button type="button" data-go="history"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20 H20 M7 16.5 V12 M12 16.5 V6.5 M17 16.5 V9.5"/></svg><span>Progress</span></button>
@@ -733,7 +751,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     <div class="topr">
       <div class="acct" id="acct">
         <button type="button" class="acctbtn" id="acctBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="acctList"><span class="pfp" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="12" cy="8.6" r="4.1"/><path d="M4.2 20.2c.6-4 3.9-6.4 7.8-6.4s7.2 2.4 7.8 6.4z"/></svg></span><span class="acctname" id="acctLabel">Guest</span><svg class="chev" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        <div class="acctlist" id="acctList" role="menu" aria-labelledby="acctBtn" hidden></div>
+        <div class="popmenu acctlist" id="acctList" role="menu" aria-labelledby="acctBtn" hidden></div>
       </div>
       <button class="iconbtn" type="button" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M19.3 10.0 L21.9 10.5 L21.9 13.5 L19.3 14.0 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14.0 19.3 L13.5 21.9 L10.5 21.9 L10.0 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14.0 L2.1 13.5 L2.1 10.5 L4.7 10.0 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10.0 4.7 L10.5 2.1 L13.5 2.1 L14.0 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
     </div>
@@ -907,7 +925,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         <div id="acc"></div>
       </div>
       <div class="panel" id="hLovePanel">
-        <div class="head"><h3>Words that need the most love</h3><div class="headr"><div class="seg mini" id="loveTopSeg" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div></div></div>
+        <div class="head"><h3>Words that need the most love<span class="nbin"></span></h3><div class="headr"><div class="seg mini" id="loveTopSeg" role="group" aria-label="Show first"><button type="button" data-top="jp">日本語 first</button><button type="button" data-top="en">English first</button></div></div></div>
         <ul class="love" id="hLove"></ul>
         <div class="listfoot"><nav class="pager" id="lovePager" aria-label="Word pages" hidden></nav><span class="muted small" id="loveCount"></span><div id="loveWin"></div><button class="btn primary" type="button" id="hPractise">Practice these</button></div>
       </div>
@@ -961,8 +979,8 @@ colours.apply(...colours.saved()); // before anything is drawn
           <section><h3>Delete</h3><div id="delAcct"></div></section>
         </div>
         <div class="setpane" data-set-pane="data"><h2>Data</h2>
-          <section><h3>Vocabulary</h3><p class="muted" id="setStats"></p></section>
-          <section id="portPanel" hidden><h3>Export / import</h3>
+          <section><h3>Vocabulary<span class="nbin"></span></h3><p class="muted" id="setStats"></p></section>
+          <section id="portPanel" hidden><h3>Export / import<span class="nbin"></span></h3>
             <div class="tactions"><button class="btn" type="button" id="exportBtn">Export</button><button class="btn" type="button" id="importBtn">Import a file…</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
             <p class="muted small" id="aiHelp">Need to create lots of sets? <a href="ai/" target="_blank" rel="noopener">AI can help</a>.</p>
             <p class="muted small" id="portMsg" hidden></p>
@@ -1223,16 +1241,147 @@ colours.apply(...colours.saved()); // before anything is drawn
     d.returnValue = ""; d.showModal(); $("#askYes").focus();
     return new Promise((done) => d.addEventListener("close", () => done(d.returnValue === "yes"), { once: true }));
   }
+  // ---------- a small menu under a button ----------
+  // makeMenu(box, btn, list): btn opens and closes list, a role="menu" of buttons; box holds them both. Arrow keys move
+  // between the items; Escape, Tab or a click anywhere else closes it. Returns open(on, refocus): refocus puts the focus
+  // back on btn when closing. The account at the top right (account/menu.js) and the notebooks (vocab/notebooks.js) are two.
+  function makeMenu(box, btn, list) {
+    const isOpen = () => !list.hidden;
+    function open(on, refocus) {
+      list.hidden = !on; btn.setAttribute("aria-expanded", on);
+      if (on) list.querySelector("button").focus(); else if (refocus) btn.focus();
+    }
+    btn.onclick = () => open(!isOpen());
+    box.addEventListener("keydown", (e) => {
+      if (!isOpen()) return;
+      const items = [...list.querySelectorAll("button")], i = items.indexOf(document.activeElement);
+      if (e.key === "Escape") { e.stopPropagation(); open(false, true); } // the menu only, not the drawer it may be in
+      else if (e.key === "Tab") open(false);
+      else if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length].focus(); }
+    });
+    document.addEventListener("pointerdown", (e) => { if (isOpen() && !box.contains(e.target)) open(false); });
+    return open;
+  }
+  // ---------- vocab documents ----------
+  // What's stored, and how each document is read. Nothing here looks at the page, so the AI page's import uses it too.
+  //   sets/<id>      { collection, unit, name, tags?, words: [{ id, en, kana, kanji }] }
+  //   kanji/<id>     { collection, unit, kanji }       the kanji a unit teaches, as one string
+  //   meta/books     { order: [collection, …] }        the order the collections are studied in
+  //   meta/views     { main, views: [{ name, collections: [{ name, units: [{ collection, unit }] }] }] }
+  //                  the main view's name, and other ways of grouping the same units into collections (vocab/views.js)
+  //   meta/courses   { courses: [{ name, parts: [{ collection, from, to }] }] }   what views replaced, read until views are saved
+  // Vocab is grouped Collection › Unit › Set: a collection (a textbook, a course, any list of lists) has units (Ch. 3,
+  // Week 1, any name), and each unit has sets; kanji lists go by unit. Documents saved before October 2026 name a book,
+  // a numbered chapter and a section with an optional label: they're read as collection, unit "Ch. N" and set name "A · Label".
+  //   meta/notebooks { list: [{ id, name }] }           the notebooks, in order (below)
+  const tidy = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+  // Notebooks: an account (or a guest's browser) holds one or more, each with its own sets, kanji lists, collection order
+  // and views. The first one's documents are where they always were (sets/<id>, kanji/<id>, meta/books …); any other
+  // notebook keeps the same documents under notebooks/<its id>/. meta/notebooks, beside the first one's documents, lists
+  // them all; until it's saved there's just the first, under NB_NAME.
+  const MAIN_NB = "main", NB_NAME = "My notebook", NB_MAX = 50;
+  // The store as one notebook sees it: the same doc() and collection(), inside that notebook.
+  const inNotebook = (db, id) => { const at = id === MAIN_NB ? "" : `notebooks/${id}/`; return { doc: (p) => db.doc(at + p), collection: (p) => db.collection(at + p) }; };
+  // meta/notebooks as read: [{ id, name }], never empty.
+  function cleanNotebooks(d) {
+    const seen = new Set(), list = [];
+    for (const n of Array.isArray(d?.list) ? d.list : []) {
+      const id = String(n?.id ?? "");
+      if (/^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/.test(id) && !seen.has(id) && list.length < NB_MAX) { seen.add(id); list.push({ id, name: tidy(n.name, 60) || NB_NAME }); }
+    }
+    return list.length ? list : [{ id: MAIN_NB, name: NB_NAME }];
+  }
+  const oldUnit = (v) => { const c = tidy(v, 60).replace(/^ch(apter)?\.?\s*(?=\d)/i, ""); return /^\d+$/.test(c) ? `Ch. ${+c}` : c; };
+  const docCol = (d) => tidy(d.collection ?? d.book, 100);
+  const docUnit = (d) => (d.unit != null ? tidy(d.unit, 60) : oldUnit(d.chapter)) || "No unit";
+  const coll = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+  // Units sort by name with numbers in order (Week 2 before Week 10).
+  const byUnit = (a, b) => coll.compare(String(a), String(b));
+  const docName = (d) => tidy(d.name ?? [d.section, d.label].map((x) => tidy(x, 200)).filter(Boolean).join(" · "), 200) || "Untitled set";
+  const colLabel = (b) => b || "No collection";
+  // "Genki 1 › Lesson 3" and "Genki 1 › Lesson 3 › Food": the collection is named only where there's more than one (withCol).
+  const unitPath = (x, withCol) => `${withCol ? colLabel(x.collection || "") + " › " : ""}${x.unit}`;
+  const setPath = (s, withCol) => `${unitPath(s, withCol)} › ${s.name}`;
+  // A set's own tags: up to 12 short labels, matched without case; a comma (or 、) separates them when typed.
+  const tagKey = (t) => t.toLowerCase();
+  function cleanTags(v) {
+    const out = [], seen = new Set();
+    for (const t of Array.isArray(v) ? v : String(v ?? "").split(/[,、，]/)) {
+      const x = tidy(t, 30);
+      if (x && !seen.has(tagKey(x)) && out.length < 12) { seen.add(tagKey(x)); out.push(x); }
+    }
+    return out;
+  }
+  // A course takes a range of units from one collection, by name: { collection, from, to }. Older courses gave a book and chapter numbers.
+  const coursePart = (p) => (p?.collection != null ? { collection: tidy(p.collection, 100), from: tidy(p.from, 60), to: tidy(p.to, 60) }
+    : { collection: tidy(p?.book, 100), from: oldUnit(p?.from), to: oldUnit(p?.to) });
+
+  // The documents exactly as stored, with their ids: what Export writes out and Import compares a file with.
+  const withIds = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const dataOrNull = (snap) => (snap.exists ? snap.data() : null);
+  // All four at once, for a page that doesn't keep them loaded (the AI page; the site itself listens to each, see boot).
+  async function readVocab(db) {
+    const [sets, kanji, books, courses, views] = await Promise.all([db.collection("sets").get(), db.collection("kanji").get(), db.doc("meta/books").get(), db.doc("meta/courses").get(), db.doc("meta/views").get()]);
+    return { sets: withIds(sets), kanji: withIds(kanji), books: dataOrNull(books), courses: dataOrNull(courses), views: dataOrNull(views) };
+  }
+  // A vocab file (Export writes one, Import reads one, an AI can make one: see ai/) is those documents in one JSON object:
+  // { app: APP, version: 2, sets: [...], kanji: [...], collections: { order }, views } (older files: courses instead of views).
+  const APP = "jp-vocab-practice";
+  // Each cleaner returns the document to store, in the current format, or null when what it's given isn't usable.
+  // Files and older documents go through them, so their contents are never trusted.
+  const ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/;
+  const rid = () => Math.random().toString(36).slice(2, 9);
+  const str = (v, n = 500) => String(v ?? "").slice(0, n);
+  const cleanSet = (d) => !d || typeof d !== "object" || !ID_RE.test(String(d.id ?? "")) || !Array.isArray(d.words) ? null : {
+    collection: docCol(d), unit: docUnit(d), name: docName(d), ...(cleanTags(d.tags).length ? { tags: cleanTags(d.tags) } : {}),
+    words: d.words.slice(0, 3000).filter((w) => w && typeof w === "object").map((w) => ({ id: ID_RE.test(String(w.id ?? "")) ? String(w.id) : rid(), en: str(w.en), kana: str(w.kana), kanji: str(w.kanji) })) };
+  const cleanKanji = (d) => !d || typeof d !== "object" || !ID_RE.test(String(d.id ?? "")) ? null : { collection: docCol(d), unit: docUnit(d), kanji: str(d.kanji, 20000) };
+  const cleanBooks = (d) => Array.isArray(d?.order) ? { order: d.order.slice(0, 50).map((b) => str(b, 100)) } : null;
+  // Courses come as stored ({ courses: [...] }) or, in a hand-made file, as the bare list.
+  function cleanCourses(d) {
+    const list = Array.isArray(d) ? d : d?.courses;
+    return Array.isArray(list) ? { courses: list.slice(0, 50).filter((c) => c && c.name && Array.isArray(c.parts)).map((c) => ({ name: str(c.name, 100),
+      parts: c.parts.slice(0, 20).filter((x) => x && typeof x === "object").map(coursePart).filter((x) => x.from && x.to) })) } : null;
+  }
+  // Courses read as one view, "Courses", each unit in the first course that covers it. units: every unit there is, as
+  // { collection, unit }; courses: [{ name, parts }] (cleanCourses).
+  function courseView(units, courses) {
+    const used = new Set(), inPart = (u, pt) => u.collection === pt.collection && byUnit(u.unit, pt.from) >= 0 && byUnit(u.unit, pt.to) <= 0;
+    return { name: "Courses", collections: courses.map((c) => { const us = units.filter((u) => !used.has(u) && c.parts.some((pt) => inPart(u, pt))); us.forEach((u) => used.add(u)); return { name: c.name, units: us }; }) };
+  }
+  // A name in a view other than the main one may hold one line break, which shows it on two lines beside its units.
+  const viewName = (v, n) => String(v ?? "").split("\n").map((t) => tidy(t, n)).filter(Boolean).slice(0, 2).join("\n").slice(0, n);
+  function cleanViews(d) {
+    if (!d || typeof d !== "object" || !Array.isArray(d.views)) return null;
+    const unit = (u) => ({ collection: tidy(u.collection, 100), unit: tidy(u.unit, 60) });
+    const out = { main: tidy(d.main, 60) || "Books", views: d.views.slice(0, 20).filter((v) => v && typeof v === "object" && Array.isArray(v.collections)).map((v) => ({ name: viewName(v.name, 60) || "View",
+      collections: v.collections.slice(0, 100).filter((c) => c && typeof c === "object").map((c) => ({ name: viewName(c.name, 100) || "Untitled",
+        units: (Array.isArray(c.units) ? c.units : []).slice(0, 1000).filter((u) => u && typeof u === "object" && u.unit).map(unit) })) })) };
+    // mainAt: where the main view sits among the views (0, first, if missing).
+    const at = Number.isInteger(d.mainAt) ? Math.min(d.mainAt, out.views.length) : 0;
+    return at > 0 ? { ...out, mainAt: at } : out;
+  }
   // Choices people make on the page. They're kept in this browser and, for someone signed in, in their account
   // too (data/users/<id>/prefs, see syncPrefs in account/choices.js), so they come along to other devices.
-  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "sessPer", "loveTop", "palette", "theme", "resume", "share", "practices", "policySeen"];
+  const PREF_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "dir", "mode", "uptoPick", "loveWin", "sessPer", "loveTop", "palette", "theme", "resume", "share", "practices", "policySeen", "notebook", "nbPicks"];
   let prefsChanged = () => {};
-  const store = {
+  // This browser's copy of them, each under its own name.
+  const kept = {
     get(k, d) { try { const v = localStorage.getItem("jpq:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
     set(k, v) {
       if (PREF_KEYS.includes(k)) prefsChanged();
       try { localStorage.setItem("jpq:" + k, JSON.stringify(v)); return true; } catch { return false; }
     },
+  };
+  // The notebook that's open (vocab/notebooks.js), and the choices that are a notebook's own: which sets are picked,
+  // which units show, and so on. The first notebook's are kept under their own names, where they always were; any
+  // other notebook's are together under "nbPicks", by its id. The page reads and saves through store, which knows which.
+  let nb = String(kept.get("notebook", MAIN_NB) || MAIN_NB);
+  const NB_KEYS = ["selected", "bookShow", "pickChs", "tShow", "tChs", "groupBy", "pickTags", "uptoPick"];
+  const ofNotebook = (k) => nb !== MAIN_NB && NB_KEYS.includes(k);
+  const store = {
+    get(k, d) { if (!ofNotebook(k)) return kept.get(k, d); const v = kept.get("nbPicks", null)?.[nb]?.[k]; return v == null ? d : v; },
+    set(k, v) { if (!ofNotebook(k)) return kept.set(k, v); const all = kept.get("nbPicks", null) || {}; return kept.set("nbPicks", { ...all, [nb]: { ...all[nb], [k]: v } }); },
   };
   // Before tags, the Show row switched kinds of sets off; the kinds left on carry over as picked tags.
   function oldKindPicks() {
@@ -1279,7 +1428,17 @@ colours.apply(...colours.saved()); // before anything is drawn
     colOrder: [],                  // saved book order (meta/books); books not in it come after, by name
     colEdit: null,                 // the views and collections being edited in the vocab table (vocab/collections.js), or null
     viewDoc: null,                 // meta/views as read (vocab/views.js), or null before views are saved
+    notebooks: null,               // meta/notebooks as read ([{ id, name }], vocab/notebooks.js), or null until it loads
   };
+  // The open notebook's choices, read again: the account's copy arrived, or another notebook was opened.
+  function readPicks() {
+    S.selected = new Set(store.get("selected", []));
+    Object.assign(S.pick, { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", [])) });
+    Object.assign(S.tpick, { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) });
+    S.groupBy = store.get("groupBy", "main");
+    S.pickTags = new Set(store.get("pickTags", []));
+    S.upto = store.get("uptoPick", "auto");
+  }
 
   // ---------- views ----------
   const views = ["setup", "quiz", "results", "table", "history", "settings"];
@@ -1324,9 +1483,13 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#settings .setpage").classList.toggle("intab", setTab != null);
     $("#settingsClose").textContent = phone.matches && setTab != null ? "← Settings" : "← Back";
   }
-  function renderSettings() {
+  // How much the open notebook holds; kept right while Settings is open (an import, or another notebook opened from the ☰ menu).
+  function renderStats() {
     const words = S.sets.reduce((a, s) => a + readyCount(s.words || []), 0);
     $("#setStats").textContent = [plural(S.sets.length, "set"), plural(words, "word"), plural(S.kanjiLists.length, "kanji list"), ...(S.history?.length ? [plural(S.history.length, "practice session") + " saved"] : [])].join(" · ");
+  }
+  function renderSettings() {
+    renderStats();
     renderPort(); renderHistSet();
     renderAccount(); renderShare();
     syncSetTabs();
@@ -1385,12 +1548,12 @@ colours.apply(...colours.saved()); // before anything is drawn
     const side = $("header.side");
     if (open === side.classList.contains("open")) return;
     side.classList.toggle("open", open); syncMenuBtn();
-    if (open) $("#sideNav > *").focus(); else if (refocus) $("#menuBtn").focus();
+    if (open) $("#sideNav [data-go]").focus(); else if (refocus) $("#menuBtn").focus();
   }
   // The sidebar shrunk to its icons, each named when pointed at. Kept for this device only.
   function shrink(on) {
     htmlCls().toggle("sidemini", on);
-    $("#sideNav").querySelectorAll(":scope > :not(.foot)").forEach((b) => (on ? (b.title = b.textContent.trim()) : b.removeAttribute("title")));
+    $("#sideNav").querySelectorAll("[data-go], #nbBtn").forEach((b) => (on ? (b.title = b.textContent.trim()) : b.removeAttribute("title")));
     syncMenuBtn();
   }
   function syncMenuBtn() { $("#menuBtn").setAttribute("aria-expanded", htmlCls().contains("drawer") ? $("header.side").classList.contains("open") : !htmlCls().contains("sidemini")); }
@@ -1639,88 +1802,6 @@ colours.apply(...colours.saved()); // before anything is drawn
   $("#clearBtn").onclick = () => { furi.clear(); main.clear(); };
   $("#scratchClear").onclick = () => scratch.clear();
 
-  // ---------- vocab documents ----------
-  // What's stored, and how each document is read. Nothing here looks at the page, so the AI page's import uses it too.
-  //   sets/<id>      { collection, unit, name, tags?, words: [{ id, en, kana, kanji }] }
-  //   kanji/<id>     { collection, unit, kanji }       the kanji a unit teaches, as one string
-  //   meta/books     { order: [collection, …] }        the order the collections are studied in
-  //   meta/views     { main, views: [{ name, collections: [{ name, units: [{ collection, unit }] }] }] }
-  //                  the main view's name, and other ways of grouping the same units into collections (vocab/views.js)
-  //   meta/courses   { courses: [{ name, parts: [{ collection, from, to }] }] }   what views replaced, read until views are saved
-  // Vocab is grouped Collection › Unit › Set: a collection (a textbook, a course, any list of lists) has units (Ch. 3,
-  // Week 1, any name), and each unit has sets; kanji lists go by unit. Documents saved before October 2026 name a book,
-  // a numbered chapter and a section with an optional label: they're read as collection, unit "Ch. N" and set name "A · Label".
-  const tidy = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
-  const oldUnit = (v) => { const c = tidy(v, 60).replace(/^ch(apter)?\.?\s*(?=\d)/i, ""); return /^\d+$/.test(c) ? `Ch. ${+c}` : c; };
-  const docCol = (d) => tidy(d.collection ?? d.book, 100);
-  const docUnit = (d) => (d.unit != null ? tidy(d.unit, 60) : oldUnit(d.chapter)) || "No unit";
-  const coll = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-  // Units sort by name with numbers in order (Week 2 before Week 10).
-  const byUnit = (a, b) => coll.compare(String(a), String(b));
-  const docName = (d) => tidy(d.name ?? [d.section, d.label].map((x) => tidy(x, 200)).filter(Boolean).join(" · "), 200) || "Untitled set";
-  const colLabel = (b) => b || "No collection";
-  // "Genki 1 › Lesson 3" and "Genki 1 › Lesson 3 › Food": the collection is named only where there's more than one (withCol).
-  const unitPath = (x, withCol) => `${withCol ? colLabel(x.collection || "") + " › " : ""}${x.unit}`;
-  const setPath = (s, withCol) => `${unitPath(s, withCol)} › ${s.name}`;
-  // A set's own tags: up to 12 short labels, matched without case; a comma (or 、) separates them when typed.
-  const tagKey = (t) => t.toLowerCase();
-  function cleanTags(v) {
-    const out = [], seen = new Set();
-    for (const t of Array.isArray(v) ? v : String(v ?? "").split(/[,、，]/)) {
-      const x = tidy(t, 30);
-      if (x && !seen.has(tagKey(x)) && out.length < 12) { seen.add(tagKey(x)); out.push(x); }
-    }
-    return out;
-  }
-  // A course takes a range of units from one collection, by name: { collection, from, to }. Older courses gave a book and chapter numbers.
-  const coursePart = (p) => (p?.collection != null ? { collection: tidy(p.collection, 100), from: tidy(p.from, 60), to: tidy(p.to, 60) }
-    : { collection: tidy(p?.book, 100), from: oldUnit(p?.from), to: oldUnit(p?.to) });
-
-  // The documents exactly as stored, with their ids: what Export writes out and Import compares a file with.
-  const withIds = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  const dataOrNull = (snap) => (snap.exists ? snap.data() : null);
-  // All four at once, for a page that doesn't keep them loaded (the AI page; the site itself listens to each, see boot).
-  async function readVocab(db) {
-    const [sets, kanji, books, courses, views] = await Promise.all([db.collection("sets").get(), db.collection("kanji").get(), db.doc("meta/books").get(), db.doc("meta/courses").get(), db.doc("meta/views").get()]);
-    return { sets: withIds(sets), kanji: withIds(kanji), books: dataOrNull(books), courses: dataOrNull(courses), views: dataOrNull(views) };
-  }
-  // A vocab file (Export writes one, Import reads one, an AI can make one: see ai/) is those documents in one JSON object:
-  // { app: APP, version: 2, sets: [...], kanji: [...], collections: { order }, views } (older files: courses instead of views).
-  const APP = "jp-vocab-practice";
-  // Each cleaner returns the document to store, in the current format, or null when what it's given isn't usable.
-  // Files and older documents go through them, so their contents are never trusted.
-  const ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/;
-  const rid = () => Math.random().toString(36).slice(2, 9);
-  const str = (v, n = 500) => String(v ?? "").slice(0, n);
-  const cleanSet = (d) => !d || typeof d !== "object" || !ID_RE.test(String(d.id ?? "")) || !Array.isArray(d.words) ? null : {
-    collection: docCol(d), unit: docUnit(d), name: docName(d), ...(cleanTags(d.tags).length ? { tags: cleanTags(d.tags) } : {}),
-    words: d.words.slice(0, 3000).filter((w) => w && typeof w === "object").map((w) => ({ id: ID_RE.test(String(w.id ?? "")) ? String(w.id) : rid(), en: str(w.en), kana: str(w.kana), kanji: str(w.kanji) })) };
-  const cleanKanji = (d) => !d || typeof d !== "object" || !ID_RE.test(String(d.id ?? "")) ? null : { collection: docCol(d), unit: docUnit(d), kanji: str(d.kanji, 20000) };
-  const cleanBooks = (d) => Array.isArray(d?.order) ? { order: d.order.slice(0, 50).map((b) => str(b, 100)) } : null;
-  // Courses come as stored ({ courses: [...] }) or, in a hand-made file, as the bare list.
-  function cleanCourses(d) {
-    const list = Array.isArray(d) ? d : d?.courses;
-    return Array.isArray(list) ? { courses: list.slice(0, 50).filter((c) => c && c.name && Array.isArray(c.parts)).map((c) => ({ name: str(c.name, 100),
-      parts: c.parts.slice(0, 20).filter((x) => x && typeof x === "object").map(coursePart).filter((x) => x.from && x.to) })) } : null;
-  }
-  // Courses read as one view, "Courses", each unit in the first course that covers it. units: every unit there is, as
-  // { collection, unit }; courses: [{ name, parts }] (cleanCourses).
-  function courseView(units, courses) {
-    const used = new Set(), inPart = (u, pt) => u.collection === pt.collection && byUnit(u.unit, pt.from) >= 0 && byUnit(u.unit, pt.to) <= 0;
-    return { name: "Courses", collections: courses.map((c) => { const us = units.filter((u) => !used.has(u) && c.parts.some((pt) => inPart(u, pt))); us.forEach((u) => used.add(u)); return { name: c.name, units: us }; }) };
-  }
-  // A name in a view other than the main one may hold one line break, which shows it on two lines beside its units.
-  const viewName = (v, n) => String(v ?? "").split("\n").map((t) => tidy(t, n)).filter(Boolean).slice(0, 2).join("\n").slice(0, n);
-  function cleanViews(d) {
-    if (!d || typeof d !== "object" || !Array.isArray(d.views)) return null;
-    const unit = (u) => ({ collection: tidy(u.collection, 100), unit: tidy(u.unit, 60) });
-    const out = { main: tidy(d.main, 60) || "Books", views: d.views.slice(0, 20).filter((v) => v && typeof v === "object" && Array.isArray(v.collections)).map((v) => ({ name: viewName(v.name, 60) || "View",
-      collections: v.collections.slice(0, 100).filter((c) => c && typeof c === "object").map((c) => ({ name: viewName(c.name, 100) || "Untitled",
-        units: (Array.isArray(c.units) ? c.units : []).slice(0, 1000).filter((u) => u && typeof u === "object" && u.unit).map(unit) })) })) };
-    // mainAt: where the main view sits among the views (0, first, if missing).
-    const at = Number.isInteger(d.mainAt) ? Math.min(d.mainAt, out.views.length) : 0;
-    return at > 0 ? { ...out, mainAt: at } : out;
-  }
   // ---------- data ----------
   // The vocab as the page holds it: collections, their units and sets, in order (how a stored document is read: vocab/docs.js).
   // In a unit, Kanji sets, Extras and supplementary lists come last (units sort by name: byUnit in vocab/docs.js).
@@ -1754,10 +1835,15 @@ colours.apply(...colours.saved()); // before anything is drawn
 
   // Listens to the vocab where it's kept, so a change from anywhere (another tab or device too) shows at once. failed: what
   // to say when the sets can't load.
-  function watchVocab(failed) {
-    db.collection("kanji").onSnapshot(onKanji, () => {});
-    db.collection("sets").onSnapshot(onSets, () => banner(failed));
-    for (const [path, on] of [["meta/books", onBookOrder], ["meta/courses", onCourses], ["meta/views", onViews]]) db.doc(path).onSnapshot(on, () => {});
+  // It's the open notebook's vocab (vdb: the store as that notebook sees it, vocab/docs.js); opening another notebook
+  // (vocab/notebooks.js) calls this again, and what the notebook before still sends is dropped.
+  let vdb = null, watching = 0, watchOff = [], watchFailed = "";
+  function watchVocab(failed = watchFailed) {
+    watchOff.forEach((off) => typeof off === "function" && off());
+    const mine = ++watching, now = (on) => (snap) => { if (mine === watching) on(snap); };
+    watchFailed = failed; vdb = inNotebook(db, nb);
+    watchOff = [vdb.collection("kanji").onSnapshot(now(onKanji), () => {}), vdb.collection("sets").onSnapshot(now(onSets), now(() => banner(failed))),
+      ...[["meta/books", onBookOrder], ["meta/courses", onCourses], ["meta/views", onViews]].map(([path, on]) => vdb.doc(path).onSnapshot(now(on), () => {}))];
   }
   function onCourses(snap) {
     raw.courses = dataOrNull(snap);
@@ -1784,6 +1870,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     for (const id of [...S.drafts.keys()]) if (!ids.has(id)) S.drafts.delete(id);
     renderSetup();
     renderTable();
+    renderStats();
   }
 
   // ---------- setup ----------
@@ -2218,7 +2305,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const keys = new Set();
     for (const it of items) { let k = it.key, n = 2; while (keys.has(k)) k = `${it.key}#${n++}`; keys.add(k); it.key = k; }
     Object.assign(Q, { items, queue: order(items), wrong: [], round: 1, tries: {}, done: new Set(), total: items.length,
-      meta: { dir: S.dir, mode: S.mode, sets: [...new Set(words.map((w) => w.set))] } });
+      meta: { dir: S.dir, mode: S.mode, sets: [...new Set(words.map((w) => w.set))], nb } });
     show("quiz");
     nextItem();
   }
@@ -2784,11 +2871,14 @@ colours.apply(...colours.saved()); // before anything is drawn
   const CLEAR_RUN = 3;
   // A word a session saved, as it is in the sets now: the same id and written the same (ids repeat across sets, so the id
   // alone could be another set's word). { w, s } or null when it's gone or changed.
+  // The notebook a session was practiced in (sessions from before notebooks: the first one).
+  const sessionNb = (t) => t.nb || MAIN_NB;
   const liveWord = (h) => { for (const s of S.sets) for (const w of s.words) if (w.id === h.id && jpForm(w) === h.jp) return { w, s }; return null; };
   function renderToughest() {
     const agg = new Map();
     // Oldest session first, so each word's run counts the sessions since its latest miss.
-    const byTime = S.history.slice().sort((a, b) => String(a.finishedAt || "").localeCompare(String(b.finishedAt || "")));
+    // With more than one notebook, the list is the open notebook's: those are the words it can show and practice.
+    const byTime = S.history.filter((t) => nbList().length < 2 || sessionNb(t) === nb).sort((a, b) => String(a.finishedAt || "").localeCompare(String(b.finishedAt || "")));
     perPage.set(S.loveWin);
     for (const t of byTime) for (const w of t.words || []) {
       if (w.skip) continue; // left off the list on the results page
@@ -2878,7 +2968,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#hList").innerHTML = shown.map((t) => {
       const { n, first } = firstTry(t), del = S.hConfirm === t.id;
       const ws = (t.words || []).slice().sort((a, b) => b.tries - a.tries);
-      return `<li class="test"><details data-id="${esc(t.id)}" ${S.hOpen.has(t.id) ? "open" : ""}><summary><span class="when">${esc(fmtWhen(t.finishedAt))}</span><span class="what">${esc((t.sets || []).join(", "))}</span><span class="score">${first}/${n} first try</span></summary>
+      return `<li class="test"><details data-id="${esc(t.id)}" ${S.hOpen.has(t.id) ? "open" : ""}><summary><span class="when">${esc(fmtWhen(t.finishedAt))}</span><span class="what">${nbList().length < 2 ? "" : `<span class="tag">${esc(nbList().find((n) => n.id === sessionNb(t))?.name ?? "Deleted notebook")}</span> `}${esc((t.sets || []).join(", "))}</span><span class="score">${first}/${n} first try</span></summary>
         <p class="muted small">${esc(DIRS[t.dir] || "")} · ${esc(MODES[t.mode] || "Default")}</p>
         <p class="tw">${ws.map((w) => `<span class="${w.tries > 1 ? "miss" : ""}" title="${esc(w.en)}">${esc(w.jp)}${w.tries > 1 ? ` ×${w.tries}` : ""}</span>`).join("")}</p>
         <div class="tactions">${del ? `<span class="small">Delete this session?</span><button class="btn danger" data-hdel-yes="${esc(t.id)}">Delete</button><button class="btn" data-hdel-no>Keep</button>` : `<button class="ghost small" data-hdel="${esc(t.id)}">Delete this session</button>`}</div>
@@ -2928,18 +3018,19 @@ colours.apply(...colours.saved()); // before anything is drawn
     let first = true, timer = null, stopped = false;
     // Firestore refuses a whole document with an empty field name, and sets with no collection are under "" in bookShow and tShow:
     // that one row's choice stays in this browser.
-    const named = (v) => (v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).filter(([k]) => k)) : v);
+    // (The same inside "nbPicks", which holds those choices for each other notebook.)
+    const named = (v) => (v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).filter(([k]) => k).map(([k, x]) => [k, named(x)])) : v);
     const save = () => {
       clearTimeout(timer); timer = null;
       if (stopped) return;
-      const p = Object.fromEntries(PREF_KEYS.map((k) => [k, named(store.get(k, null))]).filter(([, v]) => v != null));
+      const p = Object.fromEntries(PREF_KEYS.map((k) => [k, named(kept.get(k, null))]).filter(([, v]) => v != null));
       Promise.resolve().then(() => ref.set({ ...p, updatedAt: new Date().toISOString() })).catch(() => {});
     };
     const off = ref.onSnapshot((snap) => {
       if (!first) return;
       first = false; setTimeout(() => typeof off === "function" && off(), 0);
       // A yes to sharing handwriting left in this browser is another account's, so a first sign-in doesn't take it along.
-      if (snap.exists) usePrefs(snap.data() || {}); else { store.set("share", null); save(); }
+      if (snap.exists) usePrefs(snap.data() || {}); else { kept.set("share", null); save(); }
       prefsChanged = () => { clearTimeout(timer); timer = setTimeout(save, 800); };
       loaded();
       const flush = () => { if (timer) save(); };
@@ -2951,13 +3042,10 @@ colours.apply(...colours.saved()); // before anything is drawn
   function usePrefs(p) {
     // A practice to resume is the account's, or none: one left in this browser may be from another account or already finished elsewhere.
     // So is the answer to sharing handwriting: only the account's own yes counts.
-    for (const k of PREF_KEYS) if (p[k] != null || k === "resume" || k === "share") store.set(k, p[k] ?? null);
-    S.selected = new Set(store.get("selected", []));
-    Object.assign(S.pick, { show: store.get("bookShow", null), picks: new Set(store.get("pickChs", [])) });
-    Object.assign(S.tpick, { show: store.get("tShow", null), picks: new Set(store.get("tChs", [])) });
-    S.groupBy = store.get("groupBy", "main");
-    S.pickTags = new Set(store.get("pickTags", []));
-    S.dir = store.get("dir", "ej"); S.mode = store.get("mode", "default"); S.upto = store.get("uptoPick", "auto");
+    for (const k of PREF_KEYS) if (p[k] != null || k === "resume" || k === "share") kept.set(k, p[k] ?? null);
+    // The notebook that account had open is opened here too (which reads its choices); the same one's are read again.
+    if (!openNotebook(String(kept.get("notebook", MAIN_NB) || MAIN_NB))) readPicks();
+    S.dir = store.get("dir", "ej"); S.mode = store.get("mode", "default");
     S.loveWin = String(store.get("loveWin", "10")); S.sessPer = String(store.get("sessPer", "20")); S.loveTop = store.get("loveTop", "jp") === "en" ? "en" : "jp";
     setPalette(store.get("palette", "indigo"));
     setTheme(store.get("theme", ""));
@@ -3012,7 +3100,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       row.querySelector("[data-kdiscard]").onclick = () => { S.kdrafts.delete(id); S.kConfirmDel = null; renderKanji(); };
       const d1 = row.querySelector("[data-kdel]"); if (d1) d1.onclick = () => { S.kConfirmDel = id; renderKanji(); };
       const dn = row.querySelector("[data-kdel-no]"); if (dn) dn.onclick = () => { S.kConfirmDel = null; renderKanji(); };
-      const dy = row.querySelector("[data-kdel-yes]"); if (dy) dy.onclick = async () => { S.kConfirmDel = null; S.kdrafts.delete(id); try { await db.doc("kanji/" + id).delete(); } catch { banner("Couldn't delete that kanji list. Reload and try again."); } };
+      const dy = row.querySelector("[data-kdel-yes]"); if (dy) dy.onclick = async () => { S.kConfirmDel = null; S.kdrafts.delete(id); try { await vdb.doc("kanji/" + id).delete(); } catch { banner("Couldn't delete that kanji list. Reload and try again."); } };
     });
   }
   $("#newKanjiForm").addEventListener("submit", async (e) => {
@@ -3021,14 +3109,14 @@ colours.apply(...colours.saved()); // before anything is drawn
     pickUnit(unit, col); renderTable();
     if (S.kanjiLists.some((k) => sameName(colOf(k), col) && sameName(k.unit, unit))) { e.target.reset(); $("#nkCol").value = col; return; }
     const id = freeId(slug(`${col}-${unit}`, "kanji"), new Set(S.kanjiLists.map((k) => k.id)));
-    try { await db.doc("kanji/" + id).set({ collection: col, unit, kanji: "", updatedAt: new Date().toISOString() }); e.target.reset(); $("#nkCol").value = col; }
+    try { await vdb.doc("kanji/" + id).set({ collection: col, unit, kanji: "", updatedAt: new Date().toISOString() }); e.target.reset(); $("#nkCol").value = col; }
     catch { banner("Couldn't add the kanji list. Only the owner and editors can change the table."); }
   });
   function onKanji(snap) {
     raw.kanji = withIds(snap);
     S.kLoaded = true;
     S.kanjiLists = snap.docs.map((d) => { const x = d.data(); return { id: d.id, collection: docCol(x), unit: docUnit(x), kanji: String(x.kanji ?? "") }; }).sort(sortLists);
-    renderUpto(); renderTable(); renderSetup();
+    renderUpto(); renderTable(); renderSetup(); renderStats();
   }
 
   // A kanji list being edited (S.kdrafts: id -> { collection, unit, kanji }) with something different from what's stored.
@@ -3040,7 +3128,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const col = canonCol(d.collection), unit = canonUnit(col, d.unit);
     if (!unit || !col) { err("Type a collection and a unit."); return false; }
     if (S.kanjiLists.some((x) => x.id !== id && sameName(colOf(x), col) && sameName(x.unit, unit))) { err(`${col} › ${unit} already has a kanji list.`); return false; }
-    try { await db.doc("kanji/" + id).update({ collection: col, unit, kanji: onlyKanji(d.kanji), updatedAt: new Date().toISOString() }); }
+    try { await vdb.doc("kanji/" + id).update({ collection: col, unit, kanji: onlyKanji(d.kanji), updatedAt: new Date().toISOString() }); }
     catch { err("Couldn't save. Try again."); return false; }
     if (S.upto === unitKey(k) && unitKey({ collection: col, unit }) !== S.upto) { S.upto = unitKey({ collection: col, unit }); store.set("uptoPick", S.upto); renderUpto(); }
     S.kdrafts.delete(id);
@@ -3120,7 +3208,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const col = canonCol(d.vals.collection), unit = canonUnit(col, d.vals.unit), name = tidy(d.vals.name, 200), tags = cleanTags(d.vals.tags);
     if (det && (!col || !unit || !name)) { say("Collection, unit and set name can't be empty."); return false; }
     if (det && S.sets.some((x) => x.id !== s.id && sameName(colOf(x), col) && sameName(x.unit, unit) && sameName(x.name, name))) { say(`${col} › ${unit} › ${name} already exists.`); return false; }
-    try { await db.doc("sets/" + s.id).update({ ...(det ? { collection: col, unit, name, tags } : {}), words: keptWords(d.words).map((w) => ({ ...w, id: w.id || rid() })), updatedAt: new Date().toISOString() }); }
+    try { await vdb.doc("sets/" + s.id).update({ ...(det ? { collection: col, unit, name, tags } : {}), words: keptWords(d.words).map((w) => ({ ...w, id: w.id || rid() })), updatedAt: new Date().toISOString() }); }
     catch { say("Couldn't save. Try again."); return false; }
     S.drafts.delete(s.id);
     if (det) { S.openSets.add(s.id); pickUnit(unit, col); }
@@ -3131,7 +3219,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   // Unsaved changes are asked about before they can be lost: on leaving the vocab table, and by the browser on leaving the page.
   const unsavedSets = () => S.sets.filter(dirtySet), unsavedLists = () => S.kanjiLists.filter(dirtyList);
   addEventListener("beforeunload", (e) => { if (unsavedSets().length || unsavedLists().length || colsDirty()) { e.preventDefault(); e.returnValue = ""; } });
-  // to: the view to go to (page/nav.js), once the changes are saved or let go.
+  // to: the view to go to (page/nav.js), or what to do (opening another notebook), once the changes are saved or let go.
+  const leaveGo = () => (typeof S.leaveTo === "function" ? S.leaveTo() : openView(S.leaveTo));
   function leaveTable(to = "setup") {
     // Whatever was opened for editing and left as it was just closes.
     for (const s of S.sets) if (!dirtySet(s)) S.drafts.delete(s.id);
@@ -3139,7 +3228,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (!colsDirty()) S.colEdit = null;
     S.confirmDel = S.kConfirmDel = null;
     S.leaveTo = to; S.leaveAsk = true; renderLeave();
-    if (!S.leaveAsk) openView(to); else window.scrollTo(0, 0);
+    if (!S.leaveAsk) leaveGo(); else window.scrollTo(0, 0);
   }
   function renderLeave(why = "") {
     const sets = unsavedSets(), lists = unsavedLists(), crs = colsDirty(), n = sets.length + lists.length + crs, box = $("#leaveAsk");
@@ -3150,7 +3239,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     box.innerHTML = `<span>${[...count(sets.length, "set"), ...count(lists.length, "kanji list"), ...(crs ? ["the collections"] : [])].join(" and ")} ${n === 1 && !crs ? "has" : "have"} unsaved changes.${why ? ` <span class="keyerr">${esc(why)}</span>` : ""}</span>
       <span class="tactions"><button class="btn primary" type="button" data-lsave>Save all</button><button class="btn" type="button" data-ldiscard>Discard all</button><button class="link" type="button" data-lkeep>Keep editing</button></span>`;
     box.querySelector("[data-lkeep]").onclick = () => { S.leaveAsk = false; renderLeave(); };
-    box.querySelector("[data-ldiscard]").onclick = () => { S.drafts.clear(); S.kdrafts.clear(); S.colEdit = null; renderTable(); openView(S.leaveTo); };
+    box.querySelector("[data-ldiscard]").onclick = () => { S.drafts.clear(); S.kdrafts.clear(); S.colEdit = null; renderTable(); leaveGo(); };
     box.querySelector("[data-lsave]").onclick = async (e) => {
       e.target.disabled = true; e.target.textContent = "Saving…";
       let bad = "";
@@ -3158,7 +3247,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       for (const k of lists) if (!bad && !(await saveKanji(k.id))) bad = "Couldn't save. Try again.";
       if (crs && !bad && !(await saveCols((m) => { bad = `Collections: ${m}`; })) && !bad) bad = "Couldn't save. Try again.";
       renderTable();
-      if (bad) renderLeave(bad); else openView(S.leaveTo);
+      if (bad) renderLeave(bad); else leaveGo();
     };
   }
 
@@ -3278,7 +3367,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       el.querySelector("[data-discard]").onclick = () => { S.drafts.delete(sid); S.confirmDel = null; renderTable(); };
       const d1 = el.querySelector("[data-delset]"); if (d1) d1.onclick = () => { S.confirmDel = sid; renderTable(); };
       const dn = el.querySelector("[data-delset-no]"); if (dn) dn.onclick = () => { S.confirmDel = null; renderTable(); };
-      const dy = el.querySelector("[data-delset-yes]"); if (dy) dy.onclick = async () => { S.confirmDel = null; S.drafts.delete(sid); try { await db.doc("sets/" + sid).delete(); } catch {} };
+      const dy = el.querySelector("[data-delset-yes]"); if (dy) dy.onclick = async () => { S.confirmDel = null; S.drafts.delete(sid); try { await vdb.doc("sets/" + sid).delete(); } catch {} };
     });
     const back = fresh ? box.querySelector(`[data-sid="${CSS.escape(fresh)}"] textarea`) : typing && document.getElementById(typing.id);
     if (back && back !== document.activeElement) { back.focus(); if (!fresh && typing.pos != null && back.setSelectionRange) back.setSelectionRange(typing.pos, typing.pos); }
@@ -3295,7 +3384,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     S.openSets.add(id); S.editNew = id;
     clearSearch();
     try {
-      await db.doc("sets/" + id).set({ collection: col, unit, name, ...(tags.length ? { tags } : {}), words: [blankWord()], updatedAt: new Date().toISOString() });
+      await vdb.doc("sets/" + id).set({ collection: col, unit, name, ...(tags.length ? { tags } : {}), words: [blankWord()], updatedAt: new Date().toISOString() });
       e.target.reset(); $("#nsCol").value = col; $("#nsUnit").value = unit;
     } catch { banner("Couldn't add the set. Only the owner and editors can change the table."); }
   });
@@ -3361,6 +3450,111 @@ colours.apply(...colours.saved()); // before anything is drawn
   const viewSwitchFit = new ResizeObserver((es) => es.forEach((e) => { const w = Math.round(e.contentRect.width), box = e.target.querySelector(".viewsw");
     if (box && e.target.dataset.w !== String(w)) { e.target.dataset.w = w; renderViewSwitch(box); } }));
   for (const id of ["#groupSeg", "#tGroupSeg"]) viewSwitchFit.observe($(id).closest(".head"));
+  // ---------- notebooks: the one that's open, and the menu at the top of the sidebar ----------
+  // What a notebook is and where its documents are: vocab/docs.js. The page shows one at a time (nb, page/core.js):
+  // Practice, Vocabulary, Export and Import are all that notebook's. Progress and Settings are the whole account's.
+  // The menu lists them and opens one; whoever can change the vocab can also add, rename and delete.
+  const nbList = () => S.notebooks || [{ id: MAIN_NB, name: NB_NAME }];
+  const nbName = (id = nb) => nbList().find((n) => n.id === id)?.name ?? NB_NAME;
+  const nbRef = () => db.doc("meta/notebooks");
+  // Whether the list has loaded, for what mustn't write into a notebook this account may not have (the sample sets).
+  let nbLoaded = () => {};
+  const nbReady = new Promise((ok) => (nbLoaded = ok));
+  function watchNotebooks() {
+    nbRef().onSnapshot((snap) => {
+      S.notebooks = cleanNotebooks(dataOrNull(snap));
+      // The open one may be gone (deleted on another device, or remembered by this browser from another account): the first opens.
+      if (!openNotebook(nb)) renderNotebooks();
+      nbLoaded();
+    }, () => nbLoaded());
+  }
+  // Opens a notebook: its vocab and its own choices replace what the page holds. false when that one is open already.
+  function openNotebook(id) {
+    if (S.notebooks && !S.notebooks.some((n) => n.id === id)) id = S.notebooks[0].id;
+    if (id === nb) return false;
+    nb = id; kept.set("notebook", id);
+    Object.assign(S, { sets: [], loaded: false, kanjiLists: [], kLoaded: false, colOrder: [], courses: [], viewDoc: null, colEdit: null, editNew: null,
+      confirmDel: null, kConfirmDel: null, leaveAsk: false, formCol: null, oldBooks: null, tableBook: null, tableCh: null, tq: "", kAll: false, tAll: false });
+    Object.assign(raw, { sets: [], kanji: [], books: null, courses: null, views: null });
+    for (const k of ["drafts", "kdrafts", "openSets", "touched"]) S[k].clear();
+    $("#tSearch").value = "";
+    readPicks();
+    if (db) watchVocab();
+    renderNotebooks();
+    // Results are of a practice from the notebook before: back to Practice. Any other part shows the new notebook.
+    if (!$("#results").hidden) show("setup");
+    renderSetup(); renderTable();
+    if (!$("#history").hidden) renderHistory();
+    if (!$("#settings").hidden) renderSettings();
+    return true;
+  }
+  // Saves the list (shown at once; the saved copy comes back through watchNotebooks). false if it couldn't be saved.
+  async function saveNotebooks(list) {
+    const was = S.notebooks;
+    S.notebooks = list; renderNotebooks();
+    try { await nbRef().set({ list, updatedAt: new Date().toISOString() }); return true; }
+    catch { S.notebooks = was; renderNotebooks(); banner("Couldn't save that. Try again."); return false; }
+  }
+  // Every document of one notebook, deleted (its line in the list is the caller's). Deleting an account uses it too.
+  async function emptyNotebook(id) {
+    const at = inNotebook(db, id);
+    for (const c of ["sets", "kanji"]) for (const d of (await at.collection(c).get()).docs) await at.doc(`${c}/${d.id}`).delete();
+    for (const p of ["meta/books", "meta/courses", "meta/views"]) await at.doc(p).delete();
+  }
+  // A name typed into the page's pop-up: "" when it's cancelled or left empty. A name another notebook has gets a number.
+  async function askNbName(title, yes, was = "") {
+    const answer = ask(title, `<input class="tsearch" id="nbNameIn" maxlength="60" aria-label="Notebook name" placeholder="Japanese 2" value="${esc(was)}">`, yes);
+    const inp = $("#nbNameIn");
+    inp.focus(); inp.select();
+    inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("#askYes").click(); } }; // Enter would press Cancel, the pop-up's first button
+    const typed = (await answer) ? tidy(inp.value, 56) : "", taken = (t) => nbList().some((n) => sameName(n.name, t) && !sameName(n.name, was));
+    let name = typed;
+    for (let i = 2; name && taken(name); i++) name = `${typed} ${i}`;
+    return name;
+  }
+  async function addNotebook() {
+    const name = await askNbName("New notebook", "Create");
+    if (!name) return;
+    const id = "n" + rid();
+    if (await saveNotebooks([...nbList(), { id, name }])) openNotebook(id);
+  }
+  async function renameNotebook() {
+    const name = await askNbName("Rename this notebook", "Rename", nbName());
+    if (name && name !== nbName()) saveNotebooks(nbList().map((n) => (n.id === nb ? { ...n, name } : n)));
+  }
+  async function deleteNotebook() {
+    const id = nb, rest = nbList().filter((n) => n.id !== id);
+    if (!rest.length) return;
+    const holds = [S.sets.length && plural(S.sets.length, "set"), S.kanjiLists.length && plural(S.kanjiLists.length, "kanji list")].filter(Boolean).join(" and ");
+    if (!(await ask(`Delete “${nbName()}”?`, `<p>${holds ? `This notebook and its ${holds} are deleted for good. Export it first if you want a copy.` : "This notebook is empty."}</p>`, "Delete notebook", true))) return;
+    try { await emptyNotebook(id); } catch { return banner("Couldn't delete all of that notebook. Try again."); }
+    if (!(await saveNotebooks(rest))) return;
+    // Its own choices go with it.
+    if (id === MAIN_NB) NB_KEYS.forEach((k) => kept.set(k, null)); else { const all = { ...kept.get("nbPicks", null) }; delete all[id]; kept.set("nbPicks", all); }
+    openNotebook(rest[0].id);
+  }
+  // Opening another one from the vocab table asks about unsaved changes first, as leaving the table any other way does.
+  function pickNotebook(id) {
+    if (id === nb) return;
+    if (!$("#table").hidden) leaveTable(() => { openNotebook(id); show("table"); }); else openNotebook(id);
+  }
+  const nbMenu = makeMenu($("#nbPick"), $("#nbBtn"), $("#nbList")); // page/menu.js
+  function renderNotebooks() {
+    const list = nbList(), icon = (d) => `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+    $("#nbName").textContent = nbName();
+    // Headings over what is the open notebook's alone (its hard words in Progress, its counts and Export / Import in Settings) name it once there's more than one.
+    document.querySelectorAll(".nbin").forEach((e) => (e.textContent = list.length < 2 ? "" : ` in ${nbName()}`));
+    $("#nbBtn").setAttribute("aria-label", `Notebook: ${nbName()}`);
+    if ($("#nbBtn").title) $("#nbBtn").title = nbName(); // shown only while the sidebar is shrunk to its icons (page/nav.js)
+    $("#nbList").innerHTML = `<p class="small muted">Notebooks</p>
+      ${list.map((n) => `<button type="button" role="menuitemradio" aria-checked="${n.id === nb}" data-nb="${esc(n.id)}">${icon(n.id === nb ? "M5 12.5 L10 17.5 L19 7" : "")}${esc(n.name)}</button>`).join("")}
+      ${canWrite && db ? `<hr><button type="button" role="menuitem" data-nb-do="add">${icon("M12 5 V19 M5 12 H19")}New notebook</button>
+      <button type="button" role="menuitem" data-nb-do="rename">${icon("M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z")}Rename this notebook</button>
+      ${list.length > 1 ? `<button type="button" role="menuitem" class="danger" data-nb-do="delete">${icon("M4 7 H20 M9.5 7 V4.5 H14.5 V7 M6.5 7 L7.3 19.5 H16.7 L17.5 7")}Delete this notebook</button>` : ""}` : ""}`;
+    const act = { add: addNotebook, rename: renameNotebook, delete: deleteNotebook };
+    $("#nbList").querySelectorAll("button").forEach((b) => (b.onclick = () => { nbMenu(false); menu(false); if (b.dataset.nb) pickNotebook(b.dataset.nb); else act[b.dataset.nbDo](); }));
+  }
+  renderNotebooks();
   // ---------- editing collections ----------
   // "Edit collections" turns the top of the vocab table into an editor for every view at once (vocab/views.js); nothing
   // is stored until Save. While it's open, S.colEdit is
@@ -3583,7 +3777,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const doc = { main: vNames[0], views: e.others.map((v, i) => ({ name: vNames[i + 1], collections: v.cols.map((c) => ({ name: viewName(c.name, 100), units: c.units.filter((u) => to[u]).map((u) => to[u]) })) })), ...(e.mainPos ? { mainAt: e.mainPos } : {}) };
     if (JSON.stringify(doc) !== JSON.stringify(S.viewDoc)) jobs.push(["set", "meta/views", { ...doc, updatedAt: now }]);
     let n = 0;
-    try { for (const [how, path, d] of jobs) { await (how === "delete" ? db.doc(path).delete() : how === "set" ? db.doc(path).set(d) : db.doc(path).update(d)); n++; } }
+    try { for (const [how, path, d] of jobs) { await (how === "delete" ? vdb.doc(path).delete() : how === "set" ? vdb.doc(path).set(d) : vdb.doc(path).update(d)); n++; } }
     catch { say(n ? "Saving stopped partway. What was saved stays: reload the page and check, then try again." : "Couldn't save. Try again."); return false; }
     // What was picked follows its unit (and a renamed collection keeps its row's choice), here and on the practice page.
     const key = (t) => `${t.collection}\u0001${t.unit}`, moved = new Map(Object.entries(e.units).flatMap(([u, { srcs }]) => (to[u] ? srcs.map((s) => [s, key(to[u])]) : [])));
@@ -3716,7 +3910,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   async function exportVocab() {
     const setById = new Map(raw.sets.map((d) => [d.id, d])), kById = new Map(raw.kanji.map((d) => [d.id, d]));
     const tidied = (list, byId, clean) => list.map((x) => byId.get(x.id)).filter(Boolean).map((d) => ({ id: d.id, ...clean(d) }));
-    const file = { app: APP, version: 2, exportedAt: new Date().toISOString(),
+    const file = { app: APP, version: 2, exportedAt: new Date().toISOString(), notebook: nbName(),
       sets: tidied(S.sets, setById, cleanSet), kanji: tidied(S.kanjiLists, kById, cleanKanji),
       collections: cleanBooks(raw.books), ...(S.viewDoc ? { views: S.viewDoc } : { courses: cleanCourses(raw.courses) }) };
     await saveJsonFile("", file, portMsg);
@@ -3732,7 +3926,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   const portMsg = sayIn($("#portMsg"));
   // Import here compares the file with the documents the page has loaded, and writes where the page saves everything else.
   const importer = makeImporter({ button: $("#importBtn"), input: $("#importFile"), box: $("#importPreview"), say: portMsg,
-    stored: () => raw, write: (path, doc) => db.doc(path).set(doc), changed: () => renderPort() });
+    stored: () => raw, write: (path, doc) => vdb.doc(path).set(doc), changed: () => renderPort() });
   function renderPort() {
     $("#portPanel").hidden = !canWrite || !db;
     if ($("#portPanel").hidden) return;
@@ -3749,7 +3943,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   const cleanSession = (d) => {
     if (!d || typeof d !== "object" || !/^t\d+$/.test(String(d.id)) || isNaN(new Date(d.finishedAt)) || !Array.isArray(d.words)) return null;
     const str = (v) => (v == null ? "" : String(v));
-    return { finishedAt: new Date(d.finishedAt).toISOString(), dir: str(d.dir), mode: str(d.mode), sets: (Array.isArray(d.sets) ? d.sets : []).map(str),
+    return { finishedAt: new Date(d.finishedAt).toISOString(), dir: str(d.dir), mode: str(d.mode), sets: (Array.isArray(d.sets) ? d.sets : []).map(str), ...(d.nb ? { nb: str(d.nb) } : {}),
       words: d.words.filter((w) => w && typeof w === "object").map((w) => ({ id: str(w.id), en: str(w.en), jp: str(w.jp), dir: str(w.dir),
         tries: Math.max(1, Math.round(+w.tries) || 1), ...(w.skip === true ? { skip: true } : {}) })) };
   };
@@ -3828,8 +4022,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   async function addSamples(file) {
     file = await (file || sampleFile());
     const now = new Date().toISOString();
-    await Promise.all([...file.sets.map((d) => db.doc("sets/" + d.id).set({ ...cleanSet(d), updatedAt: now })),
-      ...file.kanji.map((d) => db.doc("kanji/" + d.id).set({ ...cleanKanji(d), updatedAt: now }))]);
+    await Promise.all([...file.sets.map((d) => vdb.doc("sets/" + d.id).set({ ...cleanSet(d), updatedAt: now })),
+      ...file.kanji.map((d) => vdb.doc("kanji/" + d.id).set({ ...cleanKanji(d), updatedAt: now }))]);
   }
   // For a new account (or guest): nothing but sample sets in it, if any. meta/samples is written once they're all in, so an
   // offer cut short (the page closed midway) is finished next time. While it's being decided, the picker says so (see
@@ -3839,8 +4033,9 @@ colours.apply(...colours.saved()); // before anything is drawn
     samplesState = "checking";
     const file = sampleFile(); file.catch(() => {});
     try {
+      await nbReady; // so they go into a notebook this account has (vocab/notebooks.js)
       if ((await db.doc("meta/samples").get()).exists) return;
-      const [sets, kanji] = await Promise.all([db.collection("sets").get(), db.collection("kanji").get()]);
+      const [sets, kanji] = await Promise.all([vdb.collection("sets").get(), vdb.collection("kanji").get()]);
       const own = (snap) => snap.docs.some((d) => !d.id.startsWith("samples-"));
       if (!own(sets) && !own(kanji)) { samplesState = "adding"; renderSetup(); await addSamples(file); }
       await db.doc("meta/samples").set({ offeredAt: new Date().toISOString() });
@@ -3862,7 +4057,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       sampleAsk = false;
       const ids = S.sets.filter(isSample).map((x) => x.id);
       ids.forEach((id) => S.selected.delete(id)); saveSetup();
-      try { for (const id of ids) await db.doc("sets/" + id).delete(); for (const k of S.kanjiLists.filter(isSample)) await db.doc("kanji/" + k.id).delete(); }
+      try { for (const id of ids) await vdb.doc("sets/" + id).delete(); for (const k of S.kanjiLists.filter(isSample)) await vdb.doc("kanji/" + k.id).delete(); }
       catch { banner("Some sample sets couldn't be removed. Try again."); }
       renderSampleNote();
     };
@@ -4086,9 +4281,10 @@ colours.apply(...colours.saved()); // before anything is drawn
     // Google's confirmation comes first, while the click still lets its window open (err.early: nothing deleted yet).
     if (account) try { await platform.confirmSignIn(); } catch (err) { if (!forced) throw Object.assign(err, { early: true }); confirmed = false; }
     stopPrefs();
+    for (const id of new Set([MAIN_NB, ...nbList().map((n) => n.id)])) await emptyNotebook(id);
     const paths = [];
-    for (const c of ["sets", "kanji", "training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
-    for (const p of [...paths, "meta/books", "meta/courses", "meta/views", "meta/samples"]) await db.doc(p).delete();
+    for (const c of ["training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
+    for (const p of [...paths, "meta/samples", "meta/notebooks"]) await db.doc(p).delete();
     try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
     // Every choice this site kept in this browser goes too (colours, picks, a practice to resume with its writing): signed in,
     // they're the account's copy. A guest's own sets and history (qcard:local:…) stay unless it's the guest being deleted.
@@ -4105,11 +4301,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // data/users/<uid>/profile, set in Settings → Account. The same profile holds the birth month and year (account/birth.js).
   let nickname = "";
   const shownName = () => nickname || account?.name || String(account?.email || "").split("@")[0] || "Account";
-  const acctOpen = () => !$("#acctList").hidden;
-  function acctMenu(open, refocus) {
-    $("#acctList").hidden = !open; $("#acctBtn").setAttribute("aria-expanded", open);
-    if (open) $("#acctList button").focus(); else if (refocus) $("#acctBtn").focus();
-  }
+  const acctMenu = makeMenu($("#acct"), $("#acctBtn"), $("#acctList")); // page/menu.js
   function renderAcctMenu() {
     $("#settingsBtn").hidden = !!account;
     $("#acctLabel").textContent = account ? shownName() : "Guest";
@@ -4129,16 +4321,6 @@ colours.apply(...colours.saved()); // before anything is drawn
       item("signout").onclick = () => { acctMenu(false); platform.signOut(); };
     } else item("signin").onclick = (e) => signIn(e.currentTarget, (m) => { acctMenu(false); banner(m); });
   }
-  $("#acctBtn").onclick = () => acctMenu(!acctOpen());
-  // Arrow keys move between the items; Escape, Tab or a click anywhere else closes the menu.
-  $("#acct").addEventListener("keydown", (e) => {
-    if (!acctOpen()) return;
-    const items = [...$("#acctList").querySelectorAll("button")], i = items.indexOf(document.activeElement);
-    if (e.key === "Escape") acctMenu(false, true);
-    else if (e.key === "Tab") acctMenu(false);
-    else if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length].focus(); }
-  });
-  document.addEventListener("pointerdown", (e) => { if (acctOpen() && !$("#acct").contains(e.target)) acctMenu(false); });
 
   // The nickname: kept with the account, shown at the top right, changed in Settings → Account.
   const profileRef = () => db.doc(`data/users/${uid}/profile`);
@@ -4663,7 +4845,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       db = store; user = platform.user(uid); owner = canWrite = true; downloads = platform.downloads;
       document.body.classList.add("ready");
       renderPort();
-      watchVocab("Your vocab sets couldn't load. Reload the page to try again.");
+      watchVocab("Your vocab sets couldn't load. Reload the page to try again."); watchNotebooks();
       watchHistory();
       if (id !== "local") { stopPrefs = syncPrefs(checkPolicy); watchProfile(); } else checkPolicy();
       renderAcctMenu();

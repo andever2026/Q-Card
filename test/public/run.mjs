@@ -498,8 +498,8 @@ ok(!(await setOpen(phone)) && await vis(phone, "#setup"), "phone: ← Back from 
 const menuOpen = () => phone.evaluate(() => { const n = document.querySelector("#sideNav"), r = n.getBoundingClientRect(); return document.querySelector("#menuBtn").getAttribute("aria-expanded") === "true" && getComputedStyle(n).visibility === "visible" && r.left >= 0 && r.right <= innerWidth; });
 ok(await vis(phone, "#menuBtn") && !(await menuOpen()), "phone: a ☰ button, the menu closed");
 await phone.click("#menuBtn"); await phone.waitForTimeout(300);
-ok(await menuOpen() && await phone.evaluate(() => [...document.querySelectorAll("#sideNav > :not(.foot)")].map((b) => b.textContent.trim()).join(", ")) === "Practice, Vocabulary, Progress, Extra tools" && await phone.evaluate(() => document.activeElement?.dataset.go === "setup"),
-  "phone: ☰ slides in the menu (Practice, Vocabulary, Progress, Extra tools) and moves to it");
+ok(await menuOpen() && await phone.evaluate(() => [...document.querySelectorAll("#nbName, #sideNav > [data-go]")].map((b) => b.textContent.trim()).join(", ")) === "My notebook, Practice, Vocabulary, Progress, Extra tools" && await phone.evaluate(() => document.activeElement?.dataset.go === "setup"),
+  "phone: ☰ slides in the menu (the notebook, then Practice, Vocabulary, Progress, Extra tools) and moves to Practice");
 await phone.screenshot({ path: join(out, "8-menu-phone.png") });
 await phone.click('#sideNav [data-go="history"]'); await phone.waitForTimeout(300);
 ok(await vis(phone, "#history") && !(await menuOpen()), "phone: picking Progress in the menu goes there and closes the menu");
@@ -1647,10 +1647,10 @@ if (entry.length > 1) {
   await bp.click("#quitBtn"); await bp.waitForTimeout(200);
   ok((await sideInfo()).fixed && await vis(bp, "#sideNav"), "sidebar: back after quitting");
   // ☰ shrinks it to its icons, on this device, until ☰ again.
-  const names = () => bp.evaluate(() => [...document.querySelectorAll("#sideNav > *")].map((b) => `${b.title}:${Math.round(b.querySelector("span").getBoundingClientRect().width)}`).join(","));
+  const names = () => bp.evaluate(() => [...document.querySelectorAll("#sideNav [data-go], #nbBtn")].map((b) => `${b.title}:${Math.round(b.querySelector("span").getBoundingClientRect().width)}`).join(","));
   await bp.click("#menuBtn"); await bp.waitForTimeout(200);
   si = await sideInfo();
-  ok(si.side[1] === 64 && si.col < 100 && !(await footAt()).shown && (await names()) === "Practice:0,Vocabulary:0,Progress:0,Extra tools:0" && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "false" && await barBtn(),
+  ok(si.side[1] === 64 && si.col < 100 && !(await footAt()).shown && (await names()) === "My notebook:0,Practice:0,Vocabulary:0,Progress:0,Extra tools:0" && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "false" && await barBtn(),
     "sidebar: ☰ shrinks it to icons, named when pointed at, and the page takes the room", JSON.stringify(si) + " " + await names());
   await bp.screenshot({ path: join(out, "22-sidebar-icons.png") });
   await bp.click('#sideNav [data-go="history"]'); await bp.waitForTimeout(300);
@@ -1910,6 +1910,185 @@ if (entry.length > 1) {
   ok(!(await vis(np, "#policyNote")), "policy notice: it doesn't come back");
   ok(np.errors.length === 0, "policy notice: no page errors", np.errors.join(" | "));
   await nctx.close();
+}
+
+// ---------- 25. notebooks: several sets of vocab in one account, one open at a time ----------
+{
+  const nctx = await browser.newContext({ acceptDownloads: true });
+  const np = await newPage(nctx, { width: 1280, init: () => {
+    if (localStorage.getItem("qcard:mode")) return;
+    const put = (k, v) => localStorage.setItem("qcard:local:" + k, JSON.stringify(v));
+    localStorage.setItem("qcard:mode", "local"); put("meta/samples", { offeredAt: "x" });
+    put("sets/first", { collection: "Made up", unit: "Week 1", name: "Drinks", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }, { id: "b", en: "tea", kana: "おちゃ", kanji: "お茶" }] });
+    put("data/users/local/settings", { history: true });
+    put("data/users/local/t100", { finishedAt: "2026-10-01T00:00:00.000Z", dir: "ej", mode: "default", sets: ["Week 1 › Drinks"], words: [{ id: "a", en: "water", jp: "水", dir: "ej", tries: 2 }] });
+  } });
+  const ls = (k) => np.evaluate((k) => JSON.parse(localStorage.getItem(k) || "null"), k);
+  const keys = (start) => np.evaluate((s) => Object.keys(localStorage).filter((k) => k.startsWith("qcard:local:" + s)).map((k) => k.slice(12)).sort(), start);
+  // (☰ first where the sidebar isn't showing the menu: on a phone, and in Settings.)
+  const nbMenu = async () => { if (await vis(np, "#nbList")) return; await np.waitForTimeout(250); if (!(await np.locator("#nbBtn").isVisible())) { await np.click("#menuBtn"); await np.waitForTimeout(300); } await np.click("#nbBtn"); };
+  const items = () => np.$$eval("#nbList button", (bs) => bs.map((b) => b.textContent.trim() + (b.getAttribute("aria-checked") === "true" ? "*" : "")).join(", "));
+  const nbDo = async (what) => { await nbMenu(); await np.click(`#nbList [data-nb-do="${what}"]`); await np.waitForTimeout(150); };
+  const named = async (name, how = "enter") => { await np.fill("#nbNameIn", name); if (how === "enter") await np.keyboard.press("Enter"); else await np.click("#askYes"); await np.waitForTimeout(500); };
+  const openNb = async (name) => { await nbMenu(); await np.click(`#nbList [data-nb]:has-text("${name}")`); await np.waitForTimeout(400); };
+  const chips = () => np.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set + (b.getAttribute("aria-pressed") === "true" ? "*" : "")).join(","));
+  // One notebook to start with, nothing saved for it, and no Delete.
+  ok((await text(np, "#nbName")) === "My notebook" && !(await vis(np, "#nbList")) && (await ls("qcard:local:meta/notebooks")) === null, "notebooks: an account starts with one, My notebook, at the top of the sidebar");
+  await np.click("#nbBtn");
+  ok((await items()) === "My notebook*, New notebook, Rename this notebook" && await np.evaluate(() => document.activeElement?.dataset.nb === "main"), "notebooks: the menu lists it, ticked, with New and Rename (nothing to delete with only one)", await items());
+  await np.screenshot({ path: join(out, "25-notebook-menu.png") });
+  await np.keyboard.press("Escape");
+  ok(!(await vis(np, "#nbList")) && await np.evaluate(() => document.activeElement.id === "nbBtn"), "notebooks: Escape closes the menu");
+  if (!/first\*/.test(await chips())) await np.click('#setPicker [data-set="first"]');
+  // A new one: named in a pop-up (Enter creates it), opens empty, listed after the first.
+  await nbDo("add");
+  ok(await np.evaluate(() => document.querySelector("#askDlg").open && document.activeElement.id === "nbNameIn"), "notebooks: New notebook asks for a name");
+  await named("Japanese 2");
+  const list = (await ls("qcard:local:meta/notebooks"))?.list || [], id2 = list[1]?.id;
+  ok(list.length === 2 && list[0].id === "main" && list[0].name === "My notebook" && list[1].name === "Japanese 2" && /^n\w+$/.test(id2 || "") && (await ls("jpq:notebook")) === id2 && (await text(np, "#nbName")) === "Japanese 2",
+    "notebooks: Enter creates it and opens it; the list is saved with the account", JSON.stringify(list));
+  ok((await chips()) === "" && /No vocab sets yet/.test(await text(np, "#setPicker")) && await vis(np, "#emptySamples"), "notebooks: a new notebook is empty, with the same ways to fill it as a new account", await text(np, "#setPicker"));
+  // What's added goes into the open notebook, beside the first one's documents (which stay where they always were).
+  await np.click("#emptySamples"); await np.waitForTimeout(1200);
+  const in2 = await keys(`notebooks/${id2}/sets/`);
+  ok(in2.length === 6 && in2.every((k) => /\/sets\/samples-/.test(k)) && (await keys("sets/")).join() === "sets/first" && (await chips()).split(",").length === 6, "notebooks: the sample sets added there are saved under that notebook, not the first", in2.join(", "));
+  // Each notebook keeps its own picks.
+  const pick2 = in2[0].split("/").pop();
+  if (!(await chips()).includes(pick2 + "*")) await np.click(`#setPicker [data-set="${pick2}"]`);
+  await np.waitForTimeout(100);
+  ok((await ls("jpq:selected"))?.join() === "first" && (await ls("jpq:nbPicks"))?.[id2]?.selected?.includes(pick2), "notebooks: the sets picked are kept per notebook", JSON.stringify(await ls("jpq:nbPicks")).slice(0, 160));
+  // Vocabulary shows the open notebook; another opened from there with unsaved changes asks first.
+  await goTable(np);
+  const sids = await np.$$eval("#table [data-sid]", (xs) => xs.map((x) => x.dataset.sid)), ts = `[data-sid="${sids[0]}"]`;
+  ok(sids.length > 0 && sids.every((x) => x.startsWith("samples-")), "notebooks: Vocabulary shows the open notebook's sets only", sids.join(","));
+  await np.click(`${ts} [data-toggle]`); await np.click(`${ts} [data-edit]`); await np.fill(`${ts} [data-ef="tags"]`, "mine");
+  await openNb("My notebook");
+  ok((await text(np, "#nbName")) === "Japanese 2" && /^1 set has unsaved changes\./.test(await text(np, "#leaveAsk")), "notebooks: opening another one from Vocabulary with unsaved changes asks what to do with them", await text(np, "#leaveAsk"));
+  await np.click("#leaveAsk [data-ldiscard]"); await np.waitForTimeout(400);
+  ok((await text(np, "#nbName")) === "My notebook" && await vis(np, "#table") && !!(await np.$('[data-sid="first"]')) && !(await np.$(ts)), "notebooks: then it opens, still on Vocabulary, with its own sets");
+  await goView(np, "setup");
+  ok((await chips()) === "first*", "notebooks: back in the first one, its picks are as they were", await chips());
+  // A practice notes its notebook; Progress names it and counts the hard words of the open one.
+  await np.evaluate((id) => localStorage.setItem("qcard:local:data/users/local/t101", JSON.stringify({ finishedAt: "2026-10-02T00:00:00.000Z", dir: "ej", mode: "default", sets: ["Greetings"], nb: id,
+    words: [{ id: "zz", en: "hello there", jp: "こんにちは", dir: "ej", tries: 3 }] })), id2);
+  await np.reload(); await np.waitForTimeout(600);
+  await goView(np, "history");
+  const prog = () => np.evaluate(() => ({ tags: [...document.querySelectorAll("#hList .tag")].map((t) => t.textContent).join(","), love: document.querySelector("#history .nbin").textContent, words: [...document.querySelectorAll("#hLove > li .en")].map((e) => e.textContent).join(",") }));
+  let pr = await prog();
+  ok(pr.tags === "Japanese 2,My notebook" && pr.love === " in My notebook" && pr.words === "water", "progress: each practice says which notebook it was in, and the words that need the most love are the open notebook's", JSON.stringify(pr));
+  await openNb("Japanese 2"); pr = await prog();
+  ok(await vis(np, "#history") && pr.love === " in Japanese 2" && pr.words === "hello there", "progress: opening another notebook there changes the list to its words", JSON.stringify(pr));
+  await np.screenshot({ path: join(out, "25-notebook-progress.png") });
+  // A practice started now is saved with the open notebook.
+  await goView(np, "setup"); await np.click("#dir-je"); await np.click("#startBtn"); await np.waitForTimeout(300);
+  for (let i = 0; i < 40 && await vis(np, "#quiz"); i++) { await scribble(np); await np.click("#checkBtn"); await np.waitForTimeout(150); await np.click("#selfGot"); await np.waitForTimeout(1300); }
+  const saved = await np.evaluate(() => Object.keys(localStorage).filter((k) => /data\/users\/local\/t\d{6,}/.test(k)).map((k) => JSON.parse(localStorage.getItem(k)).nb).join(","));
+  ok(saved === id2, "notebooks: a finished practice is saved with its notebook", saved);
+  // Results belong to the notebook they were practiced in: opening another goes back to Practice.
+  const onResults = await vis(np, "#results");
+  await openNb("My notebook");
+  ok(onResults && await vis(np, "#setup") && (await chips()) === "first*", "notebooks: opening another one from a results page goes to Practice");
+  // Export is the open notebook's, and says which; Import adds to the open one.
+  await openNb("Japanese 2");
+  await settings(np, "data");
+  ok((await text(np, "#portPanel h3")) === "Export / import in Japanese 2" && /^6 sets/.test(await text(np, "#setStats")), "settings: the vocab counts and Export / Import say which notebook they are for", await text(np, "#portPanel h3"));
+  const [dl] = await Promise.all([np.waitForEvent("download"), np.click("#exportBtn")]);
+  const file = JSON.parse(readFileSync(await dl.path(), "utf8"));
+  ok(file.notebook === "Japanese 2" && file.sets.length === 6 && !file.sets.some((x) => x.name === "Drinks"), "export: the open notebook's sets, with its name", `${file.notebook}: ${file.sets.length} sets`);
+  await openNb("My notebook");
+  ok(await setOpen(np) && (await text(np, "#portPanel h3")) === "Export / import in My notebook" && /^1 set\b/.test(await text(np, "#setStats")), "settings: another notebook opened from Settings (☰) stays there, with that notebook's counts", await text(np, "#setStats"));
+  const [ch] = await Promise.all([np.waitForEvent("filechooser"), np.click("#importBtn")]);
+  const exPath = join(out, "25-notebook-export.json"); writeFileSync(exPath, JSON.stringify(file));
+  await ch.setFiles(exPath); await np.waitForTimeout(300);
+  const preview = await text(np, "#importPreview");
+  await np.click("#importGo"); await np.waitForTimeout(900);
+  ok(/Vocab sets: 6 new/.test(preview) && (await keys("sets/")).length === 7 && (await keys(`notebooks/${id2}/sets/`)).length === 6, "import: the file's sets are added to the open notebook", preview);
+  // A name another notebook has gets a number; Rename; Delete (only what the open one holds).
+  await goView(np, "setup");
+  await nbDo("add"); await named("japanese 2", "button");
+  ok((await text(np, "#nbName")) === "japanese 2 2", "notebooks: a name that's taken gets a number", await text(np, "#nbName"));
+  await nbDo("rename");
+  ok((await np.inputValue("#nbNameIn")) === "japanese 2 2", "notebooks: Rename starts from the name it has");
+  await named("Kanji drills");
+  await nbMenu();
+  ok((await items()) === "My notebook, Japanese 2, Kanji drills*, New notebook, Rename this notebook, Delete this notebook" && (await text(np, "#nbName")) === "Kanji drills", "notebooks: renamed; with more than one, the open one can be deleted", await items());
+  await np.keyboard.press("Escape");
+  await nbDo("delete");
+  ok(/This notebook is empty\./.test(await text(np, "#askDlg")), "notebooks: deleting an empty one says it's empty", await text(np, "#askDlg"));
+  await np.click("#askYes"); await np.waitForTimeout(600);
+  ok((await ls("qcard:local:meta/notebooks")).list.map((n) => n.name).join() === "My notebook,Japanese 2" && (await text(np, "#nbName")) === "My notebook", "notebooks: deleted, and the first one opens");
+  await openNb("Japanese 2"); await nbDo("delete");
+  const warn = await text(np, "#askDlg");
+  await np.click('#askDlg [value="no"]'); await np.waitForTimeout(200);
+  ok(/its 6 sets and 3 kanji lists are deleted for good/.test(warn) && (await keys(`notebooks/${id2}/sets/`)).length === 6 && (await text(np, "#nbName")) === "Japanese 2", "notebooks: deleting one with sets says how many go with it; Cancel keeps it", warn);
+  await nbDo("delete"); await np.click("#askYes"); await np.waitForTimeout(900);
+  ok((await keys("notebooks/")).length === 0 && (await keys("sets/")).length === 7 && (await ls("jpq:nbPicks"))?.[id2] === undefined && (await ls("jpq:notebook")) === "main" && (await chips()).includes("first*"),
+    "notebooks: Delete removes that notebook's sets and picks and nothing of the others", (await keys("notebooks/")).join(", "));
+  await goView(np, "history"); pr = await prog();
+  ok(pr.tags === "" && pr.love === "", "progress: with one notebook left, nothing names notebooks", JSON.stringify(pr));
+  // Shrunk to icons, the menu opens beside the sidebar; on a phone it is in the ☰ menu.
+  await goView(np, "setup"); await np.click("#menuBtn"); await np.waitForTimeout(200); await np.click("#nbBtn"); await np.waitForTimeout(100);
+  const mini = await np.evaluate(() => { const m = document.querySelector("#nbList").getBoundingClientRect(), s = document.querySelector("header.side").getBoundingClientRect(); return { left: Math.round(m.left), side: Math.round(s.right), wide: Math.round(m.width), fits: m.right <= innerWidth && m.bottom <= innerHeight }; });
+  ok(mini.left >= mini.side && mini.wide >= 200 && mini.fits, "notebooks: with the sidebar shrunk to icons, the menu opens beside it", JSON.stringify(mini));
+  await np.screenshot({ path: join(out, "25-notebook-mini.png") });
+  await np.keyboard.press("Escape"); await np.click("#menuBtn");
+  await np.setViewportSize({ width: 390, height: 844 }); await np.waitForTimeout(300);
+  await np.click("#menuBtn"); await np.waitForTimeout(300); await np.click("#nbBtn"); await np.waitForTimeout(100);
+  ok(await np.evaluate(() => { const m = document.querySelector("#nbList").getBoundingClientRect(), s = document.querySelector("#sideNav").getBoundingClientRect(); return m.height > 0 && m.left >= s.left && m.right <= s.right + 1; }) && await np.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    "notebooks: on a phone the menu opens inside the ☰ menu");
+  await np.screenshot({ path: join(out, "25-notebook-phone.png") });
+  await np.click('#nbList [data-nb-do="add"]'); await np.waitForTimeout(300);
+  ok(await np.evaluate(() => document.querySelector("#askDlg").open && !document.querySelector("header.side").classList.contains("open")), "notebooks: picking something in it closes the ☰ menu");
+  await np.click('#askDlg [value="no"]');
+  ok(np.errors.length === 0, "notebooks: no page errors", np.errors.join(" | "));
+  await nctx.close();
+
+  // The AI page's Import saves into the notebook that's open on the site, and says which.
+  const ictx = await browser.newContext();
+  const ip = await newPage(ictx, { init: () => {
+    if (localStorage.getItem("qcard:mode")) return;
+    localStorage.setItem("qcard:mode", "local"); localStorage.setItem("qcard:local:meta/samples", '{"offeredAt":"x"}');
+    localStorage.setItem("qcard:local:meta/notebooks", JSON.stringify({ list: [{ id: "main", name: "My notebook" }, { id: "n2", name: "Japanese 2" }] }));
+    localStorage.setItem("jpq:notebook", '"n2"');
+  } });
+  await ip.goto(base + "ai/"); await ip.waitForTimeout(300);
+  const aiFile = join(out, "25-ai-example.json"); writeFileSync(aiFile, example);
+  const [aich] = await Promise.all([ip.waitForEvent("filechooser"), ip.click("#aiImportBtn")]);
+  await aich.setFiles(aiFile); await ip.waitForTimeout(500);
+  const where = await text(ip, "#aiImportPreview [data-where]");
+  await ip.click("#aiImportPreview #importGo"); await ip.waitForTimeout(600);
+  const aiKeys = await ip.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("qcard:local:") && /\/(sets|kanji)\//.test(k)).map((k) => k.slice(12)).sort());
+  ok(/It goes into the notebook “Japanese 2”\.$/.test(where) && aiKeys.length === 3 && aiKeys.every((k) => k.startsWith("notebooks/n2/")), "AI page Import: it saves into the notebook that's open on the site, and says which", `${where} ${aiKeys.join(", ")}`);
+  ok(ip.errors.length === 0, "AI page Import into a notebook: no page errors", ip.errors.join(" | "));
+  await ictx.close();
+
+  // Signed in: the same, in the account (users/<id>/notebooks/<notebook>/…), following it to another device, and gone with the account.
+  const actx = await browser.newContext();
+  const ap = await newPage(actx, { width: 1280 });
+  await ap.evaluate(() => { window.__nextUser = { uid: "n1", displayName: "Note Booker", email: "nb@example.com" }; });
+  await ap.click("#signInBtn"); await ap.waitForTimeout(1500);
+  await ap.click("#nbBtn"); await ap.click('#nbList [data-nb-do="add"]'); await ap.fill("#nbNameIn", "Second"); await ap.keyboard.press("Enter"); await ap.waitForTimeout(600);
+  let d = await fsData(ap);
+  const aid = d["users/n1/meta/notebooks"]?.list?.[1]?.id;
+  ok(d["users/n1/meta/notebooks"]?.list?.map((n) => n.name).join() === "My notebook,Second" && /No vocab sets yet/.test(await text(ap, "#setPicker")), "notebooks (signed in): the list is saved in the account", JSON.stringify(d["users/n1/meta/notebooks"]));
+  await ap.click("#emptySamples"); await ap.waitForTimeout(1500);
+  d = await fsData(ap);
+  const under = Object.keys(d).filter((p) => p.startsWith(`users/n1/notebooks/${aid}/`));
+  ok(under.filter((p) => p.includes("/sets/")).length === 6 && Object.keys(d).filter((p) => /^users\/n1\/sets\//.test(p)).length === 6, "notebooks (signed in): its sets are saved under users/<id>/notebooks/<notebook>/sets, beside the first one's", under.slice(0, 2).join(", "));
+  const apick = under.find((p) => p.includes("/sets/")).split("/").pop();
+  if (!(await ap.$eval(`#setPicker [data-set="${apick}"]`, (b) => b.getAttribute("aria-pressed") === "true"))) await ap.click(`#setPicker [data-set="${apick}"]`);
+  await ap.waitForTimeout(1400);
+  const prefs = (await fsData(ap))["users/n1/data/prefs"] || {};
+  ok(prefs.notebook === aid && prefs.nbPicks?.[aid]?.selected?.includes(apick), "notebooks (signed in): the open notebook and its picks are saved with the account's choices", JSON.stringify(prefs.nbPicks).slice(0, 160));
+  // Another device: none of this browser's choices, the same account.
+  await ap.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("jpq:")).forEach((k) => localStorage.removeItem(k)));
+  await ap.reload(); await ap.waitForTimeout(1500);
+  ok((await text(ap, "#nbName")) === "Second" && await ap.$eval(`#setPicker [data-set="${apick}"]`, (b) => b.getAttribute("aria-pressed") === "true").catch(() => false), "notebooks (signed in): another device opens the same notebook with the same picks", await text(ap, "#nbName"));
+  await settings(ap, "account"); await ap.click("#delStart"); await ap.click("#delYes"); await ap.waitForTimeout(1800);
+  d = await fsData(ap);
+  ok(!Object.keys(d).some((p) => p.startsWith("users/n1/")), "delete account: every notebook goes with it", Object.keys(d).filter((p) => p.startsWith("users/n1/")).join(", "));
+  ok(ap.errors.length === 0, "notebooks (signed in): no page errors", ap.errors.join(" | "));
+  await actx.close();
 }
 
 await browser.close(); server.close();

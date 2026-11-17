@@ -220,7 +220,7 @@
     const doc = { main: vNames[0], views: e.others.map((v, i) => ({ name: vNames[i + 1], collections: v.cols.map((c) => ({ name: viewName(c.name, 100), units: c.units.filter((u) => to[u]).map((u) => to[u]) })) })), ...(e.mainPos ? { mainAt: e.mainPos } : {}) };
     if (JSON.stringify(doc) !== JSON.stringify(S.viewDoc)) jobs.push(["set", "meta/views", { ...doc, updatedAt: now }]);
     let n = 0;
-    try { for (const [how, path, d] of jobs) { await (how === "delete" ? db.doc(path).delete() : how === "set" ? db.doc(path).set(d) : db.doc(path).update(d)); n++; } }
+    try { for (const [how, path, d] of jobs) { await (how === "delete" ? vdb.doc(path).delete() : how === "set" ? vdb.doc(path).set(d) : vdb.doc(path).update(d)); n++; } }
     catch { say(n ? "Saving stopped partway. What was saved stays: reload the page and check, then try again." : "Couldn't save. Try again."); return false; }
     // What was picked follows its unit (and a renamed collection keeps its row's choice), here and on the practice page.
     const key = (t) => `${t.collection}\u0001${t.unit}`, moved = new Map(Object.entries(e.units).flatMap(([u, { srcs }]) => (to[u] ? srcs.map((s) => [s, key(to[u])]) : [])));

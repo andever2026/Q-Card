@@ -36,9 +36,13 @@
     $("#settings .setpage").classList.toggle("intab", setTab != null);
     $("#settingsClose").textContent = phone.matches && setTab != null ? "← Settings" : "← Back";
   }
-  function renderSettings() {
+  // How much the open notebook holds; kept right while Settings is open (an import, or another notebook opened from the ☰ menu).
+  function renderStats() {
     const words = S.sets.reduce((a, s) => a + readyCount(s.words || []), 0);
     $("#setStats").textContent = [plural(S.sets.length, "set"), plural(words, "word"), plural(S.kanjiLists.length, "kanji list"), ...(S.history?.length ? [plural(S.history.length, "practice session") + " saved"] : [])].join(" · ");
+  }
+  function renderSettings() {
+    renderStats();
     renderPort(); renderHistSet();
     //#if public
     renderAccount(); renderShare();

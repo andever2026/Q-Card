@@ -4,11 +4,7 @@
   // data/users/<uid>/profile, set in Settings → Account. The same profile holds the birth month and year (account/birth.js).
   let nickname = "";
   const shownName = () => nickname || account?.name || String(account?.email || "").split("@")[0] || "Account";
-  const acctOpen = () => !$("#acctList").hidden;
-  function acctMenu(open, refocus) {
-    $("#acctList").hidden = !open; $("#acctBtn").setAttribute("aria-expanded", open);
-    if (open) $("#acctList button").focus(); else if (refocus) $("#acctBtn").focus();
-  }
+  const acctMenu = makeMenu($("#acct"), $("#acctBtn"), $("#acctList")); // page/menu.js
   function renderAcctMenu() {
     $("#settingsBtn").hidden = !!account;
     $("#acctLabel").textContent = account ? shownName() : "Guest";
@@ -28,16 +24,6 @@
       item("signout").onclick = () => { acctMenu(false); platform.signOut(); };
     } else item("signin").onclick = (e) => signIn(e.currentTarget, (m) => { acctMenu(false); banner(m); });
   }
-  $("#acctBtn").onclick = () => acctMenu(!acctOpen());
-  // Arrow keys move between the items; Escape, Tab or a click anywhere else closes the menu.
-  $("#acct").addEventListener("keydown", (e) => {
-    if (!acctOpen()) return;
-    const items = [...$("#acctList").querySelectorAll("button")], i = items.indexOf(document.activeElement);
-    if (e.key === "Escape") acctMenu(false, true);
-    else if (e.key === "Tab") acctMenu(false);
-    else if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length].focus(); }
-  });
-  document.addEventListener("pointerdown", (e) => { if (acctOpen() && !$("#acct").contains(e.target)) acctMenu(false); });
 
   // The nickname: kept with the account, shown at the top right, changed in Settings → Account.
   const profileRef = () => db.doc(`data/users/${uid}/profile`);

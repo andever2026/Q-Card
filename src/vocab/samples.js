@@ -8,8 +8,8 @@
   async function addSamples(file) {
     file = await (file || sampleFile());
     const now = new Date().toISOString();
-    await Promise.all([...file.sets.map((d) => db.doc("sets/" + d.id).set({ ...cleanSet(d), updatedAt: now })),
-      ...file.kanji.map((d) => db.doc("kanji/" + d.id).set({ ...cleanKanji(d), updatedAt: now }))]);
+    await Promise.all([...file.sets.map((d) => vdb.doc("sets/" + d.id).set({ ...cleanSet(d), updatedAt: now })),
+      ...file.kanji.map((d) => vdb.doc("kanji/" + d.id).set({ ...cleanKanji(d), updatedAt: now }))]);
   }
   // For a new account (or guest): nothing but sample sets in it, if any. meta/samples is written once they're all in, so an
   // offer cut short (the page closed midway) is finished next time. While it's being decided, the picker says so (see
@@ -19,8 +19,9 @@
     samplesState = "checking";
     const file = sampleFile(); file.catch(() => {});
     try {
+      await nbReady; // so they go into a notebook this account has (vocab/notebooks.js)
       if ((await db.doc("meta/samples").get()).exists) return;
-      const [sets, kanji] = await Promise.all([db.collection("sets").get(), db.collection("kanji").get()]);
+      const [sets, kanji] = await Promise.all([vdb.collection("sets").get(), vdb.collection("kanji").get()]);
       const own = (snap) => snap.docs.some((d) => !d.id.startsWith("samples-"));
       if (!own(sets) && !own(kanji)) { samplesState = "adding"; renderSetup(); await addSamples(file); }
       await db.doc("meta/samples").set({ offeredAt: new Date().toISOString() });
@@ -42,7 +43,7 @@
       sampleAsk = false;
       const ids = S.sets.filter(isSample).map((x) => x.id);
       ids.forEach((id) => S.selected.delete(id)); saveSetup();
-      try { for (const id of ids) await db.doc("sets/" + id).delete(); for (const k of S.kanjiLists.filter(isSample)) await db.doc("kanji/" + k.id).delete(); }
+      try { for (const id of ids) await vdb.doc("sets/" + id).delete(); for (const k of S.kanjiLists.filter(isSample)) await vdb.doc("kanji/" + k.id).delete(); }
       catch { banner("Some sample sets couldn't be removed. Try again."); }
       renderSampleNote();
     };

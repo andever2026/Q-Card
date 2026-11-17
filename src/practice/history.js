@@ -168,11 +168,14 @@
   const CLEAR_RUN = 3;
   // A word a session saved, as it is in the sets now: the same id and written the same (ids repeat across sets, so the id
   // alone could be another set's word). { w, s } or null when it's gone or changed.
+  // The notebook a session was practiced in (sessions from before notebooks: the first one).
+  const sessionNb = (t) => t.nb || MAIN_NB;
   const liveWord = (h) => { for (const s of S.sets) for (const w of s.words) if (w.id === h.id && jpForm(w) === h.jp) return { w, s }; return null; };
   function renderToughest() {
     const agg = new Map();
     // Oldest session first, so each word's run counts the sessions since its latest miss.
-    const byTime = S.history.slice().sort((a, b) => String(a.finishedAt || "").localeCompare(String(b.finishedAt || "")));
+    // With more than one notebook, the list is the open notebook's: those are the words it can show and practice.
+    const byTime = S.history.filter((t) => nbList().length < 2 || sessionNb(t) === nb).sort((a, b) => String(a.finishedAt || "").localeCompare(String(b.finishedAt || "")));
     perPage.set(S.loveWin);
     for (const t of byTime) for (const w of t.words || []) {
       if (w.skip) continue; // left off the list on the results page
@@ -262,7 +265,7 @@
     $("#hList").innerHTML = shown.map((t) => {
       const { n, first } = firstTry(t), del = S.hConfirm === t.id;
       const ws = (t.words || []).slice().sort((a, b) => b.tries - a.tries);
-      return `<li class="test"><details data-id="${esc(t.id)}" ${S.hOpen.has(t.id) ? "open" : ""}><summary><span class="when">${esc(fmtWhen(t.finishedAt))}</span><span class="what">${esc((t.sets || []).join(", "))}</span><span class="score">${first}/${n} first try</span></summary>
+      return `<li class="test"><details data-id="${esc(t.id)}" ${S.hOpen.has(t.id) ? "open" : ""}><summary><span class="when">${esc(fmtWhen(t.finishedAt))}</span><span class="what">${nbList().length < 2 ? "" : `<span class="tag">${esc(nbList().find((n) => n.id === sessionNb(t))?.name ?? "Deleted notebook")}</span> `}${esc((t.sets || []).join(", "))}</span><span class="score">${first}/${n} first try</span></summary>
         <p class="muted small">${esc(DIRS[t.dir] || "")} · ${esc(MODES[t.mode] || "Default")}</p>
         <p class="tw">${ws.map((w) => `<span class="${w.tries > 1 ? "miss" : ""}" title="${esc(w.en)}">${esc(w.jp)}${w.tries > 1 ? ` ×${w.tries}` : ""}</span>`).join("")}</p>
         <div class="tactions">${del ? `<span class="small">Delete this session?</span><button class="btn danger" data-hdel-yes="${esc(t.id)}">Delete</button><button class="btn" data-hdel-no>Keep</button>` : `<button class="ghost small" data-hdel="${esc(t.id)}">Delete this session</button>`}</div>
