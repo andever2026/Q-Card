@@ -3,7 +3,7 @@ name: Check
 on:
   pull_request:
   push:
-    branches: [main, beta, dev]
+    branches: [main, beta, dev, 'feature-*']
 
 permissions:
   contents: read
@@ -28,7 +28,7 @@ jobs:
 
   # The full browser tests run before anything goes into main, which is the live site: the public site
   # (test/public/run.mjs) and the claude.ai copy (test/claude/run.mjs, on a fresh build of it).
-  # Pushes to beta and dev skip them so their links update quickly.
+  # Pushes to beta, dev and feature- branches skip them so their links update quickly.
   browser-tests:
     if: github.event_name == 'pull_request' && github.base_ref == 'main'
     runs-on: ubuntu-latest

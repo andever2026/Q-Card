@@ -13,7 +13,7 @@
 //   <!--#if public-->  //#if claude  /*#if public*/   …   #else   …   #endif
 // Marker lines themselves never reach the output.
 // `node tools/build.mjs --check` fails if the committed public files are out of date.
-// `node tools/build.mjs --beta` (or `--dev`) builds that test site instead (see .github/workflows/pages.yml); it's never committed.
+// `node tools/build.mjs --beta` (or `--dev`, or `--feature-<name>`) builds that test site instead (see .github/workflows/pages.yml); it's never committed.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join, relative } from "node:path";
@@ -23,7 +23,7 @@ import * as esbuild from "esbuild";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const at = (p) => join(root, p);
 const check = process.argv.includes("--check");
-const preview = ["beta", "dev"].find((name) => process.argv.includes(`--${name}`)); // the test site being built, if any
+const preview = process.argv.map((a) => a.slice(2)).find((name) => ["beta", "dev"].includes(name) || /^feature-[a-z0-9-]+$/.test(name)); // the test site being built, if any
 
 const INCLUDE = /^\s*(?:<!--|\/\/|\/\*)\s*#include\s+(\S+?)\s*(?:-->|\*\/)?\s*$/;
 export function expand(file, seen = []) {
@@ -93,13 +93,13 @@ async function bundle(imports, licenses = LICENSES) {
   return r.outputFiles[0].text;
 }
 
-// The test sites live on the same site as the live one (/Q-Card/beta/, /Q-Card/dev/), so each gets its own browser storage
-// keys ("jpq-beta:…", "qcard-dev:…"): trying things there never touches the live site's guest data or settings.
+// The test sites live on the same site as the live one (/Q-Card/beta/, /Q-Card/dev/, /Q-Card/feature-<name>/), so each gets
+// its own browser storage keys ("jpq-beta:…", "qcard-dev:…"): trying things there never touches the live site's guest data or settings.
 // Signing in with Google is shared, so they use the same account and its data.
 function toPreview(text, file) {
   const out = text.replaceAll('"jpq:', `"jpq-${preview}:`).replaceAll('"qcard:', `"qcard-${preview}:`);
   if (file !== "index.html") return out;
-  const label = preview[0].toUpperCase() + preview.slice(1);
+  const name = preview.replace(/^feature-/, ""), label = name[0].toUpperCase() + name.slice(1); // feature-groups is tagged Groups
   const tag = `<span style="font-size:.45em; vertical-align:middle; padding:2px 8px; border-radius:99px; background:var(--ink); color:var(--surface)">${label}</span>`;
   const page = out.replaceAll("<title>Japanese Vocab Practice</title>", `<title>Japanese Vocab Practice (${preview})</title>`)
     .replace("<h1>Japanese Vocab Practice</h1>", `<h1>Japanese Vocab Practice ${tag}</h1>`);
