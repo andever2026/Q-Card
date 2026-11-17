@@ -373,6 +373,27 @@ await part("6. Rules", async () => {
   ok(await as(null, "GET", `shares/${sid}`) === 200 && await as(null, "GET", `shares/${sid}/sets/a`) === 200 && await as(null, "GET", `shares/${sid}/sets`) === 200 && await as("bob", "GET", `shares/${sid}/meta/books`) === 200,
     "rules: anyone who has a share's id can read it, signed in or not");
   ok(await as(null, "GET", "shares") === 403 && await as("bob", "GET", "shares") === 403 && await as("bob", "GET", "shareOwners") === 403, "rules: shares can't be listed, so a share is found only by its link");
+  // Reports and Take down. Bob shares a notebook; Dana is a developer; Carol is neither.
+  const sid2 = "zyxwvutsrqponmkjihgfedcb", rep = (more = {}) => ({ fields: { share: str(sid2), why: str("copyright"), note: str("from a textbook"), at: str("2026-11-17T00:00:00.000Z"), ...more } }), down = { fields: { at: str("2026-11-17T00:00:00.000Z") } };
+  ok(await as("admin", "PATCH", "dev/dana", { fields: { role: str("dev") } }) === 200 && await as("bob", "PATCH", `shareOwners/${sid2}`, own("bob")) === 200 && await as("bob", "PATCH", `shares/${sid2}`, info()) === 200
+    && await as("bob", "PATCH", `shares/${sid2}/sets/a`, doc) === 200, "rules: (dev/dana made with admin access; Bob shares a notebook)");
+  ok(await as(null, "PATCH", "reports/r1", rep()) === 200 && await as("carol", "PATCH", "reports/r2", rep({ why: str("other"), note: str("") })) === 200, "rules: anyone can send a report about a shared notebook, signed in or not");
+  ok(await as(null, "PATCH", "reports/r3", rep({ share: str("nobodysharedthisnobodyshared") })) === 403 && await as(null, "PATCH", "reports/r3", rep({ share: str("x/y") })) === 403 && await as(null, "PATCH", "reports/r3", rep({ why: str("spam") })) === 403
+    && await as(null, "PATCH", "reports/r3", rep({ note: str("x".repeat(1001)) })) === 403 && await as("carol", "PATCH", "reports/r3", rep({ by: str("carol") })) === 403 && await as("carol", "PATCH", "reports/r1", rep()) === 403,
+    "rules: a report is about a notebook that is shared, with one of the reasons, a note of 1000 characters at most and nothing else, and can't be changed afterwards");
+  ok(await as(null, "GET", "reports/r1") === 403 && await as("carol", "GET", "reports/r2") === 403 && await as("bob", "GET", "reports") === 403 && await as("carol", "DELETE", "reports/r1") === 403
+    && await as("dana", "GET", "reports") === 200 && await as("dana", "GET", "reports/r1") === 200, "rules: only a developer can read reports");
+  ok(await as("bob", "PATCH", `takedowns/${sid2}`, down) === 403 && await as("carol", "PATCH", `takedowns/${sid2}`, down) === 403 && await as(null, "PATCH", `takedowns/${sid2}`, down) === 403
+    && await as("dana", "PATCH", `takedowns/${sid2}`, { fields: { ...down.fields, by: str("dana") } }) === 403 && await as(null, "GET", `shares/${sid2}`) === 200, "rules: nobody but a developer can take a notebook down, and a takedown holds only its time");
+  ok(await as("dana", "PATCH", `takedowns/${sid2}`, down) === 200 && await as(null, "GET", `shares/${sid2}`) === 403 && await as("carol", "GET", `shares/${sid2}/sets/a`) === 403 && await as(null, "GET", `shares/${sid2}/sets`) === 403,
+    "rules: once a developer takes it down, the shared copy can't be read by people who have the link");
+  ok(await as("bob", "GET", `shares/${sid2}`) === 200 && await as("bob", "GET", `shares/${sid2}/sets`) === 200 && await as("bob", "PATCH", `shares/${sid2}/sets/a`, doc) === 200 && await as("dana", "GET", `shares/${sid2}`) === 200 && await as("dana", "GET", `shares/${sid2}/sets/a`) === 200,
+    "rules: its owner and developers still can (the owner can still change or delete it)");
+  ok(await as(null, "GET", `takedowns/${sid2}`) === 200 && await as(null, "GET", "takedowns") === 403 && await as("carol", "GET", "takedowns") === 403 && await as("dana", "GET", "takedowns") === 200 && await as(null, "GET", `shares/${sid}`) === 200,
+    "rules: anyone can ask whether one notebook is taken down, only developers can list them, and other shared notebooks are untouched");
+  ok(await as("bob", "DELETE", `takedowns/${sid2}`) === 403 && await as("carol", "DELETE", `takedowns/${sid2}`) === 403 && await as("dana", "DELETE", `takedowns/${sid2}`) === 200 && await as(null, "GET", `shares/${sid2}`) === 200,
+    "rules: only a developer can put it back; then the link works again");
+  ok(await as("dana", "DELETE", "reports/r1") === 200 && await as("dana", "DELETE", "reports/r2") === 200 && await as("dana", "GET", "reports/r1") === 404, "rules: a developer deletes reports");
   ok(await as("alice", "DELETE", `shares/${sid}/sets/a`) === 200 && await as("alice", "DELETE", `shares/${sid}`) === 200 && await as("alice", "DELETE", `shareOwners/${sid}`) === 200 && await as(null, "GET", `shares/${sid}`) === 404,
     "rules: the owner deletes a share, and then the link finds nothing");
 });

@@ -72,8 +72,8 @@
         <p class="muted small">Only the notebook is shared, not your progress, your settings or your other notebooks.</p>`, "Create link");
       if (!ok || !(await startShare())) return;
     }
-    const id = nbNow().share;
-    const closed = ask(`“${nbNow().name}” is shared`, `<p>Anyone who has this link can look at it and add it to their own account.</p>
+    const id = nbNow().share, down = await takenDown(id);
+    const closed = ask(`“${nbNow().name}” is shared`, `<p>${down ? "This notebook was reported and taken down, so its link works only for you now." : "Anyone who has this link can look at it and add it to their own account."}</p>
       <input class="tsearch" id="shareLinkIn" readonly aria-label="Link" value="${esc(shareLink(id))}">
       <p class="tactions sharedo"><button class="btn" type="button" id="shareCopy">Copy link</button><button class="link" type="button" id="shareStop">Stop sharing</button></p>`, "Done");
     let stop = false;

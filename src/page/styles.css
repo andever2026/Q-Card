@@ -81,6 +81,13 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .ownkey { padding: 1px 6px; border-radius: 4px; color: var(--ink); white-space: nowrap; }
 #shareLinkIn { width: 100%; margin: 4px 0 2px; }
 .sharedo { justify-content: space-between; }
+.repnote { display: block; width: 100%; min-height: 84px; margin: 10px 0 8px; padding: 8px 10px; font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; resize: vertical; }
+.repnote:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+.replist { display: grid; gap: 10px; margin: 10px 0; }
+.rep { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.rephead a { color: var(--ai); text-underline-offset: 3px; }
+.rephead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.rep ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: .9rem; overflow-wrap: anywhere; }
 #sharedHead p { margin: 6px 0 0; }
 #shared .tscroll { overflow-x: auto; }
 .drawer .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--sunk); border-right: 1px solid var(--line);

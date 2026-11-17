@@ -40,11 +40,12 @@ const segs = (p) => p.split("/").filter(Boolean);
 // write: false to read, else "set", "update" or "delete" with the data being written.
 function allowed(path, write = false, v) {
   const s = segs(path), no = () => { throw { code: "permission-denied", message: "rules: " + path }; };
+  const isDev = () => !!current && `dev/${current.uid}` in data;
   // Shared notebooks (firestore.rules): anyone reads a share they have the id of; only its owner writes it; whose it is, only the owner reads.
   if (s[0] === "shares") {
     const mine = () => !!current && data[`shareOwners/${s[1]}`]?.uid === current.uid;
     if (s.length === 1 || s.length > 4) no();
-    if (!write) return;
+    if (!write) { if (`takedowns/${s[1]}` in data && !isDev() && !mine()) no(); return; } // taken down: its owner and developers only
     if (!mine() || (s.length > 2 && !["sets", "kanji", "meta"].includes(s[2]))) no();
     if (s.length === 2 && write !== "delete" && (Object.keys(v).some((k) => !["name", "rev", "updatedAt"].includes(k)) || typeof v.name !== "string" || v.name.length > 100)) no();
     return;
@@ -53,6 +54,20 @@ function allowed(path, write = false, v) {
     const has = data[path];
     if (s.length !== 2 || !current) no();
     if (write === "set" && !has ? !(s[1].length >= 20 && v.uid === current.uid && Object.keys(v).every((k) => ["uid", "nb", "createdAt"].includes(k))) : !(write !== "set" && write !== "update" && has?.uid === current.uid)) no();
+    return;
+  }
+  // Taken down by a developer: anyone may ask about one notebook, only developers list, make or delete them.
+  if (s[0] === "takedowns") {
+    if (s.length === 2 && !write) return;
+    if (s.length > 2 || !isDev() || (write && write !== "delete" && Object.keys(v).some((k) => k !== "at"))) no();
+    return;
+  }
+  // Reports: anyone sends one about a notebook that is shared; only developers read or delete them.
+  if (s[0] === "reports") {
+    if (s.length > 2) no();
+    if (!write || write === "delete") { if (!isDev()) no(); return; }
+    if (s.length !== 2 || write !== "set" || path in data || Object.keys(v).some((k) => !["share", "why", "note", "at"].includes(k)) || typeof v.share !== "string" || !/^[A-Za-z0-9]{20,40}$/.test(v.share) || !(`shares/${v.share}` in data)
+      || !["copyright", "other"].includes(v.why) || typeof v.note !== "string" || v.note.length > 1000 || typeof v.at !== "string" || v.at.length > 40) no();
     return;
   }
   if (!current) throw { code: "permission-denied", message: "signed out" };

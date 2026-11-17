@@ -2138,9 +2138,9 @@ if (entry.length > 1) {
   ok(words((await fs())[`shares/${sid}/sets/drinks`]) === "water,green tea", "share: a word changed in the notebook is changed in the shared copy a moment later", words((await fs())[`shares/${sid}/sets/drinks`]));
   // Nobody signed in: the link shows the notebook, and adding it needs a sign-in.
   await as(null, "#shared/" + sid);
-  const pv = () => sp.evaluate(() => ({ shown: !document.querySelector("#shared").hidden, head: document.querySelector("#sharedHead").textContent.replace(/\s+/g, " ").trim(), btns: [...document.querySelectorAll("#sharedHead button")].map((b) => b.textContent).join(","), body: document.querySelector("#sharedBody").textContent.replace(/\s+/g, " ").trim() }));
+  const pv = () => sp.evaluate(() => ({ shown: !document.querySelector("#shared").hidden, head: document.querySelector("#sharedHead").textContent.replace(/\s+/g, " ").trim(), btns: [...document.querySelectorAll("#sharedHead .tactions button")].map((b) => b.textContent).join(","), body: document.querySelector("#sharedBody").textContent.replace(/\s+/g, " ").trim() }));
   let v = await pv();
-  ok(v.shown && /^My notebook A shared notebook: 2 sets · 3 words · 1 kanji list/.test(v.head) && v.btns === "Sign in to add it" && /green tea/.test(v.body) && /Kanji: 水茶/.test(v.body) && new URL(sp.url()).hash === "#shared/" + sid,
+  ok(v.shown && /^My notebook\s*Report this notebook A shared notebook: 2 sets · 3 words · 1 kanji list/.test(v.head) && v.btns === "Sign in to add it" && /green tea/.test(v.body) && /Kanji: 水茶/.test(v.body) && new URL(sp.url()).hash === "#shared/" + sid,
     "shared link: someone not signed in sees what's in the notebook, and Sign in to add it", JSON.stringify(v).slice(0, 300));
   await sp.screenshot({ path: join(out, "26-shared-preview.png"), fullPage: true });
   ok(await sp.evaluate(() => Object.keys(localStorage).every((k) => !k.startsWith("qcard:local:notebooks/"))), "shared link: looking adds nothing to this browser");
@@ -2230,6 +2230,101 @@ if (entry.length > 1) {
   ok(!Object.keys(d).some((p) => p.startsWith("share") || p.startsWith("users/o1/")) && Object.keys(d).some((p) => p.startsWith("users/s1/notebooks/")), "delete account: its shared copies go too; notebooks other people added stay theirs");
   ok(sp.errors.length === 0, "sharing: no page errors", sp.errors.join(" | "));
   await sctx.close();
+}
+
+// ---------- 27. reports of shared notebooks: Report on the page a link opens, the list in Settings → Admin, Take down and Put back ----------
+{
+  const rctx = await browser.newContext();
+  const sid = "RepRepRepRepRepRepRepRep";
+  const O = { uid: "o1", displayName: "Owner", email: "o@example.com" }, P = { uid: "s1", displayName: "Sub", email: "s@example.com" }, D = { uid: "d1", displayName: "Dev", email: "d@example.com" };
+  const rp = await newPage(rctx, { width: 1280, init: ([sid]) => {
+    if (localStorage.getItem("fake:seeded")) return;
+    localStorage.setItem("fake:seeded", "1"); localStorage.setItem("qcard:welcomed", "1");
+    const set = { collection: "Made up", unit: "Week 1", name: "Drinks", words: [{ id: "a", en: "water", kana: "みず", kanji: "水" }] };
+    localStorage.setItem("fake:fs", JSON.stringify({
+      "users/o1/meta/samples": { offeredAt: "x" }, "users/s1/meta/samples": { offeredAt: "x" }, "users/d1/meta/samples": { offeredAt: "x" }, "dev/d1": { role: "dev" },
+      "users/o1/sets/drinks": { ...set, updatedAt: "x" }, "users/o1/meta/notebooks": { list: [{ id: "main", name: "Made-up words", share: sid }] },
+      [`shareOwners/${sid}`]: { uid: "o1", nb: "main", createdAt: "x" }, [`shares/${sid}`]: { name: "Made-up words", rev: ["sets/drinks old"], updatedAt: "x" }, [`shares/${sid}/sets/drinks`]: set,
+      "users/s1/meta/notebooks": { list: [{ id: "main", name: "My notebook" }, { id: "nq", name: "Borrowed", from: sid }] },
+      "users/s1/notebooks/nq/sets/drinks": { ...set, base: set, updatedAt: "x" }, "users/s1/notebooks/nq/meta/link": { share: sid, rev: "sets/drinks old", seen: ["sets/drinks"], metas: "{}" },
+    }));
+  }, initArg: [sid] });
+  await rp.waitForTimeout(600);
+  const fs = () => fsData(rp);
+  const as = async (u, hash = "") => { await rp.evaluate((u) => { if (u) localStorage.setItem("fake:user", JSON.stringify(u)); else localStorage.removeItem("fake:user"); }, u); await rp.goto(base + hash); await rp.reload(); await rp.waitForTimeout(900); };
+  const reports = async () => Object.entries(await fs()).filter(([p]) => p.startsWith("reports/")).map(([, r]) => r);
+  const tryIt = (f) => rp.evaluate(`(async () => { const p = window.qcardPlatform; try { await (${f}); return "ok"; } catch (e) { return e.code; } })()`);
+  // Nobody signed in: the page a link opens has Report this notebook. Cancel sends nothing.
+  await as(null, "#shared/" + sid);
+  ok(await vis(rp, "#sharedReport") && (await text(rp, "#sharedReport")) === "Report this notebook", "report: the page a shared link opens has Report this notebook, signed in or not");
+  await rp.click("#sharedReport"); await rp.waitForTimeout(200);
+  ok((await rp.$$eval("#askText [name=repWhy]", (r) => r.map((x) => x.parentElement.textContent.trim()).join(" | "))) === "It's copied from a textbook or other copyrighted work | Something else" && /doesn't say who sent it/.test(await text(rp, "#askText")),
+    "report: it asks what's wrong (copyright or something else), with room for details", await text(rp, "#askText"));
+  await rp.screenshot({ path: join(out, "27-report-ask.png") });
+  await rp.click('#askDlg [value="no"]'); await rp.waitForTimeout(200);
+  ok((await reports()).length === 0 && await vis(rp, "#sharedReport"), "report: Cancel sends nothing");
+  await rp.click("#sharedReport"); await rp.fill("#repNote", "  These are the word lists of   a textbook, chapter 3.  "); await rp.click("#askYes"); await rp.waitForTimeout(500);
+  let rs = await reports();
+  ok(rs.length === 1 && rs[0].share === sid && rs[0].why === "copyright" && rs[0].note === "These are the word lists of a textbook, chapter 3." && !isNaN(new Date(rs[0].at)) && Object.keys(rs[0]).sort().join() === "at,note,share,why",
+    "report: Send report saves which notebook, the reason, the details and the time, and nothing about who sent it", JSON.stringify(rs));
+  ok(!(await vis(rp, "#sharedReport")) && (await text(rp, "#sharedReported")) === "Report sent. Thank you.", "report: the page says the report was sent");
+  ok(await tryIt(`p.reports.get()`) === "permission-denied" && await tryIt(`p.takedowns.get()`) === "permission-denied" && await tryIt(`p.shared("${sid}").down.set({ at: "x" })`) === "permission-denied"
+    && await tryIt(`p.reports.doc("zz").set({ share: "NobodySharedThisNobodyShared", why: "other", note: "", at: "x" })`) === "permission-denied" && await tryIt(`p.reports.doc("zz").set({ share: "${sid}", why: "other", note: "", at: "x", by: "me" })`) === "permission-denied",
+    "report: someone not signed in can't read reports or take anything down, and a report must be about a shared notebook, with nothing extra in it");
+  // Signed in, not a developer: can report too; no Admin tab, no reading reports.
+  await as(P, "#shared/" + sid);
+  await rp.click("#sharedReport"); await rp.check('#askText [name=repWhy][value="other"]'); await rp.click("#askYes"); await rp.waitForTimeout(500);
+  rs = await reports();
+  ok(rs.length === 2 && rs.some((r) => r.why === "other" && r.note === "") && !JSON.stringify(rs).match(/s1|example\.com|Sub/), "report: a signed-in person's report says nothing about them either", JSON.stringify(rs));
+  await settings(rp, "account");
+  ok(!(await vis(rp, '#setNav [data-set-tab="admin"]')) && await tryIt(`p.reports.get()`) === "permission-denied" && await tryIt(`p.reports.doc("x").delete()`) === "permission-denied" && await tryIt(`p.shared("${sid}").down.set({ at: "x" })`) === "permission-denied",
+    "report: an account that isn't a developer has no Admin tab, and the database refuses it the reports and Take down");
+  // The owner doesn't get Report on their own notebook.
+  await as(O, "#shared/" + sid);
+  ok(!(await rp.$("#sharedReport")) && /This is your notebook/.test(await text(rp, "#sharedHead")), "report: the owner's own view of the link has no Report");
+  // A developer: Settings → Admin lists the reports by notebook.
+  await as(D); await settings(rp, "admin"); await rp.waitForTimeout(400);
+  const list = () => rp.evaluate(() => ({ count: document.querySelector("#repCount").textContent, text: document.querySelector("#repList").textContent.replace(/\s+/g, " ").trim(), btns: [...document.querySelectorAll("#repList button")].map((b) => b.textContent).join(","), link: document.querySelector("#repList a")?.getAttribute("href") || "" }));
+  let l = await list();
+  ok(l.count === " (2)" && /^Made-up words2 reports/.test(l.text) && /Copyright These are the word lists of a textbook, chapter 3\./.test(l.text) && /Something else/.test(l.text) && l.btns === "Take down,Dismiss reports" && l.link === "#shared/" + sid,
+    "admin: a developer sees the reports by notebook, with the reasons and details, Take down and Dismiss", JSON.stringify(l));
+  await rp.screenshot({ path: join(out, "27-admin-reports.png") });
+  // Take down asks first; then the link stops for everyone but the owner and developers.
+  await rp.click('#repList [data-rep-do="down"]'); await rp.waitForTimeout(200);
+  ok(/Its link stops working for everyone but its owner and developers\. People who already added the notebook keep what they have/.test(await text(rp, "#askText")) && !(await fs())[`takedowns/${sid}`], "take down: asks first, and says what happens", await text(rp, "#askText"));
+  await rp.click("#askYes"); await rp.waitForTimeout(500);
+  l = await list();
+  let d = await fs();
+  ok(Object.keys(d[`takedowns/${sid}`] || {}).join() === "at" && /2 reports · Taken down/.test(l.text) && l.btns === "Put back,Dismiss reports" && !!d[`shares/${sid}/sets/drinks`], "take down: the notebook is marked taken down (its copy and the reports stay), with Put back", JSON.stringify(l));
+  await rp.click("#repList a"); await rp.waitForTimeout(700);
+  ok(await vis(rp, "#shared") && /Taken down after a report/.test(await text(rp, "#sharedHead")) && /water/.test(await text(rp, "#sharedBody")), "take down: a developer can still open the link, and it says the notebook is taken down", await text(rp, "#sharedHead"));
+  await as(null, "#shared/" + sid);
+  ok(/This notebook was taken down\./.test(await text(rp, "#sharedBody")) && !/water/.test(await text(rp, "#sharedBody")) && !(await rp.$("#sharedHead button")), "take down: for anyone else the link says the notebook was taken down, and shows nothing of it", await text(rp, "#sharedBody"));
+  await rp.screenshot({ path: join(out, "27-taken-down.png") });
+  // Whoever added it keeps their notebook.
+  await as(P); await rp.click("#nbBtn"); await rp.click('#nbList [data-nb="nq"]'); await rp.waitForTimeout(1500); await goTable(rp);
+  d = await fs();
+  ok((await text(rp, "#nbName")) === "Borrowed" && d["users/s1/notebooks/nq/sets/drinks"].words[0].en === "water" && /isn't shared any more, so nothing in it will change again/.test(await text(rp, "#linkNote")),
+    "take down: someone who added the notebook keeps what they have", await text(rp, "#linkNote"));
+  // The owner is told, in the share pop-up and on the link.
+  await as(O);
+  await rp.click("#nbBtn"); await rp.click('#nbList [data-nb-do="share"]'); await rp.waitForTimeout(400);
+  ok(/reported and taken down, so its link works only for you now/.test(await text(rp, "#askText")), "take down: the owner's share pop-up says so", await text(rp, "#askText"));
+  await rp.click("#askYes");
+  // Put back, and Dismiss.
+  await as(D); await settings(rp, "admin"); await rp.waitForTimeout(400);
+  await rp.click('#repList [data-rep-do="back"]'); await rp.waitForTimeout(500);
+  l = await list();
+  ok(!(await fs())[`takedowns/${sid}`] && l.btns === "Take down,Dismiss reports" && !/Taken down/.test(l.text), "put back: the notebook isn't taken down any more", JSON.stringify(l));
+  await rp.click('#repList [data-rep-do="dismiss"]'); await rp.waitForTimeout(200);
+  ok(/The 2 reports about it are deleted/.test(await text(rp, "#askText")) && (await reports()).length === 2, "dismiss: asks first", await text(rp, "#askText"));
+  await rp.click("#askYes"); await rp.waitForTimeout(500);
+  l = await list();
+  ok((await reports()).length === 0 && l.text === "No reports." && l.count === "", "dismiss: the notebook's reports are deleted, and the list says there are none", JSON.stringify(l));
+  await as(null, "#shared/" + sid);
+  ok(/water/.test(await text(rp, "#sharedBody")) && await vis(rp, "#sharedReport"), "put back: the link works for everyone again");
+  ok(rp.errors.length === 0, "reports: no page errors", rp.errors.join(" | "));
+  await rctx.close();
 }
 
 await browser.close(); server.close();

@@ -83,7 +83,7 @@
   // Dev tools: to see the question as people get it.
   const checkDev = async () => {
     const uid = account?.uid; isDev = false; renderShare(); // nothing carried over from the last account while it asks
-    isDev = !!uid && (await platform.isDev(uid)) && account?.uid === uid; renderShare();
+    isDev = !!uid && (await platform.isDev(uid)) && account?.uid === uid; renderShare(); renderReports();
   };
   $("#devAsk1").onclick = () => askShare(SHARE_EVERY, false);
   $("#devAsk2").onclick = () => askShare(2 * SHARE_EVERY, true);

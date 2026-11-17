@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-QGnVqwUPy7u+qMX1gOjHyT4o8O9gkS5lFYRJPSWiglg=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-3UIpWionfgLMhm++rXjXBxjINscta34r6Xrgp/IJoYs=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -164,6 +164,13 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .ownkey { padding: 1px 6px; border-radius: 4px; color: var(--ink); white-space: nowrap; }
 #shareLinkIn { width: 100%; margin: 4px 0 2px; }
 .sharedo { justify-content: space-between; }
+.repnote { display: block; width: 100%; min-height: 84px; margin: 10px 0 8px; padding: 8px 10px; font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; resize: vertical; }
+.repnote:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+.replist { display: grid; gap: 10px; margin: 10px 0; }
+.rep { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.rephead a { color: var(--ai); text-underline-offset: 3px; }
+.rephead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.rep ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: .9rem; overflow-wrap: anywhere; }
 #sharedHead p { margin: 6px 0 0; }
 #shared .tscroll { overflow-x: auto; }
 .drawer .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--sunk); border-right: 1px solid var(--line);
@@ -1020,6 +1027,12 @@ colours.apply(...colours.saved()); // before anything is drawn
           </section>
         </div>
         <div class="setpane" data-set-pane="admin" id="devSet" hidden><h2>Admin</h2>
+          <section><h3>Reports<span id="repCount"></span></h3>
+            <p class="muted small">Reports of shared notebooks, sent from the page a shared link opens. Take down stops a notebook's link for everyone but its owner and developers.</p>
+            <div class="replist" id="repList"></div>
+            <div class="tactions"><button class="btn" type="button" id="repRefresh">Refresh</button></div>
+            <p class="muted small" id="repMsg" hidden></p>
+          </section>
           <section><h3>The sharing question</h3>
             <p class="muted small">Only developers see this tab. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
             <div class="tactions"><button class="btn" type="button" id="devAsk1">First time</button><button class="btn" type="button" id="devAsk2">Later times</button></div>
@@ -4785,7 +4798,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // Dev tools: to see the question as people get it.
   const checkDev = async () => {
     const uid = account?.uid; isDev = false; renderShare(); // nothing carried over from the last account while it asks
-    isDev = !!uid && (await platform.isDev(uid)) && account?.uid === uid; renderShare();
+    isDev = !!uid && (await platform.isDev(uid)) && account?.uid === uid; renderShare(); renderReports();
   };
   $("#devAsk1").onclick = () => askShare(SHARE_EVERY, false);
   $("#devAsk2").onclick = () => askShare(2 * SHARE_EVERY, true);
@@ -4904,8 +4917,8 @@ colours.apply(...colours.saved()); // before anything is drawn
         <p class="muted small">Only the notebook is shared, not your progress, your settings or your other notebooks.</p>`, "Create link");
       if (!ok || !(await startShare())) return;
     }
-    const id = nbNow().share;
-    const closed = ask(`“${nbNow().name}” is shared`, `<p>Anyone who has this link can look at it and add it to their own account.</p>
+    const id = nbNow().share, down = await takenDown(id);
+    const closed = ask(`“${nbNow().name}” is shared`, `<p>${down ? "This notebook was reported and taken down, so its link works only for you now." : "Anyone who has this link can look at it and add it to their own account."}</p>
       <input class="tsearch" id="shareLinkIn" readonly aria-label="Link" value="${esc(shareLink(id))}">
       <p class="tactions sharedo"><button class="btn" type="button" id="shareCopy">Copy link</button><button class="link" type="button" id="shareStop">Stop sharing</button></p>`, "Done");
     let stop = false;
@@ -5042,11 +5055,14 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (!account) sharedWait(id);
     $("#sharedHead").innerHTML = `<div class="head"><h2>Shared notebook</h2></div>`;
     $("#sharedBody").innerHTML = `<div class="empty">Loading…</div>`;
-    let share = null, failed = false;
-    try { share = await readShare(id); } catch (e) { failed = e?.code !== "permission-denied"; }
+    // A notebook that was taken down after a report (report.js) can't be read, except by its owner and developers.
+    let share = null, failed = false, down = false;
+    try { share = await readShare(id); } catch (e) { down = e?.code === "permission-denied"; failed = !down; }
+    if (share && account) share.down = await takenDown(id);
     if (sharedId.at !== id) return;
     if (!share) {
-      $("#sharedBody").innerHTML = `<div class="empty"><b>${failed ? "This notebook couldn't load." : "This link doesn't work any more."}</b><span>${failed ? "Check your connection, then reload the page." : "The notebook isn't shared now."}</span></div>`;
+      $("#sharedBody").innerHTML = `<div class="empty"><b>${failed ? "This notebook couldn't load." : down ? "This notebook was taken down." : "This link doesn't work any more."}</b><span>${failed ? "Check your connection, then reload the page."
+        : down ? "Its link doesn't work any more. If you added it before, you still have what you added." : "The notebook isn't shared now."}</span></div>`;
       return;
     }
     sharedNow = share; renderShared();
@@ -5057,7 +5073,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     const of = (c) => [...share.docs].filter(([p]) => p.startsWith(c + "/")).map(([p, d]) => ({ id: p.slice(c.length + 1), ...d }));
     const sets = of("sets").sort(sortSets), lists = of("kanji"), units = [...new Set(sets.map(unitKey))];
     const mine = nbList().find((n) => n.share === share.id), have = nbList().find((n) => n.from === share.id), here = mine || have;
-    $("#sharedHead").innerHTML = `<div class="head"><h2>${esc(share.name)}</h2></div>
+    $("#sharedHead").innerHTML = `<div class="head"><h2>${esc(share.name)}</h2>${mine ? "" : `<div class="headr">${share.reported ? `<span class="muted small" id="sharedReported">Report sent. Thank you.</span>` : `<button class="link" type="button" id="sharedReport">Report this notebook</button>`}</div>`}</div>
+      ${share.down ? `<div class="linknote">Taken down after a report: this link now works only for the notebook's owner and for developers.</div>` : ""}
       <p class="muted">A shared notebook: ${[plural(sets.length, "set"), plural(sets.reduce((n, s) => n + readyCount(s.words), 0), "word"), plural(lists.length, "kanji list")].join(" · ")}</p>
       ${here ? `<p>${mine ? "This is your notebook, as people who have the link see it." : "You've added this notebook."}</p><p class="tactions"><button class="btn primary" type="button" id="sharedOpen">Open it</button></p>`
       : account ? `<p class="tactions"><button class="btn primary" type="button" id="sharedAdd">Add to my notebooks</button><button class="btn" type="button" id="sharedCopy">Add as my own copy</button></p>
@@ -5071,6 +5088,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const add = (linked) => async (e) => { e.target.disabled = true; if (await addShared(share, linked)) go("setup"); else e.target.disabled = false; };
     if ($("#sharedOpen")) $("#sharedOpen").onclick = () => { openNotebook(here.id); go("setup"); };
     if ($("#sharedAdd")) { $("#sharedAdd").onclick = add(true); $("#sharedCopy").onclick = add(false); }
+    if ($("#sharedReport")) $("#sharedReport").onclick = async () => { if (await reportShared(share.id)) { share.reported = true; renderShared(); } };
     if ($("#sharedSignIn")) $("#sharedSignIn").onclick = (e) => signIn(e.target, (err) => banner(err || ""));
   }
   // The list of notebooks loads after the page: whether this one is here already shows once it has.
@@ -5082,6 +5100,66 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (!account || !/^[A-Za-z0-9]{20,40}$/.test(id)) return;
     sharedWait(""); openShared(id);
   }
+  // ---------- reporting a shared notebook (public site) ----------
+  // Sharing passes along what other people typed in, so the page a shared notebook's link opens has "Report this
+  // notebook". Anyone can send a report, signed in or not: which notebook, one of the reasons and what they wrote, and
+  // nothing about who sent it. Only developers can read reports (firestore.rules); theirs is Settings → Admin (moderation.js).
+  const REPORT_WHY = { copyright: "It's copied from a textbook or other copyrighted work", other: "Something else" };
+  // True once the report is sent.
+  async function reportShared(id) {
+    const sent = ask("Report this notebook", `<p>What's wrong with it?</p>
+      ${Object.entries(REPORT_WHY).map(([k, t], i) => `<label class="checkrow"><input type="radio" name="repWhy" value="${k}"${i ? "" : " checked"}> ${t}</label>`).join("")}
+      <textarea class="repnote" id="repNote" maxlength="1000" rows="4" aria-label="Details" placeholder="Details: what it's copied from, or what the problem is"></textarea>
+      <p class="muted small">The report says which notebook, your reason and your details. It doesn't say who sent it.</p>`, "Send report");
+    $("#askText input").focus();
+    if (!(await sent)) return false;
+    const why = $("#askText [name=repWhy]:checked")?.value || "other", note = tidy($("#repNote").value, 1000);
+    try { await platform.reports.doc(rid() + rid()).set({ share: id, why, note, at: new Date().toISOString() }); }
+    catch { banner("Couldn't send the report. Try again."); return false; }
+    return true;
+  }
+  // Whether a developer took this shared notebook down after a report (moderation.js): then its link works only for
+  // its owner and for developers.
+  const takenDown = async (id) => !!(await platform.shared(id).down.get().catch(() => null))?.exists;
+  // ---------- reports of shared notebooks, for developers (public site) ----------
+  // Settings → Admin lists the reports people sent (report.js), newest first, by notebook. Take down makes
+  // takedowns/<id>: from then on only the notebook's owner and developers can open its link, and people who added the
+  // notebook keep what they have. Put back deletes it again. Dismiss deletes the reports. Who may do any of this is
+  // checked by firestore.rules (dev/<uid>), not here: for anyone else the list stays empty and the buttons fail.
+  let repSeq = 0;
+  async function renderReports() {
+    const box = $("#repList"), seq = ++repSeq;
+    $("#repCount").textContent = "";
+    if (!isDev) { box.innerHTML = ""; return; }
+    box.innerHTML = `<p class="muted small">Loading…</p>`;
+    const by = new Map(), at = (id) => by.get(id) || by.set(id, { id, reports: [] }).get(id);
+    try {
+      const [reports, downs] = await Promise.all([platform.reports.orderBy("at", "desc").limit(200).get(), platform.takedowns.get()]);
+      for (const d of reports.docs) { const r = d.data(); if (SHARE_RE.test(r.share)) at(r.share).reports.push({ id: d.id, why: REPORT_WHY[r.why] ? r.why : "other", note: tidy(r.note, 1000), at: r.at }); }
+      for (const d of downs.docs) if (SHARE_RE.test(d.id)) at(d.id).down = true;
+      await Promise.all([...by.values()].map(async (g) => { g.name = dataOrNull(await platform.shared(g.id).info.get())?.name; }));
+    } catch { if (seq === repSeq) box.innerHTML = `<p class="muted small">Couldn't load the reports. Check your connection, then press Refresh.</p>`; return; }
+    if (seq !== repSeq) return;
+    const n = [...by.values()].reduce((n, g) => n + g.reports.length, 0);
+    $("#repCount").textContent = n ? ` (${n})` : "";
+    box.innerHTML = !by.size ? `<p class="muted small">No reports.</p>` : [...by.values()].map((g) => `<div class="rep" data-rep="${g.id}">
+      <div class="rephead">${g.name == null ? `<b>No longer shared</b>` : `<a href="#shared/${g.id}"><b>${esc(tidy(g.name, 60) || NB_NAME)}</b></a>`}<span class="muted small">${[plural(g.reports.length, "report"), ...(g.down ? ["Taken down"] : [])].join(" · ")}</span></div>
+      ${g.reports.length ? `<ul>${g.reports.map((r) => `<li><span class="muted small">${[isNaN(new Date(r.at)) ? "" : dayText(r.at), r.why === "copyright" ? "Copyright" : "Something else"].filter(Boolean).join(" · ")}</span>${r.note ? ` ${esc(r.note)}` : ""}</li>`).join("")}</ul>` : ""}
+      <div class="tactions">${g.down ? `<button class="btn" type="button" data-rep-do="back">Put back</button>` : g.name == null ? "" : `<button class="btn danger" type="button" data-rep-do="down">Take down</button>`}${g.reports.length ? `<button class="btn" type="button" data-rep-do="dismiss">Dismiss ${g.reports.length === 1 ? "report" : "reports"}</button>` : ""}</div></div>`).join("");
+    box.querySelectorAll("[data-rep-do]").forEach((b) => (b.onclick = async () => {
+      const g = by.get(b.closest("[data-rep]").dataset.rep), sh = platform.shared(g.id), name = `“${tidy(g.name, 60) || "this notebook"}”`;
+      if (b.dataset.repDo === "dismiss" && !(await ask(`Dismiss ${g.reports.length === 1 ? "this report" : "these reports"}?`, `<p>The ${plural(g.reports.length, "report")} about it ${g.reports.length === 1 ? "is" : "are"} deleted. The notebook stays as it is.</p>`, "Dismiss"))) return;
+      if (b.dataset.repDo === "down" && !(await ask(`Take down ${name}?`, `<p>Its link stops working for everyone but its owner and developers. People who already added the notebook keep what they have, and get no more changes.</p>`, "Take down", true))) return;
+      b.disabled = true; $("#repMsg").hidden = true;
+      try {
+        if (b.dataset.repDo === "down") await sh.down.set({ at: new Date().toISOString() });
+        else if (b.dataset.repDo === "back") await sh.down.delete();
+        else for (const r of g.reports) await platform.reports.doc(r.id).delete();
+      } catch { $("#repMsg").textContent = "Couldn't do that. Try again."; $("#repMsg").hidden = false; }
+      renderReports();
+    }));
+  }
+  $("#repRefresh").onclick = renderReports;
   // ---------- Extra tools (public site) ----------
   // A view of the page like the others, with the menu beside it. Its tools are js/tools.js (src/study-tools/tools.js),
   // loaded the first time it opens, so the page itself doesn't carry them. Its address is #tools (page/address.js; the old

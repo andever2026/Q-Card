@@ -25,15 +25,40 @@ service cloud.firestore {
       allow create: if request.auth != null && id.size() >= 20 && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasOnly(['uid', 'nb', 'createdAt']);
     }
+    // A developer (dev/<their id>, above) can take a shared notebook down after a report: takedowns/<id> is there
+    // while it is. From then on only the notebook's owner and developers can read the copy; everyone else's link stops
+    // working. Anyone may ask whether one notebook is taken down (the page a link opens says so); only developers can list them.
+    function isDev() {
+      return request.auth != null && exists(/databases/$(database)/documents/dev/$(request.auth.uid));
+    }
+    function canRead(id) {
+      return !exists(/databases/$(database)/documents/takedowns/$(id)) || isDev() || ownsShare(id);
+    }
     match /shares/{id} {
-      allow get: if true;
+      allow get: if canRead(id);
       allow create, update: if ownsShare(id) && request.resource.data.keys().hasOnly(['name', 'rev', 'updatedAt'])
         && request.resource.data.name is string && request.resource.data.name.size() <= 100;
       allow delete: if ownsShare(id);
       match /{kind}/{doc} {
-        allow read: if true;
+        allow read: if canRead(id);
         allow write: if kind in ['sets', 'kanji', 'meta'] && ownsShare(id);
       }
+    }
+    match /takedowns/{id} {
+      allow get: if true;
+      allow list, delete: if isDev();
+      allow create, update: if isDev() && request.resource.data.keys().hasOnly(['at']);
+    }
+    // Reports of shared notebooks. Anyone may send one, signed in or not, about a notebook that is shared: which one,
+    // one of the reasons, a note and the time, and nothing about who sent it. Only developers can read or delete them.
+    match /reports/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['share', 'why', 'note', 'at'])
+        && request.resource.data.share is string && request.resource.data.share.matches('^[A-Za-z0-9]{20,40}$')
+        && exists(/databases/$(database)/documents/shares/$(request.resource.data.share))
+        && request.resource.data.why in ['copyright', 'other']
+        && request.resource.data.note is string && request.resource.data.note.size() <= 1000
+        && request.resource.data.at is string && request.resource.data.at.size() <= 40;
+      allow read, delete: if isDev();
     }
   }
 }

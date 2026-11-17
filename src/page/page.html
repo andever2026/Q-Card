@@ -378,6 +378,12 @@ colours.apply(...colours.saved()); // before anything is drawn
           </section>
         </div>
         <div class="setpane" data-set-pane="admin" id="devSet" hidden><h2>Admin</h2>
+          <section><h3>Reports<span id="repCount"></span></h3>
+            <p class="muted small">Reports of shared notebooks, sent from the page a shared link opens. Take down stops a notebook's link for everyone but its owner and developers.</p>
+            <div class="replist" id="repList"></div>
+            <div class="tactions"><button class="btn" type="button" id="repRefresh">Refresh</button></div>
+            <p class="muted small" id="repMsg" hidden></p>
+          </section>
           <section><h3>The sharing question</h3>
             <p class="muted small">Only developers see this tab. Open the sharing question as people first see it, or as it looks later with "Don't ask me again". Your answer counts for your own account.</p>
             <div class="tactions"><button class="btn" type="button" id="devAsk1">First time</button><button class="btn" type="button" id="devAsk2">Later times</button></div>
@@ -512,6 +518,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   //#include shared-notebooks/publish.js
   //#include shared-notebooks/linked.js
   //#include shared-notebooks/preview.js
+  //#include shared-notebooks/report.js
+  //#include shared-notebooks/moderation.js
   //#include study-tools/view.js
   //#include page/address.js
   //#include practice/round-list.js

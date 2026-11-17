@@ -52,6 +52,9 @@ function makeDb(at) {
   return { doc: docRef, collection: colRef };
 }
 
+// The few places that aren't inside one person's folder: shared notebooks and the reports of them.
+const all = makeDb((p) => p);
+
 // Everyone owns their own folder, so they can edit their sets and keep history there.
 const makeUser = (uid) => ({ id: async () => uid, isOwner: async () => true, can: async () => true, canEdit: async () => true });
 
@@ -82,7 +85,11 @@ window.qcardPlatform = {
   // A notebook someone shared (see firestore.rules): shares/<id> says what it is and holds a copy of the notebook's
   // documents under it (shares/<id>/sets/<set> …), which anyone who has the id may read, signed in or not;
   // shareOwners/<id>, which only its owner can read, says whose it is. Only the owner can change any of it.
-  shared: (id) => { const all = makeDb((p) => p); return { info: all.doc(`shares/${id}`), owner: all.doc(`shareOwners/${id}`), db: makeDb((p) => `shares/${id}/${p}`) }; },
+  // takedowns/<id> is there while a developer has taken the notebook down: then only its owner and developers can read it.
+  shared: (id) => ({ info: all.doc(`shares/${id}`), owner: all.doc(`shareOwners/${id}`), down: all.doc(`takedowns/${id}`), db: makeDb((p) => `shares/${id}/${p}`) }),
+  // Reports of shared notebooks: anyone may send one, only developers can read or delete them, and only developers can
+  // list what is taken down.
+  reports: all.collection("reports"), takedowns: all.collection("takedowns"),
   user: makeUser,
   // Whether this account is a developer: dev/<uid> exists (see firestore.rules; only the Firebase console makes it).
   isDev: async (uid) => { try { return (await getDoc(doc(fs, "dev/" + uid))).exists(); } catch { return false; } },
