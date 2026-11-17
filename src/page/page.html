@@ -212,13 +212,17 @@ colours.apply(...colours.saved()); // before anything is drawn
 <!--#endif-->
     <div class="fb" id="feedback" hidden>
       <div class="fbhead"><span class="stamp">もう一度</span><span id="fbReason"></span></div>
-      <div class="fbacts">
-        <button class="btn" type="button" id="overrideBtn" title="When your writing was right and it was read wrong">Mark it as correct</button>
-        <button class="btn primary" id="nextBtn">Next word →</button>
-      </div>
       <div class="answer" id="fbAnswer"></div>
-      <p class="need" id="fbNeed" hidden></p>
-      <p class="read" id="fbRead"></p>
+      <div class="fbmid">
+        <div class="fbnotes">
+          <p class="need" id="fbNeed" hidden></p>
+          <p class="read" id="fbRead"></p>
+        </div>
+        <div class="fbacts">
+          <button class="btn" type="button" id="overrideBtn" title="When your writing was right and it was read wrong">Mark it as correct</button>
+          <button class="btn primary" id="nextBtn">Next word →</button>
+        </div>
+      </div>
       <div class="sheet">
         <div class="zlabel"><span>Scratch pad: practice it a few times</span></div>
         <canvas id="scratchPad" class="pad scratch" aria-label="Scratch pad"></canvas>

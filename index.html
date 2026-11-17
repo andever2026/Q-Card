@@ -374,19 +374,11 @@ body.writing > .wrap > header > :not(dialog) { display: none !important; }
 .read q { font-family: var(--font-jp); color: var(--ink); quotes: "「" "」"; }
 .read.live { margin: 8px 2px 0; }
 .fbfoot { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-/* The retry card: Mark it as correct and Next word stacked at the top right, beside the answer; a row under the heading on a phone. */
-#feedback { grid-template-columns: minmax(0, 1fr) auto; column-gap: 18px; }
-#feedback > * { grid-column: 1 / -1; }
-#feedback > .fbhead { grid-column: 1; grid-row: 1; }
-#feedback > .fbacts { grid-column: 2; grid-row: 1 / span 3; align-self: start; display: grid; gap: 10px; }
-#feedback > .fbacts .btn { white-space: nowrap; }
-#feedback > .answer, #feedback > .need { grid-column: 1; }
-@media (max-width: 640px) {
-  #feedback { grid-template-columns: minmax(0, 1fr); }
-  #feedback > .fbacts { grid-column: 1; grid-row: auto; grid-auto-flow: column; grid-auto-columns: 1fr; order: 1; }
-  #feedback > .fbhead { order: 0; }
-  #feedback > :not(.fbhead, .fbacts) { order: 2; }
-}
+/* The retry card: Mark it as correct and Next word at the right end of the line under the answer, above the scratch pad; their own row on a phone. */
+.fbmid { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 18px; }
+.fbnotes { display: grid; gap: 12px; flex: 1 1 14rem; min-width: 0; }
+.fbacts { display: flex; gap: 10px; }
+@media (max-width: 640px) { .fbacts { flex: 1 1 100%; } .fbacts .btn { flex: 1 1 0; } }
 .err { color: var(--shu); font-size: .9rem; }
 
 /* Results */
@@ -846,13 +838,17 @@ colours.apply(...colours.saved()); // before anything is drawn
     </div>
     <div class="fb" id="feedback" hidden>
       <div class="fbhead"><span class="stamp">もう一度</span><span id="fbReason"></span></div>
-      <div class="fbacts">
-        <button class="btn" type="button" id="overrideBtn" title="When your writing was right and it was read wrong">Mark it as correct</button>
-        <button class="btn primary" id="nextBtn">Next word →</button>
-      </div>
       <div class="answer" id="fbAnswer"></div>
-      <p class="need" id="fbNeed" hidden></p>
-      <p class="read" id="fbRead"></p>
+      <div class="fbmid">
+        <div class="fbnotes">
+          <p class="need" id="fbNeed" hidden></p>
+          <p class="read" id="fbRead"></p>
+        </div>
+        <div class="fbacts">
+          <button class="btn" type="button" id="overrideBtn" title="When your writing was right and it was read wrong">Mark it as correct</button>
+          <button class="btn primary" id="nextBtn">Next word →</button>
+        </div>
+      </div>
       <div class="sheet">
         <div class="zlabel"><span>Scratch pad: practice it a few times</span></div>
         <canvas id="scratchPad" class="pad scratch" aria-label="Scratch pad"></canvas>
