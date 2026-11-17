@@ -1,17 +1,20 @@
   // ---------- history ----------
-  S.history = []; S.hOpen = new Set(); S.hConfirm = null; S.toughIds = [];
-  // Test history is opt-in: data/users/<id>/settings {history: true|false}; missing = not asked yet.
+  S.history = []; S.hOpen = new Set(); S.hConfirm = null; S.tough = [];
+  // The choice: data/users/<id>/settings {history: true|false}. Missing means on where history stays in this browser
+  // (a guest, a visitor by link: nothing goes anywhere), and not asked yet for an account, whose history is on the server.
   S.histOn = null; S.histReady = false; S.histBlocked = false;
   // The owner's history lives in the database (the morning check-in reads it). Everyone else's stays in their own
   // browser (S.local): only that device has it, and clearing site data or a private window loses it.
   S.local = false;
   const LOCAL_MAX = 300; // sessions kept in the browser; the oldest go first
+  // History changed, or the choice to keep it: every place that shows it.
+  function histChanged() { renderHistSet(); renderHistPort(); if (!$("#history").hidden) renderHistory(); }
+  const inBrowser = () => S.local || uid === "local";
+  const histChoice = (v) => (typeof v === "boolean" ? v : inBrowser() ? true : null);
   function loadLocal() {
-    const v = store.get("histOn", null);
-    S.histOn = typeof v === "boolean" ? v : null; S.histReady = true;
+    S.histOn = histChoice(store.get("histOn", null)); S.histReady = true;
     S.history = (store.get("hist", []) || []).filter((t) => t && /^t\d/.test(t.id)).sort((a, b) => String(b.finishedAt || "").localeCompare(String(a.finishedAt || "")));
-    renderRecent();
-    if (!$("#history").hidden) renderHistory();
+    histChanged();
   }
   function saveLocal(list) {
     if (!store.set("hist", list.slice(0, LOCAL_MAX))) banner("This browser couldn't save that practice session.");
@@ -27,13 +30,13 @@
     if (S.local) {
       // A private window or blocked site data can refuse even this.
       if (store.set("histOn", on)) { S.histOn = on; return true; }
-      S.histBlocked = true; renderRecent(); if (!$("#history").hidden) renderHistory();
+      S.histBlocked = true; histChanged();
       return false;
     }
     try { await settingsDoc().set({ history: on, updatedAt: new Date().toISOString() }); S.histOn = on; return true; }
     catch (e) {
       // View-only visitors (including anyone outside the owner's organization) can't write their own subtree.
-      if (e?.code === "invalid_argument") { S.histBlocked = true; renderRecent(); if (!$("#history").hidden) renderHistory(); }
+      if (e?.code === "invalid_argument") { S.histBlocked = true; histChanged(); }
       else banner("Couldn't save that choice. Try again.");
       return false;
     }
@@ -48,45 +51,32 @@
   function watchHistory() {
     if (!db || !uid) return;
     settingsDoc().onSnapshot((snap) => {
-      const v = snap.exists ? snap.data().history : undefined;
-      S.histOn = typeof v === "boolean" ? v : null; S.histReady = true;
-      renderRecent();
-      if (!$("#history").hidden) renderHistory();
+      S.histOn = histChoice(snap.exists ? snap.data().history : undefined); S.histReady = true;
+      histChanged();
     }, () => {});
     db.collection("data/users/" + uid).orderBy("finishedAt", "desc").limit(1000).onSnapshot((snap) => {
       S.history = snap.docs.filter((d) => /^t\d/.test(d.id)).map((d) => ({ id: d.id, ...d.data() }));
-      renderRecent();
-      if (!$("#history").hidden) renderHistory();
+      histChanged();
     }, () => {});
   }
-  function renderRecent() {
-    const h = S.history, on = S.histOn, ask = $("#histAsk");
-    $("#histPanel").hidden = !S.histReady;
-    $("#histAll").hidden = !h.length;
-    $("#histAll").textContent = `See all ${h.length} →`;
-    $("#histOff").hidden = on !== true;
-    $("#histTitle").textContent = on === true && h.length ? "Your recent practice" : "Practice history";
-    const earlier = h.length ? `<p class="muted small">${h.length} earlier practice session${h.length === 1 ? " is" : "s are"} still saved. Open “See all” to look at or delete ${h.length === 1 ? "it" : "them"}.</p>` : "";
-    ask.hidden = on === true && h.length > 0;
-    ask.innerHTML = S.histBlocked
-      ? `<p class="muted">${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so practice history is off." : "Your access to this page doesn't allow saving practice history."} You can still practice as much as you like.</p>`
-      : on === null
-      ? `<p>Turn on data collection? Each finished practice session would be saved so you can see fun stats about your practice, like graphs, streaks and the words that need more work. ${S.local || uid === "local"
-          ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it here at any time."
-          : "Only you and the site maintainers can see this data, and you can delete it from the server at any time."}</p>${earlier}
-         <div class="tactions"><button class="btn primary" data-hist="on">Turn on data collection</button><button class="btn" data-hist="off">No thanks</button></div>`
-      : on === false
-      ? `<p class="muted">Data collection is off, so finished sessions aren't saved.</p>${earlier}<div class="tactions"><button class="btn" data-hist="on">Turn on data collection</button></div>`
-      : `<p class="muted">Data collection is on. Finish a practice session and it shows up here.</p>`;
-    ask.querySelectorAll("[data-hist]").forEach((b) => (b.onclick = async () => { b.disabled = true; if (await setHistory(b.dataset.hist === "on")) renderRecent(); else b.disabled = false; }));
-    $("#histList").hidden = on !== true || !h.length;
-    $("#histList").innerHTML = on !== true ? "" : h.slice(0, 5).map((t) => {
-      const { n, first } = firstTry(t);
-      return `<li><span>${esc((t.sets || []).join(", "))}</span><span>${esc(fmtWhen(t.finishedAt))} · ${first}/${n} first try</span></li>`;
-    }).join("");
+  const histBlockedText = () => `${S.local ? "This browser isn't letting the page save anything (a private window or blocked site data), so progress tracking is off." : "Your access to this page doesn't allow saving your progress."} You can still practice as much as you like.`;
+  const histWhereText = () => inBrowser()
+    ? "It's saved only in this browser on this device, so nobody else can see it. Clearing your browser data removes it, and you can delete it in Progress at any time."
+    : "";
+  const openHistory = () => { S.hConfirm = null; S.hPage = S.lovePage = 0; show("history"); renderHistory(); };
+  // Settings → Data → Progress tracking: the same choice as on the Progress page, where it can be found again later.
+  function renderHistSet() {
+    const on = S.histOn === true, n = S.history.length;
+    document.querySelectorAll(".histsec").forEach((x) => (x.hidden = !S.histReady));
+    $("#histSetInfo").textContent = S.histBlocked ? histBlockedText()
+      : on ? "On. Each finished practice session is saved."
+      : "Off, so finished practice sessions aren't saved. Turn it on to see stats about your practice, like graphs, streaks and the words that need more work.";
+    $("#histSetWhere").hidden = S.histBlocked; $("#histSetWhere").textContent = histWhereText();
+    $("#histSetToggle").hidden = S.histBlocked; $("#histSetToggle").textContent = on ? "Turn off" : "Turn on";
+    $("#histSetAll").hidden = !n; showLoveTop(); $("#histSetAll").textContent = `See all ${n} →`;
   }
-  $("#histAll").onclick = () => { S.hConfirm = null; show("history"); renderHistory(); };
-  $("#histOff").onclick = async () => { if (await setHistory(false)) renderRecent(); };
+  $("#histSetToggle").onclick = async (e) => { e.target.disabled = true; if (await setHistory(S.histOn !== true)) histChanged(); e.target.disabled = false; };
+  $("#histSetAll").onclick = () => { closeSettings(); openHistory(); };
   $("#histBack").onclick = () => show("setup");
 
   function renderHistory() {
@@ -94,9 +84,11 @@
     $("#hEmpty").hidden = !!h.length; $("#hBody").hidden = !h.length; $("#hStats").hidden = !h.length;
     if (!h.length) {
       $("#hEmpty").innerHTML = S.histOn === true ? `<b>No finished practice sessions yet.</b><span>Finish a practice session and it shows up here.</span>`
-        : S.histBlocked ? `<b>Practice history isn't available.</b><span>${S.local ? "This browser isn't letting the page save it." : "Your access to this page doesn't allow saving it."}</span>`
-        : `<b>Data collection is off.</b><span>Finished sessions aren't saved.</span><span><button class="btn" id="hTurnOn">Turn on data collection</button></span>`;
-      const b = $("#hTurnOn"); if (b) b.onclick = async () => { b.disabled = true; if (await setHistory(true)) { renderRecent(); renderHistory(); } else b.disabled = false; };
+        : S.histBlocked ? `<b>Progress tracking isn't available.</b><span>${S.local ? "This browser isn't letting the page save it." : "Your access to this page doesn't allow saving it."}</span>`
+        : S.histOn === null ? `<b>Turn on progress tracking?</b><span>Each finished practice session would be saved so you can see fun stats about your practice, like graphs, streaks and the words that need more work.</span>
+          <span class="tactions" style="justify-content:center"><button class="btn primary" data-hist="on">Turn on progress tracking</button><button class="btn" data-hist="off">No thanks</button></span>`
+        : `<b>Progress tracking is off.</b><span>Finished sessions aren't saved.</span><span><button class="btn" data-hist="on">Turn on progress tracking</button></span>`;
+      $("#hEmpty").querySelectorAll("[data-hist]").forEach((b) => (b.onclick = async () => { b.disabled = true; if (await setHistory(b.dataset.hist === "on")) histChanged(); else b.disabled = false; }));
       return;
     }
     const days = new Set(h.map((t) => dayKey(new Date(t.finishedAt))));
@@ -121,9 +113,9 @@
   function drawHeat() {
     const counts = new Map();
     for (const t of S.history) { const k = dayKey(new Date(t.finishedAt)); counts.set(k, (counts.get(k) || 0) + 1); }
-    // Like GitHub's graph: squares stay one size and the graph shows as many weeks as fit (up to a year).
+    // Like GitHub's graph, with the squares kept one size: a wider card shows more weeks back (the leftover sliver is stretched).
     const c = 14, g = 3, left = 28, top = 16, scale = 1.1, avail = $("#heat").clientWidth;
-    const weeks = avail ? Math.max(8, Math.min(53, Math.floor((avail / scale - left) / (c + g)))) : 16;
+    const weeks = avail ? Math.max(8, Math.floor((avail / scale - left) / (c + g))) : 16;
     const end = new Date(); end.setHours(0, 0, 0, 0);
     const start = new Date(end); start.setDate(end.getDate() - end.getDay() - (weeks - 1) * 7);
     let cells = "", months = "", lastM = -1, lastX = -99;
@@ -132,14 +124,14 @@
       if (day > end) continue;
       const n = counts.get(dayKey(day)) || 0, lv = n === 0 ? 0 : n === 1 ? 1 : n === 2 ? 2 : n <= 4 ? 3 : 4;
       const x = left + wk * (c + g), y = top + dow * (c + g);
-      const label = `${day.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}: ${n} session${n === 1 ? "" : "s"}`;
+      const label = `${day.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}: ${plural(n, "session")}`;
       cells += `<rect class="h${lv}" x="${x}" y="${y}" width="${c}" height="${c}" rx="3" data-tip="${esc(label)}"></rect>`;
       if (dow === 0 && day.getMonth() !== lastM && wk < weeks - 1 && x - lastX >= 3 * (c + g)) { lastM = day.getMonth(); lastX = x; months += `<text class="ax" x="${x}" y="10">${day.toLocaleDateString(undefined, { month: "short" })}</text>`; }
     }
     const W = left + weeks * (c + g), H = top + 7 * (c + g);
     $("#heatTitle").textContent = `Practice sessions per day, last ${weeks} weeks`;
     const wd = [[1, "Mon"], [3, "Wed"], [5, "Fri"]].map(([i, l]) => `<text class="ax" x="0" y="${top + i * (c + g) + c - 3}">${l}</text>`).join("");
-    $("#heat").innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:${Math.round(W * scale)}px;max-width:100%;height:auto;display:block" role="img" aria-label="Practice sessions per day over the last ${weeks} weeks">${months}${wd}${cells}</svg>`;
+    $("#heat").innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Practice sessions per day over the last ${weeks} weeks">${months}${wd}${cells}</svg>`;
   }
   $("#heat").addEventListener("pointermove", (e) => { const t = e.target.closest("[data-tip]"); t ? showTip(t.dataset.tip, e.clientX, e.clientY) : hideTip(); });
   $("#heat").addEventListener("pointerleave", hideTip);
@@ -174,44 +166,99 @@
   // A word leaves the list after CLEAR_RUN sessions in a row where it was right on the first try; a miss resets the run,
   // and a word that comes back keeps its old miss count.
   const CLEAR_RUN = 3;
+  // A word a session saved, as it is in the sets now: the same id and written the same (ids repeat across sets, so the id
+  // alone could be another set's word). { w, s } or null when it's gone or changed.
+  const liveWord = (h) => { for (const s of S.sets) for (const w of s.words) if (w.id === h.id && jpForm(w) === h.jp) return { w, s }; return null; };
   function renderToughest() {
     const agg = new Map();
     // Oldest session first, so each word's run counts the sessions since its latest miss.
     const byTime = S.history.slice().sort((a, b) => String(a.finishedAt || "").localeCompare(String(b.finishedAt || "")));
-    const win = S.loveWin === "all" ? Infinity : +S.loveWin;
-    document.querySelectorAll("#loveWin [data-win]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.win === S.loveWin));
-    for (const [ti, t] of byTime.entries()) for (const w of t.words || []) {
+    perPage.set(S.loveWin);
+    for (const t of byTime) for (const w of t.words || []) {
       if (w.skip) continue; // left off the list on the results page
       const k = w.id + ":" + w.dir, a = agg.get(k) || { w, misses: 0, tests: 0, run: 0 };
       const miss = Math.max(0, (w.tries || 1) - 1);
-      // Misses count only inside the chosen window of recent sessions; the clearing run always looks at everything.
-      if (byTime.length - ti <= win) { a.misses += miss; a.tests++; }
-      a.run = miss ? 0 : a.run + 1; a.w = w; a.ever = (a.ever || 0) + miss; agg.set(k, a);
+      a.misses += miss; a.tests++; a.run = miss ? 0 : a.run + 1; a.w = w; agg.set(k, a);
     }
-    const top = [...agg.values()].filter((a) => a.misses && a.run < CLEAR_RUN).sort((a, b) => b.misses - a.misses || b.tests - a.tests).slice(0, 10);
-    // The panel stays while any word is still on the list, so the window can be widened again.
-    $("#hLovePanel").hidden = ![...agg.values()].some((a) => a.ever && a.run < CLEAR_RUN);
-    S.toughIds = top.map((a) => a.w.id);
-    const live = new Set(S.sets.flatMap((s) => s.words.map((w) => w.id)));
-    $("#hPractise").hidden = !S.toughIds.some((id) => live.has(id));
-    $("#hLove").innerHTML = top.map((a) => `<li><span class="tries">${a.misses}</span><div><div class="w">${esc(a.w.jp)}<small>${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</small></div><p>Missed ${a.misses} time${a.misses === 1 ? "" : "s"} across ${win >= byTime.length ? `all ${byTime.length} session${byTime.length === 1 ? "" : "s"}` : `the last ${win} sessions`}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`).join("") || `<li class="none"><p>No misses in the last ${win} sessions.</p></li>`;
+    const all = [...agg.values()].filter((a) => a.misses && a.run < CLEAR_RUN).sort((a, b) => b.misses - a.misses || b.tests - a.tests);
+    const per = S.loveWin === "all" ? all.length || 1 : +S.loveWin; // words to a page
+    const pages = Math.max(1, Math.ceil(all.length / per));
+    S.lovePage = Math.min(S.lovePage || 0, pages - 1);
+    const from = S.lovePage * per, top = all.slice(from, from + per);
+    $("#hLovePanel").hidden = !all.length;
+    $("#loveCount").textContent = shownOf(from, top.length, all.length, pages);
+    pager($("#lovePager"), S.lovePage, pages, (i) => keepInView($("#lovePager"), () => { S.lovePage = i; renderToughest(); }));
+    S.tough = top.map((a) => a.w);
+    const n = toughWords().length;
+    $("#hPractise").hidden = !n; $("#hPractise").textContent = n === 1 ? "Practice this word" : `Practice these ${n}`;
+    showLoveTop();
+    $("#hLove").innerHTML = top.map((a) => {
+      const jp = `<div class="jp">${jpRuby(liveWord(a.w)?.w || { kanji: a.w.jp })}</div>`, en = `<div class="en">${esc(a.w.en)}${a.w.dir === "je" ? " · JP→EN" : ""}</div>`;
+      return `<li><span class="tries">${a.misses}</span><div><div class="pair ${S.loveTop}">${S.loveTop === "en" ? en + jp : jp + en}</div><p>Missed ${plural(a.misses, "time")} across ${plural(a.tests, "session")}.${a.run ? ` <span class="toclear">${a.run} of ${CLEAR_RUN} first tries in a row to clear</span>` : ""}</p></div></li>`;
+    }).join("");
   }
-  S.loveWin = String(store.get("loveWin", "all"));
-  if (!["5", "10", "20", "50", "all"].includes(S.loveWin)) S.loveWin = "all";
-  $("#loveWin").onclick = (e) => { const b = e.target.closest("[data-win]"); if (!b) return; S.loveWin = b.dataset.win; store.set("loveWin", S.loveWin); renderToughest(); };
+  // Which language comes first on each hard word, so the list can be gone down as a self-test. Set on the list or
+  // in Settings → Data.
+  S.loveTop = store.get("loveTop", "jp") === "en" ? "en" : "jp";
+  function showLoveTop() { document.querySelectorAll("#loveTopSeg [data-top], #histSetTop [data-top]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.top === S.loveTop)); }
+  for (const id of ["#loveTopSeg", "#histSetTop"]) $(id).onclick = (e) => {
+    const b = e.target.closest("[data-top]"); if (!b) return;
+    S.loveTop = b.dataset.top; store.set("loveTop", S.loveTop); showLoveTop(); if (!$("#history").hidden) renderToughest();
+  };
+  S.loveWin = String(store.get("loveWin", "10"));
+  if (!["5", "10", "20", "50", "all"].includes(S.loveWin)) S.loveWin = "10";
+  const perPage = makeDropdown($("#loveWin"), "Words per page", [["5", "5 per page"], ["10", "10 per page"], ["20", "20 per page"], ["50", "50 per page"], ["all", "All"]],
+    (v) => keepInView($("#loveWin"), () => { S.loveWin = v; S.lovePage = 0; store.set("loveWin", v); renderToughest(); }));
+  // Every word on the list that's still in a set and can be asked.
+  function toughWords() {
+    const words = new Map();
+    for (const h of S.tough) { const l = liveWord(h); if (l && (l.w.en || "").trim() && (l.w.kana || l.w.kanji)) words.set(l.w, { ...l.w, set: setName(l.s) }); }
+    return [...words.values()];
+  }
   $("#hPractise").onclick = () => {
-    const ids = new Set(S.toughIds), words = [];
-    for (const s of S.sets) for (const w of s.words) if (ids.has(w.id) && (w.en || "").trim() && (w.kana || w.kanji)) words.push({ ...w, set: setName(s) });
+    const words = toughWords();
     if (!words.length) return;
     // These are whole words (verb forms never come back here), so Verb forms, which would have nothing to ask, gives way to Default.
     if (S.mode === "verb") { S.mode = "default"; saveSetup(); }
     startTest(words);
   };
 
+  // Page buttons under a list: ‹ 1 2 3 › with the current page marked, and … standing in for runs of pages when
+  // there are many. go(i) shows page i (counted from 0).
+  function pager(box, page, pages, go) {
+    box.hidden = pages < 2;
+    if (pages < 2) { box.innerHTML = ""; return; }
+    const keep = [...Array(pages).keys()].filter((i) => pages <= 7 || i === 0 || i === pages - 1 || Math.abs(i - page) <= 1 || (page < 3 && i < 4) || (page > pages - 4 && i > pages - 5));
+    let nums = "", last = -1;
+    for (const i of keep) {
+      if (i > last + 1) nums += `<span class="pg gap" aria-hidden="true">…</span>`;
+      nums += `<button type="button" class="pg" data-pg="${i}"${i === page ? ' aria-current="page"' : ""}>${i + 1}</button>`; last = i;
+    }
+    const arrow = (to, label, d) => `<button type="button" class="pg arrow" data-pg="${to}" aria-label="${label}"${to < 0 || to >= pages ? " disabled" : ""}><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+    box.innerHTML = arrow(page - 1, "Previous page", "M10 3 5 8l5 5") + nums + arrow(page + 1, "Next page", "M6 3l5 5-5 5");
+    box.onclick = (e) => { const b = e.target.closest("[data-pg]"); if (b && !b.disabled && +b.dataset.pg !== page) go(+b.dataset.pg); };
+  }
+  // A list changing length (another page, more to a page) keeps el, the control just used, where it was on screen.
+  function keepInView(el, change) {
+    const y = el.getBoundingClientRect().top;
+    change();
+    const d = el.getBoundingClientRect().top - y;
+    if (d) window.scrollBy({ top: d, behavior: "instant" });
+  }
+  // "11–20 of 26" beside the page buttons; nothing when everything fits on one page.
+  const shownOf = (from, n, total, pages) => pages < 2 ? "" : `${n > 1 ? `${from + 1}–${from + n}` : from + 1} of ${total}`;
+  // Practice sessions, newest first, as many to a page as picked.
+  S.sessPer = String(store.get("sessPer", "20"));
+  if (!["5", "10", "20", "50", "all"].includes(S.sessPer)) S.sessPer = "20";
+  const sessPer = makeDropdown($("#sessPer"), "Practice sessions per page", [["5", "5 per page"], ["10", "10 per page"], ["20", "20 per page"], ["50", "50 per page"], ["all", "All"]],
+    (v) => keepInView($("#sessPer"), () => { S.sessPer = v; S.hPage = 0; store.set("sessPer", v); renderTests(); }));
   function renderTests() {
-    const shown = S.history.slice(0, S.hShown || 20);
-    $("#hMore").hidden = shown.length >= S.history.length;
-    $("#hMore").textContent = `Show ${Math.min(20, S.history.length - shown.length)} more`;
+    const n = S.history.length, per = S.sessPer === "all" ? n || 1 : +S.sessPer, pages = Math.max(1, Math.ceil(n / per));
+    S.hPage = Math.min(S.hPage || 0, pages - 1); // a delete can empty the last page
+    const shown = S.history.slice(S.hPage * per, (S.hPage + 1) * per);
+    $("#hCount").textContent = shownOf(S.hPage * per, shown.length, n, pages);
+    sessPer.set(S.sessPer); $("#sessPer").hidden = n <= 5; // nothing to choose while it all fits on the smallest page
+    pager($("#hPager"), S.hPage, pages, (i) => keepInView($("#hPager"), () => { S.hPage = i; renderTests(); }));
     $("#hList").innerHTML = shown.map((t) => {
       const { n, first } = firstTry(t), del = S.hConfirm === t.id;
       const ws = (t.words || []).slice().sort((a, b) => b.tries - a.tries);
@@ -222,7 +269,6 @@
       </details></li>`;
     }).join("");
   }
-  $("#hMore").onclick = () => { S.hShown = (S.hShown || 20) + 20; renderTests(); };
   $("#hList").addEventListener("toggle", (e) => { const d = e.target; if (d.dataset && d.dataset.id) d.open ? S.hOpen.add(d.dataset.id) : S.hOpen.delete(d.dataset.id); }, true);
   $("#hList").addEventListener("click", async (e) => {
     const b = e.target.closest("button"); if (!b) return;
@@ -238,7 +284,7 @@
     const w = $("#delAllWrap");
     if (state === "confirm") w.innerHTML = `<span class="small">Delete all ${S.history.length} practice sessions and stop saving new ones? This can't be undone.</span><button class="btn danger" id="delAllYes">Delete all and turn off</button><button class="btn" id="delAllNo">Keep</button>`;
     else if (state) w.innerHTML = `<span class="small muted">${esc(state)}</span>`;
-    else w.innerHTML = `<button class="ghost small" id="delAll">Delete all history and turn off data collection</button>`;
+    else w.innerHTML = `<button class="ghost small" id="delAll">Delete and turn off progress tracking</button>`;
   }
   let deletingAll = false;
   $("#delAllWrap").addEventListener("click", async (e) => {

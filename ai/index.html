@@ -67,7 +67,7 @@ dd { margin: 0 0 0 1.2em; }
     <li>It shows you tables of how it will split the words into sets. Ask for any changes, and once they look right, it gives you a file ending in <code>.json</code>.</li>
     <li>Import the file. You see a preview before anything is saved.
       <span class="act js-only"><button class="btn primary" type="button" id="aiImportBtn">Import a file…</button></span>
-      <span class="act no-js">In Japanese Vocab Practice, open Settings (the gear) and choose <b>Import a file…</b></span></li>
+      <span class="act no-js">In Japanese Vocab Practice, open Settings (the gear), then Data, and choose <b>Import a file…</b></span></li>
   </ol>
   <input type="file" id="aiImportFile" accept=".json,application/json" hidden>
   <p class="muted small" id="aiImportMsg" role="status" hidden></p>
@@ -120,7 +120,7 @@ dd { margin: 0 0 0 1.2em; }
   <dt><code>kanji</code></dt><dd>Optional. Kanji lists, one per unit, for the site's "Kanji learned up to" setting. Add them only when the material lists the kanji a unit teaches.</dd>
   <dt><code>collections</code></dt><dd>Optional. <code>{ "order": ["Collection name", …] }</code>: the order the collections are studied in.</dd>
 </dl>
-<p>Leave out <code>courses</code> and <code>exportedAt</code>: a file made for import doesn't need them.</p>
+<p>Leave out <code>views</code>, <code>courses</code> and <code>exportedAt</code>: a file made for import doesn't need them.</p>
 
 <h3>Each set</h3>
 <dl>

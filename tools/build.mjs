@@ -3,6 +3,7 @@
 //                                 (js/templates.js and js/samples.js are data/*.json as scripts: a page opened straight
 //                                 from disk may load scripts, though not fetch files, so the site works offline that way too)
 //   ai/, privacy/                 the site's side pages, from src/side-pages/ (with css/theme.css, js/pages.js and js/ai.js)
+//   study-tools/                  the Study tools page, from src/study-tools/ (with js/tools.js)
 //   build/claude-ai.html          the claude.ai artifact (the owner's own copy, using claude.ai's database and Claude)
 // src/page/page.html is the page's markup. A line that is only an include marker is replaced by that file from src/, as is:
 //   /*#include page/styles.css*/   //#include page/core.js
@@ -12,17 +13,17 @@
 //   <!--#if public-->  //#if claude  /*#if public*/   …   #else   …   #endif
 // Marker lines themselves never reach the output.
 // `node tools/build.mjs --check` fails if the committed public files are out of date.
-// `node tools/build.mjs --beta` builds the beta site instead (see .github/workflows/pages.yml); it's never committed.
+// `node tools/build.mjs --beta` (or `--dev`) builds that test site instead (see .github/workflows/pages.yml); it's never committed.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const at = (p) => join(root, p);
 const check = process.argv.includes("--check");
-const beta = process.argv.includes("--beta");
+const preview = ["beta", "dev"].find((name) => process.argv.includes(`--${name}`)); // the test site being built, if any
 
 const INCLUDE = /^\s*(?:<!--|\/\/|\/\*)\s*#include\s+(\S+?)\s*(?:-->|\*\/)?\s*$/;
 export function expand(file, seen = []) {
@@ -77,29 +78,35 @@ const noRegex = { name: "no-re2js", setup(b) {
   b.onResolve({ filter: /^re2js$/ }, () => ({ path: "re2js", namespace: "stub" }));
   b.onLoad({ filter: /.*/, namespace: "stub" }, () => ({ contents: 'export const RE2JS = { compile() { throw new Error("regex pipelines are not included"); } };' }));
 } };
+// The Extra tools are modules of their own (src/study-tools/), and may #include a piece of the page's code like the
+// page's scripts do, so what both need (practice/shuffle.js) is still written once.
+const includes = { name: "includes", setup(b) {
+  b.onLoad({ filter: /[\\/]src[\\/]study-tools[\\/][^\\/]+\.js$/ }, (a) => ({ contents: preprocess(expand(relative(root, a.path)), "public"), loader: "js" }));
+} };
 const LICENSES = "Firebase JS SDK (Apache-2.0), Q-Card code (AGPL-3.0)";
-async function bundle(imports) {
+async function bundle(imports, licenses = LICENSES) {
   const r = await esbuild.build({
     stdin: { contents: imports.map((f) => `import "./${f}";`).join("\n"), resolveDir: root, sourcefile: "entry.js" },
-    bundle: true, format: "iife", minify: true, target: "es2020", write: false, legalComments: "eof", plugins: [noRegex],
-    banner: { js: `/* Q-Card, built by tools/build.mjs from src/ (edit those, not this file). Includes ${LICENSES}. */` },
+    bundle: true, format: "iife", minify: true, target: "es2020", write: false, legalComments: "eof", plugins: [noRegex, includes],
+    banner: { js: `/* Q-Card, built by tools/build.mjs from src/ (edit those, not this file). Includes ${licenses}. */` },
   });
   return r.outputFiles[0].text;
 }
 
-// The beta site lives on the same site as the live one (/Q-Card/beta/), so it gets its own browser storage keys
-// ("jpq-beta:…", "qcard-beta:…"): trying things there never touches the live site's guest data or settings.
-// Signing in with Google is shared, so beta uses the same account and its data.
-function toBeta(text, file) {
-  const out = text.replaceAll('"jpq:', '"jpq-beta:').replaceAll('"qcard:', '"qcard-beta:');
+// The test sites live on the same site as the live one (/Q-Card/beta/, /Q-Card/dev/), so each gets its own browser storage
+// keys ("jpq-beta:…", "qcard-dev:…"): trying things there never touches the live site's guest data or settings.
+// Signing in with Google is shared, so they use the same account and its data.
+function toPreview(text, file) {
+  const out = text.replaceAll('"jpq:', `"jpq-${preview}:`).replaceAll('"qcard:', `"qcard-${preview}:`);
   if (file !== "index.html") return out;
-  const tag = '<span style="font-size:.45em; vertical-align:middle; padding:2px 8px; border-radius:99px; background:var(--ink); color:var(--surface)">Beta</span>';
-  const page = out.replaceAll("<title>Japanese Vocab Practice</title>", "<title>Japanese Vocab Practice (beta)</title>")
+  const label = preview[0].toUpperCase() + preview.slice(1);
+  const tag = `<span style="font-size:.45em; vertical-align:middle; padding:2px 8px; border-radius:99px; background:var(--ink); color:var(--surface)">${label}</span>`;
+  const page = out.replaceAll("<title>Japanese Vocab Practice</title>", `<title>Japanese Vocab Practice (${preview})</title>`)
     .replace("<h1>Japanese Vocab Practice</h1>", `<h1>Japanese Vocab Practice ${tag}</h1>`);
-  if (!page.includes(tag)) throw new Error("beta: couldn't find the page title to tag");
+  if (!page.includes(tag)) throw new Error(`${preview}: couldn't find the page title to tag`);
   return page;
 }
-const variant = (text, file) => (beta ? toBeta(text, file) : text);
+const variant = (text, file) => (preview ? toPreview(text, file) : text);
 // data/<name>.json as js/<name>.js, which leaves it in window.QCardData[name] for the page to pick up (see dataFile in src/page/data-files.js).
 const dataScript = (name) => ({
   [`js/${name}.js`]: `// Made by tools/build.mjs from data/${name}.json; edit that file instead.\n` +
@@ -108,9 +115,24 @@ const dataScript = (name) => ({
 
 const made = (f) => `Made by tools/build.mjs from src/${f}; edit that file instead.`;
 const script = (f) => variant(`// ${made(f)}\n${preprocess(expand(`src/${f}`), "public")}`, `js/${f.split("/").at(-1)}`);
-const sidePage = (f, load) => variant(csp(preprocess(expand(`src/${f}`), "public"), load).replace("<head>\n", `<head>\n<!-- ${made(f)} -->\n`), f);
+const sidePage = (f, load) => variant(csp(uniqueIds(preprocess(expand(`src/${f}`), "public"), f), load).replace("<head>\n", `<head>\n<!-- ${made(f)} -->\n`), f);
+// An id names one element: a page's markup (outside its scripts) may use each only once. Two elements sharing one
+// (the writing tools and the Extra tools part were both "tools", 2026-11) leave the code holding the wrong one.
+function uniqueIds(html, name) {
+  const ids = [...html.replace(/<script[\s\S]*?<\/script>/g, "").matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+  const twice = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))];
+  if (twice.length) throw new Error(`${name}: more than one element has the id ${twice.join(", ")}`);
+  return html;
+}
 const src = expand("src/page/page.html");
-const page = variant(preprocess(src, "public"), "index.html");
+// The privacy policy notice (src/account/policy-notice.js) compares with the policy's own "Last updated" line.
+function policyDate(html) {
+  const m = readFileSync(at("src/side-pages/privacy.html"), "utf8").match(/Last updated: ([A-Z][a-z]+ \d{1,2}, \d{4})\./), d = m && new Date(m[1] + " 12:00 UTC");
+  if (!d || isNaN(d) || !html.includes('"%PRIVACY_LAST_UPDATED%"')) throw new Error("privacy notice: couldn't find the policy's Last updated date, or where it goes");
+  return html.replace('"%PRIVACY_LAST_UPDATED%"', JSON.stringify(d.toISOString().slice(0, 10)));
+}
+const page = variant(policyDate(uniqueIds(preprocess(src, "public"), "index.html")), "index.html");
+const claudePage = uniqueIds(preprocess(src, "claude"), "build/claude-ai.html");
 const files = {
   "index.html": csp(page, { firebase: true, images: "'self' data: blob:" }),
   "js/platform.js": variant(await bundle(["src/account/firebase.js", ...(existsSync(at("src/checking/checker.js")) ? ["src/checking/checker.js"] : [])]), "js/platform.js"),
@@ -123,9 +145,12 @@ const files = {
   "js/ai.js": script("side-pages/ai.js"),
   "ai/index.html": sidePage("side-pages/ai.html", { firebase: true }),
   "privacy/index.html": sidePage("side-pages/privacy.html"),
+  // Study tools (study-tools/): one card per tool, each tool a module in src/study-tools/.
+  "js/tools.js": variant(await bundle(["src/study-tools/tools.js"], "Q-Card code (AGPL-3.0)"), "js/tools.js"),
+  "study-tools/index.html": sidePage("study-tools/tools.html"),
 };
 
-if (check && beta) throw new Error("--check is for the committed files; the beta build is never committed");
+if (check && preview) throw new Error(`--check is for the committed files; the ${preview} build is never committed`);
 if (check) {
   const stale = Object.entries(files).filter(([p, t]) => !existsSync(at(p)) || readFileSync(at(p), "utf8") !== t).map(([p]) => p);
   if (stale.length) { console.error(`Out of date: ${stale.join(", ")}. Run npm run build and commit the result.`); process.exit(1); }
@@ -133,6 +158,6 @@ if (check) {
 } else {
   for (const [p, t] of Object.entries(files)) { mkdirSync(dirname(at(p)), { recursive: true }); writeFileSync(at(p), t); }
   mkdirSync(at("build"), { recursive: true });
-  writeFileSync(at("build/claude-ai.html"), preprocess(src, "claude"));
+  writeFileSync(at("build/claude-ai.html"), claudePage);
   console.log(`Wrote ${Object.keys(files).join(", ")} and build/claude-ai.html`);
 }

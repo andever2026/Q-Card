@@ -96,7 +96,7 @@
     }
     Q.cur = Q.queue.shift(); Q.answered = false; Q.busy = false;
     const { w, dir } = Q.cur;
-    $("#feedback").hidden = true; $("#tools").hidden = false; $("#checkErr").hidden = true;
+    $("#feedback").hidden = true; $("#writeTools").hidden = false; $("#checkErr").hidden = true;
     //#if public
     $("#selfCheck").hidden = true;
     //#endif
@@ -117,5 +117,8 @@
     $("#meterFill").style.width = (Q.done.size / Q.total) * 100 + "%";
     syncCheck();
     saveResume();
+    //#if public
+    showRound();
+    //#endif
     requestAnimationFrame(() => pads.forEach((p) => p.resize()));
   }

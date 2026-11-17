@@ -4,20 +4,22 @@
   // visitor to do it, and Next does it for them (`act`); a step whose part isn't on the page is skipped (after `grace` ms,
   // for a part that may still be loading).
   const vis = (el) => !!el && el.getClientRects().length > 0;
-  const firstVis = (...sels) => sels.map((s) => $(s)).find(vis) || null;
+  // A part slid off the side (the closed menu on a smaller screen) doesn't count: the next choice is ringed instead.
+  const onScreen = (el) => { if (!vis(el)) return false; const r = el.getBoundingClientRect(); return r.right > 0 && r.left < innerWidth; };
+  const firstVis = (...sels) => sels.map((s) => $(s)).find(onScreen) || null;
   const TOUR = [
     { title: "Welcome to the tour", next: "Start the tour",
-      text: "In about 5 minutes you'll practice a word with the sample sets and see where everything is. You're using the page as a guest for now. Leave any time with the ✕." },
+      get text() { return `In about 5 minutes you'll practice a word${account ? "" : " with the sample sets"} and see where everything is.${account ? "" : " You're using the page as a guest for now."} Leave any time with the ✕.`; } },
     { view: "setup", at: () => $("#setPicker [data-set]:not(:disabled)"), title: "Pick a set", grace: 2000,
       text: "These are your vocab sets, grouped Collection › Unit › Set. The sample sets are here to try. Tap a set to pick it (you can pick more than one).",
       done: () => S.selected.size > 0, act: () => $("#setPicker [data-set]:not(:disabled)")?.click() },
     { view: "setup", at: () => firstVis("#pickBar"), title: "Units and filters",
-      text: "These chips show or hide whole units. When sets have tags, a Filter row narrows them down too." },
+      text: "Each row is a collection, and its chips show or hide whole units. When sets have tags, a Filter row narrows them down too." },
     { view: "setup", at: () => $("#dirSeg"), title: "Direction",
       text: "English → 日本語 shows the English and you write the Japanese. 日本語 → English is the other way round, and Both mixes them. We'll use English → 日本語.",
       leave: () => { if (S.dir !== "ej") $("#dir-ej").click(); } },
     { view: "setup", at: () => $("#modeSeg"), title: "Modes",
-      text: "Modes change what you're asked: Kana only, Force kanji (the kanji you've learned), Katakana only, or Verb forms (five forms of each verb). Default takes any correct mix of kana and kanji.",
+      text: "Modes change what you're asked: Force kanji (the kanji you've learned), Kana only, Katakana only, or Verb forms (five forms of each verb). Default takes any correct mix of kana and kanji.",
       leave: () => { if (S.mode !== "default") $("#mode-default").click(); } },
     { view: "setup", at: () => firstVis(".uptorow"), title: "Kanji learned up to",
       text: "Tell the page how far you've got with kanji. It goes by your kanji lists to decide what Force kanji asks for and how 日本語 → English questions are shown." },
@@ -29,13 +31,13 @@
       text: "Write here with a finger, a stylus or the mouse. Neatness and stroke order don't matter." },
     { view: "quiz", at: () => $("#furiPad"), title: "Furigana",
       text: "Wrote kanji? You can add its reading in this thin strip above it. It's optional." },
-    { view: "quiz", at: () => $("#tools .itools"), title: "Writing tools",
+    { view: "quiz", at: () => $("#writeTools .itools"), title: "Writing tools",
       text: "Undo takes back the last stroke (Ctrl+Z works too), the bin clears everything, and the switch turns the pen into an eraser that removes whole strokes." },
-    { view: "quiz", id: "write", at: () => [$("#quiz .sheet"), $("#tools")], title: "Your turn", next: "Check",
+    { view: "quiz", id: "write", at: () => [$("#quiz .sheet"), $("#writeTools")], title: "Your turn", next: "Check",
       text: "Write the answer, then tap Check. Not sure? Write your best guess: you'll see the answer either way.",
       done: () => tour.checked && !vis($("#checking")), ready: () => !$("#checkBtn").disabled, act: () => $("#checkBtn").click(), skip: "quit" },
     { view: "quiz", at: () => firstVis("#selfCheck", "#feedback", "#quiz .prompt"), title: "The result",
-      text: "A right answer moves on to the next word by itself. Otherwise you see the answer and a scratch pad to practice it. When the checker can't read your writing you mark it yourself, and if it misreads a right answer you can count it as correct." },
+      text: "A right answer moves on to the next word by itself. Otherwise you see the answer and a scratch pad to practice it. When the checker can't read your writing you mark it yourself, and if it misreads a right answer you can mark it as correct." },
     { view: "quiz", at: () => firstVis("#scratchPad"), title: "Scratch pad",
       text: "Practice the right answer here as many times as you like. It isn't marked." },
     { view: "quiz", id: "quit", at: () => $("#quitBtn"), title: "Stop any time",
@@ -43,22 +45,23 @@
       done: () => vis($("#setup")), act: () => $("#quitBtn").click() },
     { view: "setup", at: () => firstVis("#resumeBtn"), title: "Pick up where you left off",
       text: "Because you left midway, Resume last practice carries on where you stopped, even with what you'd written. Start practice begins a new one." },
-    { view: "setup", at: () => firstVis("#histPanel"), title: "Your practice",
-      text: "Your recent practice shows up here. Turn on history to see your progress and which words need the most love." },
-    { view: "setup", at: () => $("#toTable"), title: "The vocab table", text: "Tap vocab table to see the words in every set.",
-      done: () => vis($("#table")), act: () => $("#toTable").click() },
+    { view: "setup", at: () => firstVis('#sideNav [data-go="table"]', "#menuBtn"), title: "Vocabulary",
+      get text() { return `${onScreen($('#sideNav [data-go="table"]')) ? "Vocabulary in the menu" : "☰ opens the menu. Vocabulary there"} shows the words in every set, and lets you change them.`; },
+      done: () => vis($("#table")), act: () => go("table") },
     { view: "table", at: () => firstVis("#setTables"), title: "Your sets",
       text: "Open a set to see its words. You can edit them, and the set's details and tags." },
     { view: "table", at: () => firstVis("#newSetForm"), title: "Add your own sets",
       text: "Give a new set its collection (a textbook or course), its unit (like Ch. 3 or Week 1) and a name, then type in the words. You can also import a file from Settings." },
-    { view: "table", at: () => firstVis("#kanjiLists")?.closest(".panel"), title: "Kanji lists",
+    { view: "table", at: () => firstVis("#kanjiLists")?.closest(".panel"), title: "Kanji by unit",
       text: "One list per unit with the kanji it teaches. Kanji learned up to counts these." },
-    { view: "table", at: () => $("#backBtn"), title: "Back to practice", text: "Tap ← Back to practice.",
+    // Beside the sidebar of a big screen there's no ← Back: Practice in the sidebar goes back.
+    { view: "table", at: () => firstVis("#backBtn", '#sideNav [data-go="setup"]'), title: "Back to practice",
+      get text() { return vis($("#backBtn")) ? "Tap ← Back to practice." : "Tap Practice in the menu on the left to go back. Progress and Extra tools are in the menu too."; },
       done: () => vis($("#setup")), act: () => $("#backBtn").click() },
-    { view: "setup", at: () => $("#settingsBtn"), title: "Settings",
-      text: "The gear opens Settings: colours, light or dark, your account, export / import, and deleting your data." },
+    { view: "setup", at: () => [$("#acctBtn"), $("#settingsBtn")], title: "Settings and your account",
+      get text() { return `${isWide() ? "" : "☰ opens the menu: Vocabulary, Progress and Extra tools. "}${account ? "Your name opens your account menu." : "Guest is where you sign in."} Beside it, the gear opens Settings: colours, light or dark, your account, export / import, and deleting your data.`; } },
     { title: "That's the tour!", end: true,
-      text: "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and history on all your devices." },
+      get text() { return account ? "Your sets and progress are saved to your account, on all your devices." : "You're a guest right now, so everything stays in this browser. Sign in with Google to keep your sets and progress on all your devices."; } },
   ];
   const tour = { i: -1, on: false, checked: false, doneAtStart: false, since: 0, frame: 0, card: null, spot: null };
   const tourEls = (st) => { const a = st?.at?.(); return (Array.isArray(a) ? a : [a]).filter(vis); };
@@ -104,8 +107,8 @@
   function renderTourCard() {
     const st = TOUR[tour.i], n = TOUR.length;
     const back = backIndex() >= 0 ? `<button class="ghost" type="button" data-tour="back">Back</button>` : "";
-    const btns = st.end
-      ? `<button class="btn" type="button" data-tour="close">Keep going as a guest</button><button class="btn primary" type="button" data-tour="signin">Sign in with Google</button>`
+    const btns = st.end && account ? `<button class="btn primary" type="button" data-tour="close">Done</button>`
+      : st.end ? `<button class="btn" type="button" data-tour="close">Keep going as a guest</button><button class="btn primary" type="button" data-tour="signin">Sign in with Google</button>`
       : `${st.skip ? `<button class="link" type="button" data-tour="skip">Skip this</button>` : ""}${back}<button class="btn primary" type="button" data-tour="next">${st.next || "Next"}</button>`;
     tour.card.innerHTML = `<div class="tourhead"><span class="muted small">${tour.i + 1} of ${n}</span>
         <button class="dlgx" type="button" data-tour="close" aria-label="End the tour" title="End the tour"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18"/></svg></button></div>
@@ -160,3 +163,5 @@
   }
   document.addEventListener("keydown", (e) => { if (tour.on && e.key === "Escape" && !document.querySelector("dialog[open]")) endTour(); });
   $("#tourBtn").onclick = () => { $("#guestBtn").click(); startTour(); };
+  // Admin (developers): the same tour from Settings, as whoever is signed in. Practice first, where it starts.
+  $("#devTour").onclick = () => { go("setup"); startTour(); };

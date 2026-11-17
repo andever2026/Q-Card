@@ -3,13 +3,15 @@
 * { box-sizing: border-box; }
 body {
   background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.55;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 20px 48px;
+  padding-left: calc(var(--sidew) + max(16px, env(safe-area-inset-left, 0px))); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: calc(var(--side) * var(--topbar) + 20px) 48px;
 }
-.wrap { max-width: 720px; width: 100%; margin: 0 auto; display: grid; gap: 18px; }
-body > .wrap { max-width: 1000px; }
-body > .wrap > header, body > .wrap > .banner { width: 100%; max-width: 720px; margin-inline: auto; }
-#quiz { max-width: 1000px; }
+/* The scrollbar's room is kept on short pages too (Settings), so every page's column sits at the same place and width. */
+html { scrollbar-gutter: stable; }
+.wrap { max-width: var(--pagew); width: 100%; margin: 0 auto; display: grid; gap: 18px; }
+body > .wrap { max-width: var(--practicew); }
+body > .wrap > header, body > .wrap > .banner { width: 100%; max-width: var(--pagew); margin-inline: auto; }
+#quiz { max-width: var(--practicew); }
 h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 700; }
 h1 { font-size: 1.5rem; letter-spacing: .01em; }
 h2 { font-size: 1.15rem; }
@@ -34,14 +36,92 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .head .jp { font-family: var(--font-jp); font-size: 1rem; color: var(--muted); }
 .iconbtn { border: none; background: none; color: var(--muted); padding: 6px; border-radius: 8px; display: inline-flex; align-self: center; margin-left: auto; }
 .iconbtn:hover { color: var(--ink); background: var(--sunk); }
-#settings { border: none; border-radius: 14px; padding: 22px 24px 24px; width: min(32rem, calc(100vw - 32px)); background: var(--surface); color: var(--ink); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
-#settings::backdrop { background: rgba(17, 20, 26, .5); }
-.settings { display: grid; gap: 18px; }
-.settings .sethead { display: flex; justify-content: space-between; align-items: center; }
-.settings .sethead .ghost { padding: 6px 12px; margin-right: -10px; } /* a ✕ wide enough to tap, in the same place */
-.settings section { display: grid; gap: 8px; }
-.settings p { margin: 0; overflow-wrap: anywhere; } /* a long email address wraps instead of widening the pop-up */
-.settings .setrow { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+/* The menu (page/nav.js). On a smaller screen the header is a top bar, ☰ · title · gear · account, and ☰ slides the menu
+   in from the left over the page. From 1000px wide (the same width as in nav.js) the title has a bar across the top, the
+   gear and account at its right end, and the menu is a sidebar of the pages down the left under it; ☰ shrinks it to icons. On Settings its tabs
+   take the sidebar and ☰ brings the menu in over the page, as on a smaller screen (html.drawer). */
+#menuBtn { margin-left: -6px; }
+.sidenav { display: grid; gap: 2px; align-content: start; }
+.sidenav > :not(.foot), .side .setnav button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--ink); font-weight: 500; text-align: left; text-decoration: none; }
+.sidenav > :not(.foot):hover, .side .setnav button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.sidenav svg { flex: none; color: var(--muted); }
+.sidenav > [aria-current="page"] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
+.sidenav > [aria-current="page"] svg { color: inherit; }
+.sideshade { display: none; }
+/* The top bar's right end: the gear, and the account (a guest, or the signed-in person and their menu). */
+.topr { display: flex; align-items: center; align-self: center; gap: 8px; margin-left: auto; }
+.topr .iconbtn { margin: 0; }
+.acct { position: relative; }
+.acctbtn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 3px 10px 3px 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: .9rem; font-weight: 500; }
+.acctbtn:hover, .acctbtn[aria-expanded="true"] { background: var(--sunk); }
+.acctbtn .pfp { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--ai-soft); color: var(--ai); overflow: hidden; }
+.acctbtn .pfp svg { margin-top: 5px; width: 22px; height: 22px; }
+.acctname { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acctbtn .chev { color: var(--muted); }
+.acctlist { position: absolute; right: 0; top: calc(100% + 6px); z-index: 45; min-width: 230px; max-width: min(300px, calc(100vw - 32px)); padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / .14); }
+.acctlist p { margin: 0; padding: 6px 10px 8px; overflow-wrap: anywhere; }
+.acctlist p + button { border-top: 1px solid var(--line); border-top-left-radius: 0; border-top-right-radius: 0; margin-top: 2px; padding-top: 10px; }
+.acctlist button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 6px; background: none; color: var(--ink); font-size: .9rem; text-align: left; }
+.acctlist button:hover, .acctlist button:focus-visible { background: var(--sunk); outline: none; }
+.acctlist button svg { flex: none; color: var(--muted); }
+.acctlist button.danger, .acctlist button.danger svg { color: var(--shu); }
+.drawer .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--sunk); border-right: 1px solid var(--line);
+  box-shadow: 0 0 28px rgba(0, 0, 0, .22); clip-path: inset(0 -40px 0 0); /* a shadow on the right side only */
+  padding: max(18px, env(safe-area-inset-top, 0px)) 12px 18px max(12px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
+.drawer .side.open .sidenav { transform: none; visibility: visible; transition: transform .2s ease; }
+.drawer .sideshade { display: block; position: fixed; z-index: 39; inset: 0; background: rgba(17, 20, 26, .4); opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
+.drawer .side.open .sideshade { opacity: 1; visibility: visible; transition: opacity .2s; }
+@media not all and (min-width: 1000px) { .sidenav > :not(.foot) { padding-block: 11px; } }
+@media (max-width: 480px) { .side { flex-wrap: nowrap; gap: 8px; } .side h1 { font-size: 1.2rem; min-width: 0; } .acctname, .acctbtn .chev { display: none; } .acctbtn { padding-right: 3px; } }
+@media (min-width: 1000px) {
+  :root:has(> body:not(.writing)) { --side: 1; scroll-padding-top: calc(var(--topbar) + 12px); } /* the widths follow, theme/theme.css */
+  body:not(.writing) > .wrap > .side { position: fixed; z-index: 10; inset: var(--topbar) auto 0 0; width: var(--sidew); max-width: none; margin: 0; overflow-y: auto;
+    flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 2px; padding: 14px 12px 14px max(12px, env(safe-area-inset-left, 0px)); background: var(--sunk); border-right: 1px solid var(--line); }
+  .side h1 { position: fixed; inset: 0 0 auto; height: var(--topbar); display: flex; align-items: center; gap: 8px; padding: 0 22px 0 62px;
+    font-size: 1.2rem; background: var(--sunk); border-bottom: 1px solid var(--line); }
+  #menuBtn { position: fixed; z-index: 1; top: calc((var(--topbar) - 34px) / 2); left: 15px; margin: 0; } /* in the bar, over the sidebar's icons */
+  .topr { position: fixed; z-index: 1; top: 0; right: max(16px, env(safe-area-inset-right, 0px)); height: var(--topbar); }
+  /* ☰ shrinks the sidebar to its icons; the names stay for screen readers, and pointing at an icon shows its name. */
+  :root.sidemini:not(.drawer) { --sidebar: 64px; }
+  /* The names fold to nothing but keep their line, so the icons stay exactly where they are in the full sidebar. */
+  .sidemini:not(.drawer) .sidenav span { width: 0; overflow: hidden; white-space: nowrap; opacity: 0; }
+  .sidemini:not(.drawer) .sidenav > * { gap: 0; } /* so the highlight is a square around the icon */
+  /* On Settings: its tabs fill the sidebar, and the menu comes in over the page under the title's bar. */
+  .drawer .sidenav, .drawer .sideshade { top: var(--topbar); }
+  .drawer .sidenav { width: var(--sidebar); padding: 14px 12px; }
+  .side .setnav { padding: 0; }
+  .side .setnav h2 { padding: 4px 10px 12px; }
+  .setpage:not(:has(> .setnav)) { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .setpage:not(:has(> .setnav)) .setbody { border-left: none; }
+  /* The sidebar goes everywhere these went back from. */
+  #history > .qbar, #table > .qbar, #settings > .qbar { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .sidenav, .sideshade { transition: none !important; } }
+/* Settings: a page of its own, tabs down the left and the picked tab's part beside them. */
+.setpage { grid-template-columns: 11.5rem minmax(0, 1fr); gap: 0; padding: 0; min-height: 24rem; }
+.setnav { display: grid; gap: 2px; align-content: start; padding: 18px 10px; }
+.setnav h2 { padding: 0 10px 10px; }
+.setnav button { border: none; background: none; text-align: left; padding: 8px 10px; border-radius: 8px; }
+.setnav button:hover { background: var(--sunk); }
+.setnav button[aria-current="page"] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
+.setbody { border-left: 1px solid var(--line); padding: 18px 22px 24px; min-width: 0; }
+.setpane { display: grid; gap: 18px; }
+.setpane:not(.on) { display: none; }
+.setpane section { display: grid; gap: 8px; }
+.setpane section + section { border-top: 1px solid var(--line); padding-top: 18px; }
+.nickform { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.nickform input { width: 16rem; max-width: 100%; font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.setpane p { overflow-wrap: anywhere; } /* a long email address wraps instead of widening the page */
+.setpane .setrow { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; }
+.setpane .setrow h3 { min-width: 10rem; } /* the controls stay beside their names however wide the page is */
+/* On a phone the tabs are a list, and picking one opens it in the list's place. */
+@media (max-width: 640px) {
+  .setpage { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .setpage.intab .setnav, .setpage:not(.intab) .setbody { display: none; }
+  .setbody { border-left: none; padding: 18px; }
+  .setnav button { padding: 12px 10px; display: flex; justify-content: space-between; }
+  .setnav button::after { content: "›"; color: var(--muted); }
+}
 @media (max-width: 480px) { #themePick button { padding-inline: 10px; } } /* Match device, Light and Dark stay on one line on a small phone */
 .palpick { display: inline-flex; gap: 6px; }
 .palpick button { border: 2px solid transparent; background: none; border-radius: 50%; padding: 3px; display: inline-flex; }
@@ -53,11 +133,39 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .qtip:hover, .qtip:focus-visible, .qtip.open { color: var(--ink); }
 .qtipbody { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(250px, 60vw); background: var(--ink); color: var(--surface); padding: 6px 9px; border-radius: 6px; font-size: .82rem; line-height: 1.4; z-index: 2; }
 .qtip:hover .qtipbody, .qtip:focus-visible .qtipbody, .qtip.open .qtipbody { display: block; }
-/* On a phone the tip opens above the whole row from its left edge, so the pop-up's right side doesn't cut it off. */
-@media (max-width: 480px) { .delrow { position: relative; } .delrow .qtip { position: static; } .delrow .qtipbody { left: 0; transform: none; } }
+/* On a phone the tip opens above the whole row from its left edge, so the page's right side doesn't cut it off. */
+@media (max-width: 480px) { :is(.delrow, .tiph) { position: relative; } :is(.delrow, .tiph) .qtip { position: static; } :is(.delrow, .tiph) .qtipbody { left: 0; transform: none; } }
+/* a label with its (?) */
+.tiph { display: flex; align-items: center; gap: 6px; }
+.tiph > span { display: inline-flex; }
+.tiph .qtipbody { font-weight: 400; text-transform: none; letter-spacing: normal; }
+.bornpick { display: inline-flex; gap: 8px; }
+.bornrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* Extra tools (study-tools/): each tool is a card; printing shows only the sheet being printed. */
+.tool h2 { margin: 0; }
+.tool .sheet { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.tool .sheet svg { display: block; width: 100%; height: auto; }
+.tool .edge { fill: none; stroke: #c9ced8; stroke-dasharray: 3 3; stroke-width: .6; }
+#printSheet { display: none; }
+@media print {
+  :root:has(#tools:not([hidden])) body > .wrap > :not(#tools), #tools > :not(#printSheet), .notice { display: none !important; }
+  :root:has(#tools:not([hidden])) body { background: #fff; }
+  #tools { padding: 0; max-width: none; margin: 0; }
+  #printSheet { display: block; }
+  #printSheet svg { display: block; width: 11in; height: 8.5in; }
+  #printSheet .edge { display: none; }
+}
+@page { size: letter landscape; margin: 0; }
+/* The privacy policy notice (src/account/policy-notice.js): a small card in the corner until it's closed. */
+.notice { position: fixed; z-index: 30; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100vw - 32px));
+  display: flex; align-items: flex-start; gap: 8px; padding: 12px 10px 12px 14px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / .14); font-size: .88rem; line-height: 1.45; }
+.notice[hidden], body.writing .notice { display: none; }
+.notice p { margin: 0; flex: 1; }
+.notice button { padding: 0 6px; font-size: 1.1rem; line-height: 1.2; }
 .banner { border-radius: 8px; padding: 10px 14px; background: var(--shu-soft); color: var(--ink); font-size: .9rem; }
 /* Sign-in gate: only the title shows until the vocab database answers, so a signed-out visitor never sees the empty page. */
-body:not(.ready) section, body:not(.ready) #banner { display: none !important; }
+body:not(.ready) section, body:not(.ready) #banner, body:not(.ready) .topr, body:not(.ready) .sidenav, body:not(.ready) #menuBtn, body:not(.ready) .foot { display: none !important; }
 body.ready #gate { display: none; }
 .gate { margin-top: 10vh; text-align: center; color: var(--muted); }
 .gate b { display: block; color: var(--ink); font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
@@ -133,16 +241,9 @@ body.ready #gate { display: none; }
   .mode:not([aria-pressed="true"]) span { display: none; }
   #setup .sel { padding-block: 6px; }
 }
-/* While writing, the page is just the practice: the title and the settings gear step aside. */
+/* While writing, the page is just the practice: the title and the menu step aside. */
 body.writing > .wrap > header { display: contents; }
-body.writing > .wrap > header > :not(dialog) { display: none; }
-.hist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.hist li { display: flex; justify-content: space-between; gap: 12px; font-size: .9rem; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
-.hist li span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-/* On a phone the date and score go under the set names when they don't fit beside them. */
-@media (max-width: 480px) { .hist li { flex-wrap: wrap; row-gap: 2px; } }
-.histask { display: grid; gap: 10px; }
-.histask p { margin: 0; font-size: .92rem; }
+body.writing > .wrap > header > :not(dialog) { display: none !important; }
 
 /* Quiz */
 .qbar { display: flex; align-items: center; gap: 14px; }
@@ -167,6 +268,11 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 /* iPad: keep the Apple Pencil from selecting the labels or calling up the selection loupe while writing. */
 #quiz, body.writing { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .pad { -webkit-tap-highlight-color: transparent; }
+/* No double-tap zoom while practicing: Safari holds a tap back to see if a second one follows, which swallowed quick
+   second taps on the tool buttons and the first stroke after one. The buttons show a press without the slow grey flash. */
+#quiz { touch-action: manipulation; }
+#quiz button { -webkit-tap-highlight-color: transparent; }
+.igroup button:active { background: var(--sunk); }
 .mainwrap { position: relative; }
 /* A small name in the corner of a writing box; strokes draw straight through it and it never reaches the grader. */
 .padtag { position: absolute; top: 5px; left: 9px; font-size: .68rem; letter-spacing: .08em; color: var(--muted); opacity: .75; pointer-events: none; user-select: none; -webkit-user-select: none; }
@@ -179,11 +285,15 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .stamp { font-family: var(--font-jp); color: var(--shu); border: 2px solid var(--shu); border-radius: 6px; padding: 2px 10px; font-weight: 600; transform: rotate(-3deg); }
 .answer { font-family: var(--font-jp); font-size: clamp(2rem, 9vw, 3rem); font-weight: 600; text-align: center; line-height: 1.6; overflow-wrap: anywhere; }
 .answer.en { font-family: var(--font-ui); font-size: 1.7rem; font-weight: 700; }
-.answer rt { font-size: .38em; color: var(--muted); font-weight: 400; }
+.answer rt, .love .w rt { font-size: .38em; color: var(--muted); font-weight: 400; }
+.love .w rt { font-size: .55em; }
 .read { font-size: .9rem; color: var(--muted); }
 .read q { font-family: var(--font-jp); color: var(--ink); quotes: "「" "」"; }
 .read.live { margin: 8px 2px 0; }
 .fbfoot { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+/* The retry card: Mark it as correct beside a longer Next word. */
+#feedback .fbfoot #nextBtn { flex: 1 1 14rem; }
+.fb:not(.self) .stamp { font-family: var(--font-ui); transform: none; }
 .err { color: var(--shu); font-size: .9rem; }
 
 /* Results */
@@ -201,7 +311,20 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .love .tries { font-size: 1.4rem; font-weight: 700; color: var(--shu); text-align: center; font-variant-numeric: tabular-nums; }
 .love .w { font-family: var(--font-jp); font-size: 1.15rem; font-weight: 600; }
 .love .w small { font-family: var(--font-ui); font-weight: 400; color: var(--muted); font-size: .85rem; margin-left: 6px; }
+/* Each language keeps its own size wherever it sits; only the colour says which comes first. */
+.love .pair .jp { font-family: var(--font-jp); font-size: 1.2rem; font-weight: 500; }
+.love .pair .en { font-size: 1rem; }
+.love .pair > :last-child { color: var(--muted); }
+.love .pair .jp rt { font-size: .55em; color: var(--muted); font-weight: 400; }
 .love p { font-size: .88rem; color: var(--muted); }
+/* Admin: the words of this round, under the progress bar */
+.roundlist { font-size: .85rem; color: var(--muted); }
+.roundlist summary { cursor: pointer; }
+.roundlist ol { margin: 6px 0 0; padding-left: 1.6em; max-height: 12rem; overflow: auto; }
+.roundlist li { font-family: var(--font-jp); color: var(--ink); }
+.roundlist li small { font-family: var(--font-ui); color: var(--muted); }
+.roundlist li.now { font-weight: 700; }
+.roundlist li.missed { color: var(--shu); }
 .firsts { font-family: var(--font-jp); line-height: 2; }
 
 /* Table */
@@ -216,8 +339,9 @@ body.writing > .wrap > header > :not(dialog) { display: none; }
 .tset { display: grid; gap: 10px; }
 .tset + .tset { border-top: 1px solid var(--line); padding-top: 10px; }
 .tset.open:not(:last-child) { padding-bottom: 14px; } /* room between an open set's buttons and the line under them */
-.tseth { margin: 0; font-size: inherit; }
-.tsethead { width: 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; background: none; border: none; padding: 4px 0; text-align: left; }
+.tseth { margin: 0; font-size: inherit; display: flex; align-items: center; gap: 10px; }
+.tseth .btn { padding: 4px 12px; font-size: .85rem; text-transform: none; letter-spacing: normal; color: var(--ink); }
+.tsethead { flex: 1; min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; background: none; border: none; padding: 4px 0; text-align: left; }
 .tsethead .t { font-size: 1.15rem; font-weight: 700; display: inline-flex; gap: 8px; align-items: baseline; flex-wrap: wrap; min-width: 0; }
 .tsethead .t .muted { font-weight: 400; }
 .tsethead > .small { white-space: nowrap; }
@@ -229,9 +353,19 @@ table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: .92
 th { text-align: left; font-weight: 500; font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 6px; border-bottom: 1px solid var(--line); }
 td { padding: 4px 6px; border-bottom: 1px dashed var(--line); vertical-align: middle; }
 td.jp { font-family: var(--font-jp); font-size: 1.05rem; }
-td input[type="text"] { width: 100%; font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid transparent; border-radius: 6px; padding: 5px 7px; }
-td input[type="text"]:hover { border-color: var(--line); }
-td.c { text-align: center; width: 4.5rem; }
+/* A set being edited: each word's field grows with its text, and a field that differs from what's saved is marked. */
+td textarea { display: block; width: 100%; font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid transparent; border-radius: 6px; padding: 5px 7px; resize: none; overflow: hidden; field-sizing: content; }
+td textarea:hover { border-color: var(--line); }
+td textarea:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+td textarea.chg, .setedit input.chg { border-color: var(--ai); background: var(--ai-soft); }
+.tset:not(.editing) td { padding-block: 7px; overflow-wrap: anywhere; }
+/* The columns keep their widths between reading and editing, whatever is in them. */
+.tscroll table { table-layout: fixed; }
+.tscroll th:first-child { width: 36%; }
+.tscroll th:nth-child(2) { width: 34%; }
+.tscroll th:empty { width: 2.75rem; }
+.leaveask { display: flex; align-items: center; justify-content: space-between; gap: 8px 14px; flex-wrap: wrap; }
+td.c { text-align: center; padding-inline: 0; }
 @media (max-width: 560px) {
   /* On a phone each word is a small card: English on top, kana and kanji under it, delete at the side. */
   .tscroll table { min-width: 0; }
@@ -241,6 +375,11 @@ td.c { text-align: center; width: 4.5rem; }
   .tscroll td { border: none; padding: 2px 3px; }
   .tscroll td:first-child { grid-column: 1 / 3; }
   .tscroll td.c { grid-column: 3; grid-row: 1 / 3; width: auto; }
+  /* Read as text, the kana and the kanji share the second line, each as long as it needs. */
+  .tset:not(.editing) .tscroll tr { display: flex; flex-wrap: wrap; column-gap: 12px; }
+  .tset:not(.editing) .tscroll td { padding-block: 1px; }
+  .tset:not(.editing) .tscroll td:first-child { flex-basis: 100%; }
+  .tset:not(.editing) .tscroll td:empty { display: none; }
 }
 .rowdel { background: none; border: none; color: var(--muted); font-size: 1.1rem; padding: 2px 8px; }
 .rowdel:hover { color: var(--shu); }
@@ -249,11 +388,11 @@ td.c { text-align: center; width: 4.5rem; }
 .dirty { color: var(--shu); font-size: .82rem; }
 .sel { font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; max-width: 100%; }
 .uptorow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.krow { display: grid; gap: 8px; }
-.krow + .krow { border-top: 1px dashed var(--line); padding-top: 14px; }
-.krow input { width: 100%; font: inherit; font-family: var(--font-jp); font-size: 1.15rem; letter-spacing: .08em; color: var(--ink); background: var(--sunk); border: 1px solid transparent; border-radius: 6px; padding: 7px 9px; }
-.krow input:hover { border-color: var(--line); }
-.krow .ro { font-family: var(--font-jp); font-size: 1.15rem; letter-spacing: .08em; overflow-wrap: anywhere; }
+/* A kanji list (vocab/table.js) reads like a set: its kanji as text until Edit. */
+.kset .kin { width: 100%; font: inherit; font-family: var(--font-jp); font-size: 1.15rem; letter-spacing: .08em; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; }
+.kset .kin.chg { border-color: var(--ai); background: var(--ai-soft); }
+.kset .kro { margin: 0; font-family: var(--font-jp); font-size: 1.15rem; letter-spacing: .08em; overflow-wrap: anywhere; }
+.kset .tsethead:hover .t { color: inherit; }
 .need { font-size: .9rem; color: var(--muted); text-align: center; }
 .need b { font-family: var(--font-jp); color: var(--ink); }
 /* History */
@@ -269,6 +408,29 @@ td.c { text-align: center; width: 4.5rem; }
 .heatlegend { display: flex; gap: 4px; align-items: center; font-size: .75rem; color: var(--muted); }
 .heatlegend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
 .tests { list-style: none; margin: 0; padding: 0; display: grid; }
+/* Under a paged list: the page buttons, which ones are shown, and the list's own button pushed to the right. */
+.listfoot { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 14px; }
+.listfoot:not(:has(> :not([hidden]):not(:empty))) { display: none; }
+.listfoot > :empty { display: none; } /* a count with nothing to say takes no room, so what's left starts at the edge */
+.listfoot > .btn { margin-left: auto; padding: 7px 18px; }
+@media (max-width: 480px) { .listfoot > .btn { flex: 1 0 100%; } }
+.pager { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.pg { min-width: 34px; height: 34px; padding: 0 6px; border: none; border-right: 1px solid var(--line); border-radius: 0; background: none; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+.pg:last-child { border-right: none; }
+.pg:not(:disabled):not([aria-current]):not(.gap):hover { background: var(--sunk); }
+.pg:disabled { color: var(--muted); opacity: .45; cursor: default; }
+.pg[aria-current] { background: var(--ai-soft); color: var(--ai); font-weight: 700; }
+.pg.gap { color: var(--muted); }
+.dd { position: relative; display: inline-block; }
+.dd-btn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: .9rem; }
+.dd-btn:hover, .dd-btn[aria-expanded="true"] { background: var(--sunk); }
+.dd-btn svg, .dd.unset .dd-btn span { color: var(--muted); }
+.dd-list { position: absolute; left: 0; top: calc(100% + 4px); z-index: 20; min-width: 100%; max-height: min(320px, 60vh); overflow-y: auto; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgb(0 0 0 / .14); }
+.dd.up .dd-list { top: auto; bottom: calc(100% + 4px); }
+.dd-list:focus { outline: none; }
+.dd-list li { padding: 6px 10px; border-radius: 6px; white-space: nowrap; font-size: .9rem; cursor: pointer; }
+.dd-list li.on { background: var(--sunk); }
+.dd-list li[aria-selected="true"] { color: var(--ai); font-weight: 700; }
 .test { border-bottom: 1px dashed var(--line); }
 .test summary { display: grid; grid-template-columns: 9rem minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; cursor: pointer; align-items: baseline; list-style: none; }
 .test summary::-webkit-details-marker { display: none; }
@@ -285,23 +447,99 @@ td.c { text-align: center; width: 4.5rem; }
 .newset input { font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 9rem; }
 .setedit { background: var(--sunk); border-radius: 8px; padding: 10px 12px; }
 .setedit input { background: var(--surface); }
-.setedit [data-ef="unit"], .setedit [data-kunit] { width: 8rem; }
+.setedit [data-ef="unit"], .setedit [data-kf="unit"] { width: 8rem; }
 .setedit [data-ef="label"], .setedit [data-ef="tags"] { width: 14rem; max-width: 100%; }
 .editerr { color: var(--shu); font-size: .85rem; align-self: center; }
-.bookorder { display: grid; gap: 10px; }
-.bookorder ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.bookorder li { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px 6px 12px; }
-.bookorder li .n { color: var(--muted); font-size: .85rem; min-width: 1.2em; }
-.bookorder li b { flex: 1; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-.bookorder li button { font-size: 1rem; padding: 4px 8px; color: var(--ink); }
-.bookorder li button:disabled { opacity: .3; }
-.bookorder .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* Edit collections (vocab/collections.js): the top of the vocab table becomes a card of its own, edge to edge, ending in a line. */
+.ttop { display: grid; gap: 14px; }
+.ttop.editing { margin: -18px -18px 0; padding: 18px; background: var(--sunk); border-bottom: 1px solid var(--line); border-radius: calc(var(--r) - 1px) calc(var(--r) - 1px) 0 0; }
+.ttop.editing .tsearch { background: var(--surface); opacity: .55; }
+.colbtns { display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+/* Edit collections' Save and Discard take the place of its link without making the heading taller. */
+.ttop > .head { min-height: 32px; align-items: center; }
+#colBtns .btn { padding: 4px 12px; font-size: .88rem; } /* the id outweighs the theme's paired-button padding */
+.viewed { display: grid; gap: 10px; }
+.viewed .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.viewed .chip, .colrow .chip { padding: 4px 12px; font-size: .9rem; }
+.viewed .chip:not([aria-pressed="true"]) { background: var(--surface); }
+.chip.add { border-style: dashed; color: var(--muted); background: none; }
+.vchips { display: grid; gap: 4px; }
+.mainptr { display: flex; align-items: center; gap: 2px; color: var(--muted); }
+.viewed .chip.dropbefore { box-shadow: -3px 0 0 var(--ai); }
+.viewed .chip.dropafter { box-shadow: 3px 0 0 var(--ai); }
+.mainptr .qtip svg { width: 17px; height: 17px; }
+.viewbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.viewbar label { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.viewbar input { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; width: 14rem; max-width: 100%; }
+.link.danger { color: var(--shu); }
+.coled { display: grid; grid-template-columns: auto minmax(8rem, 13rem) minmax(0, 1fr); gap: 8px 10px; }
+.coled > * { grid-column: 1 / -1; }
+.coled .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.colrow { display: grid; grid-template-columns: subgrid; align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.colrow.other { background: none; border-style: dashed; }
+.colctl { display: flex; align-items: center; height: 34px; }
+.colctl button { font-size: 1rem; padding: 4px 6px; color: var(--ink); }
+.colctl button:disabled { opacity: .3; }
+.colctl .cdel { display: inline-flex; color: var(--muted); }
+.colctl .cdel:not(:disabled):hover { color: var(--shu); }
+.colctl .cdel:disabled { cursor: not-allowed; }
+.grip { border: none; background: none; color: var(--muted); cursor: grab; font-size: 1.1rem; line-height: 1; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.colname { font: inherit; font-weight: 600; line-height: 1.35; color: var(--ink); resize: none; field-sizing: content; min-height: 34px; padding: 6px 8px; border: 1px solid transparent; border-radius: 6px; background: none; }
+textarea.colname:hover { border-color: var(--line); }
+textarea.colname:focus { border-color: var(--ai); background: var(--surface); outline: none; }
+.colrow.other .colname { color: var(--muted); }
+.colunits { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 34px; padding: 2px; border-radius: 6px; }
+.colunits.dropon { background: var(--ai-soft); outline: 2px dashed var(--ai); outline-offset: 1px; }
+.colrow.dropabove { box-shadow: 0 -3px 0 var(--ai); }
+.colrow.dropbelow { box-shadow: 0 3px 0 var(--ai); }
+.chip.unit { cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: transform .3s ease, box-shadow .3s ease; }
+.chip.unit.lifting { transform: scale(1.08); box-shadow: 0 6px 16px rgb(0 0 0 / .18); transition-duration: .38s; } /* a finger holding it: it grows as it's picked up */
+.dragsrc { opacity: .35; }
+.dragghost { position: fixed; z-index: 60; margin: 0; pointer-events: none; transform-origin: center; box-shadow: 0 10px 24px rgb(0 0 0 / .22); transition: none; }
+body.dragging { cursor: grabbing; -webkit-user-select: none; user-select: none; }
+/* What can't be used while collections are edited: folded, under a grey cover that says why. */
+.tlocked { position: relative; min-height: 64px; }
+.tlocked::after { content: attr(data-lock); position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; color: var(--muted); font-weight: 600; background: color-mix(in srgb, var(--sunk) 78%, transparent); border-radius: 8px; }
+.panel.tlocked::after { border-radius: var(--r); }
+@media (max-width: 640px) {
+  .coled { grid-template-columns: auto minmax(0, 1fr); }
+  .colunits { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) { .chip.unit { transition: none; } }
 .empty { text-align: center; padding: 28px 12px; color: var(--muted); display: grid; gap: 6px; }
+.stats .big { font-size: clamp(2.2rem, 1rem + 2.4vw, 3.8rem); } /* the Stats card grows with the window */
+.stats .small { font-size: clamp(.82rem, .6rem + .4vw, 1rem); }
 @media (max-width: 480px) { .stats .big { font-size: 1.7rem; } }
 @media (prefers-reduced-motion: reduce) { .meter i { transition: none; } }
+/* A pop-up asking first (page/ask.js), and on the public site the one asking to share handwriting. */
+:is(#askDlg, #shareAsk, #bornAsk) { border: none; border-radius: 14px; padding: 22px 24px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--ink); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
+:is(#askDlg, #shareAsk, #bornAsk)::backdrop { background: rgba(17, 20, 26, .5); }
+.shareask { display: grid; gap: 12px; }
+.shareask h2 { font-size: 1.2rem; }
+.shareask p, .shareask ul { margin: 0; text-wrap: pretty; }
+.shareask ul { padding-left: 1.2em; display: grid; gap: 4px; }
+.asktext { display: grid; gap: 8px; }
+.shareact { justify-content: flex-end; }
+.bornask { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; font-weight: 700; }
+.bornask .dd { font-weight: 400; }
+#bornAsk { overflow: visible; } /* its dropdowns open past its edge */
 /*#if public*/
 body { margin: 0; }
 #welcome { border: none; border-radius: 14px; padding: 26px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--muted); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
+/* The card of words (vocab/word-card.js): as wide as its words, up to the window. */
+#wordCard { border: none; border-radius: 14px; padding: 0; width: fit-content; min-width: min(18rem, calc(100vw - 32px)); max-width: min(46rem, calc(100vw - 32px)); max-height: calc(100dvh - 48px); background: var(--surface); color: var(--ink); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
+#wordCard::backdrop { background: rgba(17, 20, 26, .5); }
+.wcardbox { display: flex; flex-direction: column; max-height: calc(100dvh - 48px); }
+.wcardhead { position: relative; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 18px 52px 10px 22px; }
+.wcardhead h2 { font-size: 1.1rem; }
+.wcardbody { overflow: auto; padding: 0 22px 20px; }
+.wcard { border-collapse: collapse; }
+.wcard th { text-align: left; font-size: .72rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 8px 18px 8px 0; border-bottom: 1px solid var(--line); }
+.wcard td { padding: 9px 18px 9px 0; border-bottom: 1px dashed var(--line); vertical-align: top; max-width: 16rem; overflow-wrap: anywhere; }
+.wcard td.jp { font-family: var(--font-jp); }
+.wcard .wset th { padding-top: 16px; text-transform: none; letter-spacing: 0; font-size: .85rem; color: var(--ink); border-bottom: 1px solid var(--line); }
+.wcard tbody:first-of-type .wset th { padding-top: 8px; }
+.holds :is(button, span) { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 #welcome::backdrop { background: rgba(17, 20, 26, .5); }
 @media (max-width: 480px) { #welcome { padding-top: 44px; } } /* on a phone the intro's first line would run under the ✕ */
 .welcome { display: grid; gap: 14px; text-align: center; }
@@ -310,14 +548,7 @@ body { margin: 0; }
 .welcome p { margin: 0; text-wrap: pretty; }
 .welcome .lead { color: var(--ink); font-weight: 500; }
 .signbtns { display: grid; gap: 10px; margin: 4px 0; }
-#shareAsk { border: none; border-radius: 14px; padding: 22px 24px 24px; width: min(30rem, calc(100vw - 32px)); background: var(--surface); color: var(--ink); box-shadow: 0 18px 60px rgba(0, 0, 0, .28); }
-#shareAsk::backdrop { background: rgba(17, 20, 26, .5); }
-.shareask { display: grid; gap: 12px; }
-.shareask h2 { font-size: 1.2rem; }
-.shareask p, .shareask ul { margin: 0; text-wrap: pretty; }
-.shareask ul { padding-left: 1.2em; display: grid; gap: 4px; }
 .checkrow { display: flex; align-items: center; gap: 8px; font-size: .9rem; }
-.shareact { justify-content: flex-end; }
 .tourbtn { background: var(--ai-soft); color: var(--ai); border-color: transparent; font-weight: 700; padding: 10px 20px; }
 .tourbtn:hover { border-color: var(--ai); }
 /* The tour: a ring around one part of the page with the rest dimmed (clicks still go through), and a card beside it. */
@@ -335,8 +566,10 @@ body { margin: 0; }
 .keyerr { color: var(--shu); }
 .fb.self { border-color: var(--ai); }
 .fb.self .stamp { color: var(--ai); border-color: var(--ai); }
-.foot { max-width: 720px; margin: 40px auto 0; text-align: center; color: var(--muted); font-size: .8rem; display: grid; gap: 4px; }
+/* The footer: at the bottom of the sidebar, or of the menu that slides in on a smaller screen (page/nav.js puts it there). */
+.foot { margin-top: auto; padding: 18px 10px 2px; color: var(--muted); font-size: .72rem; line-height: 1.45; display: grid; gap: 6px; }
+.foot p { margin: 0; }
 .foot a { color: inherit; }
-body.writing .foot { display: none; }
-body:not(.writing):has(> .foot) { padding-bottom: 14px; } /* the footer sits near the bottom edge */
+.drawer .sidenav { display: flex; flex-direction: column; }
+.sidemini:not(.drawer) .foot { display: none; }
 /*#endif*/

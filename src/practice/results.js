@@ -11,7 +11,7 @@
     Q.rows = rows; Q.skip = new Set(); Q.savedId = null;
     // With history on, each missed word can be left off the overall "need the most love" list.
     const canSkip = S.histOn === true;
-    $("#loveList").innerHTML = love.map(({ it, n }) => `<li data-key="${esc(it.key)}"><span class="tries">${n}</span><div><div class="w">${esc(jpForm(it.w))}<small>${esc(it.w.en)}${Q.meta.dir === "both" ? (it.dir === "ej" ? " · EN→JP" : " · JP→EN") : ""}</small></div><p>You figured out ${esc(label(it))} in ${n} tries!</p></div>${canSkip ? `<button class="ghost small skipw" type="button" aria-pressed="false">Leave off overall list</button>` : ""}</li>`).join("");
+    $("#loveList").innerHTML = love.map(({ it, n }) => `<li data-key="${esc(it.key)}"><span class="tries">${n}</span><div><div class="w">${jpRuby(it.w)}<small>${esc(it.w.en)}${Q.meta.dir === "both" ? (it.dir === "ej" ? " · EN→JP" : " · JP→EN") : ""}</small></div><p>You figured out ${esc(label(it))} in ${n} tries!</p></div>${canSkip ? `<button class="ghost small skipw" type="button" aria-pressed="false">Leave off overall list</button>` : ""}</li>`).join("");
     $("#skipAll").hidden = !canSkip; syncSkip();
     const firsts = rows.filter((r) => r.n === 1);
     $("#firstPanel").hidden = !firsts.length;

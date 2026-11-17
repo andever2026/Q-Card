@@ -25,47 +25,60 @@
   $("#signInBtn").onclick = () => signIn($("#signInBtn"), welcome);
   // Settings → Account and Delete. account is the signed-in person ({uid, email, name}), or null for a guest.
   let account = null, delAsk = false, stopPrefs = () => {};
-  $("#settings").addEventListener("close", () => { delAsk = false; });
+  $("#settings").addEventListener("leave", () => { delAsk = false; });
   function renderAccount() {
+    renderNick(); renderBorn();
     $("#acctName").innerHTML = account ? `Signed in with Google as <b>${esc(account.email || account.name || "")}</b>.`
       : "Not signed in. As a guest, everything is kept in this browser on this device.";
-    $("#signOutBtn").textContent = account ? "Sign out" : "Sign in with Google";
+    $("#signOutBtn").textContent = account ? "Sign out" : "Sign in with Google"; $("#signOutBtn").classList.toggle("danger", !!account);
     $("#acctErr").hidden = true;
     $("#signOutBtn").onclick = account ? () => platform.signOut() : () => signIn($("#signOutBtn"), (m) => { $("#acctErr").textContent = m; $("#acctErr").hidden = false; });
-    const what = account ? "your account and its sets, kanji lists and practice history" : "the sets, kanji lists and practice history saved in this browser";
+    const what = account ? "your account and its sets, kanji lists and progress" : "the sets, kanji lists and progress saved in this browser";
     $("#delAcct").innerHTML = !delAsk
       ? account ? `<button class="btn danger" type="button" id="delStart">Delete my account</button>`
         : `<div class="delrow"><button class="btn danger" type="button" id="delStart" aria-describedby="delTip">Delete local storage</button>
-          <span class="qtip" tabindex="0" role="button" aria-label="What this does"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.4a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.7v.5"/><circle cx="12" cy="17.2" r=".4" fill="currentColor"/></svg><span class="qtipbody" role="tooltip" id="delTip">This deletes all local data (sets, kanji lists, practice history and settings), refreshes the page and treats you as a new user.</span></span></div>`
+          ${qtip("delTip", "What this does", "This deletes all local data (sets, kanji lists, progress and settings), refreshes the page and treats you as a new user.")}</div>`
       : `<p class="small">This deletes ${what}, for good. Export your vocab first if you want a copy.</p>
         <div class="tactions"><button class="btn danger" type="button" id="delYes">Delete everything</button><button class="btn" type="button" id="delNo">Cancel</button></div>
         <p class="keyerr small" id="delErr" hidden></p>`;
     if (!delAsk) {
       $("#delStart").onclick = () => { delAsk = true; renderAccount(); };
-      // A tap shows the tip on touch screens, where there's no hover.
-      const q = $("#delAcct .qtip");
-      if (q) { q.onclick = () => q.classList.toggle("open"); q.onblur = q.onmouseleave = () => q.classList.remove("open"); }
+      tipTaps($("#delAcct")); // a tap shows the tip on touch screens, where there's no hover
       return;
     }
     $("#delNo").onclick = () => { delAsk = false; renderAccount(); };
     $("#delYes").onclick = async (e) => {
       e.target.disabled = true; e.target.textContent = "Deleting…";
-      stopPrefs();
-      try {
-        const paths = [];
-        for (const c of ["sets", "kanji", "training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
-        for (const p of [...paths, "meta/books", "meta/courses", "meta/samples"]) await db.doc(p).delete();
-        try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
-        // Every choice this site kept in this browser goes too (colours, picks, a practice to resume with its writing): signed in,
-        // they're the account's copy. A guest's own sets and history (qcard:local:…) stay unless it's the guest being deleted.
-        try { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:") || (!account && k.startsWith("qcard:"))) localStorage.removeItem(k); } catch {}
-        if (account) await platform.deleteAccount(); // which signs out, and the page starts over (see boot)
-        else location.reload(); // a guest starts over as a new visitor
-      } catch (err) {
+      try { await deleteEverything(); }
+      catch (err) {
         e.target.disabled = false; e.target.textContent = "Delete everything";
+        const blocked = err?.code === "auth/popup-blocked";
         $("#delErr").hidden = false;
-        $("#delErr").textContent = err?.code === "auth/popup-blocked" ? "Your data is deleted. To delete the account itself, allow pop-ups for this site so Google can confirm it's you, then try again."
+        $("#delErr").textContent = err?.early ? `Nothing was deleted: Google needs to confirm it's you first. ${blocked ? "Allow pop-ups for this site, then try again." : "Try again."}`
+          : blocked ? "Your data is deleted. To delete the account itself, allow pop-ups for this site so Google can confirm it's you, then try again."
           : "Something went wrong. Try again.";
       }
     };
+  }
+  // Deletes everything the site keeps for this person: an account's data in the database and its sign-in, or a guest's
+  // data in this browser. Settings' Delete and a birthday under 13 (account/birth.js) both use it. forced: the site is
+  // closing the account, so it goes even if Google's confirmation is closed (the bare sign-in stays then, signed out), and
+  // the page starts over as a guest instead of at the welcome pop-up.
+  async function deleteEverything(forced = false) {
+    let confirmed = true;
+    // Google's confirmation comes first, while the click still lets its window open (err.early: nothing deleted yet).
+    if (account) try { await platform.confirmSignIn(); } catch (err) { if (!forced) throw Object.assign(err, { early: true }); confirmed = false; }
+    stopPrefs();
+    const paths = [];
+    for (const c of ["sets", "kanji", "training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
+    for (const p of [...paths, "meta/books", "meta/courses", "meta/views", "meta/samples"]) await db.doc(p).delete();
+    try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
+    // Every choice this site kept in this browser goes too (colours, picks, a practice to resume with its writing): signed in,
+    // they're the account's copy. A guest's own sets and history (qcard:local:…) stay unless it's the guest being deleted.
+    try { for (const k of Object.keys(localStorage)) if (k.startsWith("jpq:") || (!account && k.startsWith("qcard:"))) localStorage.removeItem(k); } catch {}
+    if (forced) { try { localStorage.setItem("qcard:mode", "local"); } catch {} welcomed(); }
+    if (!account) return location.reload(); // a guest starts over as a new visitor
+    // Deleting the account signs out, and the page starts over (see boot).
+    if (!confirmed) return platform.signOut();
+    try { await platform.deleteAccount(); } catch (err) { if (!forced) throw err; await platform.signOut(); }
   }

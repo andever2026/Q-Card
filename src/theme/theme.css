@@ -1,6 +1,12 @@
 /* The look every page of the site shares: its colours, and further down the pieces drawn the same way everywhere (buttons,
-   quiet text). The page includes this file (page/styles.css); the side pages ai/ and privacy/ link it as css/theme.css.
+   quiet text). The page includes this file (page/styles.css); the side pages ai/, privacy/ and study-tools/ link it as css/theme.css.
    Colours: Blue (the default) and Warm (data-palette="claude"), each light and dark (data-theme, else the device's setting). */
+/* The site's widths, set here only. The content column: 720px on a laptop or iPad, growing with the window on a big
+   monitor up to --pagemax. Beside the page's sidebar (a big screen) it takes all the room there is (trying it out,
+   2026-11-13): page/styles.css turns the sidebar on with --side, and the column's width follows from it here.
+   Practice: never under 1000px, so the writing boxes stay big on a laptop. Settings spans the column like the others. */
+:root { --sidebar: 232px; --topbar: 56px; --side: 0; --sidew: calc(var(--side) * var(--sidebar)); --fill: calc(.76 + var(--side) * .24); --pagemax: calc(1360px + var(--side) * 100vw);
+  --pagew: clamp(720px, calc((100vw - var(--sidew)) * var(--fill)), var(--pagemax)); --practicew: max(1000px, var(--pagew)); }
 :root {
   --bg: #fdfdfd;
   --surface: #ffffff;
@@ -62,5 +68,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ai); outlin
 .btn:not(.primary) ~ .btn.primary, .btn.primary:has(~ .btn:not(.primary)) { padding: 8px 14px; }
 .btn.danger { color: var(--shu); }
 .link { background: none; border: none; padding: 0; color: var(--ai); text-decoration: underline; text-underline-offset: 3px; font-size: .9rem; }
+.link:disabled { color: var(--muted); text-decoration: none; cursor: default; opacity: .6; }
 .muted { color: var(--muted); }
 .tactions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

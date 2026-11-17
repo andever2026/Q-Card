@@ -5,17 +5,23 @@ layout, the build and the tests; this file is what README doesn't say.
 
 ## How changes reach the site
 
-- Edit `src/` only, then `npm run build` and commit the built files (`index.html`, `ai/`, `privacy/`, `js/`, `css/`)
+- Edit `src/` only, then `npm run build` and commit the built files (`index.html`, `ai/`, `privacy/`, `study-tools/`, `js/`, `css/`)
   with the change. `npm run check` must say "Built files are up to date" and "No code is written twice under src/".
 - Everything is shared between the public site and the owner's claude.ai copy (`#if public` / `#if claude` in
   `src/page/page.html` and the scripts). A fix in one version's own section (sign-in, saving, checking) means checking the
   other version's section too.
-- Branch `beta` deploys to https://andever2026.github.io/Q-Card/beta/, `main` to the live site. Changes go to `beta`
-  first; `main` only through a pull request from `beta` (merge method: merge, never squash or force-push).
-- Claude may push to `beta` (the owner tests there). Never push to `main` or merge into it until the owner says so.
-- Before calling something done, run `node test/public/run.mjs` and `node test/claude/run.mjs` (each ends with
-  "All passed") and add checks there for what changed. Changes to `src/checking/checker.js` also get
-  `test/checker/eval.mjs` run before and after, and the numbers compared.
+- Three branches, each with its own site: `main` is the live site, `beta`
+  (https://andever2026.github.io/Q-Card/beta/) holds fixes for what is live, `dev`
+  (https://andever2026.github.io/Q-Card/dev/) holds new features. A fix goes to `beta`, and `beta` is merged into
+  `dev` so features are built on the fixed code. A feature goes to `dev`, and `dev` is merged into `beta` when the
+  owner says it's ready. `main` only through a pull request from `beta`. After each release `main` is merged back into
+  `beta` and `dev`. Every one of these is a merge: never squash, rebase or force-push.
+- Claude may push to `beta` and `dev` (the owner tests there). Never push to `main` or merge into it, or merge `dev`
+  into `beta`, until the owner says so.
+- Add checks to `test/public/run.mjs` / `test/claude/run.mjs` for what changed. Small changes go to `beta` or `dev` after
+  `npm run build` and `npm run check` only, without the full suites (the owner's call: they take ~10 minutes). Run both
+  suites (each ends with "All passed") before a pull request into `main`, which also runs them in CI. Changes to
+  `src/checking/checker.js` also get `test/checker/eval.mjs` run before and after, and the numbers compared.
 - Keep README.md's file list in step with the files.
 - A version is looked up when it's chosen or changed (Node in `.nvmrc`, the actions and test tools in
   `.github/workflows/`, packages in `package.json`), never taken from memory: what a session remembers is often a year old.

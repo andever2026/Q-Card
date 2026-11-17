@@ -35,8 +35,7 @@
   const setCols = () => cols().filter((b) => S.sets.some((s) => colOf(s) === b));
   const unitsOf = (col) => [...new Set(S.sets.filter((s) => colOf(s) === col).map((s) => s.unit))];
   const colKeys = (col) => unitsOf(col).map((c) => `${col}\u0001${c}`);
-  const courseMode = () => S.groupBy === "course" && S.courses.length > 0;
-  // A unit picker: one row of chips per collection, or per course with any units no course covers under "Other".
+  // A unit picker: one row of chips per collection of the view picked (vocab/views.js); units that view hides aren't there.
   // Each collection shows all, none or some of its units: st.show maps collection -> "all" | "none" | "some" (missing = "all"),
   // and st.picks holds the unitKey()s shown for "some". o: { st, showKey, chsKey, cols(), keys(col), bar, rows, dot(key), onChange() }.
   function makePicker(o) {
@@ -47,22 +46,27 @@
       picksOf,
       // "some" with no units left counts as "none".
       state(b) { const m = st.show?.[b] ?? "all"; return m === "some" && !picksOf(b).length ? "none" : m; },
-      has(k) { const b = k.split("\u0001")[0], m = p.state(b); return m === "all" || (m === "some" && st.picks.has(k)); },
+      // on: the unit's own choice. has: whether it shows, which also takes the view picked having it (a unit the view
+      // hides is not there, nor are its sets, whatever its choice; the choice is back with a view that has it).
+      on(k) { const b = k.split("\u0001")[0], m = p.state(b); return m === "all" || (m === "some" && st.picks.has(k)); },
+      has: (k) => p.on(k) && !viewHides(k),
       shownKeys: () => o.cols().flatMap(o.keys).filter(p.has),
-      // Shows exactly the unit keys given.
+      // Shows exactly the unit keys given (units the view hides keep their choice).
       set(keys) {
         const show = { ...st.show };
         for (const b of o.cols()) {
-          const ks = o.keys(b), on = ks.filter((k) => keys.has(k));
+          const ks = o.keys(b), on = ks.filter((k) => (viewHides(k) ? p.on(k) : keys.has(k)));
           show[b] = on.length === ks.length ? "all" : on.length ? "some" : "none";
           picksOf(b).forEach((k) => st.picks.delete(k));
           if (show[b] === "some") on.forEach((k) => st.picks.add(k));
         }
         st.show = show; save();
       },
-      // Makes sure one unit shows, even one that is only about to be added.
+      // Makes sure one unit shows, even one that is only about to be added: a view that hides it (as other views do
+      // with a new unit) gives way to the main view.
       add(k) {
         const b = k.split("\u0001")[0], m = p.state(b);
+        if (viewHides(k)) pickView("");
         if (m === "all") return;
         if (m === "none") picksOf(b).forEach((x) => st.picks.delete(x));
         st.picks.add(k); st.show = { ...st.show, [b]: "some" }; save();
@@ -70,33 +74,26 @@
       replace(show, picks) { st.show = show; st.picks = picks; save(); },
       groups() {
         const bs = o.cols();
-        if (!courseMode()) return bs.map((b) => ({ name: colLabel(b), keys: o.keys(b) }));
-        const all = bs.flatMap(o.keys), used = new Set();
-        const inPart = (k, pt) => { const [b, u] = k.split("\u0001"); return b === pt.collection && byUnit(u, pt.from) >= 0 && byUnit(u, pt.to) <= 0; };
-        const gs = S.courses.map((c) => {
-          const keys = all.filter((k) => !used.has(k) && c.parts.some((pt) => inPart(k, pt)));
-          keys.forEach((k) => used.add(k));
-          return { name: c.name, keys };
-        }).filter((g) => g.keys.length);
-        const rest = all.filter((k) => !used.has(k));
-        return rest.length ? [...gs, { name: "Other", keys: rest }] : gs;
+        const v = curView();
+        return v ? viewRows(v, bs.flatMap(o.keys)) : bs.map((b) => ({ name: colLabel(b), keys: o.keys(b) }));
       },
       render() {
-        const groups = p.groups(), labeled = groups.length > 1 || courseMode();
+        const groups = p.groups(), labeled = groups.length > 1 || !!curView();
         const stateOf = (g) => { const on = g.keys.filter(p.has).length; return on === g.keys.length ? "all" : on ? "some" : "none"; };
-        // Each row is led by its name when there's more than one row (or rows are courses).
+        // Each row is led by its name when there's more than one row (or the rows are another view's).
         o.bar.classList.toggle("labeled", labeled);
         o.rows.innerHTML = groups.map((g, gi) => {
           const sg = stateOf(g);
-          const chips = g.keys.map((k, i) => `<button class="chip" type="button" data-k="${i}" aria-pressed="${sg === "some" && p.has(k)}">${esc(keyUnit(k))}${o.dot(k)}</button>`).join("");
+          const tags = curView() ? twinTags(g.keys, (k) => k.split("\u0001")[0], keyUnit) : [];
+          const chips = g.keys.map((k, i) => `<button class="chip" type="button" data-k="${i}" aria-pressed="${sg === "some" && p.has(k)}">${esc(keyUnit(k))}${tags[i] || ""}${o.dot(k)}</button>`).join("");
           return `<div class="pchrow" data-g="${gi}">${labeled ? `<span class="chbook muted small${g.name.includes("\n") ? " two" : ""}">${esc(g.name)}</span>` : ""}<div class="chips"><button class="chip" type="button" data-k="all" aria-pressed="${sg === "all"}">All</button>${chips}</div></div>`;
         }).join("");
-        // The label column is as wide as the widest name in either view (collections or courses), so switching views doesn't shift the chips.
+        // The label column is as wide as the widest name in any view, so switching views doesn't shift the chips.
         const lab = o.rows.querySelector(".chbook");
         if (lab) {
           const ctx = (makePicker.cv ||= document.createElement("canvas")).getContext("2d");
           ctx.font = getComputedStyle(lab).font;
-          const names = [...o.cols().map(colLabel), ...S.courses.map((c) => c.name), "Other"];
+          const names = [...o.cols().map(colLabel), ...altViews().flatMap((v) => v.collections.map((c) => c.name))];
           const w = Math.max(...names.flatMap((n) => n.split("\n")).map((t) => ctx.measureText(t).width));
           o.bar.style.setProperty("--labw", Math.ceil(w) + 1 + "px");
         }
@@ -112,25 +109,31 @@
         }));
       },
     };
+    // Holding a unit, a row's All or its name shows the words of its sets (vocab/word-card.js).
+    onHold(o.rows, "[data-k], .chbook", (el) => {
+      const g = p.groups()[+el.closest("[data-g]").dataset.g], k = el.dataset.k, one = k != null && k !== "all";
+      const name = g.name.replace(/\n/g, " "), keys = one ? [g.keys[+k]] : g.keys;
+      wordCard(one ? `${name} › ${keyUnit(keys[0])}` : name, cardParts(setsOfKeys(keys), one));
+    });
     return p;
   }
   const PP = makePicker({ st: S.pick, showKey: "bookShow", chsKey: "pickChs", cols: setCols, keys: colKeys, bar: $("#pickBar"), rows: $("#pickChs"),
     dot: (k) => (S.sets.some((s) => S.selected.has(s.id) && unitKey(s) === k) ? `<span class="dot pick" title="Has picked sets">•</span>` : ""),
     onChange: () => renderSetup() });
   const chShown = (s) => PP.has(unitKey(s));
-  // Both pages share one Collection / Course switch.
-  function syncGroupSegs() {
-    for (const id of ["#groupSeg", "#tGroupSeg"]) {
-      $(id).hidden = !S.courses.length;
-      $(id).querySelectorAll("[data-group]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.group === (courseMode() ? "course" : "book")));
-    }
-  }
-  document.querySelectorAll("[data-group]").forEach((b) => (b.onclick = () => { S.groupBy = b.dataset.group; store.set("groupBy", S.groupBy); renderSetup(); renderTable(); }));
-  function renderPickBar() {
+  // Units are shown or hidden (their chips choose which sets appear); sets are picked (for practice).
+  const noUnitsShown = "No units shown. Tap All or a unit above to see its sets.";
+  // Both pages share one choice of view.
+  function syncGroupSegs() { renderViewSwitch($("#groupSeg")); renderViewSwitch($("#tGroupSeg")); $("#tGroupSeg").hidden ||= !!S.colEdit; }
+  // Under the rows: how many sets are picked, and Clear all picks, or, with none picked, Pick all sets (the sets showing
+  // that have words: canPick), greyed out while there are none to pick.
+  let canPick = [];
+  function renderPickBar(pickable) {
     PP.render(); syncGroupSegs();
-    const n = S.selected.size;
-    $("#pickSumRow").hidden = !n;
-    $("#pickSum").textContent = `${n} set${n === 1 ? "" : "s"} picked`;
+    const n = S.selected.size, c = $("#pickClear");
+    canPick = pickable;
+    $("#pickSum").textContent = `${plural(n, "set")} picked`;
+    c.textContent = n ? "Clear all picks" : "Pick all sets"; c.disabled = !n && !pickable.length;
   }
   // The Filter row: every tag in use, each with how many sets picking it hides (the sets without it), most hidden first.
   // None is picked to start, so every set shows. It's left out when no tag would narrow anything.
@@ -146,7 +149,12 @@
     }));
     if (on.length) $("#tagClear").onclick = () => { S.pickTags.clear(); save(); };
   }
-  $("#pickClear").onclick = () => { S.selected.clear(); saveSetup(); renderSetup(); };
+  $("#pickClear").onclick = () => { if (S.selected.size) S.selected.clear(); else canPick.forEach((x) => S.selected.add(x.id)); saveSetup(); renderSetup(); };
+  // Holding a set, or a unit's name above its sets, shows their words.
+  onHold($("#setPicker"), "[data-set], [data-u]", (el) => {
+    const s = S.sets.find((x) => x.id === el.dataset.set), sets = s ? [s] : S.sets.filter((x) => unitKey(x) === el.dataset.u);
+    if (sets.length) wordCard([colOf(sets[0]), sets[0].unit, s?.name].filter(Boolean).join(" › "), cardParts(sets, true));
+  });
   function renderSetup() {
     const box = $("#setPicker");
     if (!S.loaded) return;
@@ -158,13 +166,13 @@
       //#if public
       if (samplesState) box.innerHTML = `<div class="empty"><b>${samplesState === "adding" ? "Adding the sample sets…" : "Loading your sets…"}</b></div>`;
       else {
-        box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets into the vocab table.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open the vocab table</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
-        $("#emptyImport").onclick = () => { openSettings(); $("#importBtn").click(); };
+        box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>Import a vocab file someone shared with you, or type your own sets in Vocabulary.</span><span class="tactions" style="justify-content:center"><button class="btn primary" type="button" id="emptyImport">Import a file…</button><button class="btn" type="button" id="emptyTable">Open Vocabulary</button></span><button class="link" type="button" id="emptySamples">Add the sample sets</button></div>`;
+        $("#emptyImport").onclick = () => { openSettings("data"); $("#importBtn").click(); };
         $("#emptyTable").onclick = () => { renderTable(); show("table"); };
         $("#emptySamples").onclick = (e) => { e.target.disabled = true; addSamples().catch(() => { e.target.disabled = false; banner("The sample sets couldn't be added. Try again."); }); };
       }
       //#else
-      box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>${canWrite ? "Add your first set in the vocab table." : "The owner hasn't added any sets yet."}</span></div>`;
+      box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>${canWrite ? "Add your first set in Vocabulary." : "The owner hasn't added any sets yet."}</span></div>`;
       //#endif
     } else {
       // Sets with no ready words can't be picked.
@@ -195,19 +203,19 @@
       const tagged = (s) => !on.length || setTags(s, tags.kinds).some((t) => on.includes(tagKey(t)));
       const chs = new Set(S.sets.filter(chShown).map(unitKey)), shown = S.sets.filter((s) => chShown(s) && tagged(s));
       renderTagRow(tags.list, on);
-      renderPickBar();
+      renderPickBar(shown.filter((x) => readyCount(x.words)));
       const byCh = new Map();
       for (const s of shown) { if (!byCh.has(unitKey(s))) byCh.set(unitKey(s), []); byCh.get(unitKey(s)).push(s); }
       const groups = [...byCh.values()];
       const onNames = tags.list.filter((t) => on.includes(t.key)).map((t) => `“${esc(t.name)}”`);
       const who = chs.size === 1 ? esc(keyUnit([...chs][0])) + " has" : states.every((x) => x === "all") ? "There are" : "These units have";
       box.innerHTML = !shown.length
-        ? !chs.size ? `<div class="empty"><span>No units picked. Tap All or a unit above to see its sets.</span></div>`
+        ? !chs.size ? `<div class="empty"><span>${noUnitsShown}</span></div>`
         : `<div class="empty"><b>No sets to show.</b><span>${who} no sets tagged ${onNames.join(" or ")}. Clear the filter above to see the rest.</span></div>`
         : groups.map((sets, i) => {
         const name = esc(sets[0].unit);
         const usable = sets.filter((s) => readyCount(s.words)), all = usable.length && usable.every((s) => S.selected.has(s.id));
-        return `<div class="chapter"><div class="chrow"><span class="unit">${multi ? `${esc(colLabel(colOf(sets[0])))} › ${name}` : name}</span>${usable.length ? `<button class="link" data-all="${i}">${all ? "Clear" : "Select all"}</button>` : ""}</div>
+        return `<div class="chapter"><div class="chrow"><span class="unit" data-u="${esc(unitKey(sets[0]))}">${multi ? `${esc(colLabel(colOf(sets[0])))} › ${name}` : name}</span>${usable.length ? `<button class="link" data-all="${i}">${all ? "Clear" : "Select all"}</button>` : ""}</div>
           <div class="chips">${sets.map((s) => { const n = readyCount(s.words); return `<button class="chip" data-set="${esc(s.id)}" aria-pressed="${!!n && S.selected.has(s.id)}"${n ? "" : ` disabled title="No words yet"`}>${esc(s.name)}<span class="n">${n}</span></button>`; }).join("")}</div></div>`;
       }).join("");
       box.querySelectorAll("[data-set]").forEach((b) => (b.onclick = () => { const id = b.dataset.set; S.selected.has(id) ? S.selected.delete(id) : S.selected.add(id); saveSetup(); renderSetup(); }));
@@ -225,9 +233,9 @@
     document.querySelectorAll("#modeSeg [data-mode] span").forEach((sp) => (sp.textContent = modeText(sp.parentNode.dataset.mode, S.dir)));
     const n = selectedWords().length, items = S.dir === "both" ? n * 2 : n;
     const kata = S.mode === "kata" ? "katakana " : "";
-    $("#countLbl").textContent = n && S.mode === "verb" ? `${n} verb${n === 1 ? "" : "s"}, ${n * VFORMS.length} questions`
+    $("#countLbl").textContent = n && S.mode === "verb" ? `${plural(n, "verb")}, ${n * VFORMS.length} questions`
       : !n && S.mode === "verb" && S.selected.size ? "No verbs in the picked set(s)."
-      : n ? `${n} ${kata}word${n === 1 ? "" : "s"}${S.dir === "both" ? `, ${items} questions` : ""}`
+      : n ? `${plural(n, kata + "word")}${S.dir === "both" ? `, ${items} questions` : ""}`
       : kata && S.selected.size ? "No katakana words in the picked set(s)." : "Pick at least one set.";
     $("#startBtn").disabled = !n;
     renderResume();
@@ -237,7 +245,7 @@
   function renderUpto() {
     const sel = $("#uptoSel"), lists = S.kanjiLists, multi = multiCol();
     const opts = lists.length
-      ? [["auto", ["Highest picked unit"]], ...new Map(lists.map((k) => [unitKey(k), [k.unit, colOf(k)]])), ["none", ["Nothing yet"]], ["all", ["Every kanji in the table"]]]
+      ? [["auto", ["Highest unit of the picked sets"]], ...new Map(lists.map((k) => [unitKey(k), [k.unit, colOf(k)]])), ["none", ["Nothing yet"]], ["all", ["Every kanji in the table"]]]
       : [["all", ["Every kanji in the table"]]];
     // Older pages stored a bare chapter number (read as that chapter of the first collection) or a chapter number after the book.
     const has = (k) => opts.some(([v]) => v === k);
@@ -251,10 +259,10 @@
     sel.innerHTML = opts.map(opt).join("");
     const set = learnedSet(), key = uptoKey(), list = lists.find((k) => unitKey(k) === key);
     const upTo = S.upto !== "auto" ? "" : !S.selected.size ? "Follows the sets you pick" : list ? `Up to ${unitTitle(list)} · ` : "";
-    $("#uptoHint").textContent = !lists.length ? "Add kanji lists to units in the vocab table to choose a unit." : S.upto === "auto" && !S.selected.size ? upTo : set ? `${upTo}${set.size} kanji learned` : "";
+    $("#uptoHint").textContent = !lists.length ? "Add kanji lists to units in Vocabulary to choose a unit." : S.upto === "auto" && !S.selected.size ? upTo : set ? `${upTo}${set.size} kanji learned` : "";
   }
   $("#uptoSel").onchange = (e) => { S.upto = e.target.value; store.set("uptoPick", S.upto); renderUpto(); };
-  // The list "Highest picked unit" stands for: the last kanji list at or before the furthest picked unit
+  // The list "Highest unit of the picked sets" stands for: the last kanji list at or before the furthest picked unit
   // (collection order, then unit). No picks = every list; picks before the first list = none.
   function uptoKey() {
     if (S.upto !== "auto") return S.upto;
@@ -268,5 +276,4 @@
   function saveSetup() { store.set("selected", [...S.selected]); store.set("dir", S.dir); store.set("mode", S.mode); }
   document.querySelectorAll("#dirSeg button").forEach((b) => (b.onclick = () => { S.dir = b.dataset.dir; saveSetup(); renderSetup(); }));
   document.querySelectorAll("#modeSeg button").forEach((b) => (b.onclick = () => { S.mode = b.dataset.mode; saveSetup(); renderSetup(); }));
-  $("#toTable").onclick = () => { renderTable(); show("table"); };
-  $("#backBtn").onclick = () => show("setup");
+  $("#backBtn").onclick = () => leaveTable();

@@ -12,7 +12,8 @@ export const initializeApp = (config) => ({ config });
 const authCbs = new Set();
 let current = load(LS_USER, null);
 const emit = () => authCbs.forEach((cb) => cb(current));
-export const getAuth = () => ({ get currentUser() { return current; } });
+// window.__oldSignIn makes the last sign-in older than the 5 minutes Firebase allows for deleting.
+export const getAuth = () => ({ get currentUser() { return current && { ...current, metadata: { lastSignInTime: new Date(window.__oldSignIn ? 0 : Date.now()).toUTCString() } }; } });
 export class GoogleAuthProvider {}
 export function onAuthStateChanged(_auth, cb) { authCbs.add(cb); setTimeout(() => cb(current), 0); return () => authCbs.delete(cb); }
 export async function signInWithPopup() {

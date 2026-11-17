@@ -7,7 +7,8 @@
   // second time there is. With sharing on, each checked answer is saved to users/<uid>/training/<id>: its strokes
   // (points, timing, pressure, pointer kind), the word and direction, the checker's verdict and the student's own call.
   // Only the account itself (and the site's owner, through Firebase) can read it. The pop-up says it may go into products
-  // offered to others and goes with the site if it becomes or joins a company (the owner's plans, 2026-10-21). Settings turns
+  // offered to others and goes with the site if it becomes or joins a company (the owner's plans, 2026-10-21). A yes
+  // is followed by a second pop-up for a birth month and year (account/birth.js), and counts once that's 16 or older. Settings turns
   // sharing off and deletes what was shared (models already trained on it stay); deleting the account deletes it too. The choice and counts live in the synced choices:
   // share = { on, at, asked, never, n }, practices = finished practices.
   const SHARE_EVERY = 10, SHARE_FOR_ALL = false;
@@ -47,7 +48,7 @@
   function afterPractice() {
     const done = (+store.get("practices", 0) || 0) + 1, s = shareState();
     store.set("practices", done);
-    if (offered() && !s.on && !s.never && done % SHARE_EVERY === 0) { askShare(done); setShare({ asked: (s.asked || 0) + 1 }); }
+    if (offered() && !s.on && !s.never && !tooYoung(born) && done % SHARE_EVERY === 0) { askShare(done); setShare({ asked: (s.asked || 0) + 1 }); }
   }
   // done = practices finished (0 when opened from Settings); again = offer "Don't ask me again", which it does from the
   // second time it's asked after a practice.
@@ -57,20 +58,22 @@
     $("#shareNever").checked = false;
     $("#shareAsk").showModal();
   }
-  $("#shareYes").onclick = () => { setShare({ on: true, at: new Date().toISOString(), never: false }); $("#shareAsk").close(); renderShare(); };
+  $("#shareYes").onclick = () => { $("#shareAsk").close(); askBorn(() => { setShare({ on: true, at: new Date().toISOString(), never: false }); renderShare(); }); };
+  // The birth month and year changed in Settings: under 16 or cleared, sharing goes off (true when it was on).
+  function shareAged() { const off = !(born && oldEnough(born)) && shareState().on === true; if (off) setShare({ on: false }); renderShare(); return off; }
   $("#shareNo").onclick = () => { if (!$("#shareNeverRow").hidden && $("#shareNever").checked) setShare({ never: true }); $("#shareAsk").close(); };
 
   // Settings → Help train the checker (wherever it's offered).
   let shareDelAsk = false;
-  $("#settings").addEventListener("close", () => { shareDelAsk = false; });
+  $("#settings").addEventListener("leave", () => { shareDelAsk = false; });
   function renderShare() {
     $("#devSet").hidden = !isDev;
-    $("#shareSet").hidden = !offered();
+    $("#shareSet").hidden = !offered(); syncSetTabs();
     if (!offered()) return;
-    const s = shareState(), n = s.n || 0, when = s.at && !isNaN(new Date(s.at)) ? new Date(s.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
+    const s = shareState(), n = s.n || 0, when = s.at && !isNaN(new Date(s.at)) ? dayText(s.at) : "";
     $("#shareInfo").textContent = s.on
-      ? `On${when ? " since " + when : ""}. ${n} ${n === 1 ? "answer" : "answers"} shared: the strokes, the word and how it was marked, kept to build better handwriting recognition.`
-      : `Off. Turn it on to let your handwriting help train the checker.${n ? ` ${n} ${n === 1 ? "answer is" : "answers are"} still kept from before.` : ""}`;
+      ? `On${when ? " since " + when : ""}. ${plural(n, "answer")} shared: the strokes, the word and how it was marked, kept to build better handwriting recognition.`
+      : "We hope to develop our own handwriting recognition tool someday. Change your mind at any time.";
     $("#shareToggle").textContent = s.on ? "Turn off" : "Turn on…";
     $("#shareDl").hidden = !n || shareDelAsk;
     $("#shareDel").hidden = !n || shareDelAsk;

@@ -7,7 +7,9 @@
   // checking/claude.js, the built-in checker in checking/builtin.js) answers with what to do once the page is no longer
   // busy, and CHECK_ERR has that version's messages for what can go wrong.
   async function check() {
-    if (main.empty || Q.busy) return;
+    if (Q.busy || Q.answered) return;
+    // Nothing written: the answer and the scratch pad, with nothing to mark as correct.
+    if (main.empty) { grade(false, { reason: "Nothing was written. Here's the answer." }); $("#overrideBtn").hidden = true; return; }
     const cur = Q.cur;
     Q.busy = true; syncCheck(); $("#checking").hidden = false; $("#checkingFuri").hidden = furi.c.hidden; $("#checkErr").hidden = true;
     let then = null;
@@ -28,7 +30,7 @@
   // The right answer, written into el: the word with its reading above it, or the English.
   function writeAnswer(el) {
     const { w, dir } = Q.cur;
-    if (dir === "ej") { el.className = "answer"; el.innerHTML = w.kanji ? `<ruby>${esc(w.kanji)}<rt>${esc(w.kana)}</rt></ruby>` : esc(w.kana); }
+    if (dir === "ej") { el.className = "answer"; el.innerHTML = jpRuby(w); }
     else { el.className = "answer en"; el.textContent = w.en; }
   }
   // What a checker made of the writing: "furigana 「ほく」 over 「北」", or "" when it read nothing.
@@ -42,7 +44,7 @@
     // A right answer goes straight on to the next word (the 花丸 that used to be drawn first was taken out, 2026-10-23).
     if (ok) { Q.done.add(key); saveResume(); nextItem(); return; }
     Q.wrong.push(Q.cur); saveResume();
-    $("#tools").hidden = true;
+    $("#writeTools").hidden = true;
     $("#fbReason").textContent = r?.reason || "";
     writeAnswer($("#fbAnswer"));
     const need = dir === "ej" && S.mode === "kanji" ? requiredKanji(w) : [], nb = $("#fbNeed");

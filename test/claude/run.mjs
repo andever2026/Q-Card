@@ -112,6 +112,9 @@ ok(await vis("#results") || /^2 of 2 done/.test(await text("#progLbl")), "check:
 // ---------- 3. export and import, shared with the public site ----------
 await page.click("#newBtn").catch(() => {}); await page.waitForTimeout(200);
 await page.click("#settingsBtn");
+ok(await page.evaluate(() => !document.querySelector("#settings").hidden && [...document.querySelectorAll("#setNav [data-set-tab]")].filter((b) => !b.hidden).map((b) => b.textContent).join(", ")) === "Appearance, Data",
+  "settings: a page with its tabs, without the public site's Account, sharing, Developer tools and Admin");
+await page.click('#setNav [data-set-tab="data"]');
 ok(await vis("#portPanel") && !(await page.$("#aiHelp")), "settings: export / import is there, without the public site's AI link");
 await page.click("#exportBtn"); await page.waitForTimeout(300);
 const saved = await page.evaluate(() => window.__saved[0]);
@@ -127,6 +130,24 @@ await page.click("#importGo"); await page.waitForTimeout(500);
 ok((await page.evaluate(() => JSON.parse(localStorage.getItem("qcard:local:sets/drinks") || "null")))?.words?.length === 1 && /^Imported: 1 new set\.$/.test(await text("#portMsg")), "import: the new set is saved", await text("#portMsg"));
 await page.click("#settingsClose");
 ok(await vis('[data-set="drinks"]'), "import: the new set shows on the page");
+
+// ---------- 4. the menu, the same as the public site's without Study tools (a page of the public site) ----------
+ok(await page.evaluate(() => [...document.querySelectorAll("#sideNav > *")].map((b) => b.textContent.trim()).join(", ")) === "Practice, Vocabulary, Progress", "menu: Practice, Vocabulary and Progress, without the public site's Study tools");
+await page.setViewportSize({ width: 1280, height: 1000 });
+await page.click('#sideNav [data-go="history"]'); await page.waitForTimeout(300);
+ok(await vis("#history") && await page.evaluate(() => getComputedStyle(document.querySelector("header.side")).position === "fixed"), "menu: a sidebar on a big screen, and History opens from it");
+await page.click('#sideNav [data-go="setup"]'); await page.waitForTimeout(200);
+
+// ---------- 5. views are made in the vocab table's Edit collections and stored in this copy's database ----------
+await page.click('#sideNav [data-go="table"]'); await page.waitForTimeout(300);
+await page.click("#editColBtn"); await page.click("#viewEd [data-vadd]"); await page.keyboard.type("Term 1");
+const mainCols = await page.$$eval("#colEd [data-cname]", (ts) => ts.map((t) => t.value).join("|"));
+await page.click("#colSave"); await page.waitForTimeout(400);
+const edClosed = !(await vis("#colEd"));
+await page.click('#tGroupSeg [data-view="Term 1"]'); await page.waitForTimeout(200);
+ok(edClosed && mainCols && await page.$$eval("#tChs .chbook", (ls) => ls.map((l) => l.textContent).join("|")) === mainCols,
+  "views: a view added in Edit collections is saved and its rows of units show", await page.$$eval("#tChs .chbook", (ls) => ls.map((l) => l.textContent).join("|")));
+await page.click('#sideNav [data-go="setup"]'); await page.waitForTimeout(200);
 
 ok(errors.length === 0, "no page errors", errors.join(" | "));
 await browser.close(); server.close();

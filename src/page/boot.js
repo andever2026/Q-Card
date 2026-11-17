@@ -15,11 +15,8 @@
     if (!sample) banner("Handwriting checking needs Claude, which isn't available in this view. Open the page in claude.ai while signed in.");
     if (!db) { gate("Sign in to claude.ai to use this page", "Already signed in? Reload the page."); return; }
     document.body.classList.add("ready");
-    cl.use("downloads").then((d) => { downloads = d; renderPort(); });
-    db.collection("kanji").onSnapshot(onKanji, () => {});
-    db.collection("sets").onSnapshot(onSets, () => banner("The vocab sets couldn't load. Reload the page to try again."));
-    db.doc("meta/books").onSnapshot(onBookOrder, () => {});
-    db.doc("meta/courses").onSnapshot(onCourses, () => {});
+    cl.use("downloads").then((d) => { downloads = d; renderPort(); renderHistPort(); });
+    watchVocab("The vocab sets couldn't load. Reload the page to try again.");
     // Visitors by link can't write to the database, so their history stays in their own browser.
     if (owner) { watchHistory(); syncPrefs(); } else if (uid) watchLocal();
   })();
@@ -29,26 +26,28 @@
     if (!platform) { $("#gate").innerHTML = "<b>The page couldn't start</b>Reload it to try again."; return; }
     let started = null;
     const start = ({ id, db: store }) => {
+      // The part the address names, read before anything below can show a part; only when the page loads, not when the account changes.
+      const part = start.once ? "setup" : hashPart(); start.once = true;
       started = uid = id;
       db = store; user = platform.user(uid); owner = canWrite = true; downloads = platform.downloads;
       document.body.classList.add("ready");
       renderPort();
-      db.collection("kanji").onSnapshot(onKanji, () => {});
-      db.collection("sets").onSnapshot(onSets, () => banner("Your vocab sets couldn't load. Reload the page to try again."));
-      db.doc("meta/books").onSnapshot(onBookOrder, () => {});
-      db.doc("meta/courses").onSnapshot(onCourses, () => {});
+      watchVocab("Your vocab sets couldn't load. Reload the page to try again.");
       watchHistory();
-      if (id !== "local") stopPrefs = syncPrefs();
+      if (id !== "local") { stopPrefs = syncPrefs(checkPolicy); watchProfile(); } else checkPolicy();
+      renderAcctMenu();
       offerSamples();
+      // An address naming a part of the page (page/address.js) opens it.
+      if (part !== "setup") { syncHash.quiet = true; openView(part); syncHash.quiet = false; }
     };
     // As a guest, everything is kept in this browser (src/account/local.js); choosing it in the welcome pop-up is remembered.
     startLocal = () => {
       start(platform.storeFor(null));
-      $("#histWhere").textContent = "Saved only in this browser";
     };
     platform.onAuth((u) => {
-      // Signing in or out (here or in another tab) or switching accounts starts the page over.
-      if (started) { if ((u?.uid || "local") !== started && (u || started !== "local")) location.reload(); return; }
+      // Signing in or out (here or in another tab) or switching accounts starts the page over, on Practice (without the
+      // address of the part it was on).
+      if (started) { if ((u?.uid || "local") !== started && (u || started !== "local")) location.replace(location.pathname + location.search); return; }
       if (!u) {
         let guest = false;
         try { guest = localStorage.getItem("qcard:mode") === "local" || localStorage.getItem("qcard:welcomed") === "1"; } catch {}
