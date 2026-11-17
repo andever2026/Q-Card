@@ -39,7 +39,7 @@
       offerSamples();
       // An address naming a part of the page (page/address.js) opens it.
       if (part !== "setup") { syncHash.quiet = true; openView(part); syncHash.quiet = false; }
-      else resumeShared(); // shared-notebooks/preview.js
+      else resumeLink(); // page/address.js
     };
     // As a guest, everything is kept in this browser (src/account/local.js); choosing it in the welcome pop-up is remembered.
     startLocal = () => {

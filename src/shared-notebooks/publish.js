@@ -4,9 +4,7 @@
   // share. Whatever changes in the notebook is copied over a moment later, so the link always shows the notebook as it
   // is, and people who added it get the changes (linked.js). Only the notebook is copied: its sets, kanji lists,
   // collection order and views. Nothing of the account goes with it.
-  const shareLink = (id) => `${location.origin}${location.pathname}#shared/${id}`;
-  // Long and random: having the link is what lets someone read the copy.
-  const newShareId = () => [...crypto.getRandomValues(new Uint8Array(24))].map((b) => "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"[b % 56]).join("");
+  const shareLink = (id) => linkTo("#shared/" + id);
   // A document's fingerprint: enough to tell that it changed. shares/<id> lists one per document ("path fingerprint").
   const docStamp = (d) => { const s = JSON.stringify(d); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return `${h.toString(36)}.${s.length.toString(36)}`; };
   const revOf = (list) => new Map((Array.isArray(list) ? list : []).map((x) => String(x).split(" ")).filter((x) => x.length === 2));
@@ -49,7 +47,7 @@
   vocabHooks.push(shareSoon);
   // Shares the open notebook: "" if it couldn't be.
   async function startShare() {
-    const id = newShareId(), sh = platform.shared(id), n = nbNow(), now = new Date().toISOString();
+    const id = newLinkId(), sh = platform.shared(id), n = nbNow(), now = new Date().toISOString();
     try { await sh.owner.set({ uid, nb: n.id, createdAt: now }); await sh.info.set({ name: n.name, rev: [], updatedAt: now }); }
     catch { banner("Couldn't share it. Try again."); return ""; }
     if (!(await saveNb({ ...n, share: id }))) { dropShare(id).catch(() => {}); return ""; }
@@ -88,8 +86,7 @@
       $("#shareListed").onchange = (e) => { $("#shareAbout").hidden = !e.target.checked; };
       enterYes($("#shareAbout"));
     }
-    $("#shareLinkIn").onfocus = (e) => e.target.select();
-    $("#shareCopy").onclick = async (e) => { try { await navigator.clipboard.writeText(shareLink(id)); e.target.textContent = "Copied"; } catch { $("#shareLinkIn").focus(); } };
+    copyLink($("#shareCopy"), $("#shareLinkIn"));
     $("#shareStop").onclick = () => { stop = true; $("#askDlg").close("no"); };
     const done = await closed, listed = !down && $("#shareListed").checked, about = listed ? tidy($("#shareAbout").value, 200) : "";
     // Done keeps the choice about the Browse page; Cancel leaves it as it was.

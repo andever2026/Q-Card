@@ -91,7 +91,7 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .linknote { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: .9rem; color: var(--muted); }
 .tset tr.own td, .ownkey { background: color-mix(in srgb, var(--ai) 10%, transparent); }
 .ownkey { padding: 1px 6px; border-radius: 4px; color: var(--ink); white-space: nowrap; }
-#shareLinkIn { width: 100%; margin: 4px 0 2px; }
+#shareLinkIn, #gsLinkIn { width: 100%; margin: 4px 0 2px; }
 .sharedo { justify-content: space-between; }
 #shareAbout { width: 100%; }
 .bgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }

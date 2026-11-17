@@ -18,6 +18,7 @@
     //#if public
     else if (v === "tools") openTools();
     else if (v === "shared") openShared();
+    else if (v === "join") openJoin();
     else if (v === "browse") openBrowse();
     //#endif
     else { show("setup"); renderSetup(); }

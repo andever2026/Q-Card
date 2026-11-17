@@ -2547,17 +2547,92 @@ if (entry.length > 1) {
   d = await fs();
   const helper = Object.keys(d).find((p) => p.startsWith(at("/roles/")) && d[p].name === "Helper");
   ok(!!helper && d[helper].perms.invite === true && Object.values(d[helper].perms).filter(Boolean).length === 1 && /Helper\s*Invite/.test(await body()), "group settings: saved with the permission ticked", await body());
+  // A join link (groups/links.js), made in the settings by whoever may invite, with the role people join as.
+  ok(/Join link/.test(await body()) && await vis(gp, "#gsLinkMake") && (await text(gp, "#gsLinkRole .dd-btn")) === "Member", "join link: the settings offer one, joining as Member unless she picks another", await text(gp, "#gsLinkRole"));
+  await gp.click("#gsLinkMake"); await gp.waitForTimeout(400);
+  d = await fs();
+  const token = d[at()].link?.token;
+  ok(/^[A-Za-z0-9]{24}$/.test(token || "") && d[at()].link.role === "member" && d[at()].link.approve === false && JSON.stringify(d[`groupLinks/${token}`]) === JSON.stringify({ group: gid, name: "Study group", role: "member", approve: false })
+    && (await gp.inputValue("#gsLinkIn")).endsWith(`#join/${token}`), "join link: made, it's in the group and on a page of its own, and shown to copy", JSON.stringify(d[at()].link));
   await gp.fill("#gsGroupName", "Japanese club"); await gp.click("#gsGroupSave"); await gp.waitForTimeout(600);
-  ok((await fs())[at()].name === "Japanese club" && (await text(gp, "#askTitle")) === "Japanese club", "group settings: the owner renames the group");
+  d = await fs();
+  ok(d[at()].name === "Japanese club" && d[`groupLinks/${token}`].name === "Japanese club" && (await text(gp, "#askTitle")) === "Japanese club", "group settings: the owner renames the group, and its link's page follows");
   await gp.click("#askYes"); await gp.waitForTimeout(400);
   m = await menuText();
   ok(/Japanese club/.test(m) && (await fs())["users/o1/meta/groups"].list[0].name === "Japanese club", "group settings: the new name shows in the menu and in her list of groups", m);
+  // Ann, signed out, opens the link: the group's name, and Sign in to join, which comes back to it.
+  const A = { uid: "a1", displayName: "Ann", email: "a@example.com" }, R = { uid: "r1", displayName: "Rae", email: "r@example.com" }, Q = { uid: "q1", displayName: "Quin", email: "q@example.com" };
+  const joinPage = async (u, t = token) => { await as(u); await gp.goto(`${base}#join/${t}`); await gp.reload(); await gp.waitForTimeout(900); };
+  for (const u of ["a1", "r1", "q1"]) await put(`users/${u}/meta/samples`, { offeredAt: "x" });
+  await joinPage(null);
+  ok(await vis(gp, "#join") && /Japanese club/.test(await text(gp, "#joinBody")) && await vis(gp, "#joinSignIn"), "join link: signed out, the page names the group and asks to sign in to join", await text(gp, "#joinBody"));
+  await gp.screenshot({ path: join(out, "29-join-signed-out.png") });
+  await gp.evaluate((A) => { window.__nextUser = A; }, A);
+  await gp.click("#joinSignIn"); await gp.waitForTimeout(1500);
+  ok(await vis(gp, "#join") && (await text(gp, "#joinGo")) === "Join", "join link: signed in, she's back on the link's page, with Join", await text(gp, "#joinBody"));
+  await gp.click("#joinGo"); await gp.waitForTimeout(900);
+  d = await fs();
+  ok(d[at("/members/a1")]?.role === "member" && d[at("/members/a1")].via === token && d[at("/members/a1")].name === "Ann" && d["users/a1/meta/groups"]?.list.some((x) => x.id === gid) && /You're in this group/.test(await text(gp, "#joinBody")),
+    "join link: Join puts her in the group as a Member, under her Google name, and in her list of groups", await text(gp, "#joinBody"));
+  await gp.click("#joinOpen"); await gp.waitForTimeout(600);
+  ok(await vis(gp, "#setup") && (await text(gp, "#nbName")) === "Food words", "join link: Open it opens the group's notebook");
+  // Olga makes the link ask first. Rae asks, and waits; Quin asks, takes it back, and asks again.
+  await as(O); await gsOpen(); await gp.check("#gsLinkAsk"); await gp.waitForTimeout(400);
+  d = await fs();
+  ok(d[at()].link.approve === true && d[`groupLinks/${token}`].approve === true && d[at()].link.token === token, "join link: asking first is saved to it, and the link stays the same");
+  await gp.click("#askYes");
+  await joinPage(R);
+  ok((await text(gp, "#joinGo")) === "Ask to join" && /Someone in the group lets you in/.test(await text(gp, "#joinBody")), "join link: when it asks first, the page offers Ask to join", await text(gp, "#joinBody"));
+  await gp.click("#joinGo"); await gp.waitForTimeout(900);
+  d = await fs(); m = await menuText();
+  ok(d[at("/requests/r1")]?.name === "Rae" && d[at("/requests/r1")].role === "member" && !d[at("/members/r1")] && JSON.stringify(d["users/r1/meta/groups"].asked) === JSON.stringify([{ id: gid, name: "Japanese club", token }])
+    && /You asked to join/.test(await text(gp, "#joinBody")) && /Japanese club, You asked to join, Cancel request/.test(m), "join link: Ask to join sends a request, and her page and menu say she's waiting", m);
+  await joinPage(Q); await gp.click("#joinGo"); await gp.waitForTimeout(700);
+  await gp.click("#joinCancel"); await gp.waitForTimeout(700);
+  d = await fs();
+  ok(!d[at("/requests/q1")] && JSON.stringify(d["users/q1/meta/groups"].asked) === "[]" && (await text(gp, "#joinGo")) === "Ask to join" && !/accepted/.test(await text(gp, "#banner")), "join link: Cancel request takes it back, without a message about it");
+  await gp.click("#joinGo"); await gp.waitForTimeout(700);
+  // Olga sees them asking, lets Rae in and turns Quin down.
+  await as(O);
+  m = await menuText();
+  ok(/Japanese club, Food words, 2 people asking to join, New notebook in Japanese club/.test(m), "join requests: whoever may let people in sees how many are asking, under the group in the menu", m);
+  await nbMenu(); await gp.click('#nbList [data-nb-do="groupSettings"]:has-text("asking to join")'); await gp.waitForTimeout(500);
+  ok(/Asking to join \(2\)/.test(await body()) && /Rae\s*as Member/.test(await body()), "join requests: the group's settings list them, with the role each asked for", await body());
+  await gp.screenshot({ path: join(out, "29-join-requests.png") });
+  await gp.click('[data-let-in="r1"]'); await gp.waitForTimeout(400);
+  await gp.click('[data-turn-down="q1"]'); await gp.waitForTimeout(400);
+  d = await fs();
+  ok(d[at("/members/r1")]?.via === "approved" && d[at("/members/r1")].role === "member" && !d[at("/requests/r1")] && !d[at("/requests/q1")] && !d[at("/members/q1")] && /People \(4\)/.test(await body()) && !/Asking to join/.test(await body()),
+    "join requests: Let in puts Rae in with the role she asked for; Turn down only takes Quin's request away", await body());
+  // A new link stops the old one; Turn off leaves none; then a new one again.
+  await gp.click("#gsLinkNew"); await gp.waitForTimeout(400);
+  d = await fs();
+  const token2 = d[at()].link.token;
+  ok(token2 !== token && !d[`groupLinks/${token}`] && d[`groupLinks/${token2}`]?.approve === true && (await gp.inputValue("#gsLinkIn")).endsWith(token2), "join link: New link replaces it, and the old one's page goes");
+  await gp.click("#gsLinkOff"); await gp.waitForTimeout(400);
+  d = await fs();
+  ok(d[at()].link === null && !d[`groupLinks/${token2}`] && await vis(gp, "#gsLinkMake"), "join link: Turn off leaves the group with no link");
+  await gp.click("#gsLinkMake"); await gp.waitForTimeout(400);
+  const token3 = (await fs())[at()].link?.token;
+  await gp.click("#askYes");
+  // Rae and Quin hear which way it went when they next come (once: so the page is loaded only once here).
+  const comeBack = async (u) => { await gp.evaluate((u) => localStorage.setItem("fake:user", JSON.stringify(u)), u); await gp.reload(); await gp.waitForTimeout(1500); };
+  await comeBack(R);
+  d = await fs();
+  ok(/You're in “Japanese club” now/.test(await text(gp, "#banner")) && d["users/r1/meta/groups"].list.some((x) => x.id === gid) && JSON.stringify(d["users/r1/meta/groups"].asked) === "[]" && /Japanese club, Food words/.test(await menuText()),
+    "join requests: let in, Rae's page says so, and the group is in her menu", await text(gp, "#banner"));
+  await comeBack(Q);
+  d = await fs();
+  ok(/wasn't accepted/.test(await text(gp, "#banner")) && !d["users/q1/meta/groups"].list.length && JSON.stringify(d["users/q1/meta/groups"].asked) === "[]", "join requests: turned down, Quin's page says so, and the request leaves her list", await text(gp, "#banner"));
+  await joinPage(Q, token);
+  ok(/This link doesn't work any more/.test(await text(gp, "#joinBody")), "join link: an old link's page says it doesn't work any more");
+  await as(O);
   // Delete my account waits while she owns a group.
   await settings(gp, "account"); await gp.click("#delStart"); await gp.waitForTimeout(200);
   ok(/You own “Japanese club”\. Hand it over/.test(await text(gp, "#delOwn")) && !(await gp.$("#delYes")), "delete account: not while she owns a group; it says to hand it over or delete it first", await text(gp, "#delOwn"));
   await goView(gp, "setup");
   // She hands it to Mo, and takes the role he had; then, an Editor, she can only leave.
-  await gsOpen(); await gp.click("#gsHand"); await gp.waitForTimeout(300);
+  await gsOpen(); await gp.click("#gsTo .dd-btn"); await gp.click('#gsTo li[data-v="m1"]'); await gp.click("#gsHand"); await gp.waitForTimeout(300);
   ok(/^Hand “Japanese club” over to Mo\?$/.test(await text(gp, "#askTitle")) && /Editor/.test(await text(gp, "#askText")), "hand over: asks first, saying she takes his role", await text(gp, "#askText"));
   await gp.click("#askYes"); await gp.waitForTimeout(700);
   d = await fs();
@@ -2574,7 +2649,7 @@ if (entry.length > 1) {
   ok(/^Delete “Japanese club”\?$/.test(await text(gp, "#askTitle")) && /Its notebook and everything in it/.test(await text(gp, "#askText")), "delete group: asks first, saying what goes", await text(gp, "#askText"));
   await gp.click("#askYes"); await gp.waitForTimeout(1200);
   d = await fs();
-  ok(!Object.keys(d).some((p) => p.startsWith(at() + "/") || p === at()) && JSON.stringify(d["users/m1/meta/groups"].list) === "[]", "delete group: all of it is deleted, and it leaves his list");
+  ok(!Object.keys(d).some((p) => p.startsWith(at() + "/") || p === at()) && !d[`groupLinks/${token3}`] && JSON.stringify(d["users/m1/meta/groups"].list) === "[]", "delete group: all of it is deleted, its link's page too, and it leaves his list");
   // Closed by the site (a birthday under 13), an account hands each group it owns on: to whoever has been in it longest of
   // those whose role can do the most (Eve, an Editor, before Olga, a Member who joined first).
   await nbDo("newGroup"); await named("Club two");

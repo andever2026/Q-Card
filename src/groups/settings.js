@@ -9,6 +9,8 @@
   // Whether this account could give role r: it isn't the owner's, and every permission in it is one of this account's own.
   const canGive = (g, r) => r !== "owner" && g.roles.has(r) && PERMS.every((p) => !permsOf(g, r)[p] || perm(g, p));
   const roleName = (g, r) => (r === "owner" ? "Owner" : tidy(g.roles.get(r)?.name, 40) || "No role");
+  // More sections (groups/links.js): { html(g, s), wire(g, s) }, s being { people, q, each, saving, later, draw }.
+  const gsMore = [];
   const rolesInOrder = (g) => [...g.roles.keys()].sort((a, b) => permCount(g, a) - permCount(g, b) || coll.compare(roleName(g, a), roleName(g, b)));
   // The people in a group: its owner first, then in the order they joined.
   const readMembers = async (id) => (await platform.group(id).db.collection("members").get()).docs.map((d) => ({ id: d.id, ...d.data() }))
@@ -27,6 +29,7 @@
     const q = (s) => $("#gsBody").querySelector(s), each = (s, f) => $("#gsBody").querySelectorAll(s).forEach(f);
     const saving = async (f) => { try { await f(); return true; } catch { q("#gsErr").hidden = false; return false; } };
     const used = (r) => people.some((m) => m.role === r) || g.info.link?.role === r;
+    const s = { people, q, each, saving, later, draw: () => draw() };
     function draw() {
       const owner = g.me.role === "owner", r = view.slice(5), x = g.roles.get(r);
       $("#gsBody").innerHTML = (view ? `<section><h4>Role</h4><input class="tsearch" id="gsRoleName" maxlength="40" aria-label="Role name" value="${esc(roleName(g, r))}">
@@ -37,6 +40,7 @@
         <section><h4>People (${people.length})</h4><ul class="gslist">${people.map((m) => `<li><span class="gsn">${esc(m.name)}${m.id === uid ? ` <span class="muted">(you)</span>` : ""}</span>
           ${m.id !== uid && perm(g, "members") && canGive(g, m.role) ? `<span class="gsrole" data-role-of="${esc(m.id)}"></span><button class="link danger" type="button" data-out="${esc(m.id)}">Remove</button>`
             : `<span class="small muted">${esc(roleName(g, m.role))}</span>`}</li>`).join("")}</ul></section>
+        ${gsMore.map((m) => m.html(g, s)).join("")}
         ${perm(g, "roles") ? `<section><h4>Roles</h4><ul class="gslist">${rolesInOrder(g).map((r) => `<li><span class="gsn">${esc(roleName(g, r))}
           <span class="small muted">${esc(PERMS.filter((p) => permsOf(g, r)[p]).map((p) => PERM_NAMES[p]).join(", ") || "Can look and practice")}</span></span>
           ${canGive(g, r) ? `<button class="link" type="button" data-role-edit="${esc(r)}">Change</button>` : ""}</li>`).join("")}</ul>
@@ -54,6 +58,7 @@
         if (q("#gsRoleDel")) q("#gsRoleDel").onclick = async () => { if (await saving(() => at.db.doc("roles/" + r).delete())) { g.roles.delete(r); view = ""; draw(); } };
         return;
       }
+      gsMore.forEach((m) => m.wire(g, s));
       q("#gsNameSave").onclick = async () => { const name = tidy(q("#gsName").value, 60); if (name && (await saving(() => at.db.doc("members/" + uid).update({ name })))) { g.me = { ...g.me, name }; people.find((m) => m.id === uid).name = name; draw(); } };
       each("[data-role-of]", (box) => {
         const m = people.find((p) => p.id === box.dataset.roleOf);
@@ -72,7 +77,11 @@
         groupSettings(id, name && g.roles.has(r) ? "role:" + r : "");
       });
       if (!owner) return void (q("#gsLeave").onclick = later(() => leaveGroup(g)));
-      q("#gsGroupSave").onclick = async () => { const name = tidy(q("#gsGroupName").value, 60); if (name && name !== groupName(g) && (await saving(() => at.info.update({ name })))) $("#askTitle").textContent = name; };
+      // (The join link's page says the group's name too.)
+      q("#gsGroupSave").onclick = async () => {
+        const name = tidy(q("#gsGroupName").value, 60), link = g.info.link;
+        if (name && name !== groupName(g) && (await saving(() => platform.together([[at.info, { name }, "update"], ...(link ? [[platform.groupLink(link.token), { name }, "update"]] : [])])))) $("#askTitle").textContent = name;
+      };
       if (q("#gsTo")) {
         const others = people.filter((m) => m.id !== uid);
         let to = others[0];
@@ -134,6 +143,7 @@
   // nobody else is in it.
   async function leaveGroups(forced) {
     for (const id of [...groups.keys()]) stopGroup(id);
+    await dropAsks(); // links.js
     for (const { id } of groupIndex || []) {
       const at = platform.group(id), line = await at.db.doc("members/" + uid).get().catch(() => null), me = line?.exists ? line.data() : null;
       if (!me) continue;

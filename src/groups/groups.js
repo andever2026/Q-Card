@@ -1,21 +1,26 @@
   // ---------- groups: notebooks several accounts work in together (public site) ----------
   // A group (firestore.rules, platform.group in account/firebase.js) has an owner, roles and members, and notebooks of
   // its own, each with the same documents as any notebook. Nothing lists groups: the account keeps the list of the ones
-  // it's in, meta/groups { list: [{ id, name }] } beside meta/notebooks. Each group's notebooks are in the notebook menu
+  // it's in, meta/groups { list: [{ id, name }], asked: [{ id, name, token }] } beside meta/notebooks (asked: the groups it
+  // asked to join, groups/links.js). Each group's notebooks are in the notebook menu
   // under its name and open like any notebook, by the id "<group>/<notebook>". What someone may do in a group is their
   // role's (the owner may do everything): without Edit notebooks its notebooks are read only, and Manage notebooks adds,
   // renames and deletes them.
   const GROUP_MAX = 20, PERMS = ["edit", "notebooks", "share", "invite", "approve", "members", "roles"];
   const groupsRef = () => db.doc("meta/groups");
-  let groupIndex = null; // [{ id, name }] as saved, null until it has loaded
+  let groupIndex = null, groupAsked = []; // [{ id, name }] as saved, null until it has loaded; [{ id, name, token }]
   // id → { id, info: groups/<id>, me: this account's line, roles: Map, notebooks: [{ id, name, at }], heard, off }
   const groups = new Map();
   // What else goes when a group is deleted (its join link's page: groups/links.js), each given its id and groups/<id>.
-  const groupGone = [];
+  // What else follows the groups whenever something in them changes (groups/links.js).
+  const groupGone = [], groupHooks = [];
+  // More lines under a group's notebooks in the notebook menu (people asking to join: groups/links.js).
+  let groupMore = (g) => "";
   const groupReady = (g) => g?.heard.size === 4;
   const perm = (g, p) => !!g?.me && (g.me.role === "owner" || g.roles.get(g.me.role)?.perms?.[p] === true);
   const groupName = (g) => tidy(g.info?.name, 60) || groupIndex?.find((x) => x.id === g.id)?.name || "Group";
-  const cleanGroups = (d) => (Array.isArray(d?.list) ? d.list : []).filter((x) => /^[A-Za-z0-9_-]{1,40}$/.test(String(x?.id ?? ""))).slice(0, GROUP_MAX).map((x) => ({ id: x.id, name: tidy(x.name, 60) || "Group" }));
+  const cleanGroups = (list) => (Array.isArray(list) ? list : []).filter((x) => /^[A-Za-z0-9_-]{1,40}$/.test(String(x?.id ?? ""))).slice(0, GROUP_MAX)
+    .map((x) => ({ id: x.id, name: tidy(x.name, 60) || "Group", ...(/^[A-Za-z0-9]{20,40}$/.test(String(x.token ?? "")) ? { token: x.token } : {}) }));
   // The name this account goes by in a group it makes or joins: its Google name, which it can change there later.
   const memberName = () => tidy(account?.name, 60) || tidy(account?.email?.split("@")[0], 60) || "Member";
   const splitNb = (id) => { const [g, n] = String(id).split("/"); return n ? { g, n } : null; };
@@ -30,7 +35,8 @@
   // Listens to the account's list of groups, and to each group in it.
   function watchGroups() {
     groupsRef().onSnapshot((snap) => {
-      groupIndex = cleanGroups(dataOrNull(snap));
+      const d = dataOrNull(snap);
+      groupIndex = cleanGroups(d?.list); groupAsked = cleanGroups(d?.asked).filter((x) => x.token);
       // The notebook open in this browser was of a group this account isn't in (another account's, say): that it couldn't
       // load isn't worth a word once another opens.
       const x = splitNb(nb);
@@ -65,20 +71,20 @@
   // so nobody's typing is drawn over).
   function groupsChanged(g) {
     if (g?.info && groupIndex.some((x) => x.id === g.id && x.name !== groupName(g))) saveGroups(groupIndex.map((x) => (x.id === g.id ? { ...x, name: groupName(g) } : x)));
-    if (!openNotebook(nb)) renderNotebooks();
-    followEdit();
-  }
-  async function saveGroups(list) {
-    groupIndex = list; syncGroups();
     if (!openNotebook(nb)) renderNotebooks(); // (out of a group whose notebook is open: the first notebook opens)
-    try { await groupsRef().set({ list, updatedAt: new Date().toISOString() }); return true; } catch { banner("Couldn't save that. Try again."); return false; }
+    followEdit();
+    groupHooks.forEach((f) => f());
+  }
+  async function saveGroups(list, asked = groupAsked) {
+    groupIndex = list; groupAsked = asked; syncGroups(); groupsChanged();
+    try { await groupsRef().set({ list, asked, updatedAt: new Date().toISOString() }); return true; } catch { banner("Couldn't save that. Try again."); return false; }
   }
 
   // Each group in the notebook menu: its name, its notebooks, and New notebook there for whoever may add them.
   nbSections.push((button) => (groupIndex || []).map(({ id, name }) => {
     const g = groups.get(id), ready = groupReady(g);
     return `<div class="nbgroup"><span class="small muted">${esc(g ? groupName(g) : name)}</span>${ready ? `<button type="button" role="menuitem" data-nb-do="groupSettings" data-arg="${esc(id)}" aria-label="Settings of ${esc(groupName(g))}" title="Group settings">${nbIcon("M19.3 10 L21.9 10.5 L21.9 13.5 L19.3 14 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14 19.3 L13.5 21.9 L10.5 21.9 L10 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14 L2.1 13.5 L2.1 10.5 L4.7 10 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10 4.7 L10.5 2.1 L13.5 2.1 L14 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z M15.2 12 a3.2 3.2 0 1 1 -6.4 0 a3.2 3.2 0 0 1 6.4 0")}</button>` : ""}</div>${!ready ? `<p class="small muted nbnone">Loading…</p>`
-      : g.notebooks.map((n) => button({ id: `${id}/${n.id}`, name: n.name })).join("") || `<p class="small muted nbnone">No notebooks yet</p>`}
+      : g.notebooks.map((n) => button({ id: `${id}/${n.id}`, name: n.name })).join("") || `<p class="small muted nbnone">No notebooks yet</p>`}${ready ? groupMore(g) : ""}
       ${ready && canWrite && perm(g, "notebooks") ? `<button type="button" role="menuitem" data-nb-do="groupNb" data-arg="${esc(id)}">${nbIcon("M12 5 V19 M5 12 H19")}New notebook in ${esc(groupName(g))}</button>` : ""}`;
   }).join(""));
 

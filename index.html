@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-yONvafLxUhQyP+LGcDCUy6/XZC37VQdj5S2pSB4nXPE=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-SZtR/vJN2w1/1lkPGyQ1KIbLlc0jFSeYSZtgGqgrIJA=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -174,7 +174,7 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .linknote { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: .9rem; color: var(--muted); }
 .tset tr.own td, .ownkey { background: color-mix(in srgb, var(--ai) 10%, transparent); }
 .ownkey { padding: 1px 6px; border-radius: 4px; color: var(--ink); white-space: nowrap; }
-#shareLinkIn { width: 100%; margin: 4px 0 2px; }
+#shareLinkIn, #gsLinkIn { width: 100%; margin: 4px 0 2px; }
 .sharedo { justify-content: space-between; }
 #shareAbout { width: 100%; }
 .bgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
@@ -866,6 +866,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     <div class="panel" id="sharedHead"></div>
     <div id="sharedBody" style="display: grid; gap: 18px"></div>
   </section>
+  <!-- JOIN: the page a group's join link opens (src/groups/links.js) -->
+  <section id="join" class="wrap" style="gap:18px" hidden><div class="panel" id="joinBody"></div></section>
 
   <!-- QUIZ -->
   <section id="quiz" class="wrap" style="gap:16px" hidden>
@@ -1503,6 +1505,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   views.push("tools"); // Extra tools (study-tools/view.js)
   views.push("shared"); // a notebook somebody shared, opened from its link (shared-notebooks/preview.js)
   views.push("browse"); // the shared notebooks listed for everyone (shared-notebooks/browse.js)
+  views.push("join"); // the page a group's join link opens (groups/links.js)
   function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); markNav(v); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
   function banner(msg) { const b = $("#banner"); b.hidden = !msg; b.textContent = msg || ""; }
   // ---------- Settings (the gear in the menu, page/nav.js) ----------
@@ -1573,6 +1576,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     else if (v === "table") { renderTable(); show("table"); }
     else if (v === "tools") openTools();
     else if (v === "shared") openShared();
+    else if (v === "join") openJoin();
     else if (v === "browse") openBrowse();
     else { show("setup"); renderSetup(); }
   }
@@ -4921,9 +4925,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // share. Whatever changes in the notebook is copied over a moment later, so the link always shows the notebook as it
   // is, and people who added it get the changes (linked.js). Only the notebook is copied: its sets, kanji lists,
   // collection order and views. Nothing of the account goes with it.
-  const shareLink = (id) => `${location.origin}${location.pathname}#shared/${id}`;
-  // Long and random: having the link is what lets someone read the copy.
-  const newShareId = () => [...crypto.getRandomValues(new Uint8Array(24))].map((b) => "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"[b % 56]).join("");
+  const shareLink = (id) => linkTo("#shared/" + id);
   // A document's fingerprint: enough to tell that it changed. shares/<id> lists one per document ("path fingerprint").
   const docStamp = (d) => { const s = JSON.stringify(d); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return `${h.toString(36)}.${s.length.toString(36)}`; };
   const revOf = (list) => new Map((Array.isArray(list) ? list : []).map((x) => String(x).split(" ")).filter((x) => x.length === 2));
@@ -4966,7 +4968,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   vocabHooks.push(shareSoon);
   // Shares the open notebook: "" if it couldn't be.
   async function startShare() {
-    const id = newShareId(), sh = platform.shared(id), n = nbNow(), now = new Date().toISOString();
+    const id = newLinkId(), sh = platform.shared(id), n = nbNow(), now = new Date().toISOString();
     try { await sh.owner.set({ uid, nb: n.id, createdAt: now }); await sh.info.set({ name: n.name, rev: [], updatedAt: now }); }
     catch { banner("Couldn't share it. Try again."); return ""; }
     if (!(await saveNb({ ...n, share: id }))) { dropShare(id).catch(() => {}); return ""; }
@@ -5005,8 +5007,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       $("#shareListed").onchange = (e) => { $("#shareAbout").hidden = !e.target.checked; };
       enterYes($("#shareAbout"));
     }
-    $("#shareLinkIn").onfocus = (e) => e.target.select();
-    $("#shareCopy").onclick = async (e) => { try { await navigator.clipboard.writeText(shareLink(id)); e.target.textContent = "Copied"; } catch { $("#shareLinkIn").focus(); } };
+    copyLink($("#shareCopy"), $("#shareLinkIn"));
     $("#shareStop").onclick = () => { stop = true; $("#askDlg").close("no"); };
     const done = await closed, listed = !down && $("#shareListed").checked, about = listed ? tidy($("#shareAbout").value, 200) : "";
     // Done keeps the choice about the Browse page; Cancel leaves it as it was.
@@ -5127,17 +5128,16 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   // ---------- the page a shared notebook's link opens (public site) ----------
   // …/#shared/<id> (page/address.js). Anyone can look through the notebook there, signed in or not; adding it to an
-  // account needs a sign-in (linked.js does the adding). A visitor who signs in from here comes back to it afterwards:
-  // the page starts over on signing in, so the id waits in this tab's session storage.
+  // account needs a sign-in (linked.js does the adding). A visitor who signs in from here comes back to it afterwards
+  // (linkWait, page/address.js).
   // The id in the address, or of the notebook this page shows (a function, and its own note of that, because the
   // address is read while the page is still starting).
-  function sharedId() { return location.hash.match(/^#shared\/([A-Za-z0-9]{20,40})$/)?.[1] || sharedId.at || ""; }
+  function sharedId() { return hashId("shared") || sharedId.at || ""; }
   let sharedNow = null;
-  const sharedWait = (id) => { try { if (id) sessionStorage.setItem("qcard:shared", id); else sessionStorage.removeItem("qcard:shared"); } catch {} };
   async function openShared(id = sharedId()) {
     sharedId.at = id; sharedNow = null;
     show("shared");
-    if (!account) sharedWait(id);
+    if (!account) linkWait("#shared/" + id);
     $("#sharedHead").innerHTML = `<div class="head"><h2>Shared notebook</h2></div>`;
     $("#sharedBody").innerHTML = `<div class="empty">Loading…</div>`;
     // A notebook that was taken down after a report (report.js) can't be read, except by its owner and developers.
@@ -5178,13 +5178,6 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   // The list of notebooks loads after the page: whether this one is here already shows once it has.
   vocabHooks.push(renderShared);
-  // From boot, once someone is signed in: back to the shared notebook they were looking at before signing in.
-  function resumeShared() {
-    let id = "";
-    try { id = sessionStorage.getItem("qcard:shared") || ""; } catch {}
-    if (!account || !/^[A-Za-z0-9]{20,40}$/.test(id)) return;
-    sharedWait(""); openShared(id);
-  }
   // ---------- reporting a shared notebook (public site) ----------
   // Sharing passes along what other people typed in, so the page a shared notebook's link opens has "Report this
   // notebook". Sending a report needs an account (signed out, the button offers to sign in): which notebook, one of the
@@ -5288,21 +5281,26 @@ colours.apply(...colours.saved()); // before anything is drawn
   // ---------- groups: notebooks several accounts work in together (public site) ----------
   // A group (firestore.rules, platform.group in account/firebase.js) has an owner, roles and members, and notebooks of
   // its own, each with the same documents as any notebook. Nothing lists groups: the account keeps the list of the ones
-  // it's in, meta/groups { list: [{ id, name }] } beside meta/notebooks. Each group's notebooks are in the notebook menu
+  // it's in, meta/groups { list: [{ id, name }], asked: [{ id, name, token }] } beside meta/notebooks (asked: the groups it
+  // asked to join, groups/links.js). Each group's notebooks are in the notebook menu
   // under its name and open like any notebook, by the id "<group>/<notebook>". What someone may do in a group is their
   // role's (the owner may do everything): without Edit notebooks its notebooks are read only, and Manage notebooks adds,
   // renames and deletes them.
   const GROUP_MAX = 20, PERMS = ["edit", "notebooks", "share", "invite", "approve", "members", "roles"];
   const groupsRef = () => db.doc("meta/groups");
-  let groupIndex = null; // [{ id, name }] as saved, null until it has loaded
+  let groupIndex = null, groupAsked = []; // [{ id, name }] as saved, null until it has loaded; [{ id, name, token }]
   // id → { id, info: groups/<id>, me: this account's line, roles: Map, notebooks: [{ id, name, at }], heard, off }
   const groups = new Map();
   // What else goes when a group is deleted (its join link's page: groups/links.js), each given its id and groups/<id>.
-  const groupGone = [];
+  // What else follows the groups whenever something in them changes (groups/links.js).
+  const groupGone = [], groupHooks = [];
+  // More lines under a group's notebooks in the notebook menu (people asking to join: groups/links.js).
+  let groupMore = (g) => "";
   const groupReady = (g) => g?.heard.size === 4;
   const perm = (g, p) => !!g?.me && (g.me.role === "owner" || g.roles.get(g.me.role)?.perms?.[p] === true);
   const groupName = (g) => tidy(g.info?.name, 60) || groupIndex?.find((x) => x.id === g.id)?.name || "Group";
-  const cleanGroups = (d) => (Array.isArray(d?.list) ? d.list : []).filter((x) => /^[A-Za-z0-9_-]{1,40}$/.test(String(x?.id ?? ""))).slice(0, GROUP_MAX).map((x) => ({ id: x.id, name: tidy(x.name, 60) || "Group" }));
+  const cleanGroups = (list) => (Array.isArray(list) ? list : []).filter((x) => /^[A-Za-z0-9_-]{1,40}$/.test(String(x?.id ?? ""))).slice(0, GROUP_MAX)
+    .map((x) => ({ id: x.id, name: tidy(x.name, 60) || "Group", ...(/^[A-Za-z0-9]{20,40}$/.test(String(x.token ?? "")) ? { token: x.token } : {}) }));
   // The name this account goes by in a group it makes or joins: its Google name, which it can change there later.
   const memberName = () => tidy(account?.name, 60) || tidy(account?.email?.split("@")[0], 60) || "Member";
   const splitNb = (id) => { const [g, n] = String(id).split("/"); return n ? { g, n } : null; };
@@ -5317,7 +5315,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   // Listens to the account's list of groups, and to each group in it.
   function watchGroups() {
     groupsRef().onSnapshot((snap) => {
-      groupIndex = cleanGroups(dataOrNull(snap));
+      const d = dataOrNull(snap);
+      groupIndex = cleanGroups(d?.list); groupAsked = cleanGroups(d?.asked).filter((x) => x.token);
       // The notebook open in this browser was of a group this account isn't in (another account's, say): that it couldn't
       // load isn't worth a word once another opens.
       const x = splitNb(nb);
@@ -5352,20 +5351,20 @@ colours.apply(...colours.saved()); // before anything is drawn
   // so nobody's typing is drawn over).
   function groupsChanged(g) {
     if (g?.info && groupIndex.some((x) => x.id === g.id && x.name !== groupName(g))) saveGroups(groupIndex.map((x) => (x.id === g.id ? { ...x, name: groupName(g) } : x)));
-    if (!openNotebook(nb)) renderNotebooks();
-    followEdit();
-  }
-  async function saveGroups(list) {
-    groupIndex = list; syncGroups();
     if (!openNotebook(nb)) renderNotebooks(); // (out of a group whose notebook is open: the first notebook opens)
-    try { await groupsRef().set({ list, updatedAt: new Date().toISOString() }); return true; } catch { banner("Couldn't save that. Try again."); return false; }
+    followEdit();
+    groupHooks.forEach((f) => f());
+  }
+  async function saveGroups(list, asked = groupAsked) {
+    groupIndex = list; groupAsked = asked; syncGroups(); groupsChanged();
+    try { await groupsRef().set({ list, asked, updatedAt: new Date().toISOString() }); return true; } catch { banner("Couldn't save that. Try again."); return false; }
   }
 
   // Each group in the notebook menu: its name, its notebooks, and New notebook there for whoever may add them.
   nbSections.push((button) => (groupIndex || []).map(({ id, name }) => {
     const g = groups.get(id), ready = groupReady(g);
     return `<div class="nbgroup"><span class="small muted">${esc(g ? groupName(g) : name)}</span>${ready ? `<button type="button" role="menuitem" data-nb-do="groupSettings" data-arg="${esc(id)}" aria-label="Settings of ${esc(groupName(g))}" title="Group settings">${nbIcon("M19.3 10 L21.9 10.5 L21.9 13.5 L19.3 14 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14 19.3 L13.5 21.9 L10.5 21.9 L10 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14 L2.1 13.5 L2.1 10.5 L4.7 10 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10 4.7 L10.5 2.1 L13.5 2.1 L14 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z M15.2 12 a3.2 3.2 0 1 1 -6.4 0 a3.2 3.2 0 0 1 6.4 0")}</button>` : ""}</div>${!ready ? `<p class="small muted nbnone">Loading…</p>`
-      : g.notebooks.map((n) => button({ id: `${id}/${n.id}`, name: n.name })).join("") || `<p class="small muted nbnone">No notebooks yet</p>`}
+      : g.notebooks.map((n) => button({ id: `${id}/${n.id}`, name: n.name })).join("") || `<p class="small muted nbnone">No notebooks yet</p>`}${ready ? groupMore(g) : ""}
       ${ready && canWrite && perm(g, "notebooks") ? `<button type="button" role="menuitem" data-nb-do="groupNb" data-arg="${esc(id)}">${nbIcon("M12 5 V19 M5 12 H19")}New notebook in ${esc(groupName(g))}</button>` : ""}`;
   }).join(""));
 
@@ -5442,6 +5441,8 @@ colours.apply(...colours.saved()); // before anything is drawn
   // Whether this account could give role r: it isn't the owner's, and every permission in it is one of this account's own.
   const canGive = (g, r) => r !== "owner" && g.roles.has(r) && PERMS.every((p) => !permsOf(g, r)[p] || perm(g, p));
   const roleName = (g, r) => (r === "owner" ? "Owner" : tidy(g.roles.get(r)?.name, 40) || "No role");
+  // More sections (groups/links.js): { html(g, s), wire(g, s) }, s being { people, q, each, saving, later, draw }.
+  const gsMore = [];
   const rolesInOrder = (g) => [...g.roles.keys()].sort((a, b) => permCount(g, a) - permCount(g, b) || coll.compare(roleName(g, a), roleName(g, b)));
   // The people in a group: its owner first, then in the order they joined.
   const readMembers = async (id) => (await platform.group(id).db.collection("members").get()).docs.map((d) => ({ id: d.id, ...d.data() }))
@@ -5460,6 +5461,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const q = (s) => $("#gsBody").querySelector(s), each = (s, f) => $("#gsBody").querySelectorAll(s).forEach(f);
     const saving = async (f) => { try { await f(); return true; } catch { q("#gsErr").hidden = false; return false; } };
     const used = (r) => people.some((m) => m.role === r) || g.info.link?.role === r;
+    const s = { people, q, each, saving, later, draw: () => draw() };
     function draw() {
       const owner = g.me.role === "owner", r = view.slice(5), x = g.roles.get(r);
       $("#gsBody").innerHTML = (view ? `<section><h4>Role</h4><input class="tsearch" id="gsRoleName" maxlength="40" aria-label="Role name" value="${esc(roleName(g, r))}">
@@ -5470,6 +5472,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         <section><h4>People (${people.length})</h4><ul class="gslist">${people.map((m) => `<li><span class="gsn">${esc(m.name)}${m.id === uid ? ` <span class="muted">(you)</span>` : ""}</span>
           ${m.id !== uid && perm(g, "members") && canGive(g, m.role) ? `<span class="gsrole" data-role-of="${esc(m.id)}"></span><button class="link danger" type="button" data-out="${esc(m.id)}">Remove</button>`
             : `<span class="small muted">${esc(roleName(g, m.role))}</span>`}</li>`).join("")}</ul></section>
+        ${gsMore.map((m) => m.html(g, s)).join("")}
         ${perm(g, "roles") ? `<section><h4>Roles</h4><ul class="gslist">${rolesInOrder(g).map((r) => `<li><span class="gsn">${esc(roleName(g, r))}
           <span class="small muted">${esc(PERMS.filter((p) => permsOf(g, r)[p]).map((p) => PERM_NAMES[p]).join(", ") || "Can look and practice")}</span></span>
           ${canGive(g, r) ? `<button class="link" type="button" data-role-edit="${esc(r)}">Change</button>` : ""}</li>`).join("")}</ul>
@@ -5487,6 +5490,7 @@ colours.apply(...colours.saved()); // before anything is drawn
         if (q("#gsRoleDel")) q("#gsRoleDel").onclick = async () => { if (await saving(() => at.db.doc("roles/" + r).delete())) { g.roles.delete(r); view = ""; draw(); } };
         return;
       }
+      gsMore.forEach((m) => m.wire(g, s));
       q("#gsNameSave").onclick = async () => { const name = tidy(q("#gsName").value, 60); if (name && (await saving(() => at.db.doc("members/" + uid).update({ name })))) { g.me = { ...g.me, name }; people.find((m) => m.id === uid).name = name; draw(); } };
       each("[data-role-of]", (box) => {
         const m = people.find((p) => p.id === box.dataset.roleOf);
@@ -5505,7 +5509,11 @@ colours.apply(...colours.saved()); // before anything is drawn
         groupSettings(id, name && g.roles.has(r) ? "role:" + r : "");
       });
       if (!owner) return void (q("#gsLeave").onclick = later(() => leaveGroup(g)));
-      q("#gsGroupSave").onclick = async () => { const name = tidy(q("#gsGroupName").value, 60); if (name && name !== groupName(g) && (await saving(() => at.info.update({ name })))) $("#askTitle").textContent = name; };
+      // (The join link's page says the group's name too.)
+      q("#gsGroupSave").onclick = async () => {
+        const name = tidy(q("#gsGroupName").value, 60), link = g.info.link;
+        if (name && name !== groupName(g) && (await saving(() => platform.together([[at.info, { name }, "update"], ...(link ? [[platform.groupLink(link.token), { name }, "update"]] : [])])))) $("#askTitle").textContent = name;
+      };
       if (q("#gsTo")) {
         const others = people.filter((m) => m.id !== uid);
         let to = others[0];
@@ -5567,6 +5575,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // nobody else is in it.
   async function leaveGroups(forced) {
     for (const id of [...groups.keys()]) stopGroup(id);
+    await dropAsks(); // links.js
     for (const { id } of groupIndex || []) {
       const at = platform.group(id), line = await at.db.doc("members/" + uid).get().catch(() => null), me = line?.exists ? line.data() : null;
       if (!me) continue;
@@ -5579,6 +5588,157 @@ colours.apply(...colours.saved()); // before anything is drawn
       await at.db.doc("members/" + uid).delete();
     }
   }
+  // ---------- joining a group by link (public site) ----------
+  // Whoever may invite makes the group's join link in its settings, with the role people join with (one they could give)
+  // and whether each person asks first. The group keeps it as link { token, role, approve }, and groupLinks/<token> tells the
+  // page the link opens (…/#join/<token>) the group's name, for anyone (firestore.rules). Signed in, someone with the link
+  // joins at once, or asks (groups/<id>/requests/<their id>) and waits for whoever may approve requests to let them in or
+  // turn them down; the account keeps its asks in its list of groups (asked) until then. A new link, or none, stops the
+  // old one working.
+  const joinLink = (token) => linkTo("#join/" + token);
+  function joinId() { return hashId("join") || joinId.at || ""; }
+
+  // The group's link changed: link is { token, role, approve } or null. groupLinks/<token> follows, in the same write.
+  async function setLink(g, link) {
+    const was = g.info.link, writes = [[platform.group(g.id).info, { link }, "update"]];
+    if (was && was.token !== link?.token) writes.push([platform.groupLink(was.token), null]);
+    if (link) writes.push([platform.groupLink(link.token), { group: g.id, name: groupName(g), role: link.role, approve: link.approve }]);
+    await platform.together(writes);
+    g.info = { ...g.info, link };
+  }
+  // Deleting a group takes its link's page with it (settings.js, emptyGroup).
+  groupGone.push(async (id, info) => { if (info?.link?.token) await platform.groupLink(info.link.token).delete(); });
+
+  // In the group's settings: the join link, for whoever may invite, and the people asking to join, for whoever may let them in.
+  gsMore.push({
+    html: (g) => {
+      if (!perm(g, "invite")) return "";
+      const link = g.info.link, mine = !link || canGive(g, link.role);
+      return `<section><h4>Join link</h4>${link ? `<input class="tsearch" id="gsLinkIn" readonly aria-label="Join link" value="${esc(joinLink(link.token))}">
+        <p class="tactions"><button class="btn" type="button" id="gsLinkCopy">Copy link</button>${mine ? `<button class="link" type="button" id="gsLinkNew">New link</button>` : ""}<button class="link danger" type="button" id="gsLinkOff">Turn off</button></p>`
+        : `<p class="small muted">Anyone who has the link can join, with the role you pick.</p>`}
+        <div class="gsrow"><span class="small">People join as</span>${mine ? `<span id="gsLinkRole"></span>` : `<span class="small muted">${esc(roleName(g, link.role))}</span>`}</div>
+        <label class="checkrow"><input type="checkbox" id="gsLinkAsk"${link?.approve ? " checked" : ""}${mine ? "" : " disabled"}> Each person asks first, and waits to be let in</label>
+        ${link ? `<p class="small muted">A new link, or turning this one off, stops it working.</p>` : `<p class="tactions"><button class="btn primary" type="button" id="gsLinkMake">Make a link</button></p>`}</section>`;
+    },
+    wire: (g, s) => {
+      if (!s.q("#gsLinkAsk")) return;
+      const link = g.info.link, givable = rolesInOrder(g).filter((r) => canGive(g, r)), save = async (v) => { if (await s.saving(() => setLink(g, v))) s.draw(); };
+      let role = link?.role || (givable.includes("member") ? "member" : givable[0]);
+      if (s.q("#gsLinkRole")) makeDropdown(s.q("#gsLinkRole"), "People join as", givable.map((r) => [r, roleName(g, r)]), (r) => { role = r; if (link) save({ ...link, role }); }).set(role);
+      s.q("#gsLinkAsk").onchange = (e) => { if (link) save({ ...link, approve: e.target.checked }); };
+      if (!link) return void (s.q("#gsLinkMake").onclick = () => save({ token: newLinkId(), role, approve: s.q("#gsLinkAsk").checked }));
+      copyLink(s.q("#gsLinkCopy"), s.q("#gsLinkIn"));
+      if (s.q("#gsLinkNew")) s.q("#gsLinkNew").onclick = () => save({ ...link, token: newLinkId() });
+      s.q("#gsLinkOff").onclick = () => save(null);
+    },
+  });
+  gsMore.push({
+    html: (g) => {
+      const list = perm(g, "approve") ? asking.get(g.id)?.list || [] : [];
+      return !list.length ? "" : `<section><h4>Asking to join (${list.length})</h4><ul class="gslist">${list.map((r) => `<li><span class="gsn">${esc(r.name)} <span class="small muted">as ${esc(roleName(g, r.role))}</span></span>
+        <button class="btn" type="button" data-let-in="${esc(r.id)}">Let in</button><button class="link danger" type="button" data-turn-down="${esc(r.id)}">Turn down</button></li>`).join("")}</ul></section>`;
+    },
+    wire: (g, s) => {
+      const at = platform.group(g.id), w = asking.get(g.id), take = (r) => { if (w) w.list = w.list.filter((x) => x !== r); };
+      const of = (id) => w?.list.find((r) => r.id === id);
+      s.each("[data-let-in]", (b) => (b.onclick = async () => {
+        const r = of(b.dataset.letIn), line = { name: r.name, role: r.role, joinedAt: new Date().toISOString(), via: "approved" };
+        if (await s.saving(() => platform.together([[at.db.doc("members/" + r.id), line], [at.db.doc("requests/" + r.id), null]]))) { take(r); s.people.push({ id: r.id, ...line }); s.draw(); }
+      }));
+      s.each("[data-turn-down]", (b) => (b.onclick = async () => { const r = of(b.dataset.turnDown); if (await s.saving(() => at.db.doc("requests/" + r.id).delete())) { take(r); s.draw(); } }));
+    },
+  });
+
+  // People asking to join, listened to in each group where this account may let them in, and shown under the group's
+  // notebooks in the notebook menu.
+  const asking = new Map(); // group id → { list: [{ id, name, role, token, at }], off }
+  function syncAsking() {
+    for (const [id, w] of asking) if (!perm(groups.get(id), "approve")) { w.off(); asking.delete(id); }
+    for (const g of groups.values()) if (groupReady(g) && perm(g, "approve") && !asking.has(g.id)) {
+      const w = { list: [], off: () => {} };
+      asking.set(g.id, w);
+      w.off = platform.group(g.id).db.collection("requests").onSnapshot((snap) => {
+        w.list = snap.docs.map((d) => ({ id: d.id, ...d.data(), name: tidy(d.data().name, 60) || "Someone" })).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+        renderNotebooks();
+      }, () => {});
+    }
+  }
+  groupMore = (g) => {
+    const n = asking.get(g.id)?.list.length;
+    return n ? `<button type="button" role="menuitem" data-nb-do="groupSettings" data-arg="${esc(g.id)}">${nbIcon("M15 19 v-1.5 a3.5 3.5 0 0 0 -3.5 -3.5 h-4 A3.5 3.5 0 0 0 4 17.5 V19 M9.5 10.5 a3 3 0 1 0 0 -6 a3 3 0 0 0 0 6 M19 8 V14 M16 11 H22")}${n} ${n > 1 ? "people" : "person"} asking to join</button>` : "";
+  };
+
+  // The groups this account asked to join: each request is listened to until it goes, and then whether this account is in
+  // the group says which way it went.
+  const askWatch = new Map(); // group id → stop listening
+  function syncAsks() {
+    for (const [id, off] of askWatch) if (!groupAsked.some((a) => a.id === id)) { off(); askWatch.delete(id); }
+    for (const a of groupAsked) if (!askWatch.has(a.id)) askWatch.set(a.id, platform.group(a.id).db.doc("requests/" + uid).onSnapshot((s) => { if (!s.exists) answered(a.id); }, () => answered(a.id)));
+  }
+  async function answered(id) {
+    const a = groupAsked.find((x) => x.id === id);
+    if (!a) return;
+    askWatch.get(id)?.(); askWatch.set(id, () => {}); // (quiet until it leaves the list)
+    const inIt = await platform.group(id).db.doc("members/" + uid).get().then((s) => s.exists, () => false), rest = groupAsked.filter((x) => x.id !== id);
+    banner(inIt ? `You're in “${a.name}” now. Its notebooks are in your notebook menu.` : `Your request to join “${a.name}” wasn't accepted.`);
+    await saveGroups(inIt && !groupIndex.some((x) => x.id === id) ? [...groupIndex, { id, name: a.name }] : groupIndex, rest);
+  }
+  async function cancelAsk(id) {
+    if (await saveGroups(groupIndex, groupAsked.filter((x) => x.id !== id))) await platform.group(id).db.doc("requests/" + uid).delete().catch(() => {});
+  }
+  nbActs.cancelAsk = cancelAsk;
+  // Deleting the account (settings.js, leaveGroups): its requests go too, without a word about them.
+  async function dropAsks() {
+    for (const off of askWatch.values()) off();
+    askWatch.clear();
+    for (const a of groupAsked) await platform.group(a.id).db.doc("requests/" + uid).delete().catch(() => {});
+  }
+  nbSections.push(() => groupAsked.map((a) => `<div class="nbgroup"><span class="small muted">${esc(a.name)}</span></div><p class="small muted nbnone">You asked to join</p>
+    <button type="button" role="menuitem" data-nb-do="cancelAsk" data-arg="${esc(a.id)}">${nbIcon("M6 6 L18 18 M18 6 L6 18")}Cancel request</button>`).join(""));
+
+  // The page a join link opens.
+  let joinNow; // the link's { token, group, name, role, approve }, null when there's none, undefined while it loads
+  let joinFailed = false;
+  async function openJoin(id = joinId()) {
+    joinId.at = id; joinNow = undefined; joinFailed = false;
+    show("join");
+    if (!account) linkWait("#join/" + id);
+    $("#joinBody").innerHTML = `<div class="empty">Loading…</div>`;
+    let l = null;
+    try { l = dataOrNull(await platform.groupLink(id).get()); } catch { joinFailed = true; }
+    if (joinId.at !== id) return;
+    joinNow = l && { token: id, group: String(l.group), name: tidy(l.name, 60) || "Group", role: String(l.role), approve: l.approve === true };
+    renderJoin();
+  }
+  function renderJoin() {
+    const l = joinNow, box = $("#joinBody");
+    if ($("#join").hidden || l === undefined) return;
+    if (!l) return void (box.innerHTML = `<div class="empty"><b>${joinFailed ? "This link couldn't load." : "This link doesn't work any more."}</b><span>${joinFailed ? "Check your connection, then reload the page." : "Ask whoever sent it for a new one."}</span></div>`);
+    const g = groups.get(l.group), inIt = groupIndex?.some((x) => x.id === l.group), first = groupReady(g) && g.notebooks[0];
+    box.innerHTML = `<div class="head"><h2>${esc(l.name)}</h2></div><p class="muted">A group: notebooks the people in it work on together.</p>
+      ${!account ? `<p class="tactions"><button class="btn primary" type="button" id="joinSignIn">Sign in to join</button></p>`
+      : !groupIndex ? `<p class="muted">Loading…</p>`
+      : inIt ? `<p>You're in this group. ${!groupReady(g) ? "" : first ? "Its notebooks are in your notebook menu." : "It has no notebooks yet."}</p>${first ? `<p class="tactions"><button class="btn primary" type="button" id="joinOpen">Open it</button></p>` : ""}`
+      : groupAsked.some((x) => x.id === l.group) ? `<p>You asked to join. You're in once someone in the group lets you in.</p><p class="tactions"><button class="btn" type="button" id="joinCancel">Cancel request</button></p>`
+      : `<p class="tactions"><button class="btn primary" type="button" id="joinGo">${l.approve ? "Ask to join" : "Join"}</button></p>
+        <p class="muted small">${l.approve ? "Someone in the group lets you in. " : ""}The people in it see the name of your Google account. Once you're in, you can change it in the group's settings.</p>`}`;
+    if ($("#joinSignIn")) $("#joinSignIn").onclick = (e) => signIn(e.target, (err) => banner(err || ""));
+    if ($("#joinOpen")) $("#joinOpen").onclick = () => { openNotebook(`${g.id}/${first.id}`); go("setup"); };
+    if ($("#joinCancel")) $("#joinCancel").onclick = () => cancelAsk(l.group);
+    if ($("#joinGo")) $("#joinGo").onclick = (e) => { e.target.disabled = true; joinGroup(l).then(() => (e.target.disabled = false)); };
+  }
+  async function joinGroup(l) {
+    if (groupIndex.length + groupAsked.length >= GROUP_MAX) return banner(`An account can be in up to ${GROUP_MAX} groups. Leave one to join this.`);
+    const at = platform.group(l.group), now = new Date().toISOString();
+    try {
+      if (l.approve) await at.db.doc("requests/" + uid).set({ name: memberName(), role: l.role, token: l.token, at: now });
+      else await at.db.doc("members/" + uid).set({ name: memberName(), role: l.role, joinedAt: now, via: l.token });
+    } catch { return banner("Couldn't do that. The link may have just changed: ask whoever sent it for a new one."); }
+    // (The request first, so that listening to it finds it there.)
+    await (l.approve ? saveGroups(groupIndex, [...groupAsked, { id: l.group, name: l.name, token: l.token }]) : saveGroups([...groupIndex, { id: l.group, name: l.name }]));
+  }
+  groupHooks.push(syncAsking, syncAsks, renderJoin);
   // ---------- Extra tools (public site) ----------
   // A view of the page like the others, with the menu beside it. Its tools are js/tools.js (src/study-tools/tools.js),
   // loaded the first time it opens, so the page itself doesn't carry them. Its address is #tools (page/address.js; the old
@@ -5596,15 +5756,35 @@ colours.apply(...colours.saved()); // before anything is drawn
   // The page loads once and swaps what it shows, so the part after # names the part on screen: …/#vocabulary, #progress,
   // #browse, #tools, #settings (Practice has none). Going to a part adds a step to the browser's history, so ← back and forward
   // step through the parts, and a link or bookmark opens the part it names. A practice and its results add no step.
-  // A shared notebook's link is …/#shared/<its id> (shared-notebooks/preview.js shows what the address names).
-  function partHash(v) { return { setup: "", table: "#vocabulary", history: "#progress", settings: "#settings", tools: "#tools", browse: "#browse", shared: "#shared/" + sharedId() }[v]; }
-  function hashPart() { return ["table", "history", "settings", "tools", "browse", "shared"].find((v) => partHash(v) === location.hash) || "setup"; }
+  // A shared notebook's link is …/#shared/<its id> (shared-notebooks/preview.js shows what the address names), a group's
+  // join link …/#join/<its id> (groups/links.js).
+  function partHash(v) { return { setup: "", table: "#vocabulary", history: "#progress", settings: "#settings", tools: "#tools", browse: "#browse", shared: "#shared/" + sharedId(), join: "#join/" + joinId() }[v]; }
+  function hashPart() { return ["table", "history", "settings", "tools", "browse", "shared", "join"].find((v) => partHash(v) === location.hash) || "setup"; }
   // From show(): the address follows, unless it's the address that moved (back or forward), or the page is still starting
   // (boot.js opens the part the address names).
   function syncHash(v) {
     const h = partHash(v);
     if (h == null || syncHash.quiet || location.hash === h || !document.body.classList.contains("ready")) return;
     window.history.pushState(null, "", h || location.pathname + location.search); // window.: history is the pads' undo list
+  }
+  // A link to one of those: the site's address with its part. A link's id is long and random, since having the link is what
+  // lets someone look (a shared notebook) or join (a group).
+  // The id in an address …/#<part>/<id>, or "".
+  function hashId(part) { const m = location.hash.match(/^#([a-z]+)\/([A-Za-z0-9]{20,40})$/); return m?.[1] === part ? m[2] : ""; }
+  function linkTo(hash) { return `${location.origin}${location.pathname}${hash}`; }
+  function newLinkId() { return [...crypto.getRandomValues(new Uint8Array(24))].map((b) => "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"[b % 56]).join(""); }
+  // A link in a box (selected when it's clicked) with a Copy link button.
+  function copyLink(btn, box) { box.onfocus = () => box.select(); btn.onclick = async () => { try { await navigator.clipboard.writeText(box.value); btn.textContent = "Copied"; } catch { box.focus(); } }; }
+  // A link's page asks a visitor to sign in for some things, and the page starts over on signing in: the link waits in this
+  // tab's session storage, and boot.js opens it again.
+  function linkWait(hash = "") { try { if (hash) sessionStorage.setItem("qcard:link", hash); else sessionStorage.removeItem("qcard:link"); } catch {} }
+  function resumeLink() {
+    let hash = "";
+    try { hash = sessionStorage.getItem("qcard:link") || ""; } catch {}
+    linkWait();
+    if (!account || !/^#(shared|join)\/[A-Za-z0-9]{20,40}$/.test(hash)) return;
+    window.history.replaceState(null, "", hash);
+    openView(hashPart());
   }
   addEventListener("popstate", () => {
     if (!document.body.classList.contains("ready")) return;
@@ -5645,7 +5825,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       offerSamples();
       // An address naming a part of the page (page/address.js) opens it.
       if (part !== "setup") { syncHash.quiet = true; openView(part); syncHash.quiet = false; }
-      else resumeShared(); // shared-notebooks/preview.js
+      else resumeLink(); // page/address.js
     };
     // As a guest, everything is kept in this browser (src/account/local.js); choosing it in the welcome pop-up is remembered.
     startLocal = () => {

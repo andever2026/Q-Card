@@ -531,14 +531,18 @@ await part("7. Group rules", async () => {
 });
 
 // ---------- 8. groups in the page, on the real SDK and rules: making one, its notebooks, moving one in, a member who can only read ----------
+// Groups through the page: the notebook menu (☰ first: at this width the sidebar with it is a drawer), a name asked for,
+// a group's settings from the gear by its name.
+const menu = async (p, sel) => { await sleep(400); if (!(await p.locator("#nbBtn").isVisible())) { await p.click("#menuBtn"); await sleep(400); } await p.click("#nbBtn"); await until(() => p.$(`#nbList ${sel}`)); await p.click(`#nbList ${sel}`); };
+const goTable = async (p) => { await sleep(400); if (!(await p.locator('#sideNav [data-go="table"]').isVisible())) { await p.click("#menuBtn"); await sleep(400); } await p.click('#sideNav [data-go="table"]'); };
+const nameIt = async (p, name) => { await p.fill("#nbNameIn", name); await p.keyboard.press("Enter"); };
+const gs = async (p, sel = '[data-nb-do="groupSettings"]') => { await menu(p, sel); await until(() => p.$("#gsBody")); };
+const groupOf = async (uid) => (await until(async () => (await getDoc(`users/${uid}/meta/groups`))?.list?.[0]))?.id;
+
 await part("8. Groups in the page", async () => {
   const { page, uid } = await newAccount("olga");
-  // (☰ first: at this width the sidebar with the notebook menu is a drawer.)
-  const menu = async (p, sel) => { await sleep(400); if (!(await p.locator("#nbBtn").isVisible())) { await p.click("#menuBtn"); await sleep(400); } await p.click("#nbBtn"); await until(() => p.$(`#nbList ${sel}`)); await p.click(`#nbList ${sel}`); };
-  const goTable = async (p) => { await sleep(400); if (!(await p.locator('#sideNav [data-go="table"]').isVisible())) { await p.click("#menuBtn"); await sleep(400); } await p.click('#sideNav [data-go="table"]'); };
-  const nameIt = async (p, name) => { await p.fill("#nbNameIn", name); await p.keyboard.press("Enter"); };
   await menu(page, '[data-nb-do="newGroup"]'); await nameIt(page, "Study group");
-  const g = (await until(async () => (await getDoc(`users/${uid}/meta/groups`))?.list?.[0]))?.id, at = (p = "") => `groups/${g}${p}`;
+  const g = await groupOf(uid), at = (p = "") => `groups/${g}${p}`;
   ok(!!g && (await getDoc(at()))?.owner === uid && (await getDoc(at(`/members/${uid}`)))?.role === "owner" && (await getDoc(at("/roles/editor")))?.perms?.edit === true,
     "groups: New group makes the group, its owner line and its roles in one write the rules accept, and lists it in the account");
   await menu(page, '[data-nb-do="groupNb"]'); await nameIt(page, "Kana");
@@ -562,8 +566,7 @@ await part("8. Groups in the page", async () => {
   await goTable(mo);
   const tried = await mo.evaluate(async ([g, n]) => { try { await window.qcardPlatform.group(g).db.doc(`notebooks/${n}/sets/x`).set({ name: "x" }); return "written"; } catch (e) { return e.code; } }, [g, kana]);
   ok(await until(() => vis(mo, "#tableRole")) && !(await vis(mo, "#newSetForm")) && tried === "permission-denied", "groups: a Member opens the group's notebook read only, and the rules refuse his writes", tried);
-  // Group settings (src/groups/settings.js), from the gear by the group's name, with the real rules.
-  const gs = async (p) => { await menu(p, '[data-nb-do="groupSettings"]'); await until(() => p.$("#gsBody")); };
+  // Group settings (src/groups/settings.js), with the real rules.
   await gs(page); await page.click(`[data-role-of="${mid}"] .dd-btn`); await page.click(`[data-role-of="${mid}"] li[data-v="editor"]`);
   ok(await until(async () => (await getDoc(at(`/members/${mid}`)))?.role === "editor") && await until(() => vis(mo, "#newSetForm")), "group settings: the owner makes Mo an Editor, and his open page lets him edit at once");
   // Taken out: the real listeners tell his page, which drops the group.
@@ -581,6 +584,41 @@ await part("8. Groups in the page", async () => {
   ok(await until(async () => !(await getDoc(at())) && !Object.keys(await docsAt(at())).length && (await getDoc(`users/${mid}/meta/groups`))?.list?.length === 0), "delete group: its owner deletes its notebooks, their sets, roles and members, then the group, all allowed by the rules");
   await clean(page, "groups (owner)"); await clean(mo, "groups (member)");
   await page.context().close(); await mo.context().close();
+});
+
+await part("9. Joining a group by link", async () => {
+  const { page, uid } = await newAccount("olga");
+  await menu(page, '[data-nb-do="newGroup"]'); await nameIt(page, "Club");
+  const g = await groupOf(uid), at = (p = "") => `groups/${g}${p}`;
+  // A link that lets people in at once, as Members.
+  await gs(page); await page.click("#gsLinkMake");
+  const token = await until(async () => (await getDoc(at()))?.link?.token);
+  ok(!!token && (await getDoc(`groupLinks/${token}`))?.group === g && (await getDoc(at())).link.role === "member", "join link: made in one write the rules accept, on the group and on a page of its own");
+  const joinPage = async (who) => { const p = await openSite(who), id = await signIn(p); await p.goto(`${base}#join/${token}`); await p.reload(); await until(() => vis(p, "#joinGo")); return [p, id]; };
+  const [mo, mid] = await joinPage("mo");
+  await mo.click("#joinGo");
+  ok(await until(async () => (await getDoc(at(`/members/${mid}`)))?.via === token && (await getDoc(`users/${mid}/meta/groups`))?.list?.[0]?.id === g) && await until(async () => /You're in this group/.test(await text(mo, "#joinBody"))),
+    "join link: Join puts him in the group with the link's role, as the rules allow");
+  // Asking first: Ivy asks, and is let in while her page is open.
+  await page.check("#gsLinkAsk");
+  ok(await until(async () => (await getDoc(at())).link.approve === true && (await getDoc(`groupLinks/${token}`)).approve === true), "join link: asking first is saved to the link");
+  await page.click("#askYes");
+  const [ivy, iid] = await joinPage("ivy");
+  await ivy.click("#joinGo");
+  ok(await until(async () => (await getDoc(at(`/requests/${iid}`)))?.role === "member" && /You asked to join/.test(await text(ivy, "#joinBody"))), "join link: Ask to join sends a request the rules accept");
+  await gs(page, '[data-nb-do="groupSettings"]:has-text("asking to join")'); await page.click(`[data-let-in="${iid}"]`);
+  ok(await until(async () => (await getDoc(at(`/members/${iid}`)))?.via === "approved" && !(await getDoc(at(`/requests/${iid}`)))) && await until(async () => /You're in “Club” now/.test(await text(ivy, "#banner"))),
+    "join requests: Let in puts her in and takes the request away in one write, and her open page says she's in");
+  // Renamed, a new link, then the group deleted: its link's page follows each time.
+  await page.fill("#gsGroupName", "Book club"); await page.click("#gsGroupSave");
+  ok(await until(async () => (await getDoc(`groupLinks/${token}`))?.name === "Book club"), "join link: renaming the group renames it on the link's page");
+  await page.click("#gsLinkNew");
+  const token2 = await until(async () => { const t = (await getDoc(at()))?.link?.token; return t !== token && t; });
+  ok(!!token2 && !(await getDoc(`groupLinks/${token}`)) && !!(await getDoc(`groupLinks/${token2}`)), "join link: New link replaces the old one's page");
+  await page.click("#gsDelete"); await page.click("#askYes");
+  ok(await until(async () => !(await getDoc(at())) && !(await getDoc(`groupLinks/${token2}`))), "delete group: its link's page goes with it");
+  await clean(page, "join (owner)"); await clean(mo, "join (Mo)"); await clean(ivy, "join (Ivy)");
+  for (const p of [page, mo, ivy]) await p.context().close();
 });
 
 await browser.close(); server.close();

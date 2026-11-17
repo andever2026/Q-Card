@@ -1,16 +1,15 @@
   // ---------- the page a shared notebook's link opens (public site) ----------
   // …/#shared/<id> (page/address.js). Anyone can look through the notebook there, signed in or not; adding it to an
-  // account needs a sign-in (linked.js does the adding). A visitor who signs in from here comes back to it afterwards:
-  // the page starts over on signing in, so the id waits in this tab's session storage.
+  // account needs a sign-in (linked.js does the adding). A visitor who signs in from here comes back to it afterwards
+  // (linkWait, page/address.js).
   // The id in the address, or of the notebook this page shows (a function, and its own note of that, because the
   // address is read while the page is still starting).
-  function sharedId() { return location.hash.match(/^#shared\/([A-Za-z0-9]{20,40})$/)?.[1] || sharedId.at || ""; }
+  function sharedId() { return hashId("shared") || sharedId.at || ""; }
   let sharedNow = null;
-  const sharedWait = (id) => { try { if (id) sessionStorage.setItem("qcard:shared", id); else sessionStorage.removeItem("qcard:shared"); } catch {} };
   async function openShared(id = sharedId()) {
     sharedId.at = id; sharedNow = null;
     show("shared");
-    if (!account) sharedWait(id);
+    if (!account) linkWait("#shared/" + id);
     $("#sharedHead").innerHTML = `<div class="head"><h2>Shared notebook</h2></div>`;
     $("#sharedBody").innerHTML = `<div class="empty">Loading…</div>`;
     // A notebook that was taken down after a report (report.js) can't be read, except by its owner and developers.
@@ -51,10 +50,3 @@
   }
   // The list of notebooks loads after the page: whether this one is here already shows once it has.
   vocabHooks.push(renderShared);
-  // From boot, once someone is signed in: back to the shared notebook they were looking at before signing in.
-  function resumeShared() {
-    let id = "";
-    try { id = sessionStorage.getItem("qcard:shared") || ""; } catch {}
-    if (!account || !/^[A-Za-z0-9]{20,40}$/.test(id)) return;
-    sharedWait(""); openShared(id);
-  }

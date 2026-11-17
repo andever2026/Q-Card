@@ -90,19 +90,36 @@ function allowed(path, write = false, v, q, after = data) {
     if (!current || s.length < 2) no();
     const at = (p = "") => `groups/${s[1]}${p}`, me = current.uid, G = data[at()], mine = data[at(`/members/${me}`)], was = data[path];
     const can = (p) => !!mine && (mine.role === "owner" || data[at(`/roles/${mine.role}`)]?.perms?.[p] === true), owns = !!G && G.owner === me;
-    if (!write) { if (!mine || (s[2] === "requests" && !can("approve") && s[3] !== me)) no(); return; }
+    // (Someone who asked to join reads their own request.)
+    if (!write) { if (s[2] === "requests" ? !(s.length === 4 && s[3] === me) && !can("approve") : !mine) no(); return; }
     if (s.length === 2) { if (write === "delete" ? !owns : G ? !owns && !(can("invite") && v.name === G.name && v.owner === G.owner) : v.owner !== me || v.link != null) no(); return; }
     if (s[2] === "roles") { if (s[3] === "owner" || !(can("roles") || (!G && after[at()]?.owner === me))) no(); return; }
     if (s[2] === "members") {
       if (write === "delete") { if (!(s[3] === me && was?.role !== "owner") && !owns && !(can("members") && was?.role !== "owner")) no(); return; }
-      if (!was) { if (!(s[3] === me && v.role === "owner" && after[at()]?.owner === me)) no(); return; }
+      // Joining: the owner making the group; with the link, if it doesn't ask first; or let in by whoever may approve requests.
+      if (!was) {
+        if (!(s[3] === me && v.role === "owner" && after[at()]?.owner === me) && !(s[3] === me && G?.link?.approve === false && v.via === G.link.token && v.role === G.link.role)
+          && !(s[3] !== me && v.via === "approved" && can("approve") && data[at(`/requests/${s[3]}`)]?.role === v.role)) no();
+        return;
+      }
       // (Becoming owner, or the old owner taking a role, only as part of the owner handing the group over.)
       const handing = owns && after[at()]?.owner !== me;
       if (s[3] === me ? v.role !== was.role && !(handing && was.role === "owner") : !(can("members") && was.role !== "owner" && v.role !== "owner") && !(handing && v.role === "owner" && after[at()]?.owner === s[3])) no();
       return;
     }
+    if (s[2] === "requests") {
+      if (write === "delete" ? s[3] !== me && !can("approve") && !owns : s[3] !== me || !!mine || G?.link?.approve !== true || v.token !== G.link.token || v.role !== G.link.role) no();
+      return;
+    }
     if (s[2] === "notebooks") { if (s.length === 4 ? !can("notebooks") && !(write === "delete" && owns) : !["sets", "kanji", "meta"].includes(s[4]) || !(can("edit") || can("notebooks"))) no(); return; }
     no();
+  }
+  // A group's join link: anyone reads it; whoever may invite in that group writes it.
+  if (s[0] === "groupLinks") {
+    if (!write) return;
+    const G = (v || data[path])?.group, mine = current && data[`groups/${G}/members/${current.uid}`];
+    if (!mine || !(mine.role === "owner" || data[`groups/${G}/roles/${mine.role}`]?.perms?.invite === true) || (data[path] && v && v.group !== data[path].group)) no();
+    return;
   }
   if (!current) throw { code: "permission-denied", message: "signed out" };
   if (s[0] === "dev" && s.length === 2 && s[1] === current.uid && !write) return;
@@ -175,13 +192,14 @@ export async function updateDoc(ref, v) {
 export function writeBatch() {
   const ops = [];
   return {
-    set(ref, v) { ops.push([ref.path, clean(v, ref.path)]); },
-    delete(ref) { ops.push([ref.path, null]); },
+    set(ref, v) { ops.push([ref.path, clean(v, ref.path), "set"]); },
+    update(ref, v) { ops.push([ref.path, { ...data[ref.path], ...clean(v, ref.path) }, "update"]); },
+    delete(ref) { ops.push([ref.path, null, "delete"]); },
     async commit() {
       const after = { ...data };
       for (const [p, v] of ops) { if (v === null) delete after[p]; else after[p] = v; }
-      for (const [p, v] of ops) allowed(p, v === null ? "delete" : "set", v, undefined, after);
-      for (const [p, v] of ops) { window.__fs.log.push([v === null ? "delete" : "set", p]); if (v === null) delete data[p]; else data[p] = v; }
+      for (const [p, v, how] of ops) allowed(p, how, v, undefined, after);
+      for (const [p, v, how] of ops) { window.__fs.log.push([how, p]); if (v === null) delete data[p]; else data[p] = v; }
       changed();
     },
   };

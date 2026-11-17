@@ -97,9 +97,11 @@ window.qcardPlatform = {
   // roles/<role>, members/<account> and notebooks/<nb> (each with that notebook's documents under it). Only people in the
   // group can read any of it, and what each can change is their role's.
   group: (id) => ({ info: all.doc(`groups/${id}`), db: makeDb((p) => `groups/${id}/${p}`) }),
+  // A group's join link: which group, its name, and the role and approval it joins with (anyone can read it).
+  groupLink: (id) => all.doc(`groupLinks/${id}`),
   // Writes that go through together or not at all: [document, data] sets one, [document, null] deletes it. The rules
   // check them as one (making a group with its owner and roles, handing it over).
-  together: async (writes) => { const b = writeBatch(fs); for (const [d, v] of writes) { if (v === null) b.delete(d.ref); else b.set(d.ref, v); } await b.commit(); },
+  together: async (writes) => { const b = writeBatch(fs); for (const [d, v, how] of writes) { if (v === null) b.delete(d.ref); else if (how === "update") b.update(d.ref, v); else b.set(d.ref, v); } await b.commit(); },
   user: makeUser,
   // Whether this account is a developer: dev/<uid> exists (see firestore.rules; only the Firebase console makes it).
   isDev: async (uid) => { try { return (await getDoc(doc(fs, "dev/" + uid))).exists(); } catch { return false; } },
