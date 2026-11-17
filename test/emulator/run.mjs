@@ -6,6 +6,7 @@
 // Run (needs firebase-tools and Java 21, and Playwright like test/public; PLAYWRIGHT_DIR overrides where it lives):
 //   npx firebase emulators:exec --config test/emulator/firebase.json --only auth,firestore --project demo-qcard "node test/emulator/run.mjs"
 // or start the emulators once with emulators:start and the same options, then run node test/emulator/run.mjs as often as you like.
+// PARTS=6,7 (or any list of part numbers) runs only those parts.
 // firestore.rules is loaded into the emulator at the start of every run, and the emulators are wiped before each part.
 import { createRequire } from "node:module";
 import { createServer } from "node:http";
@@ -189,8 +190,9 @@ const clean = async (page, label) => {
 async function openSettings(page) { await page.click("#acctBtn"); await page.click('#acctList [data-acct="settings"]'); }
 // Yes to sharing handwriting, then the birth month and year its second pop-up asks for.
 async function sayYes(page) { await page.click("#shareYes"); for (const [k, v] of [["M", "01"], ["Y", "1990"]]) { await page.click(`#bornAskIn${k} .dd-btn`); await page.click(`#bornAskIn${k} li[data-v="${v}"]`); } await page.click("#bornAskGo"); await page.click("#askYes"); }
-// One part of the tests; an exception fails it and the rest still run.
+// One part of the tests; an exception fails it and the rest still run. PARTS=6,7 runs only those parts.
 async function part(name, fn) {
+  if (process.env.PARTS && !process.env.PARTS.split(",").includes(name.split(".")[0])) return;
   console.log(`\n${name}`);
   try { await fn(); } catch (e) { ok(false, `${name}: stopped early`, e.message.split("\n")[0]); }
 }
@@ -335,15 +337,24 @@ await part("5. Delete my account", async () => {
   await page.context().close();
 });
 
+// ---------- the rules over REST, with made-up sign-in tokens (parts 6 and 7) ----------
+// An unsigned ID token: the emulator reads it without checking a signature. who is an account id, or [id, email] for an
+// account signed in with that email (as Google gives it, checked), or [id, email, false] for one whose email isn't checked.
+const token = (who) => { const [uid, email, checked = true] = [who].flat(); return [{ alg: "none", typ: "JWT" }, { sub: uid, user_id: uid, iss: `https://securetoken.google.com/${PROJECT}`, aud: PROJECT, iat: 1, exp: 9999999999, auth_time: 1,
+  firebase: { sign_in_provider: "google.com" }, ...(email && { email, email_verified: checked }) }].map((o) => Buffer.from(JSON.stringify(o)).toString("base64url")).join(".") + "."; };
+const headersOf = (who) => ({ "content-type": "application/json", ...(who === "admin" ? OWNER : who ? { Authorization: "Bearer " + token(who) } : {}) });
+const as = async (who, method, path, body) => (await fetch(`${FS}/${path}`, { method, headers: headersOf(who), body: body && JSON.stringify(body) })).status;
+// Several writes at once, as a batch: [path, document] to set one, [path] to delete it.
+const together = async (who, writes) => (await fetch(`${FS}:commit`, { method: "POST", headers: headersOf(who), body: JSON.stringify({ writes: writes.map(([path, body]) => {
+  const name = `projects/${PROJECT}/databases/(default)/documents/${path}`; return body ? { update: { name, fields: body.fields } } : { delete: name }; }) }) })).status;
+// A query for the documents of collection id under parent ("" for the top) whose field equals value.
+const where = async (who, parent, id, field, value) => (await fetch(`${FS}${parent && "/" + parent}:runQuery`, { method: "POST", headers: headersOf(who),
+  body: JSON.stringify({ structuredQuery: { from: [{ collectionId: id }], ...(field && { where: { fieldFilter: { field: { fieldPath: field }, op: "EQUAL", value } } }) } }) })).status;
+const str = (v) => ({ stringValue: v });
+
 // ---------- 6. the rules, over REST with made-up sign-in tokens ----------
 await part("6. Rules", async () => {
   await clearEmulators();
-  // An unsigned ID token: the emulator reads it without checking a signature.
-  const token = (uid) => [{ alg: "none", typ: "JWT" }, { sub: uid, user_id: uid, iss: `https://securetoken.google.com/${PROJECT}`, aud: PROJECT, iat: 1, exp: 9999999999, auth_time: 1, firebase: { sign_in_provider: "google.com" } }]
-    .map((o) => Buffer.from(JSON.stringify(o)).toString("base64url")).join(".") + ".";
-  const as = async (who, method, path, body) => (await fetch(`${FS}/${path}`, { method,
-    headers: { "content-type": "application/json", ...(who === "admin" ? OWNER : who ? { Authorization: "Bearer " + token(who) } : {}) },
-    body: body && JSON.stringify(body) })).status;
   const doc = { fields: { name: { stringValue: "A" } } };
   ok(await as("alice", "PATCH", "users/alice/sets/a", doc) === 200 && await as("alice", "PATCH", "users/alice/data/prefs", doc) === 200, "rules: Alice writes in her own folder");
   ok(await as("alice", "GET", "users/alice/sets/a") === 200 && await as("alice", "DELETE", "users/alice/data/prefs") === 200, "rules: Alice reads and deletes in her own folder");
@@ -357,7 +368,7 @@ await part("6. Rules", async () => {
   ok(await as("alice", "PATCH", "dev/alice", doc) === 403 && await as("alice", "DELETE", "dev/alice") === 403 && await as("bob", "PATCH", "dev/bob", doc) === 403,
     "rules: dev/<uid> is never writable from the site, not even one's own");
   // Shared notebooks: shareOwners/<id> says whose a shared copy is, shares/<id> and what's under it is the copy.
-  const sid = "abcdefghijkmnopqrstuvwxy", str = (v) => ({ stringValue: v });
+  const sid = "abcdefghijkmnopqrstuvwxy";
   const own = (uid) => ({ fields: { uid: str(uid), nb: str("main"), createdAt: str("x") } }), info = (more = {}) => ({ fields: { name: str("My notebook"), rev: { arrayValue: { values: [str("sets/a 1.1")] } }, updatedAt: str("x"), ...more } });
   ok(await as("alice", "PATCH", "shareOwners/short", own("alice")) === 403 && await as("alice", "PATCH", `shareOwners/${sid}`, own("bob")) === 403 && await as(null, "PATCH", `shareOwners/${sid}`, own("alice")) === 403,
     "rules: a share can't be made under a short id, in somebody else's name, or signed out");
@@ -385,8 +396,7 @@ await part("6. Rules", async () => {
   ok(await as("carol", "PATCH", "reports/r4", rep("alice")) === 403 && await as("carol", "PATCH", "reports/r4", { fields: noBy }) === 403, "rules: a report says it's from the account sending it, and from no other");
   // The account that sent reports can list its own (and only by asking for those), and take itself off them; nothing else.
   // (Carol's r2: Alice is a developer here.)
-  const theirs = async (who, by) => (await fetch(`${FS}:runQuery`, { method: "POST", headers: { "content-type": "application/json", Authorization: "Bearer " + token(who) },
-    body: JSON.stringify({ structuredQuery: { from: [{ collectionId: "reports" }], where: { fieldFilter: { field: { fieldPath: "by" }, op: "EQUAL", value: str(by) } } } }) })).status;
+  const theirs = (who, by) => where(who, "", "reports", "by", str(by));
   const r2 = (more = {}) => ({ fields: { ...rep("carol", { why: str("other"), note: str("") }).fields, ...more } }), gone = (more = {}) => r2({ by: { nullValue: null }, ...more });
   const seen = [await theirs("carol", "carol"), await theirs("bob", "carol"), await as("carol", "GET", "reports/r2")].join();
   ok(seen === "200,403,403", "rules: an account can list the reports it sent, not anyone else's, and can't read them one by one", seen);
@@ -419,6 +429,104 @@ await part("6. Rules", async () => {
   ok(await as("dana", "DELETE", "reports/r1") === 200 && await as("dana", "DELETE", "reports/r2") === 200 && await as("dana", "GET", "reports/r1") === 404, "rules: a developer deletes reports");
   ok(await as("alice", "DELETE", `shares/${sid}/sets/a`) === 200 && await as("alice", "DELETE", `shares/${sid}`) === 200 && await as("alice", "DELETE", `shareOwners/${sid}`) === 200 && await as(null, "GET", `shares/${sid}`) === 404,
     "rules: the owner deletes a share, and then the link finds nothing");
+});
+
+// ---------- 7. groups: the rules, over REST ----------
+// Olga makes a group; Mo, Ivy, Max, Ann and Rae join by its link and Olga gives them roles; Req asks to join; Eve is invited
+// by email; Out is in no group.
+await part("7. Group rules", async () => {
+  await clearEmulators();
+  const G = "g1", at = (p = "") => `groups/${G}${p}`, T1 = "aaaaaaaaaaaaaaaaaaaaaaaa", T2 = "bbbbbbbbbbbbbbbbbbbbbbbb", T3 = "cccccccccccccccccccccccc", eve = ["eve", "Eve@Example.com"];
+  const bool = (v) => ({ booleanValue: v }), map = (o) => ({ mapValue: { fields: o } }), doc = { fields: { name: str("A") } };
+  const role = (name, ...yes) => ({ fields: { name: str(name), perms: map(Object.fromEntries(["edit", "notebooks", "share", "invite", "approve", "members", "roles"].map((p) => [p, bool(yes.includes(p))]))) } });
+  const group = (owner, link = null, name = "Study group") => ({ fields: { name: str(name), owner: str(owner), createdAt: str("x"),
+    link: link ? map({ token: str(link[0]), role: str(link[1]), approve: bool(link[2]) }) : { nullValue: null } } });
+  const member = (name, r, via = T1) => ({ fields: { name: str(name), role: str(r), joinedAt: str("x"), via: str(via) } });
+  // Making one
+  ok(await together("olga", [[at(), group("mo")], [at("/members/olga"), member("Olga", "owner", "")]]) === 403 && await together("mo", [[at(), group("olga")], [at("/members/mo"), member("Mo", "owner", "")]]) === 403
+    && await as("olga", "PATCH", at(), group("olga", [T1, "member", false])) === 403, "groups: a group is made in its maker's own name, with no link yet");
+  ok(await together("olga", [[at(), group("olga")], [at("/members/olga"), member("Olga", "owner", "")], [at("/roles/member"), role("Member")], [at("/roles/editor"), role("Editor", "edit")]]) === 200,
+    "groups: Olga makes a group, her owner line and its starting roles (Member, Editor) in one go");
+  ok(await as("mo", "PATCH", at("/members/mo"), member("Mo", "owner", "")) === 403 && await as("mo", "PATCH", at("/roles/x"), role("X")) === 403 && await as("olga", "PATCH", at("/roles/owner"), role("Owner")) === 403,
+    "groups: nobody else can make themselves its owner or add a role to it, and no role can be called owner");
+  ok(await as("olga", "GET", at()) === 200 && await as("out", "GET", at()) === 403 && await as(null, "GET", at()) === 403 && await as("out", "GET", at("/members")) === 403 && await as("out", "GET", at("/roles/member")) === 403
+    && await as("olga", "GET", "groups") === 403, "groups: only people in a group can read it, and groups can't be listed");
+  // Joining by link
+  const linkPage = (r, approve, g = G) => ({ fields: { group: str(g), name: str("Study group"), role: str(r), approve: bool(approve) } });
+  ok(await as("olga", "PATCH", at(), group("olga", [T1, "member", false])) === 200 && await as("olga", "PATCH", `groupLinks/${T1}`, linkPage("member", false)) === 200 && await as(null, "GET", `groupLinks/${T1}`) === 200,
+    "groups: Olga sets a join link; anyone who has it can see which group it's for");
+  ok(await as("out", "PATCH", at("/members/out"), member("Out", "member", T2)) === 403 && await as("out", "PATCH", at("/members/out"), member("Out", "editor")) === 403 && await as("out", "PATCH", at("/members/out"), member("Out", "owner")) === 403,
+    "groups: joining takes the link's own token, and gives only the link's role");
+  const joined = await Promise.all(["mo", "ivy", "max", "ann", "rae"].map((u) => as(u, "PATCH", at(`/members/${u}`), member(u, "member"))));
+  ok(joined.every((s) => s === 200) && await as("mo", "GET", at()) === 200 && await as("mo", "GET", at("/members")) === 200 && await as("mo", "GET", at("/roles")) === 200,
+    "groups: with the link, Mo, Ivy, Max, Ann and Rae join as Member and can read the group", joined.join());
+  // Roles
+  ok(await as("olga", "PATCH", at("/roles/inviter"), role("Inviter", "invite")) === 200 && await as("olga", "PATCH", at("/roles/manager"), role("Manager", "members")) === 200
+    && await as("olga", "PATCH", at("/roles/approver"), role("Approver", "approve")) === 200 && await as("olga", "PATCH", at("/roles/rolemgr"), role("Roles", "roles", "edit")) === 200
+    && await as("olga", "PATCH", at("/members/ivy"), member("ivy", "inviter")) === 200 && await as("olga", "PATCH", at("/members/max"), member("max", "manager")) === 200
+    && await as("olga", "PATCH", at("/members/ann"), member("ann", "approver")) === 200 && await as("olga", "PATCH", at("/members/rae"), member("rae", "rolemgr")) === 200,
+    "groups: the owner makes roles and gives them to people");
+  ok(await as("mo", "PATCH", at("/members/mo"), member("Momo", "member")) === 200 && await as("mo", "PATCH", at("/members/mo"), member("Momo", "editor")) === 403 && await as("mo", "PATCH", at("/members/ivy"), member("Not Ivy", "inviter")) === 403,
+    "groups: each person can change their own name in a group, not their role or anyone else's name");
+  ok(await as("rae", "PATCH", at("/roles/helper"), role("Helper", "edit")) === 200 && await as("rae", "PATCH", at("/roles/boss"), role("Boss", "members")) === 403 && await as("rae", "PATCH", at("/roles/editor"), role("Writer", "edit")) === 200
+    && await as("rae", "PATCH", at("/roles/manager"), role("Manager", "roles")) === 403 && await as("rae", "DELETE", at("/roles/helper")) === 200 && await as("rae", "DELETE", at("/roles/manager")) === 403
+    && await as("mo", "DELETE", at("/roles/editor")) === 403, "groups: Manage roles makes, changes and deletes only roles with no permission they don't have themselves");
+  ok(await as("max", "PATCH", at("/members/mo"), member("Momo", "editor")) === 403 && await as("max", "PATCH", at("/members/rae"), member("rae", "member")) === 403 && await as("max", "PATCH", at("/members/olga"), member("Olga", "member", "")) === 403
+    && await as("max", "PATCH", at("/members/max"), member("max", "inviter")) === 403, "groups: Manage members can't give a role with a permission they don't have, change someone whose role has one, touch the owner or change their own role");
+  ok(await as("max", "DELETE", at("/members/mo")) === 200 && await as("mo", "GET", at()) === 403 && await as("mo", "PATCH", at("/members/mo"), member("Mo", "member")) === 200 && await as("max", "DELETE", at("/members/rae")) === 403 && await as("max", "DELETE", at("/members/olga")) === 403,
+    "groups: Manage members removes people whose role they could give (who can join again while the link works), nobody else");
+  // Invite
+  ok(await as("ivy", "PATCH", at(), group("olga", [T2, "editor", false])) === 403 && await as("ivy", "PATCH", at(), group("olga", [T1, "member", false], "Renamed")) === 403 && await as("mo", "PATCH", at(), group("olga", [T2, "member", true])) === 403
+    && await as("ivy", "PATCH", at(), group("olga", [T2, "member", true])) === 200, "groups: Invite sets the link, with a role no stronger than their own, and nothing else about the group");
+  ok(await as("ivy", "PATCH", `groupLinks/${T2}`, linkPage("member", true)) === 200 && await as("out", "PATCH", `groupLinks/${T3}`, linkPage("member", false)) === 403
+    && await as("ivy", "PATCH", `groupLinks/${T3}`, linkPage("editor", false)) === 403 && await as("ivy", "PATCH", `groupLinks/${T1}`, linkPage("member", false, "g2")) === 403 && await as("ivy", "DELETE", `groupLinks/${T1}`) === 200,
+    "groups: a link's page is made by whoever may invite, with a role they could give, and can't be moved to another group");
+  // Asking to join, once the link asks for approval
+  const ask = (r = "member", t = T2) => ({ fields: { name: str("Req"), role: str(r), token: str(t), at: str("x") } });
+  ok(await as("req", "PATCH", at("/members/req"), member("Req", "member", T2)) === 403 && await as("req", "PATCH", at("/members/req"), member("Req", "member", T1)) === 403
+    && await as("req", "PATCH", at("/requests/req"), ask("editor")) === 403 && await as("req", "PATCH", at("/requests/req"), ask("member", T1)) === 403 && await as("mo", "PATCH", at("/requests/mo"), ask()) === 403,
+    "groups: a link that asks for approval (and the old link) lets nobody straight in; a request takes the link's own token and role, from someone not in the group");
+  ok(await as("req", "PATCH", at("/requests/req"), ask()) === 200 && await as("req", "GET", at("/requests/req")) === 200 && await as("req", "GET", at()) === 403
+    && await where("mo", at(), "requests") === 403 && await where("ann", at(), "requests") === 200 && await as("out", "GET", at("/requests/req")) === 403,
+    "groups: Req asks to join; Req can see the request, Approve requests sees them all, nobody else does");
+  ok(await as("mo", "PATCH", at("/members/req"), member("Req", "member", "approved")) === 403 && await as("ann", "PATCH", at("/members/req"), member("Req", "editor", "approved")) === 403
+    && await as("ann", "PATCH", at("/members/req"), member("Req", "member", "approved")) === 200 && await as("ann", "DELETE", at("/requests/req")) === 200 && await as("req", "GET", at()) === 200,
+    "groups: Approve requests lets Req in, with the role Req asked with");
+  // Invites by email
+  const invite = (email, r = "editor", id = `${G}_${email}`) => [`groupMail/${id}`, { fields: { group: str(G), name: str("Study group"), email: str(email), role: str(r), by: str("Olga"), at: str("x") } }];
+  ok(await as("out", "PATCH", ...invite("out@example.com", "member")) === 403 && await as("olga", "PATCH", ...invite("Eve@Example.com")) === 403 && await as("olga", "PATCH", ...invite("eve@example.com", "editor", `${G}_someone@example.com`)) === 403
+    && await as("ivy", "PATCH", ...invite("eve@example.com")) === 403 && await as("ivy", "PATCH", ...invite("friend@example.com", "member")) === 200,
+    "groups: an email invite comes from someone in the group who may invite, to the address in lowercase, with a role they could give");
+  ok(await as("olga", "PATCH", ...invite("eve@example.com")) === 200 && await where(eve, "", "groupMail", "email", str("eve@example.com")) === 200 && await where("out", "", "groupMail", "email", str("eve@example.com")) === 403
+    && await where(["out", "out@example.com"], "", "groupMail", "email", str("eve@example.com")) === 403 && await as("out", "GET", invite("eve@example.com")[0]) === 403, "groups: whoever signs in with that email finds the invite; nobody else can");
+  ok(await as(["mal", "eve@example.com", false], "PATCH", at("/members/mal"), member("Mal", "editor", "mail")) === 403 && await as(eve, "PATCH", at("/members/eve"), member("Eve", "inviter", "mail")) === 403
+    && await as("out", "PATCH", at("/members/out"), member("Out", "editor", "mail")) === 403, "groups: an invite lets in only that email, once Google has checked it, with the invite's role");
+  ok(await as(eve, "PATCH", at("/members/eve"), member("Eve", "editor", "mail")) === 200 && await as(eve, "DELETE", invite("eve@example.com")[0]) === 200 && await as(eve, "GET", at()) === 200, "groups: Eve joins by the invite, then takes it away");
+  // The group's notebooks
+  ok(await as("olga", "PATCH", at("/notebooks/n1"), doc) === 200 && await as(eve, "PATCH", at("/notebooks/n2"), doc) === 403 && await as("mo", "PATCH", at("/notebooks/n2"), doc) === 403 && await as("olga", "PATCH", at("/notebooks/n3"), { fields: { name: str("A"), owner: str("x") } }) === 403,
+    "groups: only Manage notebooks (and the owner) makes a group notebook");
+  ok(await as(eve, "PATCH", at("/notebooks/n1/sets/a"), doc) === 200 && await as(eve, "PATCH", at("/notebooks/n1/kanji/k"), doc) === 200 && await as(eve, "PATCH", at("/notebooks/n1/other/x"), doc) === 403
+    && await as("mo", "PATCH", at("/notebooks/n1/sets/a"), doc) === 403 && await as("mo", "DELETE", at("/notebooks/n1/sets/a")) === 403 && await as("mo", "GET", at("/notebooks/n1/sets/a")) === 200 && await as("mo", "GET", at("/notebooks/n1/sets")) === 200
+    && await as("out", "GET", at("/notebooks/n1/sets/a")) === 403, "groups: Edit notebooks changes what's in them; everyone in the group can read them, nobody outside it");
+  // Sharing a group notebook by link
+  const S = "sharedbythegroupsharedby", byGroup = { fields: { group: str(G), nb: str("n1"), createdAt: str("x") } };
+  const info = { fields: { name: str("Group notebook"), rev: { arrayValue: { values: [] } }, updatedAt: str("x") } }, line = { fields: { name: str("A"), about: str(""), sets: { integerValue: "1" }, words: { integerValue: "2" }, updatedAt: str("x") } };
+  ok(await as("mo", "PATCH", `shareOwners/${S}`, byGroup) === 403 && await as("out", "PATCH", `shareOwners/${S}`, byGroup) === 403 && await as("olga", "PATCH", `shareOwners/${S}`, { fields: { ...byGroup.fields, uid: str("olga") } }) === 403
+    && await as("olga", "PATCH", `shareOwners/${S}`, byGroup) === 200, "groups: sharing a group notebook by link takes Share by link (or being the owner)");
+  ok(await as("olga", "PATCH", `shares/${S}`, info) === 200 && await as(eve, "PATCH", `shares/${S}/sets/a`, doc) === 200 && await as("mo", "PATCH", `shares/${S}/sets/a`, doc) === 403 && await as(null, "GET", `shares/${S}/sets/a`) === 200
+    && await as("olga", "PATCH", `listed/${S}`, line) === 403 && await as(eve, "DELETE", `shareOwners/${S}`) === 403 && await as("mo", "GET", `shareOwners/${S}`) === 403,
+    "groups: its copy is kept up to date by whoever may share or edit, anyone with the link reads it, it can't go on Browse, and Stop sharing takes Share by link");
+  // Handing it over, leaving, deleting
+  ok(await as("olga", "PATCH", at(), group("eve", [T2, "member", true])) === 403 && await as(eve, "PATCH", at("/members/eve"), member("Eve", "owner", "mail")) === 403
+    && await together("olga", [[at(), group("eve", [T2, "member", true])], [at("/members/eve"), member("Eve", "owner", "mail")]]) === 403
+    && await together("olga", [[at(), group("out", [T2, "member", true])], [at("/members/out"), member("Out", "owner")], [at("/members/olga"), member("Olga", "editor", "")]]) === 403,
+    "groups: the owner hands it over only to someone in the group, in one go with both their lines, and nobody can take it");
+  ok(await together("olga", [[at(), group("eve", [T2, "member", true])], [at("/members/eve"), member("Eve", "owner", "mail")], [at("/members/olga"), member("Olga", "editor", "")]]) === 200
+    && await as("olga", "PATCH", at(), group("olga", [T2, "member", true], "Mine")) === 403 && await as(eve, "PATCH", at(), group("eve", [T2, "member", true], "Eve's group")) === 200,
+    "groups: Olga hands the group to Eve and becomes an Editor; now only Eve can rename it");
+  ok(await as("mo", "DELETE", at("/members/mo")) === 200 && await as(eve, "DELETE", at("/members/olga")) === 200 && await as("olga", "GET", at()) === 403 && await as("olga", "DELETE", at()) === 403 && await as("ivy", "DELETE", at()) === 403,
+    "groups: anyone can leave, the owner can remove anyone, and only the owner can delete the group");
+  ok(await as(eve, "DELETE", at()) === 200, "groups: the owner deletes the group");
 });
 
 await browser.close(); server.close();

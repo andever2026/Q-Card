@@ -17,13 +17,16 @@ service cloud.firestore {
     // under it (shares/<id>/sets/<set>, /kanji/<list>, /meta/<doc>). Anyone who has the id may read it, signed in or
     // not: the id is long and random, and the collection can't be listed. shareOwners/<id>, made first and never
     // changed, says whose it is: only that account can write the copy, and nobody else can read whose it is.
+    // A group's notebook (groups/, below) is shared by the group instead: shareOwners/<id> names the group, and its
+    // members who may share or edit its notebooks keep the copy up to date. A group's shared notebook is never listed.
     function ownsShare(id) {
-      return request.auth != null && get(/databases/$(database)/documents/shareOwners/$(id)).data.uid == request.auth.uid;
+      let o = get(/databases/$(database)/documents/shareOwners/$(id)).data;
+      return request.auth != null && (o.get('uid', '') == request.auth.uid || o.get('group', '') != '' && (can(o.group, 'share') || can(o.group, 'edit')));
     }
     match /shareOwners/{id} {
-      allow get, delete: if request.auth != null && resource.data.uid == request.auth.uid;
-      allow create: if request.auth != null && id.size() >= 20 && request.resource.data.uid == request.auth.uid
-        && request.resource.data.keys().hasOnly(['uid', 'nb', 'createdAt']);
+      allow get, delete: if request.auth != null && (resource.data.get('uid', '') == request.auth.uid || (resource.data.get('group', '') != '' && can(resource.data.group, 'share')));
+      allow create: if request.auth != null && id.size() >= 20 && (request.resource.data.keys().hasOnly(['uid', 'nb', 'createdAt']) && request.resource.data.uid == request.auth.uid
+        || request.resource.data.keys().hasOnly(['group', 'nb', 'createdAt']) && request.resource.data.group is string && can(request.resource.data.group, 'share'));
     }
     // A developer (dev/<their id>, above) can take a shared notebook down after a report: takedowns/<id> is there
     // while it is. From then on only the notebook's owner and developers can read the copy; everyone else's link stops
@@ -55,12 +58,135 @@ service cloud.firestore {
     match /listed/{id} {
       allow read: if true;
       allow create, update: if ownsShare(id) && !exists(/databases/$(database)/documents/takedowns/$(id))
+        && get(/databases/$(database)/documents/shareOwners/$(id)).data.get('group', '') == ''
         && request.resource.data.keys().hasOnly(['name', 'about', 'sets', 'words', 'updatedAt'])
         && request.resource.data.name is string && request.resource.data.name.size() <= 100
         && request.resource.data.about is string && request.resource.data.about.size() <= 200
         && request.resource.data.sets is int && request.resource.data.words is int
         && request.resource.data.updatedAt is string && request.resource.data.updatedAt.size() <= 40;
       allow delete: if isDev() || ownsShare(id);
+    }
+    // Groups: notebooks several accounts work in together, with roles much like a Discord server's. Nothing lists or
+    // searches groups; people get in by a join link or by an invite to the email they sign in with.
+    //   groups/<g>                      { name, owner, link: { token, role, approve } or null, createdAt }
+    //   groups/<g>/roles/<r>            { name, perms: { edit, notebooks, share, invite, approve, members, roles } }
+    //   groups/<g>/members/<account>    { name, role (a role's id, or "owner" for the one owner), joinedAt, via }
+    //   groups/<g>/requests/<account>   { name, role, token, at }: waiting for approval after opening a link that asks for it
+    //   groups/<g>/notebooks/<nb>       { name, at }, with that notebook's sets/, kanji/ and meta/ under it
+    //   groupLinks/<token>              { group, name, role, approve }: what the page a join link opens shows
+    //   groupMail/<g>_<email>           { group, name, email, role, by, at }: an invite to whoever signs in with that email
+    // The owner can do everything. Everyone else can do what their role's permissions allow, and nobody can give a role
+    // (to a person, a link or an invite) with a permission they don't have themselves.
+    function groupDoc(g) { return /databases/$(database)/documents/groups/$(g); }
+    function memberDoc(g, u) { return /databases/$(database)/documents/groups/$(g)/members/$(u); }
+    function roleDoc(g, r) { return /databases/$(database)/documents/groups/$(g)/roles/$(r); }
+    function owns(g) { return request.auth != null && get(groupDoc(g)).data.owner == request.auth.uid; }
+    function inGroup(g) { return request.auth != null && exists(memberDoc(g, request.auth.uid)); }
+    function myRole(g) { return get(memberDoc(g, request.auth.uid)).data.role; }
+    function can(g, p) { return inGroup(g) && (myRole(g) == 'owner' || get(roleDoc(g, myRole(g))).data.perms.get(p, false) == true); }
+    // Every permission in theirs is in mine too.
+    function has(mine, theirs, p) { return theirs.get(p, false) != true || mine.get(p, false) == true; }
+    function covers(mine, theirs) {
+      return has(mine, theirs, 'edit') && has(mine, theirs, 'notebooks') && has(mine, theirs, 'share') && has(mine, theirs, 'invite')
+        && has(mine, theirs, 'approve') && has(mine, theirs, 'members') && has(mine, theirs, 'roles');
+    }
+    // Role r is one I could give: it isn't the owner's, it exists, and it has no permission I don't have.
+    function within(g, r) {
+      return r is string && r != 'owner' && exists(roleDoc(g, r)) && (myRole(g) == 'owner' || covers(get(roleDoc(g, myRole(g))).data.perms, get(roleDoc(g, r)).data.perms));
+    }
+    function okName(v, n) { return v is string && v.size() > 0 && v.size() <= n; }
+    function okToken(t) { return t is string && t.matches('^[A-Za-z0-9]{20,40}$'); }
+    function okLink(l) { return l == null || (l.keys().hasOnly(['token', 'role', 'approve']) && okToken(l.token) && l.role is string && l.approve is bool); }
+    // The email someone signed in with (once Google has checked it), as invites store it.
+    function myEmail() { return request.auth.token.get('email_verified', false) == true ? request.auth.token.get('email', '').lower() : ''; }
+    match /groups/{g} {
+      allow get: if inGroup(g);
+      allow create: if request.auth != null && request.resource.data.keys().hasOnly(['name', 'owner', 'link', 'createdAt'])
+        && request.resource.data.owner == request.auth.uid && okName(request.resource.data.name, 60) && request.resource.data.link == null;
+      // The owner renames it, sets the link, or hands it to another member: in the same write that member becomes owner
+      // and the old owner takes a role. Whoever may invite sets the link. A link's role is one the person setting it could give.
+      allow update: if okName(request.resource.data.name, 60) && okLink(request.resource.data.link)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'owner', 'link'])
+        && (request.resource.data.link == null || within(g, request.resource.data.link.role))
+        && (resource.data.owner == request.auth.uid && (request.resource.data.owner == resource.data.owner
+              || exists(memberDoc(g, request.resource.data.owner)) && getAfter(memberDoc(g, request.resource.data.owner)).data.role == 'owner'
+                && getAfter(memberDoc(g, request.auth.uid)).data.role != 'owner')
+          || can(g, 'invite') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['link']));
+      allow delete: if request.auth != null && resource.data.owner == request.auth.uid;
+      match /roles/{r} {
+        allow read: if inGroup(g);
+        // Made along with the group by its owner, or later by whoever may manage roles, with no permission they don't have.
+        allow create, update: if r != 'owner' && request.resource.data.keys().hasOnly(['name', 'perms']) && okName(request.resource.data.name, 40)
+          && request.resource.data.perms.keys().hasOnly(['edit', 'notebooks', 'share', 'invite', 'approve', 'members', 'roles'])
+          && (resource == null && !exists(groupDoc(g)) && getAfter(groupDoc(g)).data.owner == request.auth.uid
+            || can(g, 'roles') && (myRole(g) == 'owner' || covers(get(roleDoc(g, myRole(g))).data.perms, request.resource.data.perms)
+              && (resource == null || covers(get(roleDoc(g, myRole(g))).data.perms, resource.data.perms))));
+        allow delete: if can(g, 'roles') && within(g, r) || owns(g);
+      }
+      match /members/{u} {
+        allow read: if inGroup(g);
+        // Joining: the owner, along with making the group; anyone with the current link (if it doesn't ask for approval),
+        // with its role; whoever was invited by email, with the invite's role; or someone who asked, let in with the role
+        // they asked with by whoever may approve.
+        allow create: if request.auth != null && request.resource.data.keys().hasOnly(['name', 'role', 'joinedAt', 'via']) && okName(request.resource.data.name, 60)
+          && (u == request.auth.uid && request.resource.data.role == 'owner' && getAfter(groupDoc(g)).data.owner == u
+            || u == request.auth.uid && get(groupDoc(g)).data.link != null && get(groupDoc(g)).data.link.approve == false
+              && request.resource.data.via == get(groupDoc(g)).data.link.token && request.resource.data.role == get(groupDoc(g)).data.link.role
+            || u == request.auth.uid && request.resource.data.via == 'mail' && myEmail() != ''
+              && request.resource.data.role == get(/databases/$(database)/documents/groupMail/$(g + '_' + myEmail())).data.role
+            || u != request.auth.uid && request.resource.data.via == 'approved' && can(g, 'approve')
+              && request.resource.data.role == get(/databases/$(database)/documents/groups/$(g)/requests/$(u)).data.role);
+        // Their own name in the group, anyone. Someone else's name or role, whoever may manage members, for people whose
+        // role they could give and only to a role they could give. Owner, only while the owner hands the group over,
+        // in the same write as the old owner's member line, which takes another role.
+        allow update: if okName(request.resource.data.name, 60) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'role'])
+          && (u == request.auth.uid && request.resource.data.role == resource.data.role
+            || u != request.auth.uid && can(g, 'members') && within(g, resource.data.role) && within(g, request.resource.data.role)
+            || u != request.auth.uid && request.resource.data.role == 'owner' && owns(g) && getAfter(groupDoc(g)).data.owner == u
+            || u == request.auth.uid && resource.data.role == 'owner' && owns(g) && getAfter(groupDoc(g)).data.owner != u && exists(roleDoc(g, request.resource.data.role)));
+        // Leaving (not the owner), removing someone whose role they could give, or the owner clearing out the group.
+        allow delete: if request.auth != null && (u == request.auth.uid && resource.data.role != 'owner'
+          || can(g, 'members') && within(g, resource.data.role) || owns(g));
+      }
+      match /requests/{u} {
+        allow get: if request.auth != null && u == request.auth.uid || can(g, 'approve');
+        allow list: if can(g, 'approve');
+        allow create: if request.auth != null && u == request.auth.uid && !inGroup(g) && request.resource.data.keys().hasOnly(['name', 'role', 'token', 'at'])
+          && okName(request.resource.data.name, 60) && get(groupDoc(g)).data.link != null && get(groupDoc(g)).data.link.approve == true
+          && request.resource.data.token == get(groupDoc(g)).data.link.token && request.resource.data.role == get(groupDoc(g)).data.link.role;
+        allow delete: if request.auth != null && u == request.auth.uid || can(g, 'approve') || owns(g);
+      }
+      // A group's notebooks: everyone in it can read them; editing what's in them takes Edit notebooks, and making,
+      // renaming and deleting them takes Manage notebooks.
+      match /notebooks/{nb} {
+        allow read: if inGroup(g);
+        allow create, update: if can(g, 'notebooks') && request.resource.data.keys().hasOnly(['name', 'at']) && okName(request.resource.data.name, 60);
+        allow delete: if can(g, 'notebooks') || owns(g);
+        match /{kind}/{doc} {
+          allow read: if inGroup(g);
+          allow write: if kind in ['sets', 'kanji', 'meta'] && (can(g, 'edit') || can(g, 'notebooks') || owns(g));
+        }
+      }
+    }
+    match /groupLinks/{token} {
+      allow get: if true;
+      allow create: if okToken(token) && request.resource.data.keys().hasOnly(['group', 'name', 'role', 'approve'])
+        && request.resource.data.group is string && okName(request.resource.data.name, 60) && request.resource.data.approve is bool
+        && can(request.resource.data.group, 'invite') && within(request.resource.data.group, request.resource.data.role);
+      allow update: if request.resource.data.keys().hasOnly(['group', 'name', 'role', 'approve']) && request.resource.data.group == resource.data.group
+        && okName(request.resource.data.name, 60) && request.resource.data.approve is bool
+        && (can(resource.data.group, 'invite') && within(resource.data.group, request.resource.data.role) || owns(resource.data.group));
+      allow delete: if can(resource.data.group, 'invite') || owns(resource.data.group);
+    }
+    match /groupMail/{id} {
+      allow get: if request.auth != null && (resource.data.email == myEmail() || can(resource.data.group, 'invite'));
+      allow list: if request.auth != null && resource.data.email == myEmail();
+      allow create: if request.resource.data.keys().hasOnly(['group', 'name', 'email', 'role', 'by', 'at']) && request.resource.data.group is string
+        && okName(request.resource.data.name, 60) && okName(request.resource.data.by, 60) && request.resource.data.at is string
+        && okName(request.resource.data.email, 254) && request.resource.data.email == request.resource.data.email.lower()
+        && id == request.resource.data.group + '_' + request.resource.data.email
+        && can(request.resource.data.group, 'invite') && within(request.resource.data.group, request.resource.data.role);
+      allow delete: if request.auth != null && (resource.data.email == myEmail() || can(resource.data.group, 'invite') || owns(resource.data.group));
     }
     // Reports of shared notebooks. Anyone who is signed in may send one about a notebook that is shared: which one,
     // one of the reasons, a note, the time and the account that sent it (by). Only developers can read or delete them.
