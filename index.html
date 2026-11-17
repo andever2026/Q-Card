@@ -378,7 +378,7 @@ body.writing > .wrap > header > :not(dialog) { display: none !important; }
 .fbmid { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 18px; }
 .fbnotes { display: grid; gap: 12px; flex: 1 1 14rem; min-width: 0; }
 .fbacts { display: flex; gap: 10px; }
-@media (max-width: 640px) { .fbacts { flex: 1 1 100%; } .fbacts .btn { flex: 1 1 0; white-space: nowrap; padding-inline: 8px; } }
+@media (max-width: 640px) { .fbacts { flex: 1 1 100%; } .fbacts .btn { flex: 1 1 0; white-space: nowrap; padding-inline: 8px; } .fbacts .wide { display: none; } }
 @media (max-width: 400px) { .fbacts .btn { font-size: .9rem; } }
 /* Wide: the two buttons are stacked at the right end, the white one rising beside the answer. */
 @media (min-width: 900px) { .fbacts { flex-direction: column; margin-top: -44px; } }
@@ -848,7 +848,7 @@ colours.apply(...colours.saved()); // before anything is drawn
           <p class="read" id="fbRead"></p>
         </div>
         <div class="fbacts">
-          <button class="btn" type="button" id="overrideBtn" title="When your writing was right and it was read wrong">Mark it as correct →</button>
+          <button class="btn" type="button" id="overrideBtn" title="When your writing was right and it was read wrong">Mark it as correct<span class="wide"> →</span></button>
           <button class="btn primary" id="nextBtn">Next word →</button>
         </div>
       </div>
