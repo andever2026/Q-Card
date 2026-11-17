@@ -2412,7 +2412,7 @@ if (entry.length > 1) {
   await as(O, "#browse");
   ok(/^Made-up words\s*Yours/.test((await cards())[0]), "browse: the owner's own is marked Yours", (await cards())[0]);
   // A developer takes it down: off Browse, and the owner can't put it back while it's down.
-  await bp.evaluate((sid) => window.qcardPlatform.reports.doc("r1").set({ share: sid, why: "other", note: "", at: new Date().toISOString() }), sid);
+  await bp.evaluate((sid) => window.qcardPlatform.reports.doc("r1").set({ share: sid, why: "other", note: "", at: new Date().toISOString(), by: "o1" }), sid);
   await as(D); await settings(bp, "admin"); await bp.waitForTimeout(400);
   await bp.click('#repList [data-rep-do="down"]'); await bp.click("#askYes"); await bp.waitForTimeout(600);
   d = await fs();
