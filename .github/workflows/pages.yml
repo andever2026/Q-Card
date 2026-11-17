@@ -1,17 +1,19 @@
 name: Deploy site
 
-# Publishes the site after the Check workflow passes on a push to main, beta or dev:
-#   main  → https://andever2026.github.io/Q-Card/        (the live site, files as committed)
-#   beta  → https://andever2026.github.io/Q-Card/beta/   (fixes for the live site; built with `node tools/build.mjs --beta`)
-#   dev   → https://andever2026.github.io/Q-Card/dev/    (new features; built with `node tools/build.mjs --dev`)
-# Every deploy builds all three, since one upload replaces the whole site.
+# Publishes the site after the Check workflow passes on a push to main, beta, dev or a feature- branch:
+#   main            → https://andever2026.github.io/Q-Card/                 (the live site, files as committed)
+#   beta            → https://andever2026.github.io/Q-Card/beta/            (fixes for the live site; built with `node tools/build.mjs --beta`)
+#   dev             → https://andever2026.github.io/Q-Card/dev/             (new features; built with `node tools/build.mjs --dev`)
+#   feature-<name>  → https://andever2026.github.io/Q-Card/feature-<name>/  (one big feature on its own; `node tools/build.mjs --feature-<name>`)
+# Every deploy builds all of them, since one upload replaces the whole site. The feature- branches are whichever exist at the
+# time, so a new one gets its site and a deleted one's site goes, with no change here.
 # Needs Settings → Pages → Source set to "GitHub Actions". A workflow_run job runs on the default branch,
 # so the github-pages environment's branch rule allows it whichever branch was pushed.
 on:
   workflow_run:
     workflows: [Check]
     types: [completed]
-    branches: [main, beta, dev]
+    branches: [main, beta, dev, 'feature-*']
   workflow_dispatch:
 
 permissions:
@@ -35,31 +37,43 @@ jobs:
         with:
           ref: main
           path: live
-      - uses: actions/checkout@v7
-        with:
-          ref: beta
-          path: beta
-      - uses: actions/checkout@v7
-        with:
-          ref: dev
-          path: dev
+      - name: Check out the test sites
+        id: branches
+        run: |
+          git -C live fetch --depth 1 origin '+refs/heads/beta:refs/sites/beta' '+refs/heads/dev:refs/sites/dev' '+refs/heads/feature-*:refs/sites/feature-*'
+          sites=$(git -C live for-each-ref --format='%(refname:lstrip=2)' refs/sites/)
+          for site in $sites; do git -C live worktree add --quiet ../$site refs/sites/$site; done
+          echo "list=$(echo $sites)" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v7
         with:
           node-version-file: beta/.nvmrc
           cache: npm
-          cache-dependency-path: |
-            beta/package-lock.json
-            dev/package-lock.json
+          cache-dependency-path: '*/package-lock.json'
+      # A feature- branch that can't be built as a test site (say its tools/build.mjs is older than this) is left out with a
+      # warning instead of stopping the whole deploy; beta and dev must build.
       - name: Build the test sites
+        id: sites
+        env:
+          SITES: ${{ steps.branches.outputs.list }}
         run: |
-          for site in beta dev; do
-            (cd $site && npm ci && node tools/build.mjs --$site)
+          built=""
+          for site in $SITES; do
+            if (cd $site && npm ci && node tools/build.mjs --$site) && grep -qF "<title>Japanese Vocab Practice ($site)</title>" $site/index.html; then
+              built="$built $site"
+            elif [[ $site == feature-* ]]; then
+              echo "::warning::$site couldn't be built as a test site, so it's left out this time (is dev merged into it?)"
+            else
+              exit 1
+            fi
           done
+          echo "list=$built" >> "$GITHUB_OUTPUT"
       - name: Put the site together
+        env:
+          SITES: ${{ steps.sites.outputs.list }}
         run: |
           mkdir -p _site
           git -C live archive HEAD | tar -x -C _site
-          for site in beta dev; do
+          for site in $SITES; do
             mkdir -p _site/$site
             git -C $site archive HEAD | tar -x -C _site/$site
             cp $site/index.html _site/$site/
