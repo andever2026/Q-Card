@@ -80,6 +80,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg><span>Vocabulary</span></button>
       <button type="button" data-go="history"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20 H20 M7 16.5 V12 M12 16.5 V6.5 M17 16.5 V9.5"/></svg><span>Progress</span></button>
 <!--#if public-->
+      <button type="button" data-go="browse"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12 H20.5 M12 3.5 c-3.4 3.2 -3.4 13.8 0 17 M12 3.5 c3.4 3.2 3.4 13.8 0 17"/></svg><span>Browse</span></button>
       <button type="button" data-go="tools"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg><span>Extra tools</span></button>
 <!--#endif-->
     </nav>
@@ -168,6 +169,12 @@ colours.apply(...colours.saved()); // before anything is drawn
     <div class="panel"><div class="head"><h2>Extra tools</h2></div><p class="muted">Extras to practice with away from the screen.</p></div>
     <div id="toolList" style="display: grid; gap: 18px"><p class="muted small">Loading…</p></div>
     <div id="printSheet"></div>
+  </section>
+  <!-- BROWSE: the shared notebooks their owners list for everyone (src/shared-notebooks/browse.js) -->
+  <section id="browse" class="wrap" style="gap:18px" hidden>
+    <div class="panel"><div class="head"><h2>Browse</h2></div><p class="muted">Notebooks that people shared with everyone. Open one to look through it; sign in to add it to your own notebooks.</p>
+      <input type="search" class="tsearch" id="browseSearch" placeholder="Search by name or description" aria-label="Search the shared notebooks"></div>
+    <div class="bgrid" id="browseList"></div>
   </section>
   <section id="shared" class="wrap" style="gap:18px" hidden>
     <div class="panel" id="sharedHead"></div>
@@ -520,6 +527,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   //#include shared-notebooks/preview.js
   //#include shared-notebooks/report.js
   //#include shared-notebooks/moderation.js
+  //#include shared-notebooks/browse.js
   //#include study-tools/view.js
   //#include page/address.js
   //#include practice/round-list.js

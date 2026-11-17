@@ -20,7 +20,9 @@
   }
   // Brings the shared copy up to date with the open notebook: the documents that changed are written, the ones that are
   // gone deleted, then shares/<id> says what the copy holds now.
-  let shareAt = "", shareRev = new Map(), shareName = "", shareBusy = false, shareAgain = false, shareTimer = 0;
+  // Its owner can also list it on the Browse page (browse.js): then listed/<id> is its line there, kept right the same way.
+  const lineKey = (l) => (l ? JSON.stringify([l.name, l.about, l.sets, l.words]) : "");
+  let shareAt = "", shareRev = new Map(), shareName = "", shareLine = "", shareBusy = false, shareAgain = false, shareTimer = 0;
   async function syncShare() {
     const n = nbNow(), id = n?.share;
     if (!id || !account || !S.loaded || !S.kLoaded) return;
@@ -28,14 +30,17 @@
     shareBusy = true;
     try {
       const sh = platform.shared(id), docs = shareDocs(), next = new Map([...docs].map(([p, d]) => [p, docStamp(d)]));
-      if (shareAt !== id) { const info = dataOrNull(await sh.info.get()); shareRev = revOf(info?.rev); shareName = info?.name ?? null; shareAt = id; }
-      const put = [...next.keys()].filter((p) => shareRev.get(p) !== next.get(p)), gone = [...shareRev.keys()].filter((p) => !next.has(p));
-      if (put.length || gone.length || shareName !== n.name) {
+      if (shareAt !== id) { const info = dataOrNull(await sh.info.get()); shareRev = revOf(info?.rev); shareName = info?.name ?? null; shareLine = lineKey(dataOrNull(await sh.listing.get())); shareAt = id; }
+      const put = [...next.keys()].filter((p) => shareRev.get(p) !== next.get(p)), gone = [...shareRev.keys()].filter((p) => !next.has(p)), changed = put.length || gone.length || shareName !== n.name;
+      if (changed) {
         for (const p of put) await sh.db.doc(p).set(docs.get(p));
         for (const p of gone) await sh.db.doc(p).delete();
         await sh.info.set({ name: n.name, rev: [...next].map(([p, h]) => `${p} ${h}`), updatedAt: new Date().toISOString() });
         shareRev = next; shareName = n.name;
       }
+      const sets = [...docs].filter(([p]) => p.startsWith("sets/")), line = n.listed ? { name: n.name, about: n.about || "", sets: sets.length, words: sets.reduce((a, [, d]) => a + d.words.length, 0) } : null;
+      // Refused while the notebook is taken down (firestore.rules): the copy itself is still brought up to date.
+      if (lineKey(line) !== shareLine || (line && changed)) try { await (line ? sh.listing.set({ ...line, updatedAt: new Date().toISOString() }) : sh.listing.delete()); shareLine = lineKey(line); } catch {}
     } catch { shareAt = ""; } // the copy is read again, and brought up to date, at the next change
     shareBusy = false;
     if (shareAgain) { shareAgain = false; shareSoon(); }
@@ -55,13 +60,13 @@
   async function dropShare(id) {
     const sh = platform.shared(id);
     if (!(await sh.owner.get().catch(() => null))?.exists) return; // gone already
-    await emptyVocab(sh.db); await sh.info.delete(); await sh.owner.delete();
+    await sh.listing.delete(); await emptyVocab(sh.db); await sh.info.delete(); await sh.owner.delete();
     if (shareAt === id) shareAt = "";
   }
   // A notebook that's deleted (or the whole account) takes its shared copy with it.
   nbGone.push(async (id) => { const share = nbList().find((n) => n.id === id)?.share; if (share) await dropShare(share); });
   async function stopShare() {
-    const { share, ...rest } = nbNow();
+    const { share, listed, about, ...rest } = nbNow();
     try { await dropShare(share); } catch { return banner("Couldn't stop sharing. Try again."); }
     await saveNb(rest);
   }
@@ -75,12 +80,20 @@
     const id = nbNow().share, down = await takenDown(id);
     const closed = ask(`“${nbNow().name}” is shared`, `<p>${down ? "This notebook was reported and taken down, so its link works only for you now." : "Anyone who has this link can look at it and add it to their own account."}</p>
       <input class="tsearch" id="shareLinkIn" readonly aria-label="Link" value="${esc(shareLink(id))}">
-      <p class="tactions sharedo"><button class="btn" type="button" id="shareCopy">Copy link</button><button class="link" type="button" id="shareStop">Stop sharing</button></p>`, "Done");
+      <p class="tactions sharedo"><button class="btn" type="button" id="shareCopy">Copy link</button><button class="link" type="button" id="shareStop">Stop sharing</button></p>
+      ${down ? "" : `<label class="checkrow"><input type="checkbox" id="shareListed"${nbNow().listed ? " checked" : ""}> Also list it on the Browse page, where anyone can find it</label>
+      <input class="tsearch" id="shareAbout" maxlength="200" aria-label="About this notebook" placeholder="What's in it, in a few words (optional)" value="${esc(nbNow().about || "")}"${nbNow().listed ? "" : " hidden"}>`}`, "Done");
     let stop = false;
+    if (!down) {
+      $("#shareListed").onchange = (e) => { $("#shareAbout").hidden = !e.target.checked; };
+      enterYes($("#shareAbout"));
+    }
     $("#shareLinkIn").onfocus = (e) => e.target.select();
     $("#shareCopy").onclick = async (e) => { try { await navigator.clipboard.writeText(shareLink(id)); e.target.textContent = "Copied"; } catch { $("#shareLinkIn").focus(); } };
     $("#shareStop").onclick = () => { stop = true; $("#askDlg").close("no"); };
-    await closed;
+    const done = await closed, listed = !down && $("#shareListed").checked, about = listed ? tidy($("#shareAbout").value, 200) : "";
+    // Done keeps the choice about the Browse page; Cancel leaves it as it was.
+    if (done && !down && (listed !== !!nbNow().listed || about !== (nbNow().about || ""))) { const { listed: was, about: old, ...n } = nbNow(); if (await saveNb({ ...n, ...(listed ? { listed, about } : {}) })) await syncShare(); }
     if (stop && await ask(`Stop sharing “${nbNow().name}”?`, `<p>The link stops working. People who already added this notebook keep what they have, and get no more changes from you.</p>`, "Stop sharing", true)) await stopShare();
   }
   // (Not a notebook that was added from somebody else's shared one: that one is its owner's to share.)

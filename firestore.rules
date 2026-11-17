@@ -49,6 +49,19 @@ service cloud.firestore {
       allow list, delete: if isDev();
       allow create, update: if isDev() && request.resource.data.keys().hasOnly(['at']);
     }
+    // The Browse page: listed/<id> is the line of a shared notebook whose owner lists it for everyone (its name, the
+    // owner's line about it and how much is in it). Anyone can read and list these. Only the owner makes or changes
+    // one, and not while the notebook is taken down; the owner and developers can delete it.
+    match /listed/{id} {
+      allow read: if true;
+      allow create, update: if ownsShare(id) && !exists(/databases/$(database)/documents/takedowns/$(id))
+        && request.resource.data.keys().hasOnly(['name', 'about', 'sets', 'words', 'updatedAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 100
+        && request.resource.data.about is string && request.resource.data.about.size() <= 200
+        && request.resource.data.sets is int && request.resource.data.words is int
+        && request.resource.data.updatedAt is string && request.resource.data.updatedAt.size() <= 40;
+      allow delete: if isDev() || ownsShare(id);
+    }
     // Reports of shared notebooks. Anyone may send one, signed in or not, about a notebook that is shared: which one,
     // one of the reasons, a note and the time, and nothing about who sent it. Only developers can read or delete them.
     match /reports/{id} {

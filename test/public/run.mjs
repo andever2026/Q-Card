@@ -498,8 +498,8 @@ ok(!(await setOpen(phone)) && await vis(phone, "#setup"), "phone: ← Back from 
 const menuOpen = () => phone.evaluate(() => { const n = document.querySelector("#sideNav"), r = n.getBoundingClientRect(); return document.querySelector("#menuBtn").getAttribute("aria-expanded") === "true" && getComputedStyle(n).visibility === "visible" && r.left >= 0 && r.right <= innerWidth; });
 ok(await vis(phone, "#menuBtn") && !(await menuOpen()), "phone: a ☰ button, the menu closed");
 await phone.click("#menuBtn"); await phone.waitForTimeout(300);
-ok(await menuOpen() && await phone.evaluate(() => [...document.querySelectorAll("#nbName, #sideNav > [data-go]")].map((b) => b.textContent.trim()).join(", ")) === "My notebook, Practice, Vocabulary, Progress, Extra tools" && await phone.evaluate(() => document.activeElement?.dataset.go === "setup"),
-  "phone: ☰ slides in the menu (the notebook, then Practice, Vocabulary, Progress, Extra tools) and moves to Practice");
+ok(await menuOpen() && await phone.evaluate(() => [...document.querySelectorAll("#nbName, #sideNav > [data-go]")].map((b) => b.textContent.trim()).join(", ")) === "My notebook, Practice, Vocabulary, Progress, Browse, Extra tools" && await phone.evaluate(() => document.activeElement?.dataset.go === "setup"),
+  "phone: ☰ slides in the menu (the notebook, then Practice, Vocabulary, Progress, Browse, Extra tools) and moves to Practice");
 await phone.screenshot({ path: join(out, "8-menu-phone.png") });
 await phone.click('#sideNav [data-go="history"]'); await phone.waitForTimeout(300);
 ok(await vis(phone, "#history") && !(await menuOpen()), "phone: picking Progress in the menu goes there and closes the menu");
@@ -1650,7 +1650,7 @@ if (entry.length > 1) {
   const names = () => bp.evaluate(() => [...document.querySelectorAll("#sideNav [data-go], #nbBtn")].map((b) => `${b.title}:${Math.round(b.querySelector("span").getBoundingClientRect().width)}`).join(","));
   await bp.click("#menuBtn"); await bp.waitForTimeout(200);
   si = await sideInfo();
-  ok(si.side[1] === 64 && si.col < 100 && !(await footAt()).shown && (await names()) === "My notebook:0,Practice:0,Vocabulary:0,Progress:0,Extra tools:0" && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "false" && await barBtn(),
+  ok(si.side[1] === 64 && si.col < 100 && !(await footAt()).shown && (await names()) === "My notebook:0,Practice:0,Vocabulary:0,Progress:0,Browse:0,Extra tools:0" && (await bp.getAttribute("#menuBtn", "aria-expanded")) === "false" && await barBtn(),
     "sidebar: ☰ shrinks it to icons, named when pointed at, and the page takes the room", JSON.stringify(si) + " " + await names());
   await bp.screenshot({ path: join(out, "22-sidebar-icons.png") });
   await bp.click('#sideNav [data-go="history"]'); await bp.waitForTimeout(300);
@@ -2325,6 +2325,93 @@ if (entry.length > 1) {
   ok(/water/.test(await text(rp, "#sharedBody")) && await vis(rp, "#sharedReport"), "put back: the link works for everyone again");
   ok(rp.errors.length === 0, "reports: no page errors", rp.errors.join(" | "));
   await rctx.close();
+}
+
+// ---------- 28. the Browse page: a shared notebook its owner lists for everyone ----------
+{
+  const bctx = await browser.newContext();
+  const O = { uid: "o1", displayName: "Owner", email: "o@example.com" }, P = { uid: "s1", displayName: "Sub", email: "s@example.com" }, D = { uid: "d1", displayName: "Dev", email: "d@example.com" };
+  const bp = await newPage(bctx, { width: 1280, init: ([O]) => {
+    if (localStorage.getItem("fake:seeded")) return;
+    localStorage.setItem("fake:seeded", "1"); localStorage.setItem("qcard:welcomed", "1"); localStorage.setItem("fake:user", JSON.stringify(O));
+    const w = (id, en, kana) => ({ id, en, kana, kanji: "" });
+    localStorage.setItem("fake:fs", JSON.stringify({
+      "users/o1/meta/samples": { offeredAt: "x" }, "users/s1/meta/samples": { offeredAt: "x" }, "users/d1/meta/samples": { offeredAt: "x" }, "dev/d1": { role: "dev" },
+      "users/o1/sets/drinks": { collection: "Made up", unit: "Week 1", name: "Drinks", words: [w("a", "water", "みず"), w("b", "tea", "おちゃ")], updatedAt: "x" },
+      "users/o1/sets/food": { collection: "Made up", unit: "Week 1", name: "Food", words: [w("a", "rice", "ごはん")], updatedAt: "x" },
+      "users/o1/meta/notebooks": { list: [{ id: "main", name: "Made-up words" }] },
+    }));
+  }, initArg: [O] });
+  await bp.waitForTimeout(600);
+  const fs = () => fsData(bp);
+  const as = async (u, hash = "") => { await bp.evaluate((u) => { if (u) localStorage.setItem("fake:user", JSON.stringify(u)); else localStorage.removeItem("fake:user"); }, u); await bp.goto(base + hash); await bp.reload(); await bp.waitForTimeout(900); };
+  const tryIt = (f) => bp.evaluate(`(async () => { const p = window.qcardPlatform; try { await (${f}); return "ok"; } catch (e) { return e.code; } })()`);
+  const cards = () => bp.$$eval("#browseList .bcard", (cs) => cs.map((c) => c.textContent.replace(/\s+/g, " ").trim()));
+  const shareMenu = async () => { await bp.click("#nbBtn"); await bp.click('#nbList [data-nb-do="share"]'); await bp.waitForTimeout(400); };
+  // Nothing listed: Browse says so.
+  await goView(bp, "browse");
+  ok(await vis(bp, "#browse") && new URL(bp.url()).hash === "#browse" && /No notebooks are listed yet/.test(await text(bp, "#browseList")), "browse: the menu opens Browse (#browse), which says when nothing is listed", await text(bp, "#browseList"));
+  // Sharing by link doesn't list it; the pop-up offers to.
+  await goView(bp, "setup"); await shareMenu(); await bp.click("#askYes"); await bp.waitForTimeout(900);
+  const sid = (await bp.inputValue("#shareLinkIn")).split("#shared/")[1];
+  ok(!(await bp.isChecked("#shareListed")) && !(await vis(bp, "#shareAbout")) && !Object.keys(await fs()).some((p) => p.startsWith("listed/")), "list: a notebook shared by link isn't on Browse unless its owner says so");
+  await bp.check("#shareListed"); await bp.fill("#shareAbout", "  Words I made up,   for trying things out "); await bp.screenshot({ path: join(out, "28-share-list.png") });
+  await bp.click('#askDlg [value="no"]'); await bp.waitForTimeout(400);
+  ok(!Object.keys(await fs()).some((p) => p.startsWith("listed/")) && !(await fs())["users/o1/meta/notebooks"].list[0].listed, "list: Cancel leaves it unlisted");
+  await shareMenu(); await bp.check("#shareListed"); await bp.fill("#shareAbout", "  Words I made up,   for trying things out "); await bp.keyboard.press("Enter"); await bp.waitForTimeout(900);
+  let d = await fs(), line = d[`listed/${sid}`];
+  ok(line?.name === "Made-up words" && line.about === "Words I made up, for trying things out" && line.sets === 2 && line.words === 3 && Object.keys(line).sort().join() === "about,name,sets,updatedAt,words" && d["users/o1/meta/notebooks"].list[0].listed === true
+    && !JSON.stringify(line).match(/o1|Owner|example\.com/), "list: Done with the box ticked puts its line on Browse: name, the owner's words about it and how much is in it, and nothing about whose it is", JSON.stringify(line));
+  // Somebody not signed in: Browse lists it; search narrows; a line opens the notebook's page.
+  await as(null, "#browse");
+  let c = await cards();
+  ok(c.length === 1 && /^Made-up words Words I made up, for trying things out\s*2 sets · 3 words · Updated /.test(c[0]), "browse: someone not signed in sees the listed notebook, with what it's about and how much is in it", c.join(" | "));
+  await bp.screenshot({ path: join(out, "28-browse.png") });
+  await bp.fill("#browseSearch", "zzz");
+  ok((await cards()).length === 0 && /No notebook matches that search/.test(await text(bp, "#browseList")), "browse: a search that matches nothing says so");
+  await bp.fill("#browseSearch", "TRYING");
+  ok((await cards()).length === 1, "browse: search looks in the name and the description, whatever the capitals");
+  await bp.click("#browseList .bcard"); await bp.waitForTimeout(800);
+  ok(await vis(bp, "#shared") && new URL(bp.url()).hash === "#shared/" + sid && /water/.test(await text(bp, "#sharedBody")) && await vis(bp, "#sharedReport"), "browse: a line opens the notebook's page, with Report this notebook");
+  await bp.goBack(); await bp.waitForTimeout(600);
+  ok(await vis(bp, "#browse") && (await cards()).length === 1, "browse: the browser's back button returns to Browse");
+  // Nobody else can list, change or remove a line.
+  ok(await tryIt(`p.shared("${sid}").listing.set({ name: "x", about: "", sets: 1, words: 1, updatedAt: "x" })`) === "permission-denied" && await tryIt(`p.shared("${sid}").listing.delete()`) === "permission-denied", "browse: someone not signed in can't change or remove a line");
+  await as(P, "#browse");
+  ok(await tryIt(`p.shared("${sid}").listing.set({ name: "x", about: "", sets: 1, words: 1, updatedAt: "x" })`) === "permission-denied" && await tryIt(`p.shared("${sid}").listing.delete()`) === "permission-denied"
+    && await tryIt(`p.shared("NobodySharedThisNobodyShared").listing.set({ name: "x", about: "", sets: 1, words: 1, updatedAt: "x" })`) === "permission-denied", "browse: another account can't either, nor list a notebook nobody shared");
+  // Added from Browse, its line says so; the owner's says Yours.
+  await bp.click("#browseList .bcard"); await bp.waitForTimeout(700); await bp.click("#sharedAdd"); await bp.waitForTimeout(1200);
+  await goView(bp, "browse"); await bp.waitForTimeout(500);
+  ok(/^Made-up words\s*Added/.test((await cards())[0]), "browse: a notebook this account added is marked Added", (await cards())[0]);
+  await as(O, "#browse");
+  ok(/^Made-up words\s*Yours/.test((await cards())[0]), "browse: the owner's own is marked Yours", (await cards())[0]);
+  // A developer takes it down: off Browse, and the owner can't put it back while it's down.
+  await bp.evaluate((sid) => window.qcardPlatform.reports.doc("r1").set({ share: sid, why: "other", note: "", at: new Date().toISOString() }), sid);
+  await as(D); await settings(bp, "admin"); await bp.waitForTimeout(400);
+  await bp.click('#repList [data-rep-do="down"]'); await bp.click("#askYes"); await bp.waitForTimeout(600);
+  d = await fs();
+  ok(!!d[`takedowns/${sid}`] && !d[`listed/${sid}`], "take down: the notebook leaves Browse too");
+  await as(O); await bp.waitForTimeout(2300);
+  ok(!(await fs())[`listed/${sid}`] && await tryIt(`p.shared("${sid}").listing.set({ name: "x", about: "", sets: 1, words: 1, updatedAt: "x" })`) === "permission-denied", "take down: its owner can't list it again while it's down");
+  await shareMenu();
+  ok(!(await bp.$("#shareListed")) && /taken down/.test(await text(bp, "#askText")), "take down: the owner's share pop-up doesn't offer Browse then");
+  await bp.click("#askYes");
+  // Put back: the line returns when the owner next opens the notebook.
+  await as(D); await settings(bp, "admin"); await bp.waitForTimeout(400); await bp.click('#repList [data-rep-do="back"]'); await bp.waitForTimeout(500);
+  await as(O); await bp.waitForTimeout(2300);
+  ok((await fs())[`listed/${sid}`]?.words === 3, "put back: the notebook is on Browse again once its owner opens it");
+  // Unticking the box takes it off Browse; the link still works. Stop sharing removes a line too.
+  await shareMenu(); await bp.uncheck("#shareListed"); await bp.click("#askYes"); await bp.waitForTimeout(900);
+  d = await fs();
+  ok(!d[`listed/${sid}`] && !d["users/o1/meta/notebooks"].list[0].listed && !!d[`shares/${sid}`], "list: unticking the box takes it off Browse, and the link still works");
+  await shareMenu(); await bp.check("#shareListed"); await bp.click("#askYes"); await bp.waitForTimeout(900);
+  ok(!!(await fs())[`listed/${sid}`], "list: (listed again)");
+  await shareMenu(); await bp.click("#shareStop"); await bp.waitForTimeout(200); await bp.click("#askYes"); await bp.waitForTimeout(1000);
+  d = await fs();
+  ok(!Object.keys(d).some((p) => p.startsWith("listed/") || p.startsWith("shares/")) && !d["users/o1/meta/notebooks"].list[0].listed, "stop sharing: its line on Browse goes with it");
+  ok(bp.errors.length === 0, "browse: no page errors", bp.errors.join(" | "));
+  await bctx.close();
 }
 
 await browser.close(); server.close();

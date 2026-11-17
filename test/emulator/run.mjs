@@ -393,6 +393,17 @@ await part("6. Rules", async () => {
     "rules: anyone can ask whether one notebook is taken down, only developers can list them, and other shared notebooks are untouched");
   ok(await as("bob", "DELETE", `takedowns/${sid2}`) === 403 && await as("carol", "DELETE", `takedowns/${sid2}`) === 403 && await as("dana", "DELETE", `takedowns/${sid2}`) === 200 && await as(null, "GET", `shares/${sid2}`) === 200,
     "rules: only a developer can put it back; then the link works again");
+  // The Browse page's lines (listed/<id>).
+  const line = (more = {}) => ({ fields: { name: str("A"), about: str(""), sets: { integerValue: "1" }, words: { integerValue: "2" }, updatedAt: str("x"), ...more } });
+  ok(await as("carol", "PATCH", `listed/${sid2}`, line()) === 403 && await as(null, "PATCH", `listed/${sid2}`, line()) === 403 && await as("dana", "PATCH", `listed/${sid2}`, line()) === 403
+    && await as("bob", "PATCH", "listed/nobodysharedthisnobodyshared", line()) === 403, "rules: nobody but its owner can list a shared notebook on Browse, and only a notebook that is shared");
+  ok(await as("bob", "PATCH", `listed/${sid2}`, line({ owner: str("bob") })) === 403 && await as("bob", "PATCH", `listed/${sid2}`, line({ about: str("x".repeat(201)) })) === 403 && await as("bob", "PATCH", `listed/${sid2}`, line({ sets: str("1") })) === 403,
+    "rules: a line holds only the name, a line about it of 200 characters at most, the counts and the time");
+  ok(await as("bob", "PATCH", `listed/${sid2}`, line()) === 200 && await as(null, "GET", `listed/${sid2}`) === 200 && await as(null, "GET", "listed") === 200 && await as("carol", "GET", "listed") === 200
+    && await as("carol", "DELETE", `listed/${sid2}`) === 403 && await as(null, "DELETE", `listed/${sid2}`) === 403, "rules: the owner lists it; anyone can read Browse's lines, signed in or not, and nobody else can remove one");
+  ok(await as("dana", "PATCH", `takedowns/${sid2}`, down) === 200 && await as("bob", "PATCH", `listed/${sid2}`, line()) === 403 && await as("dana", "DELETE", `listed/${sid2}`) === 200 && await as("bob", "PATCH", `listed/${sid2}`, line()) === 403
+    && await as("dana", "DELETE", `takedowns/${sid2}`) === 200 && await as("bob", "PATCH", `listed/${sid2}`, line()) === 200 && await as("bob", "DELETE", `listed/${sid2}`) === 200,
+    "rules: taken down, a developer removes its line and the owner can't list it again until it's put back");
   ok(await as("dana", "DELETE", "reports/r1") === 200 && await as("dana", "DELETE", "reports/r2") === 200 && await as("dana", "GET", "reports/r1") === 404, "rules: a developer deletes reports");
   ok(await as("alice", "DELETE", `shares/${sid}/sets/a`) === 200 && await as("alice", "DELETE", `shares/${sid}`) === 200 && await as("alice", "DELETE", `shareOwners/${sid}`) === 200 && await as(null, "GET", `shares/${sid}`) === 404,
     "rules: the owner deletes a share, and then the link finds nothing");

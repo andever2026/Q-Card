@@ -40,13 +40,14 @@
   // The store as one notebook sees it: the same doc() and collection(), inside that notebook.
   const inNotebook = (db, id) => { const at = id === MAIN_NB ? "" : `notebooks/${id}/`; return { doc: (p) => db.doc(at + p), collection: (p) => db.collection(at + p) }; };
   // meta/notebooks as read: [{ id, name }], never empty. A notebook its owner shares also has share (the id of its
-  // shared copy), and one added from somebody's shared copy has from (that copy's id): see shared-notebooks/.
+  // shared copy), and one added from somebody's shared copy has from (that copy's id): see shared-notebooks/. A shared
+  // one that its owner lists on the Browse page has listed, and about (a line of their own about it).
   const SHARE_RE = /^[A-Za-z0-9]{20,40}$/;
   function cleanNotebooks(d) {
     const seen = new Set(), list = [];
     for (const n of Array.isArray(d?.list) ? d.list : []) {
       const id = String(n?.id ?? ""), link = (k) => (SHARE_RE.test(String(n[k] ?? "")) ? { [k]: n[k] } : {});
-      if (/^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/.test(id) && !seen.has(id) && list.length < NB_MAX) { seen.add(id); list.push({ id, name: tidy(n.name, 60) || NB_NAME, ...link("share"), ...link("from") }); }
+      if (/^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/.test(id) && !seen.has(id) && list.length < NB_MAX) { seen.add(id); list.push({ id, name: tidy(n.name, 60) || NB_NAME, ...link("share"), ...link("from"), ...(n.listed === true && link("share").share ? { listed: true, about: tidy(n.about, 200) } : {}) }); }
     }
     return list.length ? list : [{ id: MAIN_NB, name: NB_NAME }];
   }

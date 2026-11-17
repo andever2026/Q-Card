@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-3UIpWionfgLMhm++rXjXBxjINscta34r6Xrgp/IJoYs=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-Q/Qy+Rp0lW2z7NjVe+So/xNzm3IxodItyIVvhByoYKA=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -164,6 +164,15 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .ownkey { padding: 1px 6px; border-radius: 4px; color: var(--ink); white-space: nowrap; }
 #shareLinkIn { width: 100%; margin: 4px 0 2px; }
 .sharedo { justify-content: space-between; }
+#shareAbout { width: 100%; }
+.bgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.bgrid > .empty { grid-column: 1 / -1; }
+.bcard { display: grid; gap: 6px; align-content: start; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
+.bcard:hover { border-color: var(--ai); }
+.bcard:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+.bname { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 1.02rem; }
+.btag { flex: none; font-size: .75rem; color: var(--ai); border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; }
+.babout { font-size: .9rem; }
 .repnote { display: block; width: 100%; min-height: 84px; margin: 10px 0 8px; padding: 8px 10px; font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; resize: vertical; }
 .repnote:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
 .replist { display: grid; gap: 10px; margin: 10px 0; }
@@ -755,6 +764,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       <button type="button" data-go="setup"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z M13.6 7.4 L16.6 10.4"/></svg><span>Practice</span></button>
       <button type="button" data-go="table"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5 H20.5 M3.5 14.5 H20.5 M9.5 9.5 V19.5"/></svg><span>Vocabulary</span></button>
       <button type="button" data-go="history"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20 H20 M7 16.5 V12 M12 16.5 V6.5 M17 16.5 V9.5"/></svg><span>Progress</span></button>
+      <button type="button" data-go="browse"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12 H20.5 M12 3.5 c-3.4 3.2 -3.4 13.8 0 17 M12 3.5 c3.4 3.2 3.4 13.8 0 17"/></svg><span>Browse</span></button>
       <button type="button" data-go="tools"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg><span>Extra tools</span></button>
     </nav>
     <div class="sideshade" id="sideShade"></div>
@@ -833,6 +843,12 @@ colours.apply(...colours.saved()); // before anything is drawn
     <div class="panel"><div class="head"><h2>Extra tools</h2></div><p class="muted">Extras to practice with away from the screen.</p></div>
     <div id="toolList" style="display: grid; gap: 18px"><p class="muted small">Loading…</p></div>
     <div id="printSheet"></div>
+  </section>
+  <!-- BROWSE: the shared notebooks their owners list for everyone (src/shared-notebooks/browse.js) -->
+  <section id="browse" class="wrap" style="gap:18px" hidden>
+    <div class="panel"><div class="head"><h2>Browse</h2></div><p class="muted">Notebooks that people shared with everyone. Open one to look through it; sign in to add it to your own notebooks.</p>
+      <input type="search" class="tsearch" id="browseSearch" placeholder="Search by name or description" aria-label="Search the shared notebooks"></div>
+    <div class="bgrid" id="browseList"></div>
   </section>
   <section id="shared" class="wrap" style="gap:18px" hidden>
     <div class="panel" id="sharedHead"></div>
@@ -1266,6 +1282,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     d.returnValue = ""; d.showModal(); $("#askYes").focus();
     return new Promise((done) => d.addEventListener("close", () => done(d.returnValue === "yes"), { once: true }));
   }
+  // For a text box inside the pop-up: Enter presses the yes button (by itself it would press Cancel, the pop-up's first button).
+  const enterYes = (inp) => { inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("#askYes").click(); } }; };
   // ---------- a small menu under a button ----------
   // makeMenu(box, btn, list): btn opens and closes list, a role="menu" of buttons; box holds them both. Arrow keys move
   // between the items; Escape, Tab or a click anywhere else closes it. Returns open(on, refocus): refocus puts the focus
@@ -1308,13 +1326,14 @@ colours.apply(...colours.saved()); // before anything is drawn
   // The store as one notebook sees it: the same doc() and collection(), inside that notebook.
   const inNotebook = (db, id) => { const at = id === MAIN_NB ? "" : `notebooks/${id}/`; return { doc: (p) => db.doc(at + p), collection: (p) => db.collection(at + p) }; };
   // meta/notebooks as read: [{ id, name }], never empty. A notebook its owner shares also has share (the id of its
-  // shared copy), and one added from somebody's shared copy has from (that copy's id): see shared-notebooks/.
+  // shared copy), and one added from somebody's shared copy has from (that copy's id): see shared-notebooks/. A shared
+  // one that its owner lists on the Browse page has listed, and about (a line of their own about it).
   const SHARE_RE = /^[A-Za-z0-9]{20,40}$/;
   function cleanNotebooks(d) {
     const seen = new Set(), list = [];
     for (const n of Array.isArray(d?.list) ? d.list : []) {
       const id = String(n?.id ?? ""), link = (k) => (SHARE_RE.test(String(n[k] ?? "")) ? { [k]: n[k] } : {});
-      if (/^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/.test(id) && !seen.has(id) && list.length < NB_MAX) { seen.add(id); list.push({ id, name: tidy(n.name, 60) || NB_NAME, ...link("share"), ...link("from") }); }
+      if (/^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/.test(id) && !seen.has(id) && list.length < NB_MAX) { seen.add(id); list.push({ id, name: tidy(n.name, 60) || NB_NAME, ...link("share"), ...link("from"), ...(n.listed === true && link("share").share ? { listed: true, about: tidy(n.about, 200) } : {}) }); }
     }
     return list.length ? list : [{ id: MAIN_NB, name: NB_NAME }];
   }
@@ -1471,6 +1490,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   const views = ["setup", "quiz", "results", "table", "history", "settings"];
   views.push("tools"); // Extra tools (study-tools/view.js)
   views.push("shared"); // a notebook somebody shared, opened from its link (shared-notebooks/preview.js)
+  views.push("browse"); // the shared notebooks listed for everyone (shared-notebooks/browse.js)
   function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); markNav(v); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
   function banner(msg) { const b = $("#banner"); b.hidden = !msg; b.textContent = msg || ""; }
   // ---------- Settings (the gear in the menu, page/nav.js) ----------
@@ -1541,6 +1561,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     else if (v === "table") { renderTable(); show("table"); }
     else if (v === "tools") openTools();
     else if (v === "shared") openShared();
+    else if (v === "browse") openBrowse();
     else { show("setup"); renderSetup(); }
   }
   // Going somewhere from the menu. Unsaved changes in the vocab table are asked about first, wherever to (vocab/table.js).
@@ -3562,7 +3583,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const answer = ask(title, `<input class="tsearch" id="nbNameIn" maxlength="60" aria-label="Notebook name" placeholder="Japanese 2" value="${esc(was)}">`, yes);
     const inp = $("#nbNameIn");
     inp.focus(); inp.select();
-    inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("#askYes").click(); } }; // Enter would press Cancel, the pop-up's first button
+    enterYes(inp);
     return nbFree((await answer) ? tidy(inp.value, 56) : "", was);
   }
   async function addNotebook() {
@@ -4865,7 +4886,9 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   // Brings the shared copy up to date with the open notebook: the documents that changed are written, the ones that are
   // gone deleted, then shares/<id> says what the copy holds now.
-  let shareAt = "", shareRev = new Map(), shareName = "", shareBusy = false, shareAgain = false, shareTimer = 0;
+  // Its owner can also list it on the Browse page (browse.js): then listed/<id> is its line there, kept right the same way.
+  const lineKey = (l) => (l ? JSON.stringify([l.name, l.about, l.sets, l.words]) : "");
+  let shareAt = "", shareRev = new Map(), shareName = "", shareLine = "", shareBusy = false, shareAgain = false, shareTimer = 0;
   async function syncShare() {
     const n = nbNow(), id = n?.share;
     if (!id || !account || !S.loaded || !S.kLoaded) return;
@@ -4873,14 +4896,17 @@ colours.apply(...colours.saved()); // before anything is drawn
     shareBusy = true;
     try {
       const sh = platform.shared(id), docs = shareDocs(), next = new Map([...docs].map(([p, d]) => [p, docStamp(d)]));
-      if (shareAt !== id) { const info = dataOrNull(await sh.info.get()); shareRev = revOf(info?.rev); shareName = info?.name ?? null; shareAt = id; }
-      const put = [...next.keys()].filter((p) => shareRev.get(p) !== next.get(p)), gone = [...shareRev.keys()].filter((p) => !next.has(p));
-      if (put.length || gone.length || shareName !== n.name) {
+      if (shareAt !== id) { const info = dataOrNull(await sh.info.get()); shareRev = revOf(info?.rev); shareName = info?.name ?? null; shareLine = lineKey(dataOrNull(await sh.listing.get())); shareAt = id; }
+      const put = [...next.keys()].filter((p) => shareRev.get(p) !== next.get(p)), gone = [...shareRev.keys()].filter((p) => !next.has(p)), changed = put.length || gone.length || shareName !== n.name;
+      if (changed) {
         for (const p of put) await sh.db.doc(p).set(docs.get(p));
         for (const p of gone) await sh.db.doc(p).delete();
         await sh.info.set({ name: n.name, rev: [...next].map(([p, h]) => `${p} ${h}`), updatedAt: new Date().toISOString() });
         shareRev = next; shareName = n.name;
       }
+      const sets = [...docs].filter(([p]) => p.startsWith("sets/")), line = n.listed ? { name: n.name, about: n.about || "", sets: sets.length, words: sets.reduce((a, [, d]) => a + d.words.length, 0) } : null;
+      // Refused while the notebook is taken down (firestore.rules): the copy itself is still brought up to date.
+      if (lineKey(line) !== shareLine || (line && changed)) try { await (line ? sh.listing.set({ ...line, updatedAt: new Date().toISOString() }) : sh.listing.delete()); shareLine = lineKey(line); } catch {}
     } catch { shareAt = ""; } // the copy is read again, and brought up to date, at the next change
     shareBusy = false;
     if (shareAgain) { shareAgain = false; shareSoon(); }
@@ -4900,13 +4926,13 @@ colours.apply(...colours.saved()); // before anything is drawn
   async function dropShare(id) {
     const sh = platform.shared(id);
     if (!(await sh.owner.get().catch(() => null))?.exists) return; // gone already
-    await emptyVocab(sh.db); await sh.info.delete(); await sh.owner.delete();
+    await sh.listing.delete(); await emptyVocab(sh.db); await sh.info.delete(); await sh.owner.delete();
     if (shareAt === id) shareAt = "";
   }
   // A notebook that's deleted (or the whole account) takes its shared copy with it.
   nbGone.push(async (id) => { const share = nbList().find((n) => n.id === id)?.share; if (share) await dropShare(share); });
   async function stopShare() {
-    const { share, ...rest } = nbNow();
+    const { share, listed, about, ...rest } = nbNow();
     try { await dropShare(share); } catch { return banner("Couldn't stop sharing. Try again."); }
     await saveNb(rest);
   }
@@ -4920,12 +4946,20 @@ colours.apply(...colours.saved()); // before anything is drawn
     const id = nbNow().share, down = await takenDown(id);
     const closed = ask(`“${nbNow().name}” is shared`, `<p>${down ? "This notebook was reported and taken down, so its link works only for you now." : "Anyone who has this link can look at it and add it to their own account."}</p>
       <input class="tsearch" id="shareLinkIn" readonly aria-label="Link" value="${esc(shareLink(id))}">
-      <p class="tactions sharedo"><button class="btn" type="button" id="shareCopy">Copy link</button><button class="link" type="button" id="shareStop">Stop sharing</button></p>`, "Done");
+      <p class="tactions sharedo"><button class="btn" type="button" id="shareCopy">Copy link</button><button class="link" type="button" id="shareStop">Stop sharing</button></p>
+      ${down ? "" : `<label class="checkrow"><input type="checkbox" id="shareListed"${nbNow().listed ? " checked" : ""}> Also list it on the Browse page, where anyone can find it</label>
+      <input class="tsearch" id="shareAbout" maxlength="200" aria-label="About this notebook" placeholder="What's in it, in a few words (optional)" value="${esc(nbNow().about || "")}"${nbNow().listed ? "" : " hidden"}>`}`, "Done");
     let stop = false;
+    if (!down) {
+      $("#shareListed").onchange = (e) => { $("#shareAbout").hidden = !e.target.checked; };
+      enterYes($("#shareAbout"));
+    }
     $("#shareLinkIn").onfocus = (e) => e.target.select();
     $("#shareCopy").onclick = async (e) => { try { await navigator.clipboard.writeText(shareLink(id)); e.target.textContent = "Copied"; } catch { $("#shareLinkIn").focus(); } };
     $("#shareStop").onclick = () => { stop = true; $("#askDlg").close("no"); };
-    await closed;
+    const done = await closed, listed = !down && $("#shareListed").checked, about = listed ? tidy($("#shareAbout").value, 200) : "";
+    // Done keeps the choice about the Browse page; Cancel leaves it as it was.
+    if (done && !down && (listed !== !!nbNow().listed || about !== (nbNow().about || ""))) { const { listed: was, about: old, ...n } = nbNow(); if (await saveNb({ ...n, ...(listed ? { listed, about } : {}) })) await syncShare(); }
     if (stop && await ask(`Stop sharing “${nbNow().name}”?`, `<p>The link stops working. People who already added this notebook keep what they have, and get no more changes from you.</p>`, "Stop sharing", true)) await stopShare();
   }
   // (Not a notebook that was added from somebody else's shared one: that one is its owner's to share.)
@@ -5124,7 +5158,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // ---------- reports of shared notebooks, for developers (public site) ----------
   // Settings → Admin lists the reports people sent (report.js), newest first, by notebook. Take down makes
   // takedowns/<id>: from then on only the notebook's owner and developers can open its link, and people who added the
-  // notebook keep what they have. Put back deletes it again. Dismiss deletes the reports. Who may do any of this is
+  // notebook keep what they have, and it leaves the Browse page (its owner can't list it while it's down). Put back deletes it again. Dismiss deletes the reports. Who may do any of this is
   // checked by firestore.rules (dev/<uid>), not here: for anyone else the list stays empty and the buttons fail.
   let repSeq = 0;
   async function renderReports() {
@@ -5152,7 +5186,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       if (b.dataset.repDo === "down" && !(await ask(`Take down ${name}?`, `<p>Its link stops working for everyone but its owner and developers. People who already added the notebook keep what they have, and get no more changes.</p>`, "Take down", true))) return;
       b.disabled = true; $("#repMsg").hidden = true;
       try {
-        if (b.dataset.repDo === "down") await sh.down.set({ at: new Date().toISOString() });
+        if (b.dataset.repDo === "down") { await sh.down.set({ at: new Date().toISOString() }); await sh.listing.delete(); } // off the Browse page too
         else if (b.dataset.repDo === "back") await sh.down.delete();
         else for (const r of g.reports) await platform.reports.doc(r.id).delete();
       } catch { $("#repMsg").textContent = "Couldn't do that. Try again."; $("#repMsg").hidden = false; }
@@ -5160,6 +5194,34 @@ colours.apply(...colours.saved()); // before anything is drawn
     }));
   }
   $("#repRefresh").onclick = renderReports;
+  // ---------- the Browse page: shared notebooks their owners list for everyone (public site) ----------
+  // A shared notebook is found only by its link, unless its owner also lists it (publish.js): then listed/<id> holds
+  // its line here: its name, the owner's line about it and how much is in it. Nothing says whose it is. Anyone can read
+  // the list, signed in or not; a line opens the same page the notebook's link does (preview.js), where it can be
+  // added or reported. A notebook that is taken down loses its line (moderation.js).
+  let browseList = null;
+  async function openBrowse() {
+    show("browse");
+    browseList = null;
+    $("#browseList").innerHTML = `<div class="empty">Loading…</div>`;
+    try {
+      const snap = await platform.listed.orderBy("updatedAt", "desc").limit(200).get();
+      browseList = snap.docs.filter((d) => SHARE_RE.test(d.id)).map((d) => { const l = d.data(); return { id: d.id, name: tidy(l.name, 60) || NB_NAME, about: tidy(l.about, 200), sets: +l.sets || 0, words: +l.words || 0, at: l.updatedAt }; });
+    } catch { $("#browseList").innerHTML = `<div class="empty"><b>The list couldn't load.</b><span>Check your connection, then open Browse again.</span></div>`; return; }
+    renderBrowse();
+  }
+  function renderBrowse() {
+    if (!browseList || $("#browse").hidden) return;
+    const q = $("#browseSearch").value.trim().toLowerCase(), list = browseList.filter((l) => !q || `${l.name} ${l.about}`.toLowerCase().includes(q));
+    const tag = (l) => (nbList().some((n) => n.share === l.id) ? "Yours" : nbList().some((n) => n.from === l.id) ? "Added" : "");
+    $("#browseList").innerHTML = !browseList.length ? `<div class="empty"><b>No notebooks are listed yet.</b><span>To list one of yours, share it from the notebook menu and choose to list it here.</span></div>`
+      : !list.length ? `<div class="empty"><b>No notebook matches that search.</b></div>`
+      : list.map((l) => `<a class="bcard" href="#shared/${l.id}"><span class="bname"><b>${esc(l.name)}</b>${tag(l) ? `<span class="btag">${tag(l)}</span>` : ""}</span>
+        ${l.about ? `<span class="babout">${esc(l.about)}</span>` : ""}<span class="muted small">${[plural(l.sets, "set"), plural(l.words, "word"), ...(isNaN(new Date(l.at)) ? [] : ["Updated " + dayText(l.at)])].join(" · ")}</span></a>`).join("");
+  }
+  $("#browseSearch").oninput = renderBrowse;
+  // The list of notebooks loads after the page: which of these are here already shows once it has.
+  vocabHooks.push(renderBrowse);
   // ---------- Extra tools (public site) ----------
   // A view of the page like the others, with the menu beside it. Its tools are js/tools.js (src/study-tools/tools.js),
   // loaded the first time it opens, so the page itself doesn't carry them. Its address is #tools (page/address.js; the old
@@ -5175,11 +5237,11 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   // ---------- each part of the page has its own address (public site) ----------
   // The page loads once and swaps what it shows, so the part after # names the part on screen: …/#vocabulary, #progress,
-  // #tools, #settings (Practice has none). Going to a part adds a step to the browser's history, so ← back and forward
+  // #browse, #tools, #settings (Practice has none). Going to a part adds a step to the browser's history, so ← back and forward
   // step through the parts, and a link or bookmark opens the part it names. A practice and its results add no step.
   // A shared notebook's link is …/#shared/<its id> (shared-notebooks/preview.js shows what the address names).
-  function partHash(v) { return { setup: "", table: "#vocabulary", history: "#progress", settings: "#settings", tools: "#tools", shared: "#shared/" + sharedId() }[v]; }
-  function hashPart() { return ["table", "history", "settings", "tools", "shared"].find((v) => partHash(v) === location.hash) || "setup"; }
+  function partHash(v) { return { setup: "", table: "#vocabulary", history: "#progress", settings: "#settings", tools: "#tools", browse: "#browse", shared: "#shared/" + sharedId() }[v]; }
+  function hashPart() { return ["table", "history", "settings", "tools", "browse", "shared"].find((v) => partHash(v) === location.hash) || "setup"; }
   // From show(): the address follows, unless it's the address that moved (back or forward), or the page is still starting
   // (boot.js opens the part the address names).
   function syncHash(v) {

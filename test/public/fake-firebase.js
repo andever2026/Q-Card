@@ -56,6 +56,14 @@ function allowed(path, write = false, v) {
     if (write === "set" && !has ? !(s[1].length >= 20 && v.uid === current.uid && Object.keys(v).every((k) => ["uid", "nb", "createdAt"].includes(k))) : !(write !== "set" && write !== "update" && has?.uid === current.uid)) no();
     return;
   }
+  // The Browse page's lines: anyone reads them; the owner writes one (not while taken down); the owner or a developer deletes it.
+  if (s[0] === "listed") {
+    const mine = !!current && data[`shareOwners/${s[1]}`]?.uid === current.uid;
+    if (!write && s.length <= 2) return;
+    if (s.length !== 2 || (write === "delete" ? !mine && !isDev() : !mine || `takedowns/${s[1]}` in data || Object.keys(v).some((k) => !["name", "about", "sets", "words", "updatedAt"].includes(k))
+      || typeof v.name !== "string" || v.name.length > 100 || typeof v.about !== "string" || v.about.length > 200 || !Number.isInteger(v.sets) || !Number.isInteger(v.words) || typeof v.updatedAt !== "string")) no();
+    return;
+  }
   // Taken down by a developer: anyone may ask about one notebook, only developers list, make or delete them.
   if (s[0] === "takedowns") {
     if (s.length === 2 && !write) return;

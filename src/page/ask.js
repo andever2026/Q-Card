@@ -7,3 +7,5 @@
     d.returnValue = ""; d.showModal(); $("#askYes").focus();
     return new Promise((done) => d.addEventListener("close", () => done(d.returnValue === "yes"), { once: true }));
   }
+  // For a text box inside the pop-up: Enter presses the yes button (by itself it would press Cancel, the pop-up's first button).
+  const enterYes = (inp) => { inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("#askYes").click(); } }; };

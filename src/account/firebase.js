@@ -86,7 +86,9 @@ window.qcardPlatform = {
   // documents under it (shares/<id>/sets/<set> …), which anyone who has the id may read, signed in or not;
   // shareOwners/<id>, which only its owner can read, says whose it is. Only the owner can change any of it.
   // takedowns/<id> is there while a developer has taken the notebook down: then only its owner and developers can read it.
-  shared: (id) => ({ info: all.doc(`shares/${id}`), owner: all.doc(`shareOwners/${id}`), down: all.doc(`takedowns/${id}`), db: makeDb((p) => `shares/${id}/${p}`) }),
+  // listed/<id> is its line on the Browse page, there while its owner lists it for everyone (anyone can read those).
+  shared: (id) => ({ info: all.doc(`shares/${id}`), owner: all.doc(`shareOwners/${id}`), down: all.doc(`takedowns/${id}`), listing: all.doc(`listed/${id}`), db: makeDb((p) => `shares/${id}/${p}`) }),
+  listed: all.collection("listed"),
   // Reports of shared notebooks: anyone may send one, only developers can read or delete them, and only developers can
   // list what is taken down.
   reports: all.collection("reports"), takedowns: all.collection("takedowns"),

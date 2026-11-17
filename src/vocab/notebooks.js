@@ -76,7 +76,7 @@
     const answer = ask(title, `<input class="tsearch" id="nbNameIn" maxlength="60" aria-label="Notebook name" placeholder="Japanese 2" value="${esc(was)}">`, yes);
     const inp = $("#nbNameIn");
     inp.focus(); inp.select();
-    inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("#askYes").click(); } }; // Enter would press Cancel, the pop-up's first button
+    enterYes(inp);
     return nbFree((await answer) ? tidy(inp.value, 56) : "", was);
   }
   async function addNotebook() {

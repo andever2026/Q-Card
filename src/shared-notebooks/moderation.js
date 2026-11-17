@@ -1,7 +1,7 @@
   // ---------- reports of shared notebooks, for developers (public site) ----------
   // Settings → Admin lists the reports people sent (report.js), newest first, by notebook. Take down makes
   // takedowns/<id>: from then on only the notebook's owner and developers can open its link, and people who added the
-  // notebook keep what they have. Put back deletes it again. Dismiss deletes the reports. Who may do any of this is
+  // notebook keep what they have, and it leaves the Browse page (its owner can't list it while it's down). Put back deletes it again. Dismiss deletes the reports. Who may do any of this is
   // checked by firestore.rules (dev/<uid>), not here: for anyone else the list stays empty and the buttons fail.
   let repSeq = 0;
   async function renderReports() {
@@ -29,7 +29,7 @@
       if (b.dataset.repDo === "down" && !(await ask(`Take down ${name}?`, `<p>Its link stops working for everyone but its owner and developers. People who already added the notebook keep what they have, and get no more changes.</p>`, "Take down", true))) return;
       b.disabled = true; $("#repMsg").hidden = true;
       try {
-        if (b.dataset.repDo === "down") await sh.down.set({ at: new Date().toISOString() });
+        if (b.dataset.repDo === "down") { await sh.down.set({ at: new Date().toISOString() }); await sh.listing.delete(); } // off the Browse page too
         else if (b.dataset.repDo === "back") await sh.down.delete();
         else for (const r of g.reports) await platform.reports.doc(r.id).delete();
       } catch { $("#repMsg").textContent = "Couldn't do that. Try again."; $("#repMsg").hidden = false; }
