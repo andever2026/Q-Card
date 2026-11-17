@@ -3,6 +3,9 @@
   // takedowns/<id>: from then on only the notebook's owner and developers can open its link, and people who added the
   // notebook keep what they have, and it leaves the Browse page (its owner can't list it while it's down). Put back deletes it again. Dismiss deletes the reports. Who may do any of this is
   // checked by firestore.rules (dev/<uid>), not here: for anyone else the list stays empty and the buttons fail.
+  // Who sent a report: the start of the account's id (all of it on hover, to look up in the Firebase console), or Deleted
+  // user once that account is deleted (report.js).
+  const sender = (by) => (by === null ? "Deleted user" : by ? `<span title="${esc(by)}">Account ${esc(by.slice(0, 8))}</span>` : "");
   let repSeq = 0;
   async function renderReports() {
     const box = $("#repList"), seq = ++repSeq;
@@ -12,7 +15,7 @@
     const by = new Map(), at = (id) => by.get(id) || by.set(id, { id, reports: [] }).get(id);
     try {
       const [reports, downs] = await Promise.all([platform.reports.orderBy("at", "desc").limit(200).get(), platform.takedowns.get()]);
-      for (const d of reports.docs) { const r = d.data(); if (SHARE_RE.test(r.share)) at(r.share).reports.push({ id: d.id, why: REPORT_WHY[r.why] ? r.why : "other", note: tidy(r.note, 1000), at: r.at }); }
+      for (const d of reports.docs) { const r = d.data(); if (SHARE_RE.test(r.share)) at(r.share).reports.push({ id: d.id, why: REPORT_WHY[r.why] ? r.why : "other", note: tidy(r.note, 1000), at: r.at, by: r.by === null ? null : tidy(r.by, 128) }); }
       for (const d of downs.docs) if (SHARE_RE.test(d.id)) at(d.id).down = true;
       await Promise.all([...by.values()].map(async (g) => { g.name = dataOrNull(await platform.shared(g.id).info.get())?.name; }));
     } catch { if (seq === repSeq) box.innerHTML = `<p class="muted small">Couldn't load the reports. Check your connection, then press Refresh.</p>`; return; }
@@ -21,7 +24,7 @@
     $("#repCount").textContent = n ? ` (${n})` : "";
     box.innerHTML = !by.size ? `<p class="muted small">No reports.</p>` : [...by.values()].map((g) => `<div class="rep" data-rep="${g.id}">
       <div class="rephead">${g.name == null ? `<b>No longer shared</b>` : `<a href="#shared/${g.id}"><b>${esc(tidy(g.name, 60) || NB_NAME)}</b></a>`}<span class="muted small">${[plural(g.reports.length, "report"), ...(g.down ? ["Taken down"] : [])].join(" · ")}</span></div>
-      ${g.reports.length ? `<ul>${g.reports.map((r) => `<li><span class="muted small">${[isNaN(new Date(r.at)) ? "" : dayText(r.at), REPORT_WHY[r.why][1]].filter(Boolean).join(" · ")}</span>${r.note ? ` ${esc(r.note)}` : ""}</li>`).join("")}</ul>` : ""}
+      ${g.reports.length ? `<ul>${g.reports.map((r) => `<li><span class="muted small">${[isNaN(new Date(r.at)) ? "" : dayText(r.at), REPORT_WHY[r.why][1], sender(r.by)].filter(Boolean).join(" · ")}</span>${r.note ? ` ${esc(r.note)}` : ""}</li>`).join("")}</ul>` : ""}
       <div class="tactions">${g.down ? `<button class="btn" type="button" data-rep-do="back">Put back</button>` : g.name == null ? "" : `<button class="btn danger" type="button" data-rep-do="down">Take down</button>`}${g.reports.length ? `<button class="btn" type="button" data-rep-do="dismiss">Dismiss ${g.reports.length === 1 ? "report" : "reports"}</button>` : ""}</div></div>`).join("");
     box.querySelectorAll("[data-rep-do]").forEach((b) => (b.onclick = async () => {
       const g = by.get(b.closest("[data-rep]").dataset.rep), sh = platform.shared(g.id), name = `“${tidy(g.name, 60) || "this notebook"}”`;

@@ -69,6 +69,7 @@
     // Google's confirmation comes first, while the click still lets its window open (err.early: nothing deleted yet).
     if (account) try { await platform.confirmSignIn(); } catch (err) { if (!forced) throw Object.assign(err, { early: true }); confirmed = false; }
     stopPrefs();
+    await forgetReports(); // shared-notebooks/report.js
     for (const id of new Set([MAIN_NB, ...nbList().map((n) => n.id)])) await emptyNotebook(id);
     const paths = [];
     for (const c of ["training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);

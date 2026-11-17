@@ -2274,23 +2274,27 @@ if (entry.length > 1) {
   await rp.click("#sharedReport"); await rp.click("#askYes"); await rp.waitForTimeout(1500);
   ok(await vis(rp, "#shared") && (await text(rp, "#acctLabel")) === "Sub" && await vis(rp, "#sharedReport"), "report: signing in from there comes back to the shared notebook");
   await rp.click("#sharedReport"); await rp.waitForTimeout(200);
-  ok((await rp.$$eval("#askText [name=repWhy]", (r) => r.map((x) => x.parentElement.textContent.trim()).join(" | "))) === "It has mistakes | It doesn't belong on a study site | It shares material that isn't theirs to share | Something else" && /doesn't say who sent it/.test(await text(rp, "#askText"))
+  ok((await rp.$$eval("#askText [name=repWhy]", (r) => r.map((x) => x.parentElement.textContent.trim()).join(" | "))) === "It has mistakes | It doesn't belong on a study site | It shares material that isn't theirs to share | Something else" && /includes the notebook, your reason, your details and your account/.test(await text(rp, "#askText"))
     && !(await rp.$("#askText [name=repWhy]:checked")) && await rp.isDisabled("#askYes"), "report: it asks what's wrong, with four reasons and room for details; none is picked, and Send report waits for one", await text(rp, "#askText"));
   await rp.screenshot({ path: join(out, "27-report-ask.png") });
   await rp.click('#askDlg [value="no"]'); await rp.waitForTimeout(200);
   ok((await reports()).length === 0 && await vis(rp, "#sharedReport"), "report: Cancel sends nothing");
   await rp.click("#sharedReport"); await rp.fill("#repNote", "  These are the word lists of   a textbook, chapter 3.  "); await rp.check('#askText [name=repWhy][value="rights"]'); await rp.click("#askYes"); await rp.waitForTimeout(500);
   let rs = await reports();
-  ok(rs.length === 1 && rs[0].share === sid && rs[0].why === "rights" && rs[0].note === "These are the word lists of a textbook, chapter 3." && !isNaN(new Date(rs[0].at)) && Object.keys(rs[0]).sort().join() === "at,note,share,why",
-    "report: Send report saves which notebook, the reason, the details and the time, and nothing about who sent it", JSON.stringify(rs));
+  ok(rs.length === 1 && rs[0].share === sid && rs[0].why === "rights" && rs[0].note === "These are the word lists of a textbook, chapter 3." && !isNaN(new Date(rs[0].at)) && rs[0].by === "s1" && Object.keys(rs[0]).sort().join() === "at,by,note,share,why",
+    "report: Send report saves which notebook, the reason, the details, the time and the account that sent it", JSON.stringify(rs));
   ok(!(await vis(rp, "#sharedReport")) && (await text(rp, "#sharedReported")) === "Report sent. Thank you.", "report: the page says the report was sent");
-  ok(await tryIt(`p.reports.doc("zz").set({ share: "NobodySharedThisNobodyShared", why: "other", note: "", at: "x" })`) === "permission-denied" && await tryIt(`p.reports.doc("zz").set({ share: "${sid}", why: "other", note: "", at: "x", by: "me" })`) === "permission-denied",
-    "report: a report must be about a shared notebook, with nothing extra in it");
+  ok(await tryIt(`p.reports.doc("zz").set({ share: "NobodySharedThisNobodyShared", why: "other", note: "", at: "x" })`) === "permission-denied" && await tryIt(`p.reports.doc("zz").set({ share: "${sid}", why: "other", note: "", at: "x", by: "me" })`) === "permission-denied"
+    && await tryIt(`p.reports.doc("zz").set({ share: "${sid}", why: "other", note: "", at: "x" })`) === "permission-denied" && await tryIt(`p.reports.doc("zz").set({ share: "${sid}", why: "other", note: "", at: "x", by: "s1", more: 1 })`) === "permission-denied",
+    "report: a report must be about a shared notebook, say it's from the account sending it, and have nothing extra in it");
+  const r1 = Object.keys(await fs()).find((p) => p.startsWith("reports/")).slice(8);
+  ok(await tryIt(`p.reports.where("by", "==", "s1").get()`) === "ok" && await tryIt(`p.reports.where("by", "==", "o1").get()`) === "permission-denied" && await tryIt(`p.reports.doc("${r1}").update({ note: "changed" })`) === "permission-denied"
+    && await tryIt(`p.reports.doc("${r1}").update({ by: "o1" })`) === "permission-denied" && (await reports())[0].note.startsWith("These"), "report: its sender can find it only to take their account off it, and can't change it otherwise");
   // A second report, with another reason and no details. Not a developer: no Admin tab, no reading reports.
   await as(P, "#shared/" + sid);
   await rp.click("#sharedReport"); await rp.check('#askText [name=repWhy][value="other"]'); await rp.click("#askYes"); await rp.waitForTimeout(500);
   rs = await reports();
-  ok(rs.length === 2 && rs.some((r) => r.why === "other" && r.note === "") && !JSON.stringify(rs).match(/s1|example\.com|Sub/), "report: a report says nothing about the person who sent it", JSON.stringify(rs));
+  ok(rs.length === 2 && rs.some((r) => r.why === "other" && r.note === "") && rs.every((r) => r.by === "s1") && !JSON.stringify(rs).match(/example\.com|Sub/), "report: of the person who sent it, a report keeps the account's id only", JSON.stringify(rs));
   await settings(rp, "account");
   ok(!(await vis(rp, '#setNav [data-set-tab="admin"]')) && await tryIt(`p.reports.get()`) === "permission-denied" && await tryIt(`p.reports.doc("x").delete()`) === "permission-denied" && await tryIt(`p.shared("${sid}").down.set({ at: "x" })`) === "permission-denied",
     "report: an account that isn't a developer has no Admin tab, and the database refuses it the reports and Take down");
@@ -2301,8 +2305,8 @@ if (entry.length > 1) {
   await as(D); await settings(rp, "admin"); await rp.waitForTimeout(400);
   const list = () => rp.evaluate(() => ({ count: document.querySelector("#repCount").textContent, text: document.querySelector("#repList").textContent.replace(/\s+/g, " ").trim(), btns: [...document.querySelectorAll("#repList button")].map((b) => b.textContent).join(","), link: document.querySelector("#repList a")?.getAttribute("href") || "" }));
   let l = await list();
-  ok(l.count === " (2)" && /^Made-up words2 reports/.test(l.text) && /Not theirs to share These are the word lists of a textbook, chapter 3\./.test(l.text) && /Something else/.test(l.text) && l.btns === "Take down,Dismiss reports" && l.link === "#shared/" + sid,
-    "admin: a developer sees the reports by notebook, with the reasons and details, Take down and Dismiss", JSON.stringify(l));
+  ok(l.count === " (2)" && /^Made-up words2 reports/.test(l.text) && /Not theirs to share · Account s1 These are the word lists of a textbook, chapter 3\./.test(l.text) && /Something else/.test(l.text) && (l.text.match(/Account s1/g) || []).length === 2 && l.btns === "Take down,Dismiss reports" && l.link === "#shared/" + sid,
+    "admin: a developer sees the reports by notebook, with the reasons, details and the account that sent each, Take down and Dismiss", JSON.stringify(l));
   await rp.screenshot({ path: join(out, "27-admin-reports.png") });
   // Take down asks first; then the link stops for everyone but the owner and developers.
   await rp.click('#repList [data-rep-do="down"]'); await rp.waitForTimeout(200);
@@ -2326,8 +2330,14 @@ if (entry.length > 1) {
   await rp.click("#nbBtn"); await rp.click('#nbList [data-nb-do="share"]'); await rp.waitForTimeout(400);
   ok(/reported and taken down, so its link works only for you now/.test(await text(rp, "#askText")), "take down: the owner's share pop-up says so", await text(rp, "#askText"));
   await rp.click("#askYes");
+  // The account that sent the reports is deleted: they stay, without it, and Admin says Deleted user.
+  await as(P); await settings(rp, "account"); await rp.click("#delStart"); await rp.click("#delYes"); await rp.waitForTimeout(1800);
+  rs = await reports();
+  ok(rs.length === 2 && rs.every((r) => r.by === null && r.share === sid) && rs.some((r) => r.note.startsWith("These")), "delete account: the reports it sent stay, without the account", JSON.stringify(rs));
   // Put back, and Dismiss.
   await as(D); await settings(rp, "admin"); await rp.waitForTimeout(400);
+  l = await list();
+  ok((l.text.match(/Deleted user/g) || []).length === 2 && !/Account s1/.test(l.text), "admin: a report from a deleted account says Deleted user", l.text);
   await rp.click('#repList [data-rep-do="back"]'); await rp.waitForTimeout(500);
   l = await list();
   ok(!(await fs())[`takedowns/${sid}`] && l.btns === "Take down,Dismiss reports" && !/Taken down/.test(l.text), "put back: the notebook isn't taken down any more", JSON.stringify(l));

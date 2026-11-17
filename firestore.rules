@@ -63,9 +63,15 @@ service cloud.firestore {
       allow delete: if isDev() || ownsShare(id);
     }
     // Reports of shared notebooks. Anyone who is signed in may send one about a notebook that is shared: which one,
-    // one of the reasons, a note and the time, and nothing about who sent it. Only developers can read or delete them.
+    // one of the reasons, a note, the time and the account that sent it (by). Only developers can read or delete them.
+    // The account that sent one can find it for one thing only: when that account is deleted, its reports keep the rest
+    // and lose who sent them (by becomes null, which Admin shows as Deleted user).
     match /reports/{id} {
-      allow create: if request.auth != null && request.resource.data.keys().hasOnly(['share', 'why', 'note', 'at'])
+      allow list: if request.auth != null && resource.data.by == request.auth.uid;
+      allow update: if request.auth != null && resource.data.by == request.auth.uid && request.resource.data.by == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['by']);
+      allow create: if request.auth != null && request.resource.data.keys().hasOnly(['share', 'why', 'note', 'at', 'by'])
+        && request.resource.data.by == request.auth.uid
         && request.resource.data.share is string && request.resource.data.share.matches('^[A-Za-z0-9]{20,40}$')
         && exists(/databases/$(database)/documents/shares/$(request.resource.data.share))
         && request.resource.data.why in ['wrong', 'unsuitable', 'rights', 'other']

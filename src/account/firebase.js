@@ -4,7 +4,7 @@
 // Bundled into js/platform.js by tools/build.mjs.
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, deleteUser, reauthenticateWithPopup } from "firebase/auth";
-import { initializeFirestore, doc, collection, query, orderBy, limit, onSnapshot, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { initializeFirestore, doc, collection, query, where, orderBy, limit, onSnapshot, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import config from "./config.js";
 import { makeLocalDb } from "./local.js";
 import { saveFile } from "../import-export/save-file.js";
@@ -43,6 +43,7 @@ function makeDb(at) {
     const ref = collection(fs, at(path)), q = () => (parts.length ? query(ref, ...parts) : ref);
     return {
       doc: (id) => docRef(`${path}/${id}`),
+      where: (field, op, value) => colRef(path, [...parts, where(field, op, value)]),
       orderBy: (field, dir) => colRef(path, [...parts, orderBy(field, dir)]),
       limit: (n) => colRef(path, [...parts, limit(n)]),
       get: async () => querySnap(await getDocs(q())),
@@ -89,8 +90,8 @@ window.qcardPlatform = {
   // listed/<id> is its line on the Browse page, there while its owner lists it for everyone (anyone can read those).
   shared: (id) => ({ info: all.doc(`shares/${id}`), owner: all.doc(`shareOwners/${id}`), down: all.doc(`takedowns/${id}`), listing: all.doc(`listed/${id}`), db: makeDb((p) => `shares/${id}/${p}`) }),
   listed: all.collection("listed"),
-  // Reports of shared notebooks: anyone signed in may send one, only developers can read or delete them, and only developers can
-  // list what is taken down.
+  // Reports of shared notebooks: anyone signed in may send one, only developers can read or delete them (the account that
+  // sent one finds it only to take itself off it), and only developers can list what is taken down.
   reports: all.collection("reports"), takedowns: all.collection("takedowns"),
   user: makeUser,
   // Whether this account is a developer: dev/<uid> exists (see firestore.rules; only the Firebase console makes it).

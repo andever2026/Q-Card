@@ -37,8 +37,8 @@ let data = load(LS_DB, {}); // path → fields
 const listeners = new Set();
 window.__fs = { all: () => data, log: [] };
 const segs = (p) => p.split("/").filter(Boolean);
-// write: false to read, else "set", "update" or "delete" with the data being written.
-function allowed(path, write = false, v) {
+// write: false to read, else "set", "update" or "delete" with the data being written. q: the query, for a read of a collection.
+function allowed(path, write = false, v, q) {
   const s = segs(path), no = () => { throw { code: "permission-denied", message: "rules: " + path }; };
   const isDev = () => !!current && `dev/${current.uid}` in data;
   // Shared notebooks (firestore.rules): anyone reads a share they have the id of; only its owner writes it; whose it is, only the owner reads.
@@ -70,11 +70,15 @@ function allowed(path, write = false, v) {
     if (s.length > 2 || !isDev() || (write && write !== "delete" && Object.keys(v).some((k) => k !== "at"))) no();
     return;
   }
-  // Reports: anyone signed in sends one about a notebook that is shared; only developers read or delete them.
+  // Reports: anyone signed in sends one about a notebook that is shared, saying it's from them; only developers read or
+  // delete them. The account that sent some may list its own (asking for those only), and take itself off them.
   if (s[0] === "reports") {
     if (s.length > 2) no();
-    if (!write || write === "delete") { if (!isDev()) no(); return; }
-    if (!current || s.length !== 2 || write !== "set" || path in data || Object.keys(v).some((k) => !["share", "why", "note", "at"].includes(k)) || typeof v.share !== "string" || !/^[A-Za-z0-9]{20,40}$/.test(v.share) || !(`shares/${v.share}` in data)
+    const own = !!current && s.length === 1 && (q?.parts || []).some((p) => p.t === "where" && p.field === "by" && p.op === "==" && p.value === current.uid);
+    if (!write) { if (!isDev() && !own) no(); return; }
+    if (write === "delete") { if (!isDev()) no(); return; }
+    if (write === "update") { const was = data[path]; if (!current || was?.by !== current.uid || v.by !== null || Object.keys(v).some((k) => k !== "by" && JSON.stringify(v[k]) !== JSON.stringify(was[k]))) no(); return; }
+    if (!current || s.length !== 2 || write !== "set" || path in data || v.by !== current.uid || Object.keys(v).some((k) => !["share", "why", "note", "at", "by"].includes(k)) || typeof v.share !== "string" || !/^[A-Za-z0-9]{20,40}$/.test(v.share) || !(`shares/${v.share}` in data)
       || !["wrong", "unsuitable", "rights", "other"].includes(v.why) || typeof v.note !== "string" || v.note.length > 1000 || typeof v.at !== "string" || v.at.length > 40) no();
     return;
   }
@@ -100,6 +104,7 @@ export function doc(_fs, path) { if (segs(path).length % 2) throw new Error("doc
 export function collection(_fs, path) { if (!(segs(path).length % 2)) throw new Error("collection path needs an odd number of segments: " + path); return { kind: "col", path, id: segs(path).at(-1) }; }
 export const orderBy = (field, dir = "asc") => ({ t: "order", field, dir });
 export const limit = (n) => ({ t: "limit", n });
+export const where = (field, op, value) => ({ t: "where", field, op, value });
 export const query = (ref, ...parts) => ({ ...ref, parts: [...(ref.parts || []), ...parts] });
 // Like Firestore, a snapshot keeps the data as it was when it was taken, even if the document changes before it's read.
 const docSnap = (path) => { const has = path in data, v = has ? structuredClone(data[path]) : undefined; return { id: segs(path).at(-1), exists: () => has, data: () => structuredClone(v) }; };
@@ -109,6 +114,7 @@ function runQuery(q) {
   for (const part of q.parts || []) {
     if (part.t === "order") paths = paths.filter((p) => data[p][part.field] !== undefined).sort((a, b) => (data[a][part.field] < data[b][part.field] ? -1 : 1) * (part.dir === "desc" ? -1 : 1));
     if (part.t === "limit") paths = paths.slice(0, part.n);
+    if (part.t === "where") paths = paths.filter((p) => part.op === "==" && data[p][part.field] === part.value);
   }
   if (!(q.parts || []).some((p) => p.t === "order")) paths.sort();
   const docs = paths.map(docSnap);
@@ -128,7 +134,7 @@ export function onSnapshot(ref, next, error) {
 // (Each listener hears of the data as it is when its turn comes: Firestore never reports an older state after a newer write of this page's.)
 function changed() { save(LS_DB, data); for (const l of listeners) setTimeout(() => listeners.has(l) && l.ready && l.next(snapOf(l.ref)), 0); }
 export async function getDoc(ref) { allowed(ref.path); return docSnap(ref.path); }
-export async function getDocs(ref) { allowed(ref.path); return runQuery(ref); }
+export async function getDocs(ref) { allowed(ref.path, false, undefined, ref); return runQuery(ref); }
 export async function setDoc(ref, v) { allowed(ref.path, "set", v); window.__fs.log.push(["set", ref.path]); data[ref.path] = clean(v, ref.path); changed(); }
 export async function updateDoc(ref, v) {
   allowed(ref.path, "update", { ...data[ref.path], ...v });

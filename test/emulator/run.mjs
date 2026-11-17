@@ -374,13 +374,25 @@ await part("6. Rules", async () => {
     "rules: anyone who has a share's id can read it, signed in or not");
   ok(await as(null, "GET", "shares") === 403 && await as("bob", "GET", "shares") === 403 && await as("bob", "GET", "shareOwners") === 403, "rules: shares can't be listed, so a share is found only by its link");
   // Reports and Take down. Bob shares a notebook; Dana is a developer; Carol is neither.
-  const sid2 = "zyxwvutsrqponmkjihgfedcb", rep = (more = {}) => ({ fields: { share: str(sid2), why: str("rights"), note: str("from a textbook"), at: str("2026-11-17T00:00:00.000Z"), ...more } }), down = { fields: { at: str("2026-11-17T00:00:00.000Z") } };
+  const sid2 = "zyxwvutsrqponmkjihgfedcb", rep = (by, more = {}) => ({ fields: { share: str(sid2), why: str("rights"), note: str("from a textbook"), at: str("2026-11-17T00:00:00.000Z"), by: str(by), ...more } }), down = { fields: { at: str("2026-11-17T00:00:00.000Z") } };
   ok(await as("admin", "PATCH", "dev/dana", { fields: { role: str("dev") } }) === 200 && await as("bob", "PATCH", `shareOwners/${sid2}`, own("bob")) === 200 && await as("bob", "PATCH", `shares/${sid2}`, info()) === 200
     && await as("bob", "PATCH", `shares/${sid2}/sets/a`, doc) === 200, "rules: (dev/dana made with admin access; Bob shares a notebook)");
-  ok(await as(null, "PATCH", "reports/r1", rep()) === 403 && await as("alice", "PATCH", "reports/r1", rep()) === 200 && await as("carol", "PATCH", "reports/r2", rep({ why: str("other"), note: str("") })) === 200, "rules: anyone signed in can send a report about a shared notebook; signed out, nobody");
-  ok(await as("carol", "PATCH", "reports/r3", rep({ share: str("nobodysharedthisnobodyshared") })) === 403 && await as("carol", "PATCH", "reports/r3", rep({ share: str("x/y") })) === 403 && await as("carol", "PATCH", "reports/r3", rep({ why: str("spam") })) === 403 && await as("carol", "PATCH", "reports/r3", rep({ why: str("wrong") })) === 200 && await as("dana", "DELETE", "reports/r3") === 200
-    && await as("carol", "PATCH", "reports/r3", rep({ note: str("x".repeat(1001)) })) === 403 && await as("carol", "PATCH", "reports/r3", rep({ by: str("carol") })) === 403 && await as("carol", "PATCH", "reports/r1", rep()) === 403,
+  ok(await as(null, "PATCH", "reports/r1", rep("alice")) === 403 && await as("alice", "PATCH", "reports/r1", rep("alice")) === 200 && await as("carol", "PATCH", "reports/r2", rep("carol", { why: str("other"), note: str("") })) === 200, "rules: anyone signed in can send a report about a shared notebook; signed out, nobody");
+  ok(await as("carol", "PATCH", "reports/r3", rep("carol", { share: str("nobodysharedthisnobodyshared") })) === 403 && await as("carol", "PATCH", "reports/r3", rep("carol", { share: str("x/y") })) === 403 && await as("carol", "PATCH", "reports/r3", rep("carol", { why: str("spam") })) === 403 && await as("carol", "PATCH", "reports/r3", rep("carol", { why: str("wrong") })) === 200 && await as("dana", "DELETE", "reports/r3") === 200
+    && await as("carol", "PATCH", "reports/r3", rep("carol", { note: str("x".repeat(1001)) })) === 403 && await as("carol", "PATCH", "reports/r3", rep("carol", { more: str("x") })) === 403 && await as("carol", "PATCH", "reports/r1", rep("carol")) === 403,
     "rules: a report is about a notebook that is shared, with one of the reasons, a note of 1000 characters at most and nothing else, and can't be changed afterwards");
+  const { by: _by, ...noBy } = rep("carol").fields;
+  ok(await as("carol", "PATCH", "reports/r4", rep("alice")) === 403 && await as("carol", "PATCH", "reports/r4", { fields: noBy }) === 403, "rules: a report says it's from the account sending it, and from no other");
+  // The account that sent reports can list its own (and only by asking for those), and take itself off them; nothing else.
+  // (Carol's r2: Alice is a developer here.)
+  const theirs = async (who, by) => (await fetch(`${FS}:runQuery`, { method: "POST", headers: { "content-type": "application/json", Authorization: "Bearer " + token(who) },
+    body: JSON.stringify({ structuredQuery: { from: [{ collectionId: "reports" }], where: { fieldFilter: { field: { fieldPath: "by" }, op: "EQUAL", value: str(by) } } } }) })).status;
+  const r2 = (more = {}) => ({ fields: { ...rep("carol", { why: str("other"), note: str("") }).fields, ...more } }), gone = (more = {}) => r2({ by: { nullValue: null }, ...more });
+  const seen = [await theirs("carol", "carol"), await theirs("bob", "carol"), await as("carol", "GET", "reports/r2")].join();
+  ok(seen === "200,403,403", "rules: an account can list the reports it sent, not anyone else's, and can't read them one by one", seen);
+  ok(await as("bob", "PATCH", "reports/r2", gone()) === 403 && await as("carol", "PATCH", "reports/r2", gone({ note: str("changed") })) === 403 && await as("carol", "PATCH", "reports/r2", r2({ by: str("bob") })) === 403
+    && await as("carol", "PATCH", "reports/r2", gone()) === 200 && await as("carol", "PATCH", "reports/r2", gone()) === 403 && await theirs("carol", "carol") === 200,
+    "rules: the account that sent a report can take itself off it (for when it's deleted), and change nothing else; then it's no longer theirs");
   ok(await as(null, "GET", "reports/r1") === 403 && await as("carol", "GET", "reports/r2") === 403 && await as("bob", "GET", "reports") === 403 && await as("carol", "DELETE", "reports/r1") === 403
     && await as("dana", "GET", "reports") === 200 && await as("dana", "GET", "reports/r1") === 200, "rules: only a developer can read reports");
   ok(await as("bob", "PATCH", `takedowns/${sid2}`, down) === 403 && await as("carol", "PATCH", `takedowns/${sid2}`, down) === 403 && await as(null, "PATCH", `takedowns/${sid2}`, down) === 403
