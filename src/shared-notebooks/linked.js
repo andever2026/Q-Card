@@ -75,7 +75,7 @@
   let pulled = "", pullTimer = 0, linkGone = false;
   async function pullShare() {
     const n = nbNow(), key = `${n?.id} ${n?.from}`;
-    if (!n?.from || !account || !S.loaded || !S.kLoaded || pulled === key) return;
+    if (!n?.from || !account || !vocabIn() || pulled === key) return; // all of it, or what hasn't come in yet looks deleted
     pulled = key; linkGone = false;
     const at = inNotebook(db, n.id);
     try {

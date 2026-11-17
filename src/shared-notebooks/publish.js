@@ -25,7 +25,7 @@
   let shareAt = "", shareRev = new Map(), shareName = "", shareLine = "", shareBusy = false, shareAgain = false, shareTimer = 0;
   async function syncShare() {
     const n = nbNow(), id = n?.share;
-    if (!id || !account || !S.loaded || !S.kLoaded) return;
+    if (!id || !account || !vocabIn()) return; // all of it, or what hasn't come in yet would be deleted from the copy
     if (shareBusy) { shareAgain = true; return; }
     shareBusy = true;
     try {

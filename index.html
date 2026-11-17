@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-n/45mNyWJgQ7A/d0Gr1VTdRIu3gS8C53cHIzROju4J4=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-sddB3d9jaHfq9N9E6kSHKGNpACr3fFSb6+E+GsKcHmo=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -1887,13 +1887,16 @@ colours.apply(...colours.saved()); // before anything is drawn
   // to say when the sets can't load.
   // It's the open notebook's vocab (vdb: the store as that notebook sees it, vocab/docs.js); opening another notebook
   // (vocab/notebooks.js) calls this again, and what the notebook before still sends is dropped.
-  let vdb = null, watching = 0, watchOff = [], watchFailed = "";
+  // heard: which of its five documents and collections have come in (each answers on its own, a slow connection can
+  // keep one waiting), so what copies the whole notebook somewhere (shared-notebooks/) can wait for all of it.
+  let vdb = null, watching = 0, watchOff = [], watchFailed = "", heard = new Set();
+  const vocabIn = () => heard.size === 5;
   function watchVocab(failed = watchFailed) {
     watchOff.forEach((off) => typeof off === "function" && off());
-    const mine = ++watching, now = (on) => (snap) => { if (mine === watching) { on(snap); vocabChanged(); } };
+    const mine = ++watching, got = (heard = new Set()), now = (on, path) => (snap) => { if (mine === watching) { if (path) got.add(path); on(snap); vocabChanged(); } };
     watchFailed = failed; vdb = inNotebook(db, nb);
-    watchOff = [vdb.collection("kanji").onSnapshot(now(onKanji), () => {}), vdb.collection("sets").onSnapshot(now(onSets), now(() => banner(failed))),
-      ...[["meta/books", onBookOrder], ["meta/courses", onCourses], ["meta/views", onViews]].map(([path, on]) => vdb.doc(path).onSnapshot(now(on), () => {}))];
+    watchOff = [vdb.collection("kanji").onSnapshot(now(onKanji, "kanji"), () => {}), vdb.collection("sets").onSnapshot(now(onSets, "sets"), now(() => banner(failed))),
+      ...[["meta/books", onBookOrder], ["meta/courses", onCourses], ["meta/views", onViews]].map(([path, on]) => vdb.doc(path).onSnapshot(now(on, path), () => {}))];
   }
   function onCourses(snap) {
     raw.courses = dataOrNull(snap);
@@ -4891,7 +4894,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   let shareAt = "", shareRev = new Map(), shareName = "", shareLine = "", shareBusy = false, shareAgain = false, shareTimer = 0;
   async function syncShare() {
     const n = nbNow(), id = n?.share;
-    if (!id || !account || !S.loaded || !S.kLoaded) return;
+    if (!id || !account || !vocabIn()) return; // all of it, or what hasn't come in yet would be deleted from the copy
     if (shareBusy) { shareAgain = true; return; }
     shareBusy = true;
     try {
@@ -5042,7 +5045,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   let pulled = "", pullTimer = 0, linkGone = false;
   async function pullShare() {
     const n = nbNow(), key = `${n?.id} ${n?.from}`;
-    if (!n?.from || !account || !S.loaded || !S.kLoaded || pulled === key) return;
+    if (!n?.from || !account || !vocabIn() || pulled === key) return; // all of it, or what hasn't come in yet looks deleted
     pulled = key; linkGone = false;
     const at = inNotebook(db, n.id);
     try {

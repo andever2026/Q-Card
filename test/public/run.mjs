@@ -2222,6 +2222,13 @@ if (entry.length > 1) {
   await nbDo("add"); await sp.fill("#nbNameIn", "Second"); await sp.keyboard.press("Enter"); await sp.waitForTimeout(600);
   await nbDo("share"); await sp.click("#askYes"); await sp.waitForTimeout(900); await sp.click("#askYes");
   const had = Object.keys(await fs()).filter((p) => p.startsWith("shareOwners/")).length;
+  // A slow connection: until all of a notebook has come in, nothing is taken out of its copy (here its collection order comes 3 seconds late).
+  const sec = (await fs())["users/o1/meta/notebooks"].list.find((n) => n.name === "Second"), order = `shares/${sec?.share}/meta/books`;
+  await patch(`users/o1/notebooks/${sec?.id}/meta/books`, { order: ["Made up"] }); await sp.reload(); await sp.waitForTimeout(2300);
+  const copied = !!(await fs())[order];
+  await sp.evaluate(() => localStorage.setItem("fake:slow", JSON.stringify({ "meta/books": 3000 }))); await sp.reload(); await sp.waitForTimeout(2600);
+  ok(copied && !!(await fs())[order] && !(await sp.evaluate((p) => window.__fs.log.some(([op, x]) => op === "delete" && x === p), order)), "share: while part of a notebook is still loading, its copy keeps that part", JSON.stringify(sec));
+  await sp.evaluate(() => localStorage.removeItem("fake:slow")); await sp.waitForTimeout(2500);
   await nbDo("delete"); await sp.click("#askYes"); await sp.waitForTimeout(900);
   ok(had === 1 && !Object.keys(await fs()).some((p) => p.startsWith("share")), "share: deleting a shared notebook deletes its shared copy");
   await nbDo("share"); await sp.click("#askYes"); await sp.waitForTimeout(900); await sp.click("#askYes");

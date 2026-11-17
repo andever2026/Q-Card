@@ -33,13 +33,16 @@
   // to say when the sets can't load.
   // It's the open notebook's vocab (vdb: the store as that notebook sees it, vocab/docs.js); opening another notebook
   // (vocab/notebooks.js) calls this again, and what the notebook before still sends is dropped.
-  let vdb = null, watching = 0, watchOff = [], watchFailed = "";
+  // heard: which of its five documents and collections have come in (each answers on its own, a slow connection can
+  // keep one waiting), so what copies the whole notebook somewhere (shared-notebooks/) can wait for all of it.
+  let vdb = null, watching = 0, watchOff = [], watchFailed = "", heard = new Set();
+  const vocabIn = () => heard.size === 5;
   function watchVocab(failed = watchFailed) {
     watchOff.forEach((off) => typeof off === "function" && off());
-    const mine = ++watching, now = (on) => (snap) => { if (mine === watching) { on(snap); vocabChanged(); } };
+    const mine = ++watching, got = (heard = new Set()), now = (on, path) => (snap) => { if (mine === watching) { if (path) got.add(path); on(snap); vocabChanged(); } };
     watchFailed = failed; vdb = inNotebook(db, nb);
-    watchOff = [vdb.collection("kanji").onSnapshot(now(onKanji), () => {}), vdb.collection("sets").onSnapshot(now(onSets), now(() => banner(failed))),
-      ...[["meta/books", onBookOrder], ["meta/courses", onCourses], ["meta/views", onViews]].map(([path, on]) => vdb.doc(path).onSnapshot(now(on), () => {}))];
+    watchOff = [vdb.collection("kanji").onSnapshot(now(onKanji, "kanji"), () => {}), vdb.collection("sets").onSnapshot(now(onSets, "sets"), now(() => banner(failed))),
+      ...[["meta/books", onBookOrder], ["meta/courses", onCourses], ["meta/views", onViews]].map(([path, on]) => vdb.doc(path).onSnapshot(now(on, path), () => {}))];
   }
   function onCourses(snap) {
     raw.courses = dataOrNull(snap);

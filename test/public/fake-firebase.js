@@ -115,15 +115,18 @@ function runQuery(q) {
   return { docs, size: docs.length, empty: !docs.length };
 }
 const snapOf = (ref) => (ref.kind === "doc" ? docSnap(ref.path) : runQuery(ref));
+// A test can keep the first answer for some paths waiting, as a slow connection does (localStorage "fake:slow":
+// { "end of a path": ms }); until it comes, that listener hears of no changes either.
+const slow = load("fake:slow", {}), slowFor = (path) => Object.entries(slow).find(([end]) => path.endsWith(end))?.[1] || 0;
 export function onSnapshot(ref, next, error) {
   try { allowed(ref.path); } catch (e) { setTimeout(() => error?.(e), 0); return () => {}; }
-  const l = { ref, next };
+  const l = { ref, next, ready: false };
   listeners.add(l);
-  setTimeout(() => listeners.has(l) && next(snapOf(ref)), 0);
+  setTimeout(() => { if (listeners.has(l)) { l.ready = true; next(snapOf(ref)); } }, slowFor(ref.path));
   return () => listeners.delete(l);
 }
 // (Each listener hears of the data as it is when its turn comes: Firestore never reports an older state after a newer write of this page's.)
-function changed() { save(LS_DB, data); for (const l of listeners) setTimeout(() => listeners.has(l) && l.next(snapOf(l.ref)), 0); }
+function changed() { save(LS_DB, data); for (const l of listeners) setTimeout(() => listeners.has(l) && l.ready && l.next(snapOf(l.ref)), 0); }
 export async function getDoc(ref) { allowed(ref.path); return docSnap(ref.path); }
 export async function getDocs(ref) { allowed(ref.path); return runQuery(ref); }
 export async function setDoc(ref, v) { allowed(ref.path, "set", v); window.__fs.log.push(["set", ref.path]); data[ref.path] = clean(v, ref.path); changed(); }
