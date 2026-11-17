@@ -75,7 +75,7 @@ function allowed(path, write = false, v) {
     if (s.length > 2) no();
     if (!write || write === "delete") { if (!isDev()) no(); return; }
     if (s.length !== 2 || write !== "set" || path in data || Object.keys(v).some((k) => !["share", "why", "note", "at"].includes(k)) || typeof v.share !== "string" || !/^[A-Za-z0-9]{20,40}$/.test(v.share) || !(`shares/${v.share}` in data)
-      || !["copyright", "other"].includes(v.why) || typeof v.note !== "string" || v.note.length > 1000 || typeof v.at !== "string" || v.at.length > 40) no();
+      || !["wrong", "unsuitable", "rights", "other"].includes(v.why) || typeof v.note !== "string" || v.note.length > 1000 || typeof v.at !== "string" || v.at.length > 40) no();
     return;
   }
   if (!current) throw { code: "permission-denied", message: "signed out" };

@@ -2258,14 +2258,14 @@ if (entry.length > 1) {
   await as(null, "#shared/" + sid);
   ok(await vis(rp, "#sharedReport") && (await text(rp, "#sharedReport")) === "Report this notebook", "report: the page a shared link opens has Report this notebook, signed in or not");
   await rp.click("#sharedReport"); await rp.waitForTimeout(200);
-  ok((await rp.$$eval("#askText [name=repWhy]", (r) => r.map((x) => x.parentElement.textContent.trim()).join(" | "))) === "It's copied from a textbook or other copyrighted work | Something else" && /doesn't say who sent it/.test(await text(rp, "#askText")),
-    "report: it asks what's wrong (copyright or something else), with room for details", await text(rp, "#askText"));
+  ok((await rp.$$eval("#askText [name=repWhy]", (r) => r.map((x) => x.parentElement.textContent.trim()).join(" | "))) === "It has mistakes | It doesn't belong on a study site | It shares material that isn't theirs to share | Something else" && /doesn't say who sent it/.test(await text(rp, "#askText"))
+    && !(await rp.$("#askText [name=repWhy]:checked")) && await rp.isDisabled("#askYes"), "report: it asks what's wrong, with four reasons and room for details; none is picked, and Send report waits for one", await text(rp, "#askText"));
   await rp.screenshot({ path: join(out, "27-report-ask.png") });
   await rp.click('#askDlg [value="no"]'); await rp.waitForTimeout(200);
   ok((await reports()).length === 0 && await vis(rp, "#sharedReport"), "report: Cancel sends nothing");
-  await rp.click("#sharedReport"); await rp.fill("#repNote", "  These are the word lists of   a textbook, chapter 3.  "); await rp.click("#askYes"); await rp.waitForTimeout(500);
+  await rp.click("#sharedReport"); await rp.fill("#repNote", "  These are the word lists of   a textbook, chapter 3.  "); await rp.check('#askText [name=repWhy][value="rights"]'); await rp.click("#askYes"); await rp.waitForTimeout(500);
   let rs = await reports();
-  ok(rs.length === 1 && rs[0].share === sid && rs[0].why === "copyright" && rs[0].note === "These are the word lists of a textbook, chapter 3." && !isNaN(new Date(rs[0].at)) && Object.keys(rs[0]).sort().join() === "at,note,share,why",
+  ok(rs.length === 1 && rs[0].share === sid && rs[0].why === "rights" && rs[0].note === "These are the word lists of a textbook, chapter 3." && !isNaN(new Date(rs[0].at)) && Object.keys(rs[0]).sort().join() === "at,note,share,why",
     "report: Send report saves which notebook, the reason, the details and the time, and nothing about who sent it", JSON.stringify(rs));
   ok(!(await vis(rp, "#sharedReport")) && (await text(rp, "#sharedReported")) === "Report sent. Thank you.", "report: the page says the report was sent");
   ok(await tryIt(`p.reports.get()`) === "permission-denied" && await tryIt(`p.takedowns.get()`) === "permission-denied" && await tryIt(`p.shared("${sid}").down.set({ at: "x" })`) === "permission-denied"
@@ -2286,7 +2286,7 @@ if (entry.length > 1) {
   await as(D); await settings(rp, "admin"); await rp.waitForTimeout(400);
   const list = () => rp.evaluate(() => ({ count: document.querySelector("#repCount").textContent, text: document.querySelector("#repList").textContent.replace(/\s+/g, " ").trim(), btns: [...document.querySelectorAll("#repList button")].map((b) => b.textContent).join(","), link: document.querySelector("#repList a")?.getAttribute("href") || "" }));
   let l = await list();
-  ok(l.count === " (2)" && /^Made-up words2 reports/.test(l.text) && /Copyright These are the word lists of a textbook, chapter 3\./.test(l.text) && /Something else/.test(l.text) && l.btns === "Take down,Dismiss reports" && l.link === "#shared/" + sid,
+  ok(l.count === " (2)" && /^Made-up words2 reports/.test(l.text) && /Not theirs to share These are the word lists of a textbook, chapter 3\./.test(l.text) && /Something else/.test(l.text) && l.btns === "Take down,Dismiss reports" && l.link === "#shared/" + sid,
     "admin: a developer sees the reports by notebook, with the reasons and details, Take down and Dismiss", JSON.stringify(l));
   await rp.screenshot({ path: join(out, "27-admin-reports.png") });
   // Take down asks first; then the link stops for everyone but the owner and developers.

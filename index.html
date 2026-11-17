@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-Q/Qy+Rp0lW2z7NjVe+So/xNzm3IxodItyIVvhByoYKA=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-GLqjv/02RNmneZ0ojDL5C++Z0bLh3m/E0nelQwAAqfg=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -1278,7 +1278,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // button (labelled yes, red when danger), false for Cancel or Escape.
   function ask(title, html, yes, danger = false) {
     const d = $("#askDlg");
-    $("#askTitle").textContent = title; $("#askText").innerHTML = html; $("#askYes").textContent = yes; $("#askYes").className = danger ? "btn danger" : "btn primary";
+    $("#askTitle").textContent = title; $("#askText").innerHTML = html; $("#askYes").textContent = yes; $("#askYes").className = danger ? "btn danger" : "btn primary"; $("#askYes").disabled = false; $("#askText").onchange = null;
     d.returnValue = ""; d.showModal(); $("#askYes").focus();
     return new Promise((done) => d.addEventListener("close", () => done(d.returnValue === "yes"), { once: true }));
   }
@@ -5138,14 +5138,17 @@ colours.apply(...colours.saved()); // before anything is drawn
   // Sharing passes along what other people typed in, so the page a shared notebook's link opens has "Report this
   // notebook". Anyone can send a report, signed in or not: which notebook, one of the reasons and what they wrote, and
   // nothing about who sent it. Only developers can read reports (firestore.rules); theirs is Settings → Admin (moderation.js).
-  const REPORT_WHY = { copyright: "It's copied from a textbook or other copyrighted work", other: "Something else" };
+  // The reasons: what the person picks from, and the short name Admin lists it under.
+  const REPORT_WHY = { wrong: ["It has mistakes", "Mistakes"], unsuitable: ["It doesn't belong on a study site", "Doesn't belong"], rights: ["It shares material that isn't theirs to share", "Not theirs to share"], other: ["Something else", "Something else"] };
   // True once the report is sent.
   async function reportShared(id) {
     const sent = ask("Report this notebook", `<p>What's wrong with it?</p>
-      ${Object.entries(REPORT_WHY).map(([k, t], i) => `<label class="checkrow"><input type="radio" name="repWhy" value="${k}"${i ? "" : " checked"}> ${t}</label>`).join("")}
-      <textarea class="repnote" id="repNote" maxlength="1000" rows="4" aria-label="Details" placeholder="Details: what it's copied from, or what the problem is"></textarea>
+      ${Object.entries(REPORT_WHY).map(([k, [t]]) => `<label class="checkrow"><input type="radio" name="repWhy" value="${k}"> ${t}</label>`).join("")}
+      <textarea class="repnote" id="repNote" maxlength="1000" rows="4" aria-label="Details" placeholder="Anything that helps us look into it (optional)"></textarea>
       <p class="muted small">The report says which notebook, your reason and your details. It doesn't say who sent it.</p>`, "Send report");
-    $("#askText input").focus();
+    // No reason is picked at first, and Send report waits for one.
+    $("#askYes").disabled = true; $("#askText input").focus();
+    $("#askText").onchange = () => { $("#askYes").disabled = !$("#askText [name=repWhy]:checked"); };
     if (!(await sent)) return false;
     const why = $("#askText [name=repWhy]:checked")?.value || "other", note = tidy($("#repNote").value, 1000);
     try { await platform.reports.doc(rid() + rid()).set({ share: id, why, note, at: new Date().toISOString() }); }
@@ -5178,7 +5181,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#repCount").textContent = n ? ` (${n})` : "";
     box.innerHTML = !by.size ? `<p class="muted small">No reports.</p>` : [...by.values()].map((g) => `<div class="rep" data-rep="${g.id}">
       <div class="rephead">${g.name == null ? `<b>No longer shared</b>` : `<a href="#shared/${g.id}"><b>${esc(tidy(g.name, 60) || NB_NAME)}</b></a>`}<span class="muted small">${[plural(g.reports.length, "report"), ...(g.down ? ["Taken down"] : [])].join(" · ")}</span></div>
-      ${g.reports.length ? `<ul>${g.reports.map((r) => `<li><span class="muted small">${[isNaN(new Date(r.at)) ? "" : dayText(r.at), r.why === "copyright" ? "Copyright" : "Something else"].filter(Boolean).join(" · ")}</span>${r.note ? ` ${esc(r.note)}` : ""}</li>`).join("")}</ul>` : ""}
+      ${g.reports.length ? `<ul>${g.reports.map((r) => `<li><span class="muted small">${[isNaN(new Date(r.at)) ? "" : dayText(r.at), REPORT_WHY[r.why][1]].filter(Boolean).join(" · ")}</span>${r.note ? ` ${esc(r.note)}` : ""}</li>`).join("")}</ul>` : ""}
       <div class="tactions">${g.down ? `<button class="btn" type="button" data-rep-do="back">Put back</button>` : g.name == null ? "" : `<button class="btn danger" type="button" data-rep-do="down">Take down</button>`}${g.reports.length ? `<button class="btn" type="button" data-rep-do="dismiss">Dismiss ${g.reports.length === 1 ? "report" : "reports"}</button>` : ""}</div></div>`).join("");
     box.querySelectorAll("[data-rep-do]").forEach((b) => (b.onclick = async () => {
       const g = by.get(b.closest("[data-rep]").dataset.rep), sh = platform.shared(g.id), name = `“${tidy(g.name, 60) || "this notebook"}”`;

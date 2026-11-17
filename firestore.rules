@@ -68,7 +68,7 @@ service cloud.firestore {
       allow create: if request.resource.data.keys().hasOnly(['share', 'why', 'note', 'at'])
         && request.resource.data.share is string && request.resource.data.share.matches('^[A-Za-z0-9]{20,40}$')
         && exists(/databases/$(database)/documents/shares/$(request.resource.data.share))
-        && request.resource.data.why in ['copyright', 'other']
+        && request.resource.data.why in ['wrong', 'unsuitable', 'rights', 'other']
         && request.resource.data.note is string && request.resource.data.note.size() <= 1000
         && request.resource.data.at is string && request.resource.data.at.size() <= 40;
       allow read, delete: if isDev();

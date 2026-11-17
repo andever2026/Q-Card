@@ -21,7 +21,7 @@
     $("#repCount").textContent = n ? ` (${n})` : "";
     box.innerHTML = !by.size ? `<p class="muted small">No reports.</p>` : [...by.values()].map((g) => `<div class="rep" data-rep="${g.id}">
       <div class="rephead">${g.name == null ? `<b>No longer shared</b>` : `<a href="#shared/${g.id}"><b>${esc(tidy(g.name, 60) || NB_NAME)}</b></a>`}<span class="muted small">${[plural(g.reports.length, "report"), ...(g.down ? ["Taken down"] : [])].join(" · ")}</span></div>
-      ${g.reports.length ? `<ul>${g.reports.map((r) => `<li><span class="muted small">${[isNaN(new Date(r.at)) ? "" : dayText(r.at), r.why === "copyright" ? "Copyright" : "Something else"].filter(Boolean).join(" · ")}</span>${r.note ? ` ${esc(r.note)}` : ""}</li>`).join("")}</ul>` : ""}
+      ${g.reports.length ? `<ul>${g.reports.map((r) => `<li><span class="muted small">${[isNaN(new Date(r.at)) ? "" : dayText(r.at), REPORT_WHY[r.why][1]].filter(Boolean).join(" · ")}</span>${r.note ? ` ${esc(r.note)}` : ""}</li>`).join("")}</ul>` : ""}
       <div class="tactions">${g.down ? `<button class="btn" type="button" data-rep-do="back">Put back</button>` : g.name == null ? "" : `<button class="btn danger" type="button" data-rep-do="down">Take down</button>`}${g.reports.length ? `<button class="btn" type="button" data-rep-do="dismiss">Dismiss ${g.reports.length === 1 ? "report" : "reports"}</button>` : ""}</div></div>`).join("");
     box.querySelectorAll("[data-rep-do]").forEach((b) => (b.onclick = async () => {
       const g = by.get(b.closest("[data-rep]").dataset.rep), sh = platform.shared(g.id), name = `“${tidy(g.name, 60) || "this notebook"}”`;
