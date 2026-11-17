@@ -261,7 +261,7 @@ if (entry.length > 1) {
       ok(/^The checker read: 「.+」$/.test(await text(page, "#fbRead")), "built-in: a wrong answer shows what the checker read", await text(page, "#fbRead"));
       ok(!(await vis(page, "#liveRead")) && await markPx("#mainPad") > 20, "developer tools: after Check the live line goes and the character boxes stay on the answer");
       await page.evaluate(() => { localStorage.removeItem("jpq:liveRead"); localStorage.removeItem("jpq:charBoxes"); });
-      ok((await text(page, "#overrideBtn")) === "Mark it as correct" && (await text(page, "#feedback .stamp")) === "Not quite" && await page.$eval("#overrideBtn", (b) => b.classList.contains("btn")), "retry card: Not quite, with a Mark it as correct button");
+      ok((await text(page, "#overrideBtn")) === "Mark it as correct" && (await text(page, "#feedback .stamp")) === "もう一度" && await page.$eval("#overrideBtn", (b) => b.classList.contains("btn")), "retry card: もう一度, with a Mark it as correct button");
     }
     if (step === 2) ok(!wrong && !self, "built-in: correct kanji is accepted", `${answer}${wrong ? " → " + seen[2].reason : ""}`);
     if (self) await page.click("#selfGot");
