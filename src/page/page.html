@@ -169,6 +169,10 @@ colours.apply(...colours.saved()); // before anything is drawn
     <div id="toolList" style="display: grid; gap: 18px"><p class="muted small">Loading…</p></div>
     <div id="printSheet"></div>
   </section>
+  <section id="shared" class="wrap" style="gap:18px" hidden>
+    <div class="panel" id="sharedHead"></div>
+    <div id="sharedBody" style="display: grid; gap: 18px"></div>
+  </section>
 <!--#endif-->
 
   <!-- QUIZ -->
@@ -403,6 +407,9 @@ colours.apply(...colours.saved()); // before anything is drawn
 
   <!-- TABLE -->
   <section id="table" class="wrap" style="gap:18px" hidden>
+<!--#if public-->
+    <div class="linknote" id="linkNote" hidden></div>
+<!--#endif-->
     <div class="qbar"><button class="ghost" id="backBtn">← Back to practice</button></div>
     <div class="banner leaveask" id="leaveAsk" hidden></div>
     <div class="panel">
@@ -502,6 +509,9 @@ colours.apply(...colours.saved()); // before anything is drawn
   //#include tour/tour.js
   //#include account/share.js
   //#include account/policy-notice.js
+  //#include shared-notebooks/publish.js
+  //#include shared-notebooks/linked.js
+  //#include shared-notebooks/preview.js
   //#include study-tools/view.js
   //#include page/address.js
   //#include practice/round-list.js

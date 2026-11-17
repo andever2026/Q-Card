@@ -1,6 +1,6 @@
 // In-memory stand-in for the parts of the Firebase SDK that src/account/firebase.js uses, for browser tests.
 // Data and the signed-in user survive reloads (localStorage), and the security rules are enforced:
-// a signed-in person may only touch users/<their uid>/….
+// a signed-in person may only touch users/<their uid>/…, and shared notebooks are as firestore.rules has them.
 const LS_DB = "fake:fs", LS_USER = "fake:user";
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
@@ -37,8 +37,24 @@ let data = load(LS_DB, {}); // path → fields
 const listeners = new Set();
 window.__fs = { all: () => data, log: [] };
 const segs = (p) => p.split("/").filter(Boolean);
-function allowed(path, write = false) {
-  const s = segs(path);
+// write: false to read, else "set", "update" or "delete" with the data being written.
+function allowed(path, write = false, v) {
+  const s = segs(path), no = () => { throw { code: "permission-denied", message: "rules: " + path }; };
+  // Shared notebooks (firestore.rules): anyone reads a share they have the id of; only its owner writes it; whose it is, only the owner reads.
+  if (s[0] === "shares") {
+    const mine = () => !!current && data[`shareOwners/${s[1]}`]?.uid === current.uid;
+    if (s.length === 1 || s.length > 4) no();
+    if (!write) return;
+    if (!mine() || (s.length > 2 && !["sets", "kanji", "meta"].includes(s[2]))) no();
+    if (s.length === 2 && write !== "delete" && (Object.keys(v).some((k) => !["name", "rev", "updatedAt"].includes(k)) || typeof v.name !== "string" || v.name.length > 100)) no();
+    return;
+  }
+  if (s[0] === "shareOwners") {
+    const has = data[path];
+    if (s.length !== 2 || !current) no();
+    if (write === "set" && !has ? !(s[1].length >= 20 && v.uid === current.uid && Object.keys(v).every((k) => ["uid", "nb", "createdAt"].includes(k))) : !(write !== "set" && write !== "update" && has?.uid === current.uid)) no();
+    return;
+  }
   if (!current) throw { code: "permission-denied", message: "signed out" };
   if (s[0] === "dev" && s.length === 2 && s[1] === current.uid && !write) return;
   if (s[0] !== "users" || s[1] !== current.uid) throw { code: "permission-denied", message: "rules: " + path };
@@ -83,13 +99,14 @@ export function onSnapshot(ref, next, error) {
   setTimeout(() => listeners.has(l) && next(snapOf(ref)), 0);
   return () => listeners.delete(l);
 }
-function changed() { save(LS_DB, data); for (const l of listeners) { const snap = snapOf(l.ref); setTimeout(() => l.next(snap), 0); } }
+// (Each listener hears of the data as it is when its turn comes: Firestore never reports an older state after a newer write of this page's.)
+function changed() { save(LS_DB, data); for (const l of listeners) setTimeout(() => listeners.has(l) && l.next(snapOf(l.ref)), 0); }
 export async function getDoc(ref) { allowed(ref.path); return docSnap(ref.path); }
 export async function getDocs(ref) { allowed(ref.path); return runQuery(ref); }
-export async function setDoc(ref, v) { allowed(ref.path, true); window.__fs.log.push(["set", ref.path]); data[ref.path] = clean(v, ref.path); changed(); }
+export async function setDoc(ref, v) { allowed(ref.path, "set", v); window.__fs.log.push(["set", ref.path]); data[ref.path] = clean(v, ref.path); changed(); }
 export async function updateDoc(ref, v) {
-  allowed(ref.path, true);
+  allowed(ref.path, "update", { ...data[ref.path], ...v });
   if (!(ref.path in data)) throw { code: "not-found", message: ref.path };
   window.__fs.log.push(["update", ref.path]); data[ref.path] = { ...data[ref.path], ...clean(v, ref.path) }; changed();
 }
-export async function deleteDoc(ref) { allowed(ref.path, true); window.__fs.log.push(["delete", ref.path]); delete data[ref.path]; changed(); }
+export async function deleteDoc(ref) { allowed(ref.path, "delete"); window.__fs.log.push(["delete", ref.path]); delete data[ref.path]; changed(); }

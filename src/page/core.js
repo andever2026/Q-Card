@@ -81,6 +81,7 @@
   const views = ["setup", "quiz", "results", "table", "history", "settings"];
   //#if public
   views.push("tools"); // Extra tools (study-tools/view.js)
+  views.push("shared"); // a notebook somebody shared, opened from its link (shared-notebooks/preview.js)
   //#endif
   function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); markNav(v); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
   function banner(msg) { const b = $("#banner"); b.hidden = !msg; b.textContent = msg || ""; }

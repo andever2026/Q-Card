@@ -2,16 +2,21 @@
   // Holding down (or right-clicking) a set, a unit or a collection shows its words on a small card that can't be edited,
   // as wide as its words need: something to look over on a phone, or to screenshot. parts: [{ name, words }], one per set;
   // with more than one, each set's name heads its words.
-  function wordCard(title, parts) {
+  // The table itself (the page a shared notebook's link opens lists the notebook's words with it too): { html, count }.
+  function wordsTable(parts) {
     parts = parts.map((p) => ({ name: p.name, words: p.words.filter(wordReady) })).filter((p) => p.words.length);
     const words = parts.flatMap((p) => p.words), kanji = words.some((w) => w.kanji);
     const cell = (t) => `<td${KANJI.test(t) || /[ぁ-ヿ]/.test(t) ? ' class="jp"' : ""}>${esc(t)}</td>`;
     const row = (w) => `<tr>${cell(w.en)}${cell(w.kana || "")}${kanji ? cell(w.kanji || "") : ""}</tr>`;
-    $("#wordCardTitle").textContent = title;
-    $("#wordCardN").textContent = plural(words.length, "word");
-    $("#wordCardBody").innerHTML = !words.length ? `<p class="muted">No words yet.</p>`
+    return { count: words.length, html: !words.length ? `<p class="muted">No words yet.</p>`
       : `<table class="wcard"><thead><tr><th>English</th><th>Kana</th>${kanji ? "<th>Kanji</th>" : ""}</tr></thead>${parts.map((p) =>
-        `<tbody>${parts.length > 1 ? `<tr class="wset"><th colspan="${kanji ? 3 : 2}">${esc(p.name)}</th></tr>` : ""}${p.words.map(row).join("")}</tbody>`).join("")}</table>`;
+        `<tbody>${parts.length > 1 ? `<tr class="wset"><th colspan="${kanji ? 3 : 2}">${esc(p.name)}</th></tr>` : ""}${p.words.map(row).join("")}</tbody>`).join("")}</table>` };
+  }
+  function wordCard(title, parts) {
+    const t = wordsTable(parts);
+    $("#wordCardTitle").textContent = title;
+    $("#wordCardN").textContent = plural(t.count, "word");
+    $("#wordCardBody").innerHTML = t.html;
     const d = $("#wordCard");
     if (!d.open) d.showModal();
     $("#wordCardBody").scrollTop = 0;

@@ -5,6 +5,22 @@
   const nbList = () => S.notebooks || [{ id: MAIN_NB, name: NB_NAME }];
   const nbName = (id = nb) => nbList().find((n) => n.id === id)?.name ?? NB_NAME;
   const nbRef = () => db.doc("meta/notebooks");
+  const nbNow = () => nbList().find((n) => n.id === nb);
+  // What other parts of the page add to notebooks (shared notebooks, on the public site): vocabHooks run after the open
+  // notebook's vocab or the list of notebooks changes, nbGone before a notebook's documents are deleted (with its id),
+  // and nbMore are further lines of the menu: { key, label(), icon (an svg path), run, when() }.
+  const vocabHooks = [], nbGone = [], nbMore = [];
+  const vocabChanged = () => vocabHooks.forEach((f) => f());
+  // In a notebook added from a shared one (its line in the list has from), each set keeps the words as they came from
+  // its owner in base: a word that isn't there, or reads differently, is one this person added or changed.
+  const wordKey = (w) => [w.en, w.kana, w.kanji].map((x) => (x || "").trim()).join("\u0001");
+  let came = { of: null, words: null };
+  function ownWord(s, w) {
+    if (came.of !== raw.sets) came = { of: raw.sets, words: nbNow()?.from ? new Map(raw.sets.map((d) => [d.id, new Map((d.base?.words || []).map((x) => [x.id, wordKey(x)]))])) : null };
+    return !!came.words && came.words.get(s.id)?.get(w.id) !== wordKey(w);
+  }
+  // A name no other notebook has: the one asked for, or that with a number (was: the name it has now, which it may keep).
+  const nbFree = (want, was = "") => freeName(want, nbList().map((n) => n.name).filter((t) => !sameName(t, was)));
   // Whether the list has loaded, for what mustn't write into a notebook this account may not have (the sample sets).
   let nbLoaded = () => {};
   const nbReady = new Promise((ok) => (nbLoaded = ok));
@@ -13,7 +29,7 @@
       S.notebooks = cleanNotebooks(dataOrNull(snap));
       // The open one may be gone (deleted on another device, or remembered by this browser from another account): the first opens.
       if (!openNotebook(nb)) renderNotebooks();
-      nbLoaded();
+      nbLoaded(); vocabChanged();
     }, () => nbLoaded());
   }
   // Opens a notebook: its vocab and its own choices replace what the page holds. false when that one is open already.
@@ -43,11 +59,17 @@
     try { await nbRef().set({ list, updatedAt: new Date().toISOString() }); return true; }
     catch { S.notebooks = was; renderNotebooks(); banner("Couldn't save that. Try again."); return false; }
   }
+  // One notebook's line in the list, replaced.
+  const saveNb = (n) => saveNotebooks(nbList().map((x) => (x.id === n.id ? n : x)));
+  // Every vocab document in one place (a notebook, or a notebook's shared copy), deleted.
+  async function emptyVocab(at) {
+    for (const c of ["sets", "kanji"]) for (const d of (await at.collection(c).get()).docs) await at.doc(`${c}/${d.id}`).delete();
+    for (const p of ["meta/books", "meta/courses", "meta/views", "meta/link"]) await at.doc(p).delete();
+  }
   // Every document of one notebook, deleted (its line in the list is the caller's). Deleting an account uses it too.
   async function emptyNotebook(id) {
-    const at = inNotebook(db, id);
-    for (const c of ["sets", "kanji"]) for (const d of (await at.collection(c).get()).docs) await at.doc(`${c}/${d.id}`).delete();
-    for (const p of ["meta/books", "meta/courses", "meta/views"]) await at.doc(p).delete();
+    for (const f of nbGone) await f(id);
+    await emptyVocab(inNotebook(db, id));
   }
   // A name typed into the page's pop-up: "" when it's cancelled or left empty. A name another notebook has gets a number.
   async function askNbName(title, yes, was = "") {
@@ -55,10 +77,7 @@
     const inp = $("#nbNameIn");
     inp.focus(); inp.select();
     inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("#askYes").click(); } }; // Enter would press Cancel, the pop-up's first button
-    const typed = (await answer) ? tidy(inp.value, 56) : "", taken = (t) => nbList().some((n) => sameName(n.name, t) && !sameName(n.name, was));
-    let name = typed;
-    for (let i = 2; name && taken(name); i++) name = `${typed} ${i}`;
-    return name;
+    return nbFree((await answer) ? tidy(inp.value, 56) : "", was);
   }
   async function addNotebook() {
     const name = await askNbName("New notebook", "Create");
@@ -68,7 +87,7 @@
   }
   async function renameNotebook() {
     const name = await askNbName("Rename this notebook", "Rename", nbName());
-    if (name && name !== nbName()) saveNotebooks(nbList().map((n) => (n.id === nb ? { ...n, name } : n)));
+    if (name && name !== nbName()) saveNb({ ...nbNow(), name });
   }
   async function deleteNotebook() {
     const id = nb, rest = nbList().filter((n) => n.id !== id);
@@ -98,8 +117,9 @@
       ${list.map((n) => `<button type="button" role="menuitemradio" aria-checked="${n.id === nb}" data-nb="${esc(n.id)}">${icon(n.id === nb ? "M5 12.5 L10 17.5 L19 7" : "")}${esc(n.name)}</button>`).join("")}
       ${canWrite && db ? `<hr><button type="button" role="menuitem" data-nb-do="add">${icon("M12 5 V19 M5 12 H19")}New notebook</button>
       <button type="button" role="menuitem" data-nb-do="rename">${icon("M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z")}Rename this notebook</button>
+      ${nbMore.filter((m) => m.when()).map((m) => `<button type="button" role="menuitem" data-nb-do="${m.key}">${icon(m.icon)}${m.label()}</button>`).join("")}
       ${list.length > 1 ? `<button type="button" role="menuitem" class="danger" data-nb-do="delete">${icon("M4 7 H20 M9.5 7 V4.5 H14.5 V7 M6.5 7 L7.3 19.5 H16.7 L17.5 7")}Delete this notebook</button>` : ""}` : ""}`;
-    const act = { add: addNotebook, rename: renameNotebook, delete: deleteNotebook };
+    const act = { add: addNotebook, rename: renameNotebook, delete: deleteNotebook, ...Object.fromEntries(nbMore.map((m) => [m.key, m.run])) };
     $("#nbList").querySelectorAll("button").forEach((b) => (b.onclick = () => { nbMenu(false); menu(false); if (b.dataset.nb) pickNotebook(b.dataset.nb); else act[b.dataset.nbDo](); }));
   }
   renderNotebooks();

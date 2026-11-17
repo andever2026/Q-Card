@@ -2,8 +2,9 @@
   // The page loads once and swaps what it shows, so the part after # names the part on screen: …/#vocabulary, #progress,
   // #tools, #settings (Practice has none). Going to a part adds a step to the browser's history, so ← back and forward
   // step through the parts, and a link or bookmark opens the part it names. A practice and its results add no step.
-  function partHash(v) { return { setup: "", table: "#vocabulary", history: "#progress", settings: "#settings", tools: "#tools" }[v]; }
-  function hashPart() { return ["table", "history", "settings", "tools"].find((v) => partHash(v) === location.hash) || "setup"; }
+  // A shared notebook's link is …/#shared/<its id> (shared-notebooks/preview.js shows what the address names).
+  function partHash(v) { return { setup: "", table: "#vocabulary", history: "#progress", settings: "#settings", tools: "#tools", shared: "#shared/" + sharedId() }[v]; }
+  function hashPart() { return ["table", "history", "settings", "tools", "shared"].find((v) => partHash(v) === location.hash) || "setup"; }
   // From show(): the address follows, unless it's the address that moved (back or forward), or the page is still starting
   // (boot.js opens the part the address names).
   function syncHash(v) {

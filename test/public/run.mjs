@@ -2091,6 +2091,147 @@ if (entry.length > 1) {
   await actx.close();
 }
 
+// ---------- 26. sharing a notebook by link: the owner's copy, the page a link opens, adding it, the owner's changes arriving ----------
+{
+  const sctx = await browser.newContext();
+  const O = { uid: "o1", displayName: "Owner", email: "o@example.com" }, P = { uid: "s1", displayName: "Sub", email: "s@example.com" };
+  const w = (id, en, kana, kanji = "") => ({ id, en, kana, kanji });
+  const sp = await newPage(sctx, { width: 1280, init: ([O]) => {
+    if (localStorage.getItem("fake:seeded")) return;
+    localStorage.setItem("fake:seeded", "1"); localStorage.setItem("qcard:welcomed", "1");
+    localStorage.setItem("fake:user", JSON.stringify(O));
+    const w = (id, en, kana, kanji = "") => ({ id, en, kana, kanji });
+    localStorage.setItem("fake:fs", JSON.stringify({
+      "users/o1/meta/samples": { offeredAt: "x" }, "users/s1/meta/samples": { offeredAt: "x" },
+      "users/o1/sets/drinks": { collection: "Made up", unit: "Week 1", name: "Drinks", words: [w("a", "water", "みず", "水"), w("b", "tea", "おちゃ", "お茶")], updatedAt: "x" },
+      "users/o1/sets/food": { collection: "Made up", unit: "Week 1", name: "Food", words: [w("a", "rice", "ごはん", "ご飯")], updatedAt: "x" },
+      "users/o1/kanji/week-1": { collection: "Made up", unit: "Week 1", kanji: "水茶", updatedAt: "x" },
+      "users/o1/data/prefs": { secretNote: "not for sharing" },
+    }));
+  }, initArg: [O] });
+  await sp.waitForTimeout(600);
+  const fs = () => fsData(sp);
+  // Another account, or nobody, in the same browser; and the database changed behind the page's back (as another device would).
+  const as = async (u, hash = "") => { await sp.evaluate((u) => { if (u) localStorage.setItem("fake:user", JSON.stringify(u)); else localStorage.removeItem("fake:user"); }, u); await sp.goto(base + hash); await sp.reload(); await sp.waitForTimeout(900); };
+  const patch = async (path, doc) => { await sp.evaluate(([path, doc]) => { const d = JSON.parse(localStorage.getItem("fake:fs")); if (doc) d[path] = { ...d[path], ...doc }; else delete d[path]; localStorage.setItem("fake:fs", JSON.stringify(d)); }, [path, doc]); };
+  const nbItems = async () => { await sp.click("#nbBtn"); const t = await sp.$$eval("#nbList [data-nb-do]", (bs) => bs.map((b) => b.textContent.trim()).join(", ")); await sp.keyboard.press("Escape"); return t; };
+  const nbDo = async (what) => { await sp.click("#nbBtn"); await sp.click(`#nbList [data-nb-do="${what}"]`); await sp.waitForTimeout(200); };
+  const words = (d) => (d?.words || []).map((x) => x.en).join(",");
+  // The owner: Share in the notebook menu, asked first, then the link.
+  ok((await nbItems()) === "New notebook, Rename this notebook, Share this notebook", "share: a signed-in account's notebook menu offers to share it", await nbItems());
+  await nbDo("share");
+  ok(/Sharing makes a link/.test(await text(sp, "#askDlg")) && !Object.keys(await fs()).some((p) => p.startsWith("shares/")), "share: it says what sharing does, and nothing is shared before Create link", await text(sp, "#askText"));
+  await sp.click("#askYes"); await sp.waitForTimeout(900);
+  const link = await sp.inputValue("#shareLinkIn"), sid = link.split("#shared/")[1] || "";
+  let d = await fs();
+  ok(link.startsWith(base + "#shared/") && /^[A-Za-z0-9]{24}$/.test(sid) && d[`shareOwners/${sid}`]?.uid === "o1" && d["users/o1/meta/notebooks"]?.list?.[0]?.share === sid, "share: Create link makes a long random link, kept with the notebook", link);
+  const copy = Object.keys(d).filter((p) => p.startsWith(`shares/${sid}/`)).sort().map((p) => p.slice(8 + sid.length)).join(",");
+  ok(copy === "kanji/week-1,sets/drinks,sets/food" && d[`shares/${sid}`].name === "My notebook" && d[`shares/${sid}`].rev.length === 3 && words(d[`shares/${sid}/sets/drinks`]) === "water,tea"
+    && !JSON.stringify(Object.entries(d).filter(([p]) => p.startsWith("shares/"))).match(/o1|example\.com|secretNote|updatedAt":"x/), "share: the copy holds the notebook's sets and kanji lists, and nothing of the account", copy);
+  await sp.screenshot({ path: join(out, "26-share-link.png") });
+  await sp.click("#askYes");
+  ok((await nbItems()) === "New notebook, Rename this notebook, Shared: link and options", "share: the menu says the notebook is shared", await nbItems());
+  // A change in the notebook reaches the copy by itself.
+  await goTable(sp);
+  await sp.click('[data-sid="drinks"] [data-toggle]'); await sp.click('[data-sid="drinks"] [data-edit]'); await sp.fill("#w-drinks-b-en", "green tea"); await sp.click('[data-sid="drinks"] [data-save]');
+  await sp.waitForTimeout(2300);
+  ok(words((await fs())[`shares/${sid}/sets/drinks`]) === "water,green tea", "share: a word changed in the notebook is changed in the shared copy a moment later", words((await fs())[`shares/${sid}/sets/drinks`]));
+  // Nobody signed in: the link shows the notebook, and adding it needs a sign-in.
+  await as(null, "#shared/" + sid);
+  const pv = () => sp.evaluate(() => ({ shown: !document.querySelector("#shared").hidden, head: document.querySelector("#sharedHead").textContent.replace(/\s+/g, " ").trim(), btns: [...document.querySelectorAll("#sharedHead button")].map((b) => b.textContent).join(","), body: document.querySelector("#sharedBody").textContent.replace(/\s+/g, " ").trim() }));
+  let v = await pv();
+  ok(v.shown && /^My notebook A shared notebook: 2 sets · 3 words · 1 kanji list/.test(v.head) && v.btns === "Sign in to add it" && /green tea/.test(v.body) && /Kanji: 水茶/.test(v.body) && new URL(sp.url()).hash === "#shared/" + sid,
+    "shared link: someone not signed in sees what's in the notebook, and Sign in to add it", JSON.stringify(v).slice(0, 300));
+  await sp.screenshot({ path: join(out, "26-shared-preview.png"), fullPage: true });
+  ok(await sp.evaluate(() => Object.keys(localStorage).every((k) => !k.startsWith("qcard:local:notebooks/"))), "shared link: looking adds nothing to this browser");
+  // Signing in from there comes back to it, ready to add.
+  await sp.evaluate((P) => { window.__nextUser = P; }, P);
+  await sp.click("#sharedSignIn"); await sp.waitForTimeout(1500);
+  v = await pv();
+  ok(v.shown && v.btns === "Add to my notebooks,Add as my own copy" && (await text(sp, "#acctLabel")) === "Sub", "shared link: after signing in the page is back on the shared notebook, with Add to my notebooks", JSON.stringify(v).slice(0, 200));
+  await sp.click("#sharedAdd"); await sp.waitForTimeout(1200);
+  d = await fs();
+  const mineNb = d["users/s1/meta/notebooks"]?.list?.[1], at = `users/s1/notebooks/${mineNb?.id}/`;
+  ok(await vis(sp, "#setup") && (await text(sp, "#nbName")) === "My notebook 2" && mineNb?.from === sid && words(d[at + "sets/drinks"]) === "water,green tea" && words(d[at + "sets/drinks"].base) === "water,green tea"
+    && d[at + "kanji/week-1"]?.kanji === "水茶" && d[at + "meta/link"]?.share === sid && (await sp.$$eval("#setPicker [data-set]", (b) => b.length)) === 2,
+    "add: the shared notebook becomes a notebook in this account, with its sets and kanji list, and opens", JSON.stringify(mineNb));
+  ok((await nbItems()) === "New notebook, Rename this notebook, Delete this notebook", "add: a notebook added from somebody's can't itself be shared", await nbItems());
+  // Their own changes: a word changed, a word added (the first through the table, to see that saving keeps what came from the owner), a set deleted.
+  await goTable(sp);
+  ok(/added from a shared one\. Its owner's changes arrive when you open it/.test(await text(sp, "#linkNote")), "added notebook: Vocabulary says where it came from", await text(sp, "#linkNote"));
+  await sp.click('[data-sid="drinks"] [data-toggle]'); await sp.click('[data-sid="drinks"] [data-edit]'); await sp.fill("#w-drinks-a-en", "cold water"); await sp.click('[data-sid="drinks"] [data-save]'); await sp.waitForTimeout(500);
+  d = await fs();
+  ok(words(d[at + "sets/drinks"]) === "cold water,green tea" && words(d[at + "sets/drinks"].base) === "water,green tea", "added notebook: saving a change keeps what came from the owner beside it");
+  await patch(at + "sets/drinks", { words: [...d[at + "sets/drinks"].words, w("mine1", "juice", "ジュース")] }); await patch(at + "sets/food", null);
+  // Meanwhile the owner changes a word nobody touched, the word this person changed, adds a word and a set, and takes the kanji list's 茶 out.
+  await patch("users/o1/sets/drinks", { words: [w("a", "hot water", "おゆ", "お湯"), w("b", "black tea", "こうちゃ", "紅茶"), w("c", "milk", "ぎゅうにゅう", "牛乳")] });
+  await patch("users/o1/sets/snacks", { collection: "Made up", unit: "Week 1", name: "Snacks", words: [w("a", "candy", "あめ")] });
+  await patch("users/o1/kanji/week-1", { kanji: "水" });
+  await as(O); await sp.waitForTimeout(2300);
+  d = await fs();
+  ok(words(d[`shares/${sid}/sets/drinks`]) === "hot water,black tea,milk" && !!d[`shares/${sid}/sets/snacks`] && d[`shares/${sid}`].rev.length === 4, "share: changes made on another device reach the copy when the owner next opens the notebook");
+  // The person who added it opens their notebook: the owner's changes are merged in around their own.
+  await as(P); await sp.waitForTimeout(1800);
+  d = await fs();
+  ok(words(d[at + "sets/drinks"]) === "cold water,black tea,juice,milk" && words(d[at + "sets/drinks"].base) === "hot water,black tea,milk", "update: an untouched word follows the owner, a changed word and an added one stay, the owner's new word arrives", words(d[at + "sets/drinks"]));
+  ok(!d[at + "sets/food"] && words(d[at + "sets/snacks"]) === "candy" && d[at + "kanji/week-1"].kanji === "水", "update: a set this person deleted stays deleted, the owner's new set arrives, an untouched kanji list follows", Object.keys(d).filter((p) => p.startsWith(at)).join(", "));
+  await goTable(sp); await sp.click("#tOpenAll").catch(() => {}); await sp.waitForTimeout(200);
+  const tint = () => sp.$$eval("#setTables tr.own", (rs) => rs.map((r) => r.querySelector("td").textContent).join(","));
+  ok((await tint()) === "cold water,juice" && await sp.evaluate(() => getComputedStyle(document.querySelector("#setTables tr.own td")).backgroundColor !== getComputedStyle(document.querySelector("#setTables tr:not(.own) td")).backgroundColor),
+    "added notebook: the words this person changed or added are tinted, the owner's are not", await tint());
+  await sp.screenshot({ path: join(out, "26-added-notebook.png") });
+  // The link, for someone who has the notebook already, and for its owner.
+  await as(P, "#shared/" + sid); v = await pv();
+  ok(/You've added this notebook/.test(v.head) && v.btns === "Open it", "shared link: someone who added it is told so, with Open it", v.head);
+  // Keep it as my own copy: nothing arrives any more, nothing is tinted.
+  await sp.click("#sharedOpen"); await goTable(sp);
+  await sp.click("#ownCopyBtn"); await sp.click("#askYes"); await sp.waitForTimeout(800);
+  d = await fs();
+  ok(!d["users/s1/meta/notebooks"].list[1].from && !d[at + "meta/link"] && !d[at + "sets/drinks"].base && words(d[at + "sets/drinks"]) === "cold water,black tea,juice,milk" && !(await vis(sp, "#linkNote")) && (await tint()) === "",
+    "own copy: the notebook is cut loose from the shared one and keeps everything it has");
+  // From the link again: a copy of their own, and (with the owner's changes) a second linked one for what follows.
+  await as(P, "#shared/" + sid);
+  await sp.click("#sharedCopy"); await sp.waitForTimeout(1000);
+  d = await fs();
+  const copyNb = d["users/s1/meta/notebooks"].list[2];
+  ok((await text(sp, "#nbName")) === "My notebook 3" && !copyNb.from && !d[`users/s1/notebooks/${copyNb.id}/sets/drinks`].base && !d[`users/s1/notebooks/${copyNb.id}/meta/link`] && words(d[`users/s1/notebooks/${copyNb.id}/sets/drinks`]) === "hot water,black tea,milk",
+    "add: Add as my own copy makes a notebook with no tie to the shared one", JSON.stringify(copyNb));
+  await as(P, "#shared/" + sid); await sp.click("#sharedAdd"); await sp.waitForTimeout(1000);
+  const linkedNb = (await fs())["users/s1/meta/notebooks"].list[3];
+  // The owner's own view of the link, then Stop sharing.
+  await as(O, "#shared/" + sid); v = await pv();
+  ok(/This is your notebook, as people who have the link see it/.test(v.head) && v.btns === "Open it", "shared link: the owner is told it's theirs", v.head);
+  await sp.click("#sharedOpen"); await nbDo("share");
+  ok((await sp.inputValue("#shareLinkIn")) === link, "share: the menu shows the same link again");
+  await sp.click("#shareStop"); await sp.waitForTimeout(200);
+  ok(/The link stops working\. People who already added this notebook keep what they have/.test(await text(sp, "#askDlg")), "stop sharing: asks first, and says what happens to people who added it", await text(sp, "#askText"));
+  await sp.click("#askYes"); await sp.waitForTimeout(1000);
+  d = await fs();
+  ok(!Object.keys(d).some((p) => p.startsWith("shares/") || p.startsWith("shareOwners/")) && !d["users/o1/meta/notebooks"].list[0].share && !!d["users/o1/sets/drinks"] && (await nbItems()) === "New notebook, Rename this notebook, Share this notebook",
+    "stop sharing: the copy is gone, the notebook itself untouched", Object.keys(d).filter((p) => p.startsWith("share")).join(", "));
+  await as(null, "#shared/" + sid); v = await pv();
+  ok(/This link doesn't work any more\.\s*The notebook isn't shared now\./.test(v.body) && v.btns === "", "shared link: after Stop sharing it says the link doesn't work any more", v.body);
+  // Whoever added it keeps their notebook, and is told nothing more will arrive.
+  await as(P); await sp.waitForTimeout(1200);
+  d = await fs();
+  await goTable(sp);
+  ok((await text(sp, "#nbName")) === "My notebook 4" && words(d[`users/s1/notebooks/${linkedNb.id}/sets/drinks`]) === "hot water,black tea,milk" && /isn't shared any more, so nothing in it will change again/.test(await text(sp, "#linkNote")),
+    "added notebook: when the owner stops sharing, it stays as it is and says so", await text(sp, "#linkNote"));
+  // A shared notebook that's deleted takes its copy with it; so does a deleted account.
+  await as(O);
+  await nbDo("add"); await sp.fill("#nbNameIn", "Second"); await sp.keyboard.press("Enter"); await sp.waitForTimeout(600);
+  await nbDo("share"); await sp.click("#askYes"); await sp.waitForTimeout(900); await sp.click("#askYes");
+  const had = Object.keys(await fs()).filter((p) => p.startsWith("shareOwners/")).length;
+  await nbDo("delete"); await sp.click("#askYes"); await sp.waitForTimeout(900);
+  ok(had === 1 && !Object.keys(await fs()).some((p) => p.startsWith("share")), "share: deleting a shared notebook deletes its shared copy");
+  await nbDo("share"); await sp.click("#askYes"); await sp.waitForTimeout(900); await sp.click("#askYes");
+  await settings(sp, "account"); await sp.click("#delStart"); await sp.click("#delYes"); await sp.waitForTimeout(1800);
+  d = await fs();
+  ok(!Object.keys(d).some((p) => p.startsWith("share") || p.startsWith("users/o1/")) && Object.keys(d).some((p) => p.startsWith("users/s1/notebooks/")), "delete account: its shared copies go too; notebooks other people added stay theirs");
+  ok(sp.errors.length === 0, "sharing: no page errors", sp.errors.join(" | "));
+  await sctx.close();
+}
+
 await browser.close(); server.close();
 console.log(failures ? `\n${failures} failed` : "\nAll passed");
 process.exit(failures ? 1 : 0);

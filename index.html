@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-u+OQ/ype+VByeFLMzUbe05EcoIP6ZHLJr6A8l4NaZ6E=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-QGnVqwUPy7u+qMX1gOjHyT4o8O9gkS5lFYRJPSWiglg=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -158,6 +158,14 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .nbmenu { left: 0; right: 0; max-height: min(60vh, 420px); overflow-y: auto; }
 .nbmenu [aria-checked="true"] { font-weight: 700; }
 .nbmenu [aria-checked="true"] svg { color: var(--ai); }
+/* A notebook added from a shared one: the line over the vocab table, and the words this person changed or added. */
+.linknote { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: .9rem; color: var(--muted); }
+.tset tr.own td, .ownkey { background: color-mix(in srgb, var(--ai) 10%, transparent); }
+.ownkey { padding: 1px 6px; border-radius: 4px; color: var(--ink); white-space: nowrap; }
+#shareLinkIn { width: 100%; margin: 4px 0 2px; }
+.sharedo { justify-content: space-between; }
+#sharedHead p { margin: 6px 0 0; }
+#shared .tscroll { overflow-x: auto; }
 .drawer .sidenav { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(272px, 84vw); overflow-y: auto; background: var(--sunk); border-right: 1px solid var(--line);
   box-shadow: 0 0 28px rgba(0, 0, 0, .22); clip-path: inset(0 -40px 0 0); /* a shadow on the right side only */
   padding: max(18px, env(safe-area-inset-top, 0px)) 12px 18px max(12px, env(safe-area-inset-left, 0px)); transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; }
@@ -819,6 +827,10 @@ colours.apply(...colours.saved()); // before anything is drawn
     <div id="toolList" style="display: grid; gap: 18px"><p class="muted small">Loading…</p></div>
     <div id="printSheet"></div>
   </section>
+  <section id="shared" class="wrap" style="gap:18px" hidden>
+    <div class="panel" id="sharedHead"></div>
+    <div id="sharedBody" style="display: grid; gap: 18px"></div>
+  </section>
 
   <!-- QUIZ -->
   <section id="quiz" class="wrap" style="gap:16px" hidden>
@@ -1036,6 +1048,7 @@ colours.apply(...colours.saved()); // before anything is drawn
 
   <!-- TABLE -->
   <section id="table" class="wrap" style="gap:18px" hidden>
+    <div class="linknote" id="linkNote" hidden></div>
     <div class="qbar"><button class="ghost" id="backBtn">← Back to practice</button></div>
     <div class="banner leaveask" id="leaveAsk" hidden></div>
     <div class="panel">
@@ -1281,12 +1294,14 @@ colours.apply(...colours.saved()); // before anything is drawn
   const MAIN_NB = "main", NB_NAME = "My notebook", NB_MAX = 50;
   // The store as one notebook sees it: the same doc() and collection(), inside that notebook.
   const inNotebook = (db, id) => { const at = id === MAIN_NB ? "" : `notebooks/${id}/`; return { doc: (p) => db.doc(at + p), collection: (p) => db.collection(at + p) }; };
-  // meta/notebooks as read: [{ id, name }], never empty.
+  // meta/notebooks as read: [{ id, name }], never empty. A notebook its owner shares also has share (the id of its
+  // shared copy), and one added from somebody's shared copy has from (that copy's id): see shared-notebooks/.
+  const SHARE_RE = /^[A-Za-z0-9]{20,40}$/;
   function cleanNotebooks(d) {
     const seen = new Set(), list = [];
     for (const n of Array.isArray(d?.list) ? d.list : []) {
-      const id = String(n?.id ?? "");
-      if (/^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/.test(id) && !seen.has(id) && list.length < NB_MAX) { seen.add(id); list.push({ id, name: tidy(n.name, 60) || NB_NAME }); }
+      const id = String(n?.id ?? ""), link = (k) => (SHARE_RE.test(String(n[k] ?? "")) ? { [k]: n[k] } : {});
+      if (/^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/.test(id) && !seen.has(id) && list.length < NB_MAX) { seen.add(id); list.push({ id, name: tidy(n.name, 60) || NB_NAME, ...link("share"), ...link("from") }); }
     }
     return list.length ? list : [{ id: MAIN_NB, name: NB_NAME }];
   }
@@ -1442,6 +1457,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // ---------- views ----------
   const views = ["setup", "quiz", "results", "table", "history", "settings"];
   views.push("tools"); // Extra tools (study-tools/view.js)
+  views.push("shared"); // a notebook somebody shared, opened from its link (shared-notebooks/preview.js)
   function show(v) { views.forEach((x) => ($("#" + x).hidden = x !== v)); document.body.classList.toggle("writing", v === "quiz"); markNav(v); window.scrollTo(0, 0); if (v === "quiz") pads.forEach((p) => p.resize()); }
   function banner(msg) { const b = $("#banner"); b.hidden = !msg; b.textContent = msg || ""; }
   // ---------- Settings (the gear in the menu, page/nav.js) ----------
@@ -1511,6 +1527,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     else if (v === "history") openHistory();
     else if (v === "table") { renderTable(); show("table"); }
     else if (v === "tools") openTools();
+    else if (v === "shared") openShared();
     else { show("setup"); renderSetup(); }
   }
   // Going somewhere from the menu. Unsaved changes in the vocab table are asked about first, wherever to (vocab/table.js).
@@ -1839,7 +1856,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   let vdb = null, watching = 0, watchOff = [], watchFailed = "";
   function watchVocab(failed = watchFailed) {
     watchOff.forEach((off) => typeof off === "function" && off());
-    const mine = ++watching, now = (on) => (snap) => { if (mine === watching) on(snap); };
+    const mine = ++watching, now = (on) => (snap) => { if (mine === watching) { on(snap); vocabChanged(); } };
     watchFailed = failed; vdb = inNotebook(db, nb);
     watchOff = [vdb.collection("kanji").onSnapshot(now(onKanji), () => {}), vdb.collection("sets").onSnapshot(now(onSets), now(() => banner(failed))),
       ...[["meta/books", onBookOrder], ["meta/courses", onCourses], ["meta/views", onViews]].map(([path, on]) => vdb.doc(path).onSnapshot(now(on), () => {}))];
@@ -1989,16 +2006,21 @@ colours.apply(...colours.saved()); // before anything is drawn
   // Holding down (or right-clicking) a set, a unit or a collection shows its words on a small card that can't be edited,
   // as wide as its words need: something to look over on a phone, or to screenshot. parts: [{ name, words }], one per set;
   // with more than one, each set's name heads its words.
-  function wordCard(title, parts) {
+  // The table itself (the page a shared notebook's link opens lists the notebook's words with it too): { html, count }.
+  function wordsTable(parts) {
     parts = parts.map((p) => ({ name: p.name, words: p.words.filter(wordReady) })).filter((p) => p.words.length);
     const words = parts.flatMap((p) => p.words), kanji = words.some((w) => w.kanji);
     const cell = (t) => `<td${KANJI.test(t) || /[ぁ-ヿ]/.test(t) ? ' class="jp"' : ""}>${esc(t)}</td>`;
     const row = (w) => `<tr>${cell(w.en)}${cell(w.kana || "")}${kanji ? cell(w.kanji || "") : ""}</tr>`;
-    $("#wordCardTitle").textContent = title;
-    $("#wordCardN").textContent = plural(words.length, "word");
-    $("#wordCardBody").innerHTML = !words.length ? `<p class="muted">No words yet.</p>`
+    return { count: words.length, html: !words.length ? `<p class="muted">No words yet.</p>`
       : `<table class="wcard"><thead><tr><th>English</th><th>Kana</th>${kanji ? "<th>Kanji</th>" : ""}</tr></thead>${parts.map((p) =>
-        `<tbody>${parts.length > 1 ? `<tr class="wset"><th colspan="${kanji ? 3 : 2}">${esc(p.name)}</th></tr>` : ""}${p.words.map(row).join("")}</tbody>`).join("")}</table>`;
+        `<tbody>${parts.length > 1 ? `<tr class="wset"><th colspan="${kanji ? 3 : 2}">${esc(p.name)}</th></tr>` : ""}${p.words.map(row).join("")}</tbody>`).join("")}</table>` };
+  }
+  function wordCard(title, parts) {
+    const t = wordsTable(parts);
+    $("#wordCardTitle").textContent = title;
+    $("#wordCardN").textContent = plural(t.count, "word");
+    $("#wordCardBody").innerHTML = t.html;
     const d = $("#wordCard");
     if (!d.open) d.showModal();
     $("#wordCardBody").scrollTop = 0;
@@ -3313,7 +3335,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       const rows = idx.map((i) => { const w = words[i]; return d
         ? `<tr><td>${cell(w, i, "en", "English")}</td><td class="jp">${cell(w, i, "kana", "Kana")}</td><td class="jp">${cell(w, i, "kanji", "Kanji")}</td>
              <td class="c"><button class="rowdel" data-del="${i}" aria-label="Delete row">×</button></td></tr>`
-        : w.en || w.kana || w.kanji ? `<tr data-w="${esc(w.id)}"><td data-f="en">${esc(w.en)}</td><td class="jp" data-f="kana">${esc(w.kana)}</td><td class="jp" data-f="kanji">${esc(w.kanji)}</td></tr>` : ""; }).join("");
+        : w.en || w.kana || w.kanji ? `<tr data-w="${esc(w.id)}"${ownWord(s, w) ? ` class="own"` : ""}><td data-f="en">${esc(w.en)}</td><td class="jp" data-f="kana">${esc(w.kana)}</td><td class="jp" data-f="kanji">${esc(w.kanji)}</td></tr>` : ""; }).join("");
       const del = S.confirmDel === s.id, now = setVals(s);
       const field = (f, name, more = "") => `<label>${name}<input id="d-${s.id}-${f}" data-ef="${f}" value="${esc(d.vals[f])}"${more}${d.vals[f] !== now[f] ? ` class="chg"` : ""}></label>`;
       return `<div class="tset open${d ? " editing" : ""}" data-sid="${esc(s.id)}">
@@ -3456,6 +3478,22 @@ colours.apply(...colours.saved()); // before anything is drawn
   const nbList = () => S.notebooks || [{ id: MAIN_NB, name: NB_NAME }];
   const nbName = (id = nb) => nbList().find((n) => n.id === id)?.name ?? NB_NAME;
   const nbRef = () => db.doc("meta/notebooks");
+  const nbNow = () => nbList().find((n) => n.id === nb);
+  // What other parts of the page add to notebooks (shared notebooks, on the public site): vocabHooks run after the open
+  // notebook's vocab or the list of notebooks changes, nbGone before a notebook's documents are deleted (with its id),
+  // and nbMore are further lines of the menu: { key, label(), icon (an svg path), run, when() }.
+  const vocabHooks = [], nbGone = [], nbMore = [];
+  const vocabChanged = () => vocabHooks.forEach((f) => f());
+  // In a notebook added from a shared one (its line in the list has from), each set keeps the words as they came from
+  // its owner in base: a word that isn't there, or reads differently, is one this person added or changed.
+  const wordKey = (w) => [w.en, w.kana, w.kanji].map((x) => (x || "").trim()).join("\u0001");
+  let came = { of: null, words: null };
+  function ownWord(s, w) {
+    if (came.of !== raw.sets) came = { of: raw.sets, words: nbNow()?.from ? new Map(raw.sets.map((d) => [d.id, new Map((d.base?.words || []).map((x) => [x.id, wordKey(x)]))])) : null };
+    return !!came.words && came.words.get(s.id)?.get(w.id) !== wordKey(w);
+  }
+  // A name no other notebook has: the one asked for, or that with a number (was: the name it has now, which it may keep).
+  const nbFree = (want, was = "") => freeName(want, nbList().map((n) => n.name).filter((t) => !sameName(t, was)));
   // Whether the list has loaded, for what mustn't write into a notebook this account may not have (the sample sets).
   let nbLoaded = () => {};
   const nbReady = new Promise((ok) => (nbLoaded = ok));
@@ -3464,7 +3502,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       S.notebooks = cleanNotebooks(dataOrNull(snap));
       // The open one may be gone (deleted on another device, or remembered by this browser from another account): the first opens.
       if (!openNotebook(nb)) renderNotebooks();
-      nbLoaded();
+      nbLoaded(); vocabChanged();
     }, () => nbLoaded());
   }
   // Opens a notebook: its vocab and its own choices replace what the page holds. false when that one is open already.
@@ -3494,11 +3532,17 @@ colours.apply(...colours.saved()); // before anything is drawn
     try { await nbRef().set({ list, updatedAt: new Date().toISOString() }); return true; }
     catch { S.notebooks = was; renderNotebooks(); banner("Couldn't save that. Try again."); return false; }
   }
+  // One notebook's line in the list, replaced.
+  const saveNb = (n) => saveNotebooks(nbList().map((x) => (x.id === n.id ? n : x)));
+  // Every vocab document in one place (a notebook, or a notebook's shared copy), deleted.
+  async function emptyVocab(at) {
+    for (const c of ["sets", "kanji"]) for (const d of (await at.collection(c).get()).docs) await at.doc(`${c}/${d.id}`).delete();
+    for (const p of ["meta/books", "meta/courses", "meta/views", "meta/link"]) await at.doc(p).delete();
+  }
   // Every document of one notebook, deleted (its line in the list is the caller's). Deleting an account uses it too.
   async function emptyNotebook(id) {
-    const at = inNotebook(db, id);
-    for (const c of ["sets", "kanji"]) for (const d of (await at.collection(c).get()).docs) await at.doc(`${c}/${d.id}`).delete();
-    for (const p of ["meta/books", "meta/courses", "meta/views"]) await at.doc(p).delete();
+    for (const f of nbGone) await f(id);
+    await emptyVocab(inNotebook(db, id));
   }
   // A name typed into the page's pop-up: "" when it's cancelled or left empty. A name another notebook has gets a number.
   async function askNbName(title, yes, was = "") {
@@ -3506,10 +3550,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const inp = $("#nbNameIn");
     inp.focus(); inp.select();
     inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("#askYes").click(); } }; // Enter would press Cancel, the pop-up's first button
-    const typed = (await answer) ? tidy(inp.value, 56) : "", taken = (t) => nbList().some((n) => sameName(n.name, t) && !sameName(n.name, was));
-    let name = typed;
-    for (let i = 2; name && taken(name); i++) name = `${typed} ${i}`;
-    return name;
+    return nbFree((await answer) ? tidy(inp.value, 56) : "", was);
   }
   async function addNotebook() {
     const name = await askNbName("New notebook", "Create");
@@ -3519,7 +3560,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   async function renameNotebook() {
     const name = await askNbName("Rename this notebook", "Rename", nbName());
-    if (name && name !== nbName()) saveNotebooks(nbList().map((n) => (n.id === nb ? { ...n, name } : n)));
+    if (name && name !== nbName()) saveNb({ ...nbNow(), name });
   }
   async function deleteNotebook() {
     const id = nb, rest = nbList().filter((n) => n.id !== id);
@@ -3549,8 +3590,9 @@ colours.apply(...colours.saved()); // before anything is drawn
       ${list.map((n) => `<button type="button" role="menuitemradio" aria-checked="${n.id === nb}" data-nb="${esc(n.id)}">${icon(n.id === nb ? "M5 12.5 L10 17.5 L19 7" : "")}${esc(n.name)}</button>`).join("")}
       ${canWrite && db ? `<hr><button type="button" role="menuitem" data-nb-do="add">${icon("M12 5 V19 M5 12 H19")}New notebook</button>
       <button type="button" role="menuitem" data-nb-do="rename">${icon("M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z")}Rename this notebook</button>
+      ${nbMore.filter((m) => m.when()).map((m) => `<button type="button" role="menuitem" data-nb-do="${m.key}">${icon(m.icon)}${m.label()}</button>`).join("")}
       ${list.length > 1 ? `<button type="button" role="menuitem" class="danger" data-nb-do="delete">${icon("M4 7 H20 M9.5 7 V4.5 H14.5 V7 M6.5 7 L7.3 19.5 H16.7 L17.5 7")}Delete this notebook</button>` : ""}` : ""}`;
-    const act = { add: addNotebook, rename: renameNotebook, delete: deleteNotebook };
+    const act = { add: addNotebook, rename: renameNotebook, delete: deleteNotebook, ...Object.fromEntries(nbMore.map((m) => [m.key, m.run])) };
     $("#nbList").querySelectorAll("button").forEach((b) => (b.onclick = () => { nbMenu(false); menu(false); if (b.dataset.nb) pickNotebook(b.dataset.nb); else act[b.dataset.nbDo](); }));
   }
   renderNotebooks();
@@ -3906,12 +3948,14 @@ colours.apply(...colours.saved()); // before anything is drawn
   // ---------- exporting the vocab as a file ----------
   // Every set and kanji list, the collection order and the views (or, before views were saved, the courses), in the
   // current format whatever format each was saved in.
-  async function exportVocab() {
+  function vocabNow() {
     const setById = new Map(raw.sets.map((d) => [d.id, d])), kById = new Map(raw.kanji.map((d) => [d.id, d]));
     const tidied = (list, byId, clean) => list.map((x) => byId.get(x.id)).filter(Boolean).map((d) => ({ id: d.id, ...clean(d) }));
-    const file = { app: APP, version: 2, exportedAt: new Date().toISOString(), notebook: nbName(),
-      sets: tidied(S.sets, setById, cleanSet), kanji: tidied(S.kanjiLists, kById, cleanKanji),
+    return { sets: tidied(S.sets, setById, cleanSet), kanji: tidied(S.kanjiLists, kById, cleanKanji),
       collections: cleanBooks(raw.books), ...(S.viewDoc ? { views: S.viewDoc } : { courses: cleanCourses(raw.courses) }) };
+  }
+  async function exportVocab() {
+    const file = { app: APP, version: 2, exportedAt: new Date().toISOString(), notebook: nbName(), ...vocabNow() };
     await saveJsonFile("", file, portMsg);
   }
   // Saves one of the site's JSON files (kind "" for the vocab, "history" for the practice history) and says how it went.
@@ -4786,6 +4830,258 @@ colours.apply(...colours.saved()); // before anything is drawn
   $("#devPolicyInfo").textContent = `The policy was last updated ${policyDay(POLICY_UPDATED)}. Anyone who last saw an older version gets the notice once.`;
   $("#devPolicyNow").onclick = showPolicyNote;
   $("#devPolicyNext").onclick = () => { store.set("policySeen", "2000-01-01"); sayIn($("#devPolicyMsg"))("Reload the page to see it as a returning visitor would."); };
+  // ---------- sharing a notebook by link: its owner's side (public site) ----------
+  // A shared notebook has a copy of its documents under shares/<id> (account/firebase.js and firestore.rules: anyone who
+  // has the id can read the copy, only the owner can write it), and its line in the list of notebooks keeps that id as
+  // share. Whatever changes in the notebook is copied over a moment later, so the link always shows the notebook as it
+  // is, and people who added it get the changes (linked.js). Only the notebook is copied: its sets, kanji lists,
+  // collection order and views. Nothing of the account goes with it.
+  const shareLink = (id) => `${location.origin}${location.pathname}#shared/${id}`;
+  // Long and random: having the link is what lets someone read the copy.
+  const newShareId = () => [...crypto.getRandomValues(new Uint8Array(24))].map((b) => "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"[b % 56]).join("");
+  // A document's fingerprint: enough to tell that it changed. shares/<id> lists one per document ("path fingerprint").
+  const docStamp = (d) => { const s = JSON.stringify(d); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return `${h.toString(36)}.${s.length.toString(36)}`; };
+  const revOf = (list) => new Map((Array.isArray(list) ? list : []).map((x) => String(x).split(" ")).filter((x) => x.length === 2));
+  // The open notebook's documents as its shared copy holds them, by path (what Export writes, without rows left blank).
+  function shareDocs() {
+    const v = vocabNow(), docs = new Map();
+    for (const { id, ...d } of v.sets) docs.set("sets/" + id, { ...d, words: d.words.filter(wordReady) });
+    for (const { id, ...d } of v.kanji) docs.set("kanji/" + id, d);
+    for (const [p, d] of [["meta/books", v.collections], ["meta/views", v.views], ["meta/courses", v.courses]]) if (d) docs.set(p, d);
+    return docs;
+  }
+  // Brings the shared copy up to date with the open notebook: the documents that changed are written, the ones that are
+  // gone deleted, then shares/<id> says what the copy holds now.
+  let shareAt = "", shareRev = new Map(), shareName = "", shareBusy = false, shareAgain = false, shareTimer = 0;
+  async function syncShare() {
+    const n = nbNow(), id = n?.share;
+    if (!id || !account || !S.loaded || !S.kLoaded) return;
+    if (shareBusy) { shareAgain = true; return; }
+    shareBusy = true;
+    try {
+      const sh = platform.shared(id), docs = shareDocs(), next = new Map([...docs].map(([p, d]) => [p, docStamp(d)]));
+      if (shareAt !== id) { const info = dataOrNull(await sh.info.get()); shareRev = revOf(info?.rev); shareName = info?.name ?? null; shareAt = id; }
+      const put = [...next.keys()].filter((p) => shareRev.get(p) !== next.get(p)), gone = [...shareRev.keys()].filter((p) => !next.has(p));
+      if (put.length || gone.length || shareName !== n.name) {
+        for (const p of put) await sh.db.doc(p).set(docs.get(p));
+        for (const p of gone) await sh.db.doc(p).delete();
+        await sh.info.set({ name: n.name, rev: [...next].map(([p, h]) => `${p} ${h}`), updatedAt: new Date().toISOString() });
+        shareRev = next; shareName = n.name;
+      }
+    } catch { shareAt = ""; } // the copy is read again, and brought up to date, at the next change
+    shareBusy = false;
+    if (shareAgain) { shareAgain = false; shareSoon(); }
+  }
+  const shareSoon = () => { clearTimeout(shareTimer); shareTimer = setTimeout(syncShare, 1500); };
+  vocabHooks.push(shareSoon);
+  // Shares the open notebook: "" if it couldn't be.
+  async function startShare() {
+    const id = newShareId(), sh = platform.shared(id), n = nbNow(), now = new Date().toISOString();
+    try { await sh.owner.set({ uid, nb: n.id, createdAt: now }); await sh.info.set({ name: n.name, rev: [], updatedAt: now }); }
+    catch { banner("Couldn't share it. Try again."); return ""; }
+    if (!(await saveNb({ ...n, share: id }))) { dropShare(id).catch(() => {}); return ""; }
+    await syncShare();
+    return id;
+  }
+  // A shared copy, deleted: its link stops working. (The notebook's line in the list is the caller's.)
+  async function dropShare(id) {
+    const sh = platform.shared(id);
+    if (!(await sh.owner.get().catch(() => null))?.exists) return; // gone already
+    await emptyVocab(sh.db); await sh.info.delete(); await sh.owner.delete();
+    if (shareAt === id) shareAt = "";
+  }
+  // A notebook that's deleted (or the whole account) takes its shared copy with it.
+  nbGone.push(async (id) => { const share = nbList().find((n) => n.id === id)?.share; if (share) await dropShare(share); });
+  async function stopShare() {
+    const { share, ...rest } = nbNow();
+    try { await dropShare(share); } catch { return banner("Couldn't stop sharing. Try again."); }
+    await saveNb(rest);
+  }
+  // "Share this notebook" in the notebook menu: asks first, then shows the link, with Copy and Stop sharing.
+  async function shareDialog() {
+    if (!nbNow().share) {
+      const ok = await ask(`Share “${nbNow().name}”`, `<p>Sharing makes a link. Anyone who has it can look at this notebook's sets and kanji lists and add them to their own account, and what you change here later reaches them too.</p>
+        <p class="muted small">Only the notebook is shared, not your progress, your settings or your other notebooks.</p>`, "Create link");
+      if (!ok || !(await startShare())) return;
+    }
+    const id = nbNow().share;
+    const closed = ask(`“${nbNow().name}” is shared`, `<p>Anyone who has this link can look at it and add it to their own account.</p>
+      <input class="tsearch" id="shareLinkIn" readonly aria-label="Link" value="${esc(shareLink(id))}">
+      <p class="tactions sharedo"><button class="btn" type="button" id="shareCopy">Copy link</button><button class="link" type="button" id="shareStop">Stop sharing</button></p>`, "Done");
+    let stop = false;
+    $("#shareLinkIn").onfocus = (e) => e.target.select();
+    $("#shareCopy").onclick = async (e) => { try { await navigator.clipboard.writeText(shareLink(id)); e.target.textContent = "Copied"; } catch { $("#shareLinkIn").focus(); } };
+    $("#shareStop").onclick = () => { stop = true; $("#askDlg").close("no"); };
+    await closed;
+    if (stop && await ask(`Stop sharing “${nbNow().name}”?`, `<p>The link stops working. People who already added this notebook keep what they have, and get no more changes from you.</p>`, "Stop sharing", true)) await stopShare();
+  }
+  // (Not a notebook that was added from somebody else's shared one: that one is its owner's to share.)
+  nbMore.push({ key: "share", label: () => (nbNow()?.share ? "Shared: link and options" : "Share this notebook"), icon: "M8.6 13.5 L15.4 17.5 M15.4 6.5 L8.6 10.5 M21 5 a3 3 0 1 1 -6 0 a3 3 0 0 1 6 0 M9 12 a3 3 0 1 1 -6 0 a3 3 0 0 1 6 0 M21 19 a3 3 0 1 1 -6 0 a3 3 0 0 1 6 0",
+    run: shareDialog, when: () => !!account && !nbNow()?.from });
+  // ---------- notebooks added from a shared one (public site) ----------
+  // Someone who opens a shared notebook's link can add it to their account (preview.js). What they get is a notebook of
+  // their own with the shared documents copied into it, so nothing of it depends on the shared copy staying there.
+  // Added with its owner's changes, its line in the list keeps the shared copy's id as from, each set and kanji list
+  // keeps what came from the owner beside it (base), and meta/link keeps the rest. When the notebook is opened and the
+  // shared copy has changed, the owner's changes are merged in: a word, a set's details or a kanji list this person
+  // changed stays as they have it, what they deleted stays deleted, and what they added is theirs. Added as a copy of
+  // their own, or after "Keep it as my own copy", none of that is kept and nothing arrives any more.
+  // A shared copy as it is now: { id, name, rev, docs (by path, cleaned: it's somebody else's writing) }, or null when
+  // nothing is shared under that id. With the rev this person last merged, { same: true } when nothing changed since.
+  async function readShare(id, rev) {
+    const sh = platform.shared(id), info = dataOrNull(await sh.info.get());
+    if (!info) return null;
+    const now = (Array.isArray(info.rev) ? info.rev : []).join("\n");
+    if (rev != null && rev === now) return { same: true };
+    const v = await readVocab(sh.db), docs = new Map();
+    for (const d of v.sets) { const c = cleanSet(d); if (c) docs.set("sets/" + d.id, c); }
+    for (const d of v.kanji) { const c = cleanKanji(d); if (c) docs.set("kanji/" + d.id, c); }
+    for (const [p, c] of [["meta/books", cleanBooks(v.books)], ["meta/views", cleanViews(v.views)], ["meta/courses", cleanCourses(v.courses)]]) if (c) docs.set(p, c);
+    return { id, name: tidy(info.name, 60) || NB_NAME, rev: now, docs };
+  }
+  const metaPaths = ["meta/books", "meta/views", "meta/courses"];
+  // meta/link: which shared copy, as of when (rev), every document it had (so one deleted here isn't brought back), and
+  // its collection order and views (so this person's own changes to them can be told from the owner's).
+  const linkDoc = (share) => ({ share: share.id, rev: share.rev, seen: [...share.docs.keys()], metas: JSON.stringify(Object.fromEntries(metaPaths.map((p) => [p, share.docs.get(p) || null]))) });
+  // Adds a shared notebook to this account and opens it: linked to its owner's changes, or as a copy.
+  async function addShared(share, linked) {
+    const id = "n" + rid(), at = inNotebook(db, id), now = new Date().toISOString();
+    if (nbList().length >= NB_MAX) { banner(`An account holds up to ${NB_MAX} notebooks. Delete one to add this.`); return false; }
+    try {
+      for (const [p, d] of share.docs) await at.doc(p).set({ ...d, ...(linked && !p.startsWith("meta/") ? { base: d } : {}), updatedAt: now });
+      if (linked) await at.doc("meta/link").set(linkDoc(share));
+    } catch { banner("Couldn't add that notebook. Try again."); return false; }
+    if (!(await saveNotebooks([...nbList(), { id, name: nbFree(share.name), ...(linked ? { from: share.id } : {}) }]))) return false;
+    pulled = `${id} ${share.id}`; // just copied: nothing to merge
+    openNotebook(id);
+    return true;
+  }
+  // The owner's set n merged into this person's t, which came as b.
+  const mergeFields = (b, t, n, fields) => Object.fromEntries(fields.map((f) => [f, same(t[f] ?? null, b[f] ?? null) ? n[f] ?? null : t[f] ?? null]));
+  function mergeSet(b, t, n) {
+    const was = new Map(b.words.map((w) => [w.id, wordKey(w)])), now = new Map(n.words.map((w) => [w.id, w])), have = new Set(t.words.map((w) => w.id));
+    // Their own words and the ones they changed stay; an untouched one follows the owner's (changed, or taken out); the owner's new words go at the end.
+    const words = t.words.flatMap((w) => (!was.has(w.id) || wordKey(w) !== was.get(w.id) ? [w] : now.has(w.id) ? [now.get(w.id)] : []));
+    return { ...mergeFields(b, t, n, ["collection", "unit", "name"]), tags: (same(t.tags ?? [], b.tags ?? []) ? n.tags : t.tags) ?? [],
+      words: [...words, ...n.words.filter((w) => !was.has(w.id) && !have.has(w.id))] };
+  }
+  async function mergeShare(at, share, link) {
+    const now = new Date().toISOString(), seen = new Set(link.seen || []), mine = new Map(), base = new Map();
+    for (const [c, list, clean] of [["sets", raw.sets, cleanSet], ["kanji", raw.kanji, cleanKanji]]) for (const d of list) {
+      mine.set(`${c}/${d.id}`, clean(d));
+      if (d.base) base.set(`${c}/${d.id}`, clean({ ...d.base, id: d.id }));
+    }
+    for (const [p, n] of share.docs) {
+      if (p.startsWith("meta/")) continue;
+      const t = mine.get(p), b = base.get(p);
+      // New from the owner (one this person deleted stays deleted); one of their own under the same id stays theirs.
+      if (!t) { if (!seen.has(p)) await at.doc(p).set({ ...n, base: n, updatedAt: now }); continue; }
+      if (!b || same(b, n)) continue;
+      await at.doc(p).update({ ...(p.startsWith("sets/") ? mergeSet(b, t, n) : mergeFields(b, t, n, ["collection", "unit", "kanji"])), base: n, updatedAt: now });
+    }
+    // What the owner took out goes, unless this person changed it: then it stays, as theirs.
+    for (const [p, b] of base) if (!share.docs.has(p)) await (same(mine.get(p), b) ? at.doc(p).delete() : at.doc(p).update({ base: null }));
+    // The collection order and the views follow the owner's while this person hasn't changed them.
+    let was = {};
+    try { was = JSON.parse(link.metas || "{}"); } catch {}
+    const have = { "meta/books": cleanBooks(raw.books), "meta/views": cleanViews(raw.views), "meta/courses": cleanCourses(raw.courses) };
+    for (const p of metaPaths) {
+      const n = share.docs.get(p) || null, b = was[p] || null;
+      if (!same(n, b) && same(have[p], b)) await (n ? at.doc(p).set({ ...n, updatedAt: now }) : at.doc(p).delete());
+    }
+    await at.doc("meta/link").set(linkDoc(share));
+  }
+  // Once each time a linked notebook is opened and its vocab has loaded.
+  let pulled = "", pullTimer = 0, linkGone = false;
+  async function pullShare() {
+    const n = nbNow(), key = `${n?.id} ${n?.from}`;
+    if (!n?.from || !account || !S.loaded || !S.kLoaded || pulled === key) return;
+    pulled = key; linkGone = false;
+    const at = inNotebook(db, n.id);
+    try {
+      const link = dataOrNull(await at.doc("meta/link").get()) || {}, share = await readShare(n.from, link.rev || "");
+      if (nb !== n.id) return;
+      linkGone = !share;
+      if (share && !share.same) await mergeShare(at, share, link);
+    } catch (e) { if (e?.code === "permission-denied") linkGone = true; else pulled = ""; } // offline, say: tried again at the next change
+    renderLink();
+  }
+  // The line over the vocab table that says what a linked notebook is.
+  function renderLink() {
+    const n = nbNow(), box = $("#linkNote");
+    box.hidden = !n?.from;
+    if (box.hidden) return;
+    box.innerHTML = `<span>${linkGone ? "The notebook this was added from isn't shared any more, so nothing in it will change again."
+      : "This notebook was added from a shared one. Its owner's changes arrive when you open it."} <span class="ownkey">Tinted words</span> are ones you changed or added: they stay as you have them.</span>
+      <button class="link" type="button" id="ownCopyBtn">Keep it as my own copy</button>`;
+    $("#ownCopyBtn").onclick = ownCopy;
+  }
+  vocabHooks.push(() => { renderLink(); clearTimeout(pullTimer); pullTimer = setTimeout(pullShare, 600); });
+  // Cuts the notebook loose from the shared copy: everything in it is this person's, and nothing arrives any more.
+  async function ownCopy() {
+    const { from, ...rest } = nbNow(), at = inNotebook(db, rest.id);
+    if (!(await ask("Keep this as your own copy?", `<p>The owner's changes stop arriving, and everything in this notebook counts as yours. To get their changes again, you would add the shared notebook again.</p>`, "Keep my own copy"))) return;
+    try {
+      for (const [c, list] of [["sets", raw.sets], ["kanji", raw.kanji]]) for (const d of list) if (d.base) await at.doc(`${c}/${d.id}`).update({ base: null });
+      await at.doc("meta/link").delete();
+    } catch { return banner("Couldn't do that. Try again."); }
+    await saveNb(rest);
+  }
+  // ---------- the page a shared notebook's link opens (public site) ----------
+  // …/#shared/<id> (page/address.js). Anyone can look through the notebook there, signed in or not; adding it to an
+  // account needs a sign-in (linked.js does the adding). A visitor who signs in from here comes back to it afterwards:
+  // the page starts over on signing in, so the id waits in this tab's session storage.
+  // The id in the address, or of the notebook this page shows (a function, and its own note of that, because the
+  // address is read while the page is still starting).
+  function sharedId() { return location.hash.match(/^#shared\/([A-Za-z0-9]{20,40})$/)?.[1] || sharedId.at || ""; }
+  let sharedNow = null;
+  const sharedWait = (id) => { try { if (id) sessionStorage.setItem("qcard:shared", id); else sessionStorage.removeItem("qcard:shared"); } catch {} };
+  async function openShared(id = sharedId()) {
+    sharedId.at = id; sharedNow = null;
+    show("shared");
+    if (!account) sharedWait(id);
+    $("#sharedHead").innerHTML = `<div class="head"><h2>Shared notebook</h2></div>`;
+    $("#sharedBody").innerHTML = `<div class="empty">Loading…</div>`;
+    let share = null, failed = false;
+    try { share = await readShare(id); } catch (e) { failed = e?.code !== "permission-denied"; }
+    if (sharedId.at !== id) return;
+    if (!share) {
+      $("#sharedBody").innerHTML = `<div class="empty"><b>${failed ? "This notebook couldn't load." : "This link doesn't work any more."}</b><span>${failed ? "Check your connection, then reload the page." : "The notebook isn't shared now."}</span></div>`;
+      return;
+    }
+    sharedNow = share; renderShared();
+  }
+  function renderShared() {
+    const share = sharedNow;
+    if (!share || $("#shared").hidden) return;
+    const of = (c) => [...share.docs].filter(([p]) => p.startsWith(c + "/")).map(([p, d]) => ({ id: p.slice(c.length + 1), ...d }));
+    const sets = of("sets").sort(sortSets), lists = of("kanji"), units = [...new Set(sets.map(unitKey))];
+    const mine = nbList().find((n) => n.share === share.id), have = nbList().find((n) => n.from === share.id), here = mine || have;
+    $("#sharedHead").innerHTML = `<div class="head"><h2>${esc(share.name)}</h2></div>
+      <p class="muted">A shared notebook: ${[plural(sets.length, "set"), plural(sets.reduce((n, s) => n + readyCount(s.words), 0), "word"), plural(lists.length, "kanji list")].join(" · ")}</p>
+      ${here ? `<p>${mine ? "This is your notebook, as people who have the link see it." : "You've added this notebook."}</p><p class="tactions"><button class="btn primary" type="button" id="sharedOpen">Open it</button></p>`
+      : account ? `<p class="tactions"><button class="btn primary" type="button" id="sharedAdd">Add to my notebooks</button><button class="btn" type="button" id="sharedCopy">Add as my own copy</button></p>
+        <p class="muted small">Added to your notebooks, it keeps getting its owner's changes, and you can still change it yourself. A copy of your own stays as it is now.</p>`
+      : `<p class="tactions"><button class="btn primary" type="button" id="sharedSignIn">Sign in to add it</button></p>
+        <p class="muted small">You can look through it here. To practice with it, sign in and add it to your account.</p>`}`;
+    $("#sharedBody").innerHTML = !sets.length ? `<div class="empty"><b>No vocab sets in it yet.</b></div>` : units.map((k) => {
+      const us = sets.filter((s) => unitKey(s) === k), kl = lists.filter((l) => unitKey(l) === k).map((l) => l.kanji).join("");
+      return `<div class="panel"><div class="head"><h2>${esc(unitPath(us[0], true))}</h2></div><div class="tscroll">${wordsTable(cardParts(us, true)).html}</div>
+        ${kl ? `<p class="small"><span class="muted">Kanji: </span><span class="jp">${esc(kl)}</span></p>` : ""}</div>`; }).join("");
+    const add = (linked) => async (e) => { e.target.disabled = true; if (await addShared(share, linked)) go("setup"); else e.target.disabled = false; };
+    if ($("#sharedOpen")) $("#sharedOpen").onclick = () => { openNotebook(here.id); go("setup"); };
+    if ($("#sharedAdd")) { $("#sharedAdd").onclick = add(true); $("#sharedCopy").onclick = add(false); }
+    if ($("#sharedSignIn")) $("#sharedSignIn").onclick = (e) => signIn(e.target, (err) => banner(err || ""));
+  }
+  // The list of notebooks loads after the page: whether this one is here already shows once it has.
+  vocabHooks.push(renderShared);
+  // From boot, once someone is signed in: back to the shared notebook they were looking at before signing in.
+  function resumeShared() {
+    let id = "";
+    try { id = sessionStorage.getItem("qcard:shared") || ""; } catch {}
+    if (!account || !/^[A-Za-z0-9]{20,40}$/.test(id)) return;
+    sharedWait(""); openShared(id);
+  }
   // ---------- Extra tools (public site) ----------
   // A view of the page like the others, with the menu beside it. Its tools are js/tools.js (src/study-tools/tools.js),
   // loaded the first time it opens, so the page itself doesn't carry them. Its address is #tools (page/address.js; the old
@@ -4803,8 +5099,9 @@ colours.apply(...colours.saved()); // before anything is drawn
   // The page loads once and swaps what it shows, so the part after # names the part on screen: …/#vocabulary, #progress,
   // #tools, #settings (Practice has none). Going to a part adds a step to the browser's history, so ← back and forward
   // step through the parts, and a link or bookmark opens the part it names. A practice and its results add no step.
-  function partHash(v) { return { setup: "", table: "#vocabulary", history: "#progress", settings: "#settings", tools: "#tools" }[v]; }
-  function hashPart() { return ["table", "history", "settings", "tools"].find((v) => partHash(v) === location.hash) || "setup"; }
+  // A shared notebook's link is …/#shared/<its id> (shared-notebooks/preview.js shows what the address names).
+  function partHash(v) { return { setup: "", table: "#vocabulary", history: "#progress", settings: "#settings", tools: "#tools", shared: "#shared/" + sharedId() }[v]; }
+  function hashPart() { return ["table", "history", "settings", "tools", "shared"].find((v) => partHash(v) === location.hash) || "setup"; }
   // From show(): the address follows, unless it's the address that moved (back or forward), or the page is still starting
   // (boot.js opens the part the address names).
   function syncHash(v) {
@@ -4851,6 +5148,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       offerSamples();
       // An address naming a part of the page (page/address.js) opens it.
       if (part !== "setup") { syncHash.quiet = true; openView(part); syncHash.quiet = false; }
+      else resumeShared(); // shared-notebooks/preview.js
     };
     // As a guest, everything is kept in this browser (src/account/local.js); choosing it in the welcome pop-up is remembered.
     startLocal = () => {

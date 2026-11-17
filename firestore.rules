@@ -13,5 +13,27 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
     }
+    // Shared notebooks. shares/<id> is a copy of a notebook that its owner published, with the notebook's documents
+    // under it (shares/<id>/sets/<set>, /kanji/<list>, /meta/<doc>). Anyone who has the id may read it, signed in or
+    // not: the id is long and random, and the collection can't be listed. shareOwners/<id>, made first and never
+    // changed, says whose it is: only that account can write the copy, and nobody else can read whose it is.
+    function ownsShare(id) {
+      return request.auth != null && get(/databases/$(database)/documents/shareOwners/$(id)).data.uid == request.auth.uid;
+    }
+    match /shareOwners/{id} {
+      allow get, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null && id.size() >= 20 && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'nb', 'createdAt']);
+    }
+    match /shares/{id} {
+      allow get: if true;
+      allow create, update: if ownsShare(id) && request.resource.data.keys().hasOnly(['name', 'rev', 'updatedAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 100;
+      allow delete: if ownsShare(id);
+      match /{kind}/{doc} {
+        allow read: if true;
+        allow write: if kind in ['sets', 'kanji', 'meta'] && ownsShare(id);
+      }
+    }
   }
 }

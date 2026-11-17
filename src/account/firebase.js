@@ -26,9 +26,10 @@ function mapPath(uid, path) {
 const docSnap = (s) => ({ id: s.id, exists: s.exists(), data: () => s.data() });
 const querySnap = (s) => ({ docs: s.docs.map(docSnap), size: s.size, empty: s.empty });
 
-function makeDb(uid) {
+// A store over one part of the database: at(path) is where a path the page uses is kept.
+function makeDb(at) {
   const docRef = (path) => {
-    const ref = doc(fs, mapPath(uid, path));
+    const ref = doc(fs, at(path));
     return {
       id: ref.id,
       get: async () => docSnap(await getDoc(ref)),
@@ -39,7 +40,7 @@ function makeDb(uid) {
     };
   };
   const colRef = (path, parts = []) => {
-    const ref = collection(fs, mapPath(uid, path)), q = () => (parts.length ? query(ref, ...parts) : ref);
+    const ref = collection(fs, at(path)), q = () => (parts.length ? query(ref, ...parts) : ref);
     return {
       doc: (id) => docRef(`${path}/${id}`),
       orderBy: (field, dir) => colRef(path, [...parts, orderBy(field, dir)]),
@@ -77,7 +78,11 @@ window.qcardPlatform = {
   },
   // Where someone's vocab is kept: their own folder in the database when signed in (u as onAuth gives it), else this
   // browser. The site and the AI page's import both ask here, so they always agree.
-  storeFor: (u) => (u ? { id: u.uid, db: makeDb(u.uid) } : { id: "local", db: makeLocalDb() }),
+  storeFor: (u) => (u ? { id: u.uid, db: makeDb((p) => mapPath(u.uid, p)) } : { id: "local", db: makeLocalDb() }),
+  // A notebook someone shared (see firestore.rules): shares/<id> says what it is and holds a copy of the notebook's
+  // documents under it (shares/<id>/sets/<set> …), which anyone who has the id may read, signed in or not;
+  // shareOwners/<id>, which only its owner can read, says whose it is. Only the owner can change any of it.
+  shared: (id) => { const all = makeDb((p) => p); return { info: all.doc(`shares/${id}`), owner: all.doc(`shareOwners/${id}`), db: makeDb((p) => `shares/${id}/${p}`) }; },
   user: makeUser,
   // Whether this account is a developer: dev/<uid> exists (see firestore.rules; only the Firebase console makes it).
   isDev: async (uid) => { try { return (await getDoc(doc(fs, "dev/" + uid))).exists(); } catch { return false; } },

@@ -36,7 +36,7 @@
   let vdb = null, watching = 0, watchOff = [], watchFailed = "";
   function watchVocab(failed = watchFailed) {
     watchOff.forEach((off) => typeof off === "function" && off());
-    const mine = ++watching, now = (on) => (snap) => { if (mine === watching) on(snap); };
+    const mine = ++watching, now = (on) => (snap) => { if (mine === watching) { on(snap); vocabChanged(); } };
     watchFailed = failed; vdb = inNotebook(db, nb);
     watchOff = [vdb.collection("kanji").onSnapshot(now(onKanji), () => {}), vdb.collection("sets").onSnapshot(now(onSets), now(() => banner(failed))),
       ...[["meta/books", onBookOrder], ["meta/courses", onCourses], ["meta/views", onViews]].map(([path, on]) => vdb.doc(path).onSnapshot(now(on), () => {}))];

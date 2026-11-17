@@ -356,6 +356,25 @@ await part("6. Rules", async () => {
   ok(await as("bob", "GET", "dev/alice") === 403 && await as(null, "GET", "dev/alice") === 403, "rules: nobody else can read it, signed in or out");
   ok(await as("alice", "PATCH", "dev/alice", doc) === 403 && await as("alice", "DELETE", "dev/alice") === 403 && await as("bob", "PATCH", "dev/bob", doc) === 403,
     "rules: dev/<uid> is never writable from the site, not even one's own");
+  // Shared notebooks: shareOwners/<id> says whose a shared copy is, shares/<id> and what's under it is the copy.
+  const sid = "abcdefghijkmnopqrstuvwxy", str = (v) => ({ stringValue: v });
+  const own = (uid) => ({ fields: { uid: str(uid), nb: str("main"), createdAt: str("x") } }), info = (more = {}) => ({ fields: { name: str("My notebook"), rev: { arrayValue: { values: [str("sets/a 1.1")] } }, updatedAt: str("x"), ...more } });
+  ok(await as("alice", "PATCH", "shareOwners/short", own("alice")) === 403 && await as("alice", "PATCH", `shareOwners/${sid}`, own("bob")) === 403 && await as(null, "PATCH", `shareOwners/${sid}`, own("alice")) === 403,
+    "rules: a share can't be made under a short id, in somebody else's name, or signed out");
+  ok(await as("alice", "PATCH", `shares/${sid}`, info()) === 403, "rules: nothing can be written to a share nobody owns");
+  ok(await as("alice", "PATCH", `shareOwners/${sid}`, own("alice")) === 200 && await as("alice", "PATCH", `shares/${sid}`, info()) === 200 && await as("alice", "PATCH", `shares/${sid}/sets/a`, doc) === 200
+    && await as("alice", "PATCH", `shares/${sid}/kanji/k`, doc) === 200 && await as("alice", "PATCH", `shares/${sid}/meta/books`, doc) === 200, "rules: Alice makes a share and writes its copy (sets, kanji, meta)");
+  ok(await as("bob", "PATCH", `shareOwners/${sid}`, own("bob")) === 403 && await as("alice", "PATCH", `shareOwners/${sid}`, own("alice")) === 403, "rules: whose a share is can't be changed afterwards, by anyone");
+  ok(await as("alice", "GET", `shareOwners/${sid}`) === 200 && await as("bob", "GET", `shareOwners/${sid}`) === 403 && await as(null, "GET", `shareOwners/${sid}`) === 403, "rules: only its owner can read whose a share is");
+  ok(await as("alice", "PATCH", `shares/${sid}`, info({ owner: str("alice") })) === 403 && await as("alice", "PATCH", `shares/${sid}`, info({ name: str("x".repeat(101)) })) === 403 && await as("alice", "PATCH", `shares/${sid}/other/a`, doc) === 403,
+    "rules: a share holds only its name, what it has and when, and only sets, kanji and meta under it");
+  ok(await as("bob", "PATCH", `shares/${sid}`, info()) === 403 && await as("bob", "PATCH", `shares/${sid}/sets/a`, doc) === 403 && await as("bob", "DELETE", `shares/${sid}/sets/a`) === 403
+    && await as(null, "PATCH", `shares/${sid}/sets/b`, doc) === 403 && await as("bob", "DELETE", `shares/${sid}`) === 403 && await as("bob", "DELETE", `shareOwners/${sid}`) === 403, "rules: nobody but its owner can write or delete any of a share");
+  ok(await as(null, "GET", `shares/${sid}`) === 200 && await as(null, "GET", `shares/${sid}/sets/a`) === 200 && await as(null, "GET", `shares/${sid}/sets`) === 200 && await as("bob", "GET", `shares/${sid}/meta/books`) === 200,
+    "rules: anyone who has a share's id can read it, signed in or not");
+  ok(await as(null, "GET", "shares") === 403 && await as("bob", "GET", "shares") === 403 && await as("bob", "GET", "shareOwners") === 403, "rules: shares can't be listed, so a share is found only by its link");
+  ok(await as("alice", "DELETE", `shares/${sid}/sets/a`) === 200 && await as("alice", "DELETE", `shares/${sid}`) === 200 && await as("alice", "DELETE", `shareOwners/${sid}`) === 200 && await as(null, "GET", `shares/${sid}`) === 404,
+    "rules: the owner deletes a share, and then the link finds nothing");
 });
 
 await browser.close(); server.close();

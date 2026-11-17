@@ -17,6 +17,7 @@
     else if (v === "table") { renderTable(); show("table"); }
     //#if public
     else if (v === "tools") openTools();
+    else if (v === "shared") openShared();
     //#endif
     else { show("setup"); renderSetup(); }
   }
