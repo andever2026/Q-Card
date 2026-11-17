@@ -98,4 +98,4 @@
   }
   // (Not a notebook that was added from somebody else's shared one: that one is its owner's to share.)
   nbMore.push({ key: "share", label: () => (nbNow()?.share ? "Shared: link and options" : "Share this notebook"), icon: "M8.6 13.5 L15.4 17.5 M15.4 6.5 L8.6 10.5 M21 5 a3 3 0 1 1 -6 0 a3 3 0 0 1 6 0 M9 12 a3 3 0 1 1 -6 0 a3 3 0 0 1 6 0 M21 19 a3 3 0 1 1 -6 0 a3 3 0 0 1 6 0",
-    run: shareDialog, when: () => !!account && !nbNow()?.from });
+    run: shareDialog, when: () => !!account && !nbNow()?.from && !nbNow()?.group });

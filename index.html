@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-ClE+/P9tMxXuqsRvpuh6msv0jMdE7IcIrPGwZbZkYg0=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-ReMUmeBezmzIUbj5KWvZZSuQ5t+tIOVOTUluwgjCC6I=' 'sha256-3k2xTj/9Ty79L7dZIzV6QxBOCN84I3dg5zBV1ReOv98=' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src https://q-card-project.firebaseapp.com https://apis.google.com https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Handwriting practice for Japanese vocabulary: write each word by hand and get it checked.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='22' rx='4' fill='%232c4a8f'/%3E%3Ctext x='16' y='22' font-size='15' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EQ%3C/text%3E%3C/svg%3E">
 <title>Japanese Vocab Practice</title>
@@ -1894,7 +1894,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   function watchVocab(failed = watchFailed) {
     watchOff.forEach((off) => typeof off === "function" && off());
     const mine = ++watching, got = (heard = new Set()), now = (on, path) => (snap) => { if (mine === watching) { if (path) got.add(path); on(snap); vocabChanged(); } };
-    watchFailed = failed; vdb = inNotebook(db, nb);
+    watchFailed = failed; vdb = nbAt(nb);
     watchOff = [vdb.collection("kanji").onSnapshot(now(onKanji, "kanji"), () => {}), vdb.collection("sets").onSnapshot(now(onSets, "sets"), now(() => banner(failed))),
       ...[["meta/books", onBookOrder], ["meta/courses", onCourses], ["meta/views", onViews]].map(([path, on]) => vdb.doc(path).onSnapshot(now(on, path), () => {}))];
   }
@@ -2936,7 +2936,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const agg = new Map();
     // Oldest session first, so each word's run counts the sessions since its latest miss.
     // With more than one notebook, the list is the open notebook's: those are the words it can show and practice.
-    const byTime = S.history.filter((t) => nbList().length < 2 || sessionNb(t) === nb).sort((a, b) => String(a.finishedAt || "").localeCompare(String(b.finishedAt || "")));
+    const byTime = S.history.filter((t) => allNbs().length < 2 || sessionNb(t) === nb).sort((a, b) => String(a.finishedAt || "").localeCompare(String(b.finishedAt || "")));
     perPage.set(S.loveWin);
     for (const t of byTime) for (const w of t.words || []) {
       if (w.skip) continue; // left off the list on the results page
@@ -3026,7 +3026,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#hList").innerHTML = shown.map((t) => {
       const { n, first } = firstTry(t), del = S.hConfirm === t.id;
       const ws = (t.words || []).slice().sort((a, b) => b.tries - a.tries);
-      return `<li class="test"><details data-id="${esc(t.id)}" ${S.hOpen.has(t.id) ? "open" : ""}><summary><span class="when">${esc(fmtWhen(t.finishedAt))}</span><span class="what">${nbList().length < 2 ? "" : `<span class="tag">${esc(nbList().find((n) => n.id === sessionNb(t))?.name ?? "Deleted notebook")}</span> `}${esc((t.sets || []).join(", "))}</span><span class="score">${first}/${n} first try</span></summary>
+      return `<li class="test"><details data-id="${esc(t.id)}" ${S.hOpen.has(t.id) ? "open" : ""}><summary><span class="when">${esc(fmtWhen(t.finishedAt))}</span><span class="what">${allNbs().length < 2 ? "" : `<span class="tag">${esc(allNbs().find((n) => n.id === sessionNb(t))?.name ?? "Deleted notebook")}</span> `}${esc((t.sets || []).join(", "))}</span><span class="score">${first}/${n} first try</span></summary>
         <p class="muted small">${esc(DIRS[t.dir] || "")} · ${esc(MODES[t.mode] || "Default")}</p>
         <p class="tw">${ws.map((w) => `<span class="${w.tries > 1 ? "miss" : ""}" title="${esc(w.en)}">${esc(w.jp)}${w.tries > 1 ? ` ×${w.tries}` : ""}</span>`).join("")}</p>
         <div class="tactions">${del ? `<span class="small">Delete this session?</span><button class="btn danger" data-hdel-yes="${esc(t.id)}">Delete</button><button class="btn" data-hdel-no>Keep</button>` : `<button class="ghost small" data-hdel="${esc(t.id)}">Delete this session</button>`}</div>
@@ -3113,7 +3113,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   // ---------- vocab table ----------
   const onlyKanji = (raw) => [...new Set([...String(raw)].filter((c) => KANJI.test(c) && c !== "々"))].join("");
   function renderKanji() {
-    $("#newKanjiForm").hidden = !canWrite;
+    $("#newKanjiForm").hidden = !canEdit();
     const box = $("#kanjiLists"), all = S.kanjiLists;
     // The lists for the units picked in the vocab table, or every list.
     const picked = all.filter((k) => TP.has(unitKey(k))), every = S.kAll || picked.length === all.length;
@@ -3122,22 +3122,22 @@ colours.apply(...colours.saved()); // before anything is drawn
     $("#kSummary").textContent = !all.length ? "" : every && all.length > 1 ? `All ${all.length} kanji lists` : lists.length === 1 ? name(lists[0]) : lists.length ? `${lists.length} kanji lists` : "";
     $("#kAllBtn").hidden = !all.length || picked.length === all.length;
     $("#kAllBtn").textContent = S.kAll ? "Show only the units shown above" : "Show all units";
-    if (!all.length) { box.innerHTML = `<div class="empty"><span>No kanji lists yet${canWrite ? ". Add a unit below and paste its kanji." : "."}</span></div>`; return; }
-    if (!lists.length) { box.innerHTML = `<div class="empty"><span>${TP.shownKeys().length ? "The units shown have no kanji lists" : "No units shown"}${canWrite ? ". Add one below if a unit teaches kanji." : "."}</span></div>`; return; }
+    if (!all.length) { box.innerHTML = `<div class="empty"><span>No kanji lists yet${canEdit() ? ". Add a unit below and paste its kanji." : "."}</span></div>`; return; }
+    if (!lists.length) { box.innerHTML = `<div class="empty"><span>${TP.shownKeys().length ? "The units shown have no kanji lists" : "No units shown"}${canEdit() ? ". Add one below if a unit teaches kanji." : "."}</span></div>`; return; }
     // Like a set: the kanji read as text until Edit, which opens the collection, unit and kanji for editing; Save stores them.
     box.innerHTML = lists.map((k) => {
-      const d = canWrite ? S.kdrafts.get(k.id) : null, dirty = dirtyList(k), v = d ? d.kanji : k.kanji || "", del = S.kConfirmDel === k.id;
+      const d = canEdit() ? S.kdrafts.get(k.id) : null, dirty = dirtyList(k), v = d ? d.kanji : k.kanji || "", del = S.kConfirmDel === k.id;
       const field = (f, label, more = "") => `<label>${label}<input id="kf-${esc(k.id)}-${f}" data-kf="${f}" value="${esc(d[f])}"${more}${d[f] !== (f === "collection" ? colOf(k) : k[f]) ? ` class="chg"` : ""}></label>`;
       return `<div class="tset open kset${d ? " editing" : ""}" data-kid="${esc(k.id)}">
-        <h3 class="tseth"><span class="tsethead"><span class="t">${esc(name(k))}</span><span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted" data-kcount>${onlyKanji(v).length} kanji</span></span></span>${canWrite && !d ? `<button class="btn" type="button" data-kedit>Edit</button>` : ""}</h3>
+        <h3 class="tseth"><span class="tsethead"><span class="t">${esc(name(k))}</span><span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted" data-kcount>${onlyKanji(v).length} kanji</span></span></span>${canEdit() && !d ? `<button class="btn" type="button" data-kedit>Edit</button>` : ""}</h3>
         ${d ? `<div class="newset setedit">${field("collection", "Collection", ` list="colList"`)}${field("unit", "Unit", ` list="unitList"`)}</div>
           <input type="text" class="kin${d.kanji !== (k.kanji || "") ? " chg" : ""}" id="k-${esc(k.id)}" data-kf="kanji" value="${esc(v)}" placeholder="Paste this unit's kanji" aria-label="Kanji for ${esc(name(k))}">
           <div class="tactions editbar"><button class="btn primary" data-ksave ${dirty ? "" : "disabled"}>Save</button><button class="btn" data-kdiscard>${dirty ? "Discard changes" : "Cancel"}</button><span class="editerr" data-kerr></span>
           <span style="flex:1"></span>${del ? `<span class="small">Delete this kanji list?</span><button class="btn danger" data-kdel-yes>Delete</button><button class="btn" data-kdel-no>Keep</button>` : `<button class="ghost small" data-kdel>Delete list</button>`}</div>`
-        : `<p class="kro">${esc(v) || `<span class="muted small">No kanji yet.${canWrite ? " Tap Edit to add some." : ""}</span>`}</p>`}
+        : `<p class="kro">${esc(v) || `<span class="muted small">No kanji yet.${canEdit() ? " Tap Edit to add some." : ""}</span>`}</p>`}
       </div>`;
     }).join("");
-    if (!canWrite) return;
+    if (!canEdit()) return;
     box.querySelectorAll("[data-kid]").forEach((row) => {
       const id = row.dataset.kid, k = lists.find((x) => x.id === id), d = S.kdrafts.get(id);
       const ke = row.querySelector("[data-kedit]");
@@ -3230,7 +3230,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (tp.size !== was || [...tp].some((k) => /\u0001\d+$/.test(k) && !all.has(k))) TP.replace(S.tpick.show, tp);
     // "Edit collections" (vocab/collections.js) puts its editor where the unit rows were, and Discard and Save where it was.
     const ed = !!S.colEdit;
-    $("#editColBtn").hidden = !canWrite || ed; $("#colBtns").hidden = !ed;
+    $("#editColBtn").hidden = !canEdit() || ed; $("#colBtns").hidden = !ed;
     $("#tTop").classList.toggle("editing", ed); $("#tPickBar").hidden = ed; $("#tSearch").disabled = ed;
     if (!ed) TP.render();
     syncGroupSegs(); renderColEdit();
@@ -3314,10 +3314,10 @@ colours.apply(...colours.saved()); // before anything is drawn
     const at = document.activeElement, typing = at?.id && $("#setTables").contains(at) ? { id: at.id, pos: at.selectionStart } : null;
     if (!searchOnly) { renderKanji(); renderPort(); }
     renderLeave();
-    $("#tableRole").hidden = canWrite;
+    $("#tableRole").hidden = canEdit();
     // While collections are edited, the sets and kanji lists below fold up under a grey cover: they can't be used until Save or Discard.
     const ed = !!S.colEdit;
-    $("#newSetForm").hidden = !canWrite || ed;
+    $("#newSetForm").hidden = !canEdit() || ed;
     for (const el of [$("#setTables"), $("#kanjiLists").closest(".panel")]) { el.inert = ed; el.classList.toggle("tlocked", ed); el.dataset.lock = "Editing collections"; }
     $("#colList").innerHTML = cols().filter(Boolean).map((b) => `<option value="${esc(b)}"></option>`).join("");
     // Prefill the Collection fields with the collection being viewed, keeping anything typed until the view moves to another one.
@@ -3327,7 +3327,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     const box = $("#setTables");
     const bar = $(".tbar"); bar.hidden = $("#tSum").hidden = !S.loaded || !S.sets.length;
     if (!S.loaded) { box.innerHTML = `<div class="empty">Loading…</div>`; return; }
-    if (!S.sets.length) { box.innerHTML = `<div class="empty"><b>No sets yet.</b><span>${canWrite ? "Add a set below, then fill in its words." : ""}</span></div>`; return; }
+    if (!S.sets.length) { box.innerHTML = `<div class="empty"><b>No sets yet.</b><span>${canEdit() ? "Add a set below, then fill in its words." : ""}</span></div>`; return; }
     renderTableBar();
     const q = S.tq.trim(), keys = TP.shownKeys(), allKeys = cols().flatMap(tKeys);
     // Each shown set: which rows (indexes into the full word list) to draw, and whether it is open.
@@ -3337,7 +3337,7 @@ colours.apply(...colours.saved()); // before anything is drawn
     let fresh = null;
     for (const s of S.sets) {
       // A set just added opens ready to type in.
-      if (S.editNew === s.id) { S.editNew = null; if (canWrite && !S.drafts.has(s.id)) { startEdit(s); fresh = s.id; } }
+      if (S.editNew === s.id) { S.editNew = null; if (canEdit() && !S.drafts.has(s.id)) { startEdit(s); fresh = s.id; } }
       const words = S.drafts.get(s.id)?.words || s.words;
       if (q) {
         const idx = []; let any = false;
@@ -3361,12 +3361,12 @@ colours.apply(...colours.saved()); // before anything is drawn
     openAll.textContent = q ? `Show all ${total}` : shown.every((x) => x.open) ? "Close all sets" : "Open all sets";
     if (q && !shown.length) { box.innerHTML = `<div class="empty"><b>No words match “${esc(q)}”.</b><span>Search looks at English, kana and kanji in every ${multiCol() ? "collection and unit" : "unit"}.</span></div>`; return; }
     if (!keys.length) { box.innerHTML = `<div class="empty"><span>${noUnitsShown}</span></div>`; return; }
-    if (!shown.length) { box.innerHTML = `<div class="empty"><span>${esc(where)} ${keys.length === 1 ? "has" : "have"} no vocab sets yet${canWrite ? ". Add one below." : "."}</span></div>`; return; }
+    if (!shown.length) { box.innerHTML = `<div class="empty"><span>${esc(where)} ${keys.length === 1 ? "has" : "have"} no vocab sets yet${canEdit() ? ". Add one below." : "."}</span></div>`; return; }
     const manyCols = new Set(shown.map(({ s }) => colOf(s))).size > 1;
     box.innerHTML = shown.map(({ s, words, idx, open }) => {
-      const d = canWrite ? S.drafts.get(s.id) : null, dirty = dirtySet(s), was = new Map(s.words.map((w) => [w.id, w]));
+      const d = canEdit() ? S.drafts.get(s.id) : null, dirty = dirtySet(s), was = new Map(s.words.map((w) => [w.id, w]));
       const head = `<h3 class="tseth"><button class="tsethead" type="button" data-toggle aria-expanded="${open}"><span class="t"><span class="car" aria-hidden="true">›</span>${esc(q || manyCols ? setName(s) : `${s.unit} › ${s.name}`)}${cleanTags(s.tags).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</span>
-        <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button>${open && canWrite && !d ? `<button class="btn" type="button" data-edit>Edit</button>` : ""}</h3>`;
+        <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button>${open && canEdit() && !d ? `<button class="btn" type="button" data-edit>Edit</button>` : ""}</h3>`;
       if (!open) return `<div class="tset" data-sid="${esc(s.id)}">${head}</div>`;
       const cell = (w, i, f, name) => `<textarea rows="1" id="w-${s.id}-${w.id}-${f}" data-i="${i}" data-f="${f}" placeholder="${name}" aria-label="${name}"${(w[f] || "").trim() !== (was.get(w.id)?.[f] || "").trim() ? ` class="chg"` : ""}>${esc(w[f])}</textarea>`;
       const rows = idx.map((i) => { const w = words[i]; return d
@@ -3377,14 +3377,14 @@ colours.apply(...colours.saved()); // before anything is drawn
       const field = (f, name, more = "") => `<label>${name}<input id="d-${s.id}-${f}" data-ef="${f}" value="${esc(d.vals[f])}"${more}${d.vals[f] !== now[f] ? ` class="chg"` : ""}></label>`;
       return `<div class="tset open${d ? " editing" : ""}" data-sid="${esc(s.id)}">
         ${head}${d ? `<div class="newset setedit">${field("collection", "Collection", ` list="colList"`)}${field("unit", "Unit", ` list="unitList"`)}${field("name", "Set name")}${field("tags", "Tags (optional)", ` placeholder="Verbs, Quiz 3"`)}</div>` : ""}
-        ${rows ? `<div class="tscroll"><table><thead><tr><th>English</th><th>Kana</th><th>Kanji</th>${d ? "<th></th>" : ""}</tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="muted small">No words yet.${canWrite ? " Tap Edit to add some." : ""}</p>`}
+        ${rows ? `<div class="tscroll"><table><thead><tr><th>English</th><th>Kana</th><th>Kanji</th>${d ? "<th></th>" : ""}</tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="muted small">No words yet.${canEdit() ? " Tap Edit to add some." : ""}</p>`}
         ${d ? `<div class="tactions"><button class="btn" data-add>Add word</button></div>
           <div class="tactions editbar"><button class="btn primary" data-save ${dirty ? "" : "disabled"}>Save</button><button class="btn" data-discard>${dirty ? "Discard changes" : "Cancel"}</button><span class="editerr" data-editerr></span>
           <span style="flex:1"></span>${del ? `<span class="small">Delete this set for everyone?</span><button class="btn danger" data-delset-yes>Delete</button><button class="btn" data-delset-no>Keep</button>` : `<button class="ghost small" data-delset>Delete set</button>`}</div>` : ""}
       </div>`;
     }).join("");
     box.querySelectorAll(".tset").forEach((el) => {
-      const sid = el.dataset.sid, s = S.sets.find((x) => x.id === sid), d = canWrite ? S.drafts.get(sid) : null;
+      const sid = el.dataset.sid, s = S.sets.find((x) => x.id === sid), d = canEdit() ? S.drafts.get(sid) : null;
       el.querySelector("[data-toggle]").onclick = () => {
         if (q) return; // search results always stay open
         // Closing a set that was opened for editing and left as it was ends the editing too.
@@ -3513,13 +3513,22 @@ colours.apply(...colours.saved()); // before anything is drawn
   // Practice, Vocabulary, Export and Import are all that notebook's. Progress and Settings are the whole account's.
   // The menu lists them and opens one; whoever can change the vocab can also add, rename and delete.
   const nbList = () => S.notebooks || [{ id: MAIN_NB, name: NB_NAME }];
-  const nbName = (id = nb) => nbList().find((n) => n.id === id)?.name ?? NB_NAME;
+  // Notebooks that aren't the account's own (a group's, on the public site: groups/groups.js) are in nbOthers(), as
+  // { id, name, group, edit (false: read only), rename(name)?, drop()? (when this account may) }; nbPending(id) says one
+  // of those may still be loading, so it isn't given up on yet; nbAt(id) is the store as that notebook sees it.
+  let nbOthers = () => [], nbPending = () => false, nbAt = (id) => inNotebook(db, id);
+  const allNbs = () => [...nbList(), ...nbOthers()];
+  const nbName = (id = nb) => allNbs().find((n) => n.id === id)?.name ?? NB_NAME;
   const nbRef = () => db.doc("meta/notebooks");
-  const nbNow = () => nbList().find((n) => n.id === nb);
+  const nbNow = () => allNbs().find((n) => n.id === nb);
+  // Whether the open notebook's vocab can be changed here: canWrite (page/core.js) is the account's, and some notebooks are read only.
+  const canEdit = () => canWrite && nbNow()?.edit !== false;
   // What other parts of the page add to notebooks (shared notebooks, on the public site): vocabHooks run after the open
   // notebook's vocab or the list of notebooks changes, nbGone before a notebook's documents are deleted (with its id),
   // and nbMore are further lines of the menu: { key, label(), icon (an svg path), run, when() }.
-  const vocabHooks = [], nbGone = [], nbMore = [];
+  // nbSections are further parts of the list, each a function of nbButton giving its HTML, and nbActs what their buttons
+  // run (data-nb-do, with data-arg).
+  const vocabHooks = [], nbGone = [], nbMore = [], nbSections = [], nbActs = {};
   const vocabChanged = () => vocabHooks.forEach((f) => f());
   // In a notebook added from a shared one (its line in the list has from), each set keeps the words as they came from
   // its owner in base: a word that isn't there, or reads differently, is one this person added or changed.
@@ -3530,7 +3539,8 @@ colours.apply(...colours.saved()); // before anything is drawn
     return !!came.words && came.words.get(s.id)?.get(w.id) !== wordKey(w);
   }
   // A name no other notebook has: the one asked for, or that with a number (was: the name it has now, which it may keep).
-  const nbFree = (want, was = "") => freeName(want, nbList().map((n) => n.name).filter((t) => !sameName(t, was)));
+  // (Among list: a group's notebooks are named apart from the account's own.)
+  const nbFree = (want, was = "", list = nbList()) => freeName(want, list.map((n) => n.name).filter((t) => !sameName(t, was)));
   // Whether the list has loaded, for what mustn't write into a notebook this account may not have (the sample sets).
   let nbLoaded = () => {};
   const nbReady = new Promise((ok) => (nbLoaded = ok));
@@ -3544,7 +3554,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   // Opens a notebook: its vocab and its own choices replace what the page holds. false when that one is open already.
   function openNotebook(id) {
-    if (S.notebooks && !S.notebooks.some((n) => n.id === id)) id = S.notebooks[0].id;
+    if (S.notebooks && !allNbs().some((n) => n.id === id) && !nbPending(id)) id = S.notebooks[0].id;
     if (id === nb) return false;
     nb = id; kept.set("notebook", id);
     Object.assign(S, { sets: [], loaded: false, kanjiLists: [], kLoaded: false, colOrder: [], courses: [], viewDoc: null, colEdit: null, editNew: null,
@@ -3579,15 +3589,23 @@ colours.apply(...colours.saved()); // before anything is drawn
   // Every document of one notebook, deleted (its line in the list is the caller's). Deleting an account uses it too.
   async function emptyNotebook(id) {
     for (const f of nbGone) await f(id);
-    await emptyVocab(inNotebook(db, id));
+    await emptyVocab(nbAt(id));
   }
-  // A name typed into the page's pop-up: "" when it's cancelled or left empty. A name another notebook has gets a number.
-  async function askNbName(title, yes, was = "") {
-    const answer = ask(title, `<input class="tsearch" id="nbNameIn" maxlength="60" aria-label="Notebook name" placeholder="Japanese 2" value="${esc(was)}">`, yes);
+  // A notebook's own choices (see store, page/core.js), to move them to another id or (null) let them go with it.
+  const picksOf = (id) => (id === MAIN_NB ? Object.fromEntries(NB_KEYS.map((k) => [k, kept.get(k, null)])) : kept.get("nbPicks", null)?.[id] || {});
+  function setPicks(id, v) {
+    if (id === MAIN_NB) return NB_KEYS.forEach((k) => kept.set(k, v?.[k] ?? null));
+    const all = { ...kept.get("nbPicks", null) };
+    if (v) all[id] = v; else delete all[id];
+    kept.set("nbPicks", all);
+  }
+  // A name typed into the page's pop-up: "" when it's cancelled or left empty. A name another one in list has gets a number.
+  async function askNbName(title, yes, was = "", list = nbList(), what = "Notebook name", eg = "Japanese 2") {
+    const answer = ask(title, `<input class="tsearch" id="nbNameIn" maxlength="60" aria-label="${what}" placeholder="${eg}" value="${esc(was)}">`, yes);
     const inp = $("#nbNameIn");
     inp.focus(); inp.select();
     enterYes(inp);
-    return nbFree((await answer) ? tidy(inp.value, 56) : "", was);
+    return nbFree((await answer) ? tidy(inp.value, 56) : "", was, list);
   }
   async function addNotebook() {
     const name = await askNbName("New notebook", "Create");
@@ -3595,20 +3613,20 @@ colours.apply(...colours.saved()); // before anything is drawn
     const id = "n" + rid();
     if (await saveNotebooks([...nbList(), { id, name }])) openNotebook(id);
   }
+  // A group's notebook is renamed or deleted in the group (its rename and drop), any other in the account's list.
   async function renameNotebook() {
-    const name = await askNbName("Rename this notebook", "Rename", nbName());
-    if (name && name !== nbName()) saveNb({ ...nbNow(), name });
+    const n = nbNow(), name = await askNbName("Rename this notebook", "Rename", n.name, n.rename ? nbOthers().filter((x) => x.group === n.group) : nbList());
+    if (name && name !== n.name) await (n.rename ? n.rename(name) : saveNb({ ...n, name }));
   }
   async function deleteNotebook() {
-    const id = nb, rest = nbList().filter((n) => n.id !== id);
-    if (!rest.length) return;
+    const id = nb, n = nbNow(), rest = nbList().filter((x) => x.id !== id);
+    if (!n.drop && !rest.length) return;
     const holds = [S.sets.length && plural(S.sets.length, "set"), S.kanjiLists.length && plural(S.kanjiLists.length, "kanji list")].filter(Boolean).join(" and ");
     if (!(await ask(`Delete “${nbName()}”?`, `<p>${holds ? `This notebook and its ${holds} are deleted for good. Export it first if you want a copy.` : "This notebook is empty."}</p>`, "Delete notebook", true))) return;
     try { await emptyNotebook(id); } catch { return banner("Couldn't delete all of that notebook. Try again."); }
-    if (!(await saveNotebooks(rest))) return;
-    // Its own choices go with it.
-    if (id === MAIN_NB) NB_KEYS.forEach((k) => kept.set(k, null)); else { const all = { ...kept.get("nbPicks", null) }; delete all[id]; kept.set("nbPicks", all); }
-    openNotebook(rest[0].id);
+    if (!(await (n.drop ? n.drop() : saveNotebooks(rest)))) return;
+    setPicks(id, null); // its own choices go with it
+    openNotebook(nbList()[0].id);
   }
   // Opening another one from the vocab table asks about unsaved changes first, as leaving the table any other way does.
   function pickNotebook(id) {
@@ -3616,21 +3634,32 @@ colours.apply(...colours.saved()); // before anything is drawn
     if (!$("#table").hidden) leaveTable(() => { openNotebook(id); show("table"); }); else openNotebook(id);
   }
   const nbMenu = makeMenu($("#nbPick"), $("#nbBtn"), $("#nbList")); // page/menu.js
+  const nbIcon = (d) => `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+  let nbDrawn = "";
+  const nbButton = (n) => `<button type="button" role="menuitemradio" aria-checked="${n.id === nb}" data-nb="${esc(n.id)}">${nbIcon(n.id === nb ? "M5 12.5 L10 17.5 L19 7" : "")}${esc(n.name)}</button>`;
   function renderNotebooks() {
-    const list = nbList(), icon = (d) => `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+    const list = nbList(), now = nbNow(), icon = nbIcon;
     $("#nbName").textContent = nbName();
     // Headings over what is the open notebook's alone (its hard words in Progress, its counts and Export / Import in Settings) name it once there's more than one.
-    document.querySelectorAll(".nbin").forEach((e) => (e.textContent = list.length < 2 ? "" : ` in ${nbName()}`));
+    document.querySelectorAll(".nbin").forEach((e) => (e.textContent = allNbs().length < 2 ? "" : ` in ${nbName()}`));
     $("#nbBtn").setAttribute("aria-label", `Notebook: ${nbName()}`);
     if ($("#nbBtn").title) $("#nbBtn").title = nbName(); // shown only while the sidebar is shrunk to its icons (page/nav.js)
-    $("#nbList").innerHTML = `<p class="small muted">Notebooks</p>
-      ${list.map((n) => `<button type="button" role="menuitemradio" aria-checked="${n.id === nb}" data-nb="${esc(n.id)}">${icon(n.id === nb ? "M5 12.5 L10 17.5 L19 7" : "")}${esc(n.name)}</button>`).join("")}
+    // Rename and Delete are the open notebook's: one of the account's own, or a group's for whoever may (its rename and drop).
+    const own = !now?.group;
+    const html = `<p class="small muted">Notebooks</p>
+      ${list.map(nbButton).join("")}
+      ${nbSections.map((f) => f(nbButton)).join("")}
       ${canWrite && db ? `<hr><button type="button" role="menuitem" data-nb-do="add">${icon("M12 5 V19 M5 12 H19")}New notebook</button>
-      <button type="button" role="menuitem" data-nb-do="rename">${icon("M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z")}Rename this notebook</button>
+      ${own || now?.rename ? `<button type="button" role="menuitem" data-nb-do="rename">${icon("M4.5 19.5 L5.3 15.7 L15.4 5.6 a2 2 0 0 1 2.8 0 l.2 .2 a2 2 0 0 1 0 2.8 L8.3 18.7Z")}Rename this notebook</button>` : ""}
       ${nbMore.filter((m) => m.when()).map((m) => `<button type="button" role="menuitem" data-nb-do="${m.key}">${icon(m.icon)}${m.label()}</button>`).join("")}
-      ${list.length > 1 ? `<button type="button" role="menuitem" class="danger" data-nb-do="delete">${icon("M4 7 H20 M9.5 7 V4.5 H14.5 V7 M6.5 7 L7.3 19.5 H16.7 L17.5 7")}Delete this notebook</button>` : ""}` : ""}`;
-    const act = { add: addNotebook, rename: renameNotebook, delete: deleteNotebook, ...Object.fromEntries(nbMore.map((m) => [m.key, m.run])) };
-    $("#nbList").querySelectorAll("button").forEach((b) => (b.onclick = () => { nbMenu(false); menu(false); if (b.dataset.nb) pickNotebook(b.dataset.nb); else act[b.dataset.nbDo](); }));
+      ${(own && list.length > 1) || now?.drop ? `<button type="button" role="menuitem" class="danger" data-nb-do="delete">${icon("M4 7 H20 M9.5 7 V4.5 H14.5 V7 M6.5 7 L7.3 19.5 H16.7 L17.5 7")}Delete this notebook</button>` : ""}` : ""}`;
+    // Drawn again only when it changed (groups change often), keeping the focus where it was if the menu is open.
+    const box = $("#nbList"), had = box.contains(document.activeElement) && document.activeElement, at = had && ["nb", "nbDo", "arg"].filter((k) => had.dataset[k] != null).map((k) => `[data-${k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase())}="${CSS.escape(had.dataset[k])}"]`).join("");
+    if (nbDrawn === html) return;
+    box.innerHTML = nbDrawn = html;
+    if (had) (box.querySelector(at || "button") || box.querySelector("button")).focus();
+    const act = { add: addNotebook, rename: renameNotebook, delete: deleteNotebook, ...Object.fromEntries(nbMore.map((m) => [m.key, m.run])), ...nbActs };
+    box.querySelectorAll("button").forEach((b) => (b.onclick = () => { nbMenu(false); menu(false); if (b.dataset.nb) pickNotebook(b.dataset.nb); else act[b.dataset.nbDo](b.dataset.arg); }));
   }
   renderNotebooks();
   // ---------- editing collections ----------
@@ -4008,7 +4037,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   const importer = makeImporter({ button: $("#importBtn"), input: $("#importFile"), box: $("#importPreview"), say: portMsg,
     stored: () => raw, write: (path, doc) => vdb.doc(path).set(doc), changed: () => renderPort() });
   function renderPort() {
-    $("#portPanel").hidden = !canWrite || !db;
+    $("#portPanel").hidden = !canEdit() || !db;
     if ($("#portPanel").hidden) return;
     $("#exportBtn").disabled = !downloads || !S.loaded || importer.busy;
     $("#exportBtn").title = downloads ? "" : "Saving files isn't available in this view.";
@@ -4968,7 +4997,7 @@ colours.apply(...colours.saved()); // before anything is drawn
   }
   // (Not a notebook that was added from somebody else's shared one: that one is its owner's to share.)
   nbMore.push({ key: "share", label: () => (nbNow()?.share ? "Shared: link and options" : "Share this notebook"), icon: "M8.6 13.5 L15.4 17.5 M15.4 6.5 L8.6 10.5 M21 5 a3 3 0 1 1 -6 0 a3 3 0 0 1 6 0 M9 12 a3 3 0 1 1 -6 0 a3 3 0 0 1 6 0 M21 19 a3 3 0 1 1 -6 0 a3 3 0 0 1 6 0",
-    run: shareDialog, when: () => !!account && !nbNow()?.from });
+    run: shareDialog, when: () => !!account && !nbNow()?.from && !nbNow()?.group });
   // ---------- notebooks added from a shared one (public site) ----------
   // Someone who opens a shared notebook's link can add it to their account (preview.js). What they get is a notebook of
   // their own with the shared documents copied into it, so nothing of it depends on the shared copy staying there.
@@ -5238,6 +5267,151 @@ colours.apply(...colours.saved()); // before anything is drawn
   $("#browseSearch").oninput = renderBrowse;
   // The list of notebooks loads after the page: which of these are here already shows once it has.
   vocabHooks.push(renderBrowse);
+  // ---------- groups: notebooks several accounts work in together (public site) ----------
+  // A group (firestore.rules, platform.group in account/firebase.js) has an owner, roles and members, and notebooks of
+  // its own, each with the same documents as any notebook. Nothing lists groups: the account keeps the list of the ones
+  // it's in, meta/groups { list: [{ id, name }] } beside meta/notebooks. Each group's notebooks are in the notebook menu
+  // under its name and open like any notebook, by the id "<group>/<notebook>". What someone may do in a group is their
+  // role's (the owner may do everything): without Edit notebooks its notebooks are read only, and Manage notebooks adds,
+  // renames and deletes them.
+  const GROUP_MAX = 20, PERMS = ["edit", "notebooks", "share", "invite", "approve", "members", "roles"];
+  const groupsRef = () => db.doc("meta/groups");
+  let groupIndex = null; // [{ id, name }] as saved, null until it has loaded
+  // id → { id, info: groups/<id>, me: this account's line, roles: Map, notebooks: [{ id, name, at }], heard, off }
+  const groups = new Map();
+  const groupReady = (g) => g?.heard.size === 4;
+  const perm = (g, p) => !!g?.me && (g.me.role === "owner" || g.roles.get(g.me.role)?.perms?.[p] === true);
+  const groupName = (g) => tidy(g.info?.name, 60) || groupIndex?.find((x) => x.id === g.id)?.name || "Group";
+  const cleanGroups = (d) => (Array.isArray(d?.list) ? d.list : []).filter((x) => /^[A-Za-z0-9_-]{1,40}$/.test(String(x?.id ?? ""))).slice(0, GROUP_MAX).map((x) => ({ id: x.id, name: tidy(x.name, 60) || "Group" }));
+  // The name this account goes by in a group it makes or joins: its Google name, which it can change there later.
+  const memberName = () => tidy(account?.name, 60) || tidy(account?.email?.split("@")[0], 60) || "Member";
+  const splitNb = (id) => { const [g, n] = String(id).split("/"); return n ? { g, n } : null; };
+
+  // The groups' notebooks, as the notebook menu and the rest of the page see them (vocab/notebooks.js).
+  nbOthers = () => [...groups.values()].filter(groupReady).flatMap((g) => g.notebooks.map((n) => ({ id: `${g.id}/${n.id}`, name: n.name, group: g.id,
+    edit: perm(g, "edit") || perm(g, "notebooks"), ...(perm(g, "notebooks") ? { rename: (name) => saveGroupNb(g, n, name), drop: () => dropGroupNb(g, n) } : {}) })));
+  nbPending = (id) => { const x = splitNb(id); return !!x && !!account && (groupIndex === null || (groupIndex.some((y) => y.id === x.g) && !groupReady(groups.get(x.g)))); };
+  const ownAt = nbAt;
+  nbAt = (id) => { const x = splitNb(id); return x && account ? inNotebook(platform.group(x.g).db, x.n) : ownAt(id); };
+
+  // Listens to the account's list of groups, and to each group in it.
+  function watchGroups() {
+    groupsRef().onSnapshot((snap) => {
+      groupIndex = cleanGroups(dataOrNull(snap));
+      // The notebook open in this browser was of a group this account isn't in (another account's, say): that it couldn't
+      // load isn't worth a word once another opens.
+      const x = splitNb(nb);
+      if (x && !groupIndex.some((y) => y.id === x.g) && $("#banner").textContent === watchFailed) banner("");
+      syncGroups(); groupsChanged();
+    }, () => { groupIndex = []; groupsChanged(); });
+  }
+  function syncGroups() {
+    for (const id of groups.keys()) if (!groupIndex.some((x) => x.id === id)) stopGroup(id);
+    for (const { id } of groupIndex) if (!groups.has(id)) watchGroup(id);
+  }
+  function stopGroup(id) { groups.get(id)?.off.forEach((off) => off()); groups.delete(id); }
+  function watchGroup(id) {
+    const g = { id, info: null, me: null, roles: new Map(), notebooks: [], heard: new Set(), off: [] }, at = platform.group(id);
+    const hear = (what, on) => (snap) => { if (groups.get(id) !== g) return; on(snap); if (groups.get(id) !== g) return; g.heard.add(what); groupsChanged(g); };
+    const lost = () => lostGroup(g);
+    groups.set(id, g);
+    // Its own line going (taken out of the group, or the group deleted) or no longer readable is how this account learns it's not in it.
+    g.off = [at.db.doc("members/" + uid).onSnapshot(hear("me", (s) => { g.me = dataOrNull(s); if (!g.me) lost(); }), lost),
+      at.info.onSnapshot(hear("info", (s) => (g.info = dataOrNull(s))), lost),
+      at.db.collection("roles").onSnapshot(hear("roles", (s) => (g.roles = new Map(s.docs.map((d) => [d.id, d.data()])))), lost),
+      at.db.collection("notebooks").onSnapshot(hear("notebooks", (s) => (g.notebooks = s.docs.map((d) => ({ id: d.id, name: tidy(d.data().name, 60) || NB_NAME, at: String(d.data().at || "") }))
+        .sort((a, b) => a.at.localeCompare(b.at) || coll.compare(a.name, b.name)))), lost)];
+  }
+  async function lostGroup(g) {
+    if (groups.get(g.id) !== g) return;
+    stopGroup(g.id);
+    banner(`You're no longer in “${groupName(g)}”.`);
+    await saveGroups(groupIndex.filter((x) => x.id !== g.id));
+  }
+  // Whatever shows a group follows it: the menu, and whether the open notebook can be changed (only when that changes,
+  // so nobody's typing is drawn over).
+  let couldEdit = null;
+  function groupsChanged(g) {
+    if (g?.info && groupIndex.some((x) => x.id === g.id && x.name !== groupName(g))) saveGroups(groupIndex.map((x) => (x.id === g.id ? { ...x, name: groupName(g) } : x)));
+    if (!openNotebook(nb)) renderNotebooks();
+    if (couldEdit !== canEdit()) { couldEdit = canEdit(); renderSetup(); renderTable(); renderPort(); }
+  }
+  async function saveGroups(list) {
+    groupIndex = list; syncGroups();
+    if (!openNotebook(nb)) renderNotebooks(); // (out of a group whose notebook is open: the first notebook opens)
+    try { await groupsRef().set({ list, updatedAt: new Date().toISOString() }); return true; } catch { banner("Couldn't save that. Try again."); return false; }
+  }
+
+  // Each group in the notebook menu: its name, its notebooks, and New notebook there for whoever may add them.
+  nbSections.push((button) => (groupIndex || []).map(({ id, name }) => {
+    const g = groups.get(id), ready = groupReady(g);
+    return `<p class="small muted nbgroup">${esc(g ? groupName(g) : name)}</p>${!ready ? `<p class="small muted nbnone">Loading…</p>`
+      : g.notebooks.map((n) => button({ id: `${id}/${n.id}`, name: n.name })).join("") || `<p class="small muted nbnone">No notebooks yet</p>`}
+      ${ready && canWrite && perm(g, "notebooks") ? `<button type="button" role="menuitem" data-nb-do="groupNb" data-arg="${esc(id)}">${nbIcon("M12 5 V19 M5 12 H19")}New notebook in ${esc(groupName(g))}</button>` : ""}`;
+  }).join(""));
+
+  // New group: made with its owner (this account) and two starting roles, all in one write, then added to the account's list.
+  const role = (name, ...yes) => ({ name, perms: Object.fromEntries(PERMS.map((p) => [p, yes.includes(p)])) });
+  async function newGroup() {
+    if ((groupIndex || []).length >= GROUP_MAX) return banner(`An account can be in up to ${GROUP_MAX} groups.`);
+    const name = await askNbName("New group", "Create", "", groupIndex || [], "Group name", "Study group");
+    if (!name) return;
+    const id = "g" + rid() + rid(), at = platform.group(id), now = new Date().toISOString();
+    try {
+      await platform.together([[at.info, { name, owner: uid, link: null, createdAt: now }], [at.db.doc("members/" + uid), { name: memberName(), role: "owner", joinedAt: now, via: "" }],
+        [at.db.doc("roles/member"), role("Member")], [at.db.doc("roles/editor"), role("Editor", "edit")]]);
+    } catch { return banner("Couldn't make the group. Try again."); }
+    await saveGroups([...(groupIndex || []), { id, name }]);
+  }
+
+  // A group's notebooks: a line under notebooks/<id> ({ name, at }) for each, beside its documents.
+  async function newGroupNb(id) {
+    const g = groups.get(id);
+    const name = g && (await askNbName(`New notebook in “${groupName(g)}”`, "Create", "", g.notebooks));
+    if (!name) return;
+    const n = { id: "n" + rid(), name, at: new Date().toISOString() };
+    if (!(await saveGroupNb(g, n, name))) return;
+    if (!g.notebooks.some((x) => x.id === n.id)) g.notebooks = [...g.notebooks, n]; // there before the database's answer
+    openNotebook(`${id}/${n.id}`);
+  }
+  nbActs.groupNb = newGroupNb;
+  async function saveGroupNb(g, n, name) {
+    try { await platform.group(g.id).db.doc("notebooks/" + n.id).set({ name, at: n.at || new Date().toISOString() }); return true; }
+    catch { banner("Couldn't save that. Try again."); return false; }
+  }
+  async function dropGroupNb(g, n) {
+    try { await platform.group(g.id).db.doc("notebooks/" + n.id).delete(); return true; } catch { banner("Couldn't delete that notebook. Try again."); return false; }
+  }
+
+  // Move to a group: one of the account's own notebooks goes into a group (copied there, then deleted here), with its choices.
+  async function moveToGroup() {
+    const n = nbNow(), places = [...groups.values()].filter((g) => groupReady(g) && perm(g, "notebooks"));
+    if (n.share) return banner("Stop sharing this notebook first. A group's notebooks are shared with the group instead.");
+    if (n.from) return banner("This notebook gets its owner's changes. To move it, keep it as your own copy first.");
+    const answer = ask(`Move “${n.name}” to a group?`, `<p>Everyone in the group can see it there, and whoever may edit the group's notebooks can change it. It leaves your own notebooks.</p>
+      ${places.map((g, i) => `<label class="checkrow"><input type="radio" name="moveTo" value="${esc(g.id)}"${i ? "" : " checked"}> ${esc(groupName(g))}</label>`).join("")}`, "Move");
+    if (!(await answer)) return;
+    const g = groups.get($("#askText input[name=moveTo]:checked")?.value), to = { id: "n" + rid(), name: nbFree(n.name, "", g.notebooks), at: new Date().toISOString() };
+    const into = inNotebook(platform.group(g.id).db, to.id), v = vocabNow(), now = new Date().toISOString();
+    try {
+      for (const { id, ...d } of v.sets) await into.doc("sets/" + id).set({ ...d, updatedAt: now });
+      for (const { id, ...d } of v.kanji) await into.doc("kanji/" + id).set({ ...d, updatedAt: now });
+      for (const [p, d] of [["meta/books", v.collections], ["meta/views", v.views], ["meta/courses", v.courses]]) if (d) await into.doc(p).set(d);
+      if (!(await saveGroupNb(g, to, to.name))) return;
+    } catch { return banner("Couldn't move that notebook. Try again."); }
+    if (!g.notebooks.some((x) => x.id === to.id)) g.notebooks = [...g.notebooks, to];
+    const id = `${g.id}/${to.id}`;
+    setPicks(id, picksOf(n.id));
+    openNotebook(id);
+    // Then it's taken out of the account (if that fails, it's in both: nothing is lost).
+    try { await emptyNotebook(n.id); } catch { return banner("It's in the group now, but some of it is still in your notebooks too. Delete it there if you like."); }
+    const rest = nbList().filter((x) => x.id !== n.id);
+    if (await saveNotebooks(rest.length ? rest : [{ id: MAIN_NB, name: NB_NAME }])) setPicks(n.id, null);
+  }
+  nbMore.push({ key: "moveToGroup", label: () => "Move to a group", icon: "M4 12 H15 M11 8 L15 12 L11 16 M19 5 V19",
+    run: moveToGroup, when: () => !nbNow()?.group && [...groups.values()].some((g) => groupReady(g) && perm(g, "notebooks")) });
+  nbMore.push({ key: "newGroup", label: () => "New group", icon: "M16 19 v-1.5 a3.5 3.5 0 0 0 -3.5 -3.5 h-5 A3.5 3.5 0 0 0 4 17.5 V19 M10 10.5 a3 3 0 1 0 0 -6 a3 3 0 0 0 0 6 M20 19 v-1.5 a3.5 3.5 0 0 0 -2.5 -3.35 M15 4.6 a3 3 0 0 1 0 5.8",
+    run: newGroup, when: () => !!account });
   // ---------- Extra tools (public site) ----------
   // A view of the page like the others, with the menu beside it. Its tools are js/tools.js (src/study-tools/tools.js),
   // loaded the first time it opens, so the page itself doesn't carry them. Its address is #tools (page/address.js; the old
@@ -5299,7 +5473,7 @@ colours.apply(...colours.saved()); // before anything is drawn
       renderPort();
       watchVocab("Your vocab sets couldn't load. Reload the page to try again."); watchNotebooks();
       watchHistory();
-      if (id !== "local") { stopPrefs = syncPrefs(checkPolicy); watchProfile(); } else checkPolicy();
+      if (id !== "local") { stopPrefs = syncPrefs(checkPolicy); watchProfile(); watchGroups(); } else checkPolicy();
       renderAcctMenu();
       offerSamples();
       // An address naming a part of the page (page/address.js) opens it.

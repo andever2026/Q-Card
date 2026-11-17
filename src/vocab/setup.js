@@ -172,7 +172,7 @@
         $("#emptySamples").onclick = (e) => { e.target.disabled = true; addSamples().catch(() => { e.target.disabled = false; banner("The sample sets couldn't be added. Try again."); }); };
       }
       //#else
-      box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>${canWrite ? "Add your first set in Vocabulary." : "The owner hasn't added any sets yet."}</span></div>`;
+      box.innerHTML = `<div class="empty"><b>No vocab sets yet.</b><span>${canEdit() ? "Add your first set in Vocabulary." : "The owner hasn't added any sets yet."}</span></div>`;
       //#endif
     } else {
       // Sets with no ready words can't be picked.

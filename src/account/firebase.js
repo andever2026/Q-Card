@@ -4,7 +4,7 @@
 // Bundled into js/platform.js by tools/build.mjs.
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, deleteUser, reauthenticateWithPopup } from "firebase/auth";
-import { initializeFirestore, doc, collection, query, where, orderBy, limit, onSnapshot, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { initializeFirestore, doc, collection, query, where, orderBy, limit, onSnapshot, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import config from "./config.js";
 import { makeLocalDb } from "./local.js";
 import { saveFile } from "../import-export/save-file.js";
@@ -31,7 +31,7 @@ function makeDb(at) {
   const docRef = (path) => {
     const ref = doc(fs, at(path));
     return {
-      id: ref.id,
+      id: ref.id, ref,
       get: async () => docSnap(await getDoc(ref)),
       set: (data) => setDoc(ref, data),
       update: (data) => updateDoc(ref, data),
@@ -93,6 +93,13 @@ window.qcardPlatform = {
   // Reports of shared notebooks: anyone signed in may send one, only developers can read or delete them (the account that
   // sent one finds it only to take itself off it), and only developers can list what is taken down.
   reports: all.collection("reports"), takedowns: all.collection("takedowns"),
+  // A group (see firestore.rules): groups/<id> says what it is (its name, its owner, its join link), and under it are its
+  // roles/<role>, members/<account> and notebooks/<nb> (each with that notebook's documents under it). Only people in the
+  // group can read any of it, and what each can change is their role's.
+  group: (id) => ({ info: all.doc(`groups/${id}`), db: makeDb((p) => `groups/${id}/${p}`) }),
+  // Writes that go through together or not at all: [document, data] sets one, [document, null] deletes it. The rules
+  // check them as one (making a group with its owner and roles, handing it over).
+  together: async (writes) => { const b = writeBatch(fs); for (const [d, v] of writes) { if (v === null) b.delete(d.ref); else b.set(d.ref, v); } await b.commit(); },
   user: makeUser,
   // Whether this account is a developer: dev/<uid> exists (see firestore.rules; only the Firebase console makes it).
   isDev: async (uid) => { try { return (await getDoc(doc(fs, "dev/" + uid))).exists(); } catch { return false; } },

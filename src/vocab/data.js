@@ -40,7 +40,7 @@
   function watchVocab(failed = watchFailed) {
     watchOff.forEach((off) => typeof off === "function" && off());
     const mine = ++watching, got = (heard = new Set()), now = (on, path) => (snap) => { if (mine === watching) { if (path) got.add(path); on(snap); vocabChanged(); } };
-    watchFailed = failed; vdb = inNotebook(db, nb);
+    watchFailed = failed; vdb = nbAt(nb);
     watchOff = [vdb.collection("kanji").onSnapshot(now(onKanji, "kanji"), () => {}), vdb.collection("sets").onSnapshot(now(onSets, "sets"), now(() => banner(failed))),
       ...[["meta/books", onBookOrder], ["meta/courses", onCourses], ["meta/views", onViews]].map(([path, on]) => vdb.doc(path).onSnapshot(now(on, path), () => {}))];
   }

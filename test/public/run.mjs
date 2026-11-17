@@ -2118,7 +2118,7 @@ if (entry.length > 1) {
   const nbDo = async (what) => { await sp.click("#nbBtn"); await sp.click(`#nbList [data-nb-do="${what}"]`); await sp.waitForTimeout(200); };
   const words = (d) => (d?.words || []).map((x) => x.en).join(",");
   // The owner: Share in the notebook menu, asked first, then the link.
-  ok((await nbItems()) === "New notebook, Rename this notebook, Share this notebook", "share: a signed-in account's notebook menu offers to share it", await nbItems());
+  ok((await nbItems()) === "New notebook, Rename this notebook, Share this notebook, New group", "share: a signed-in account's notebook menu offers to share it", await nbItems());
   await nbDo("share");
   ok(/Sharing makes a link/.test(await text(sp, "#askDlg")) && !Object.keys(await fs()).some((p) => p.startsWith("shares/")), "share: it says what sharing does, and nothing is shared before Create link", await text(sp, "#askText"));
   await sp.click("#askYes"); await sp.waitForTimeout(900);
@@ -2130,7 +2130,7 @@ if (entry.length > 1) {
     && !JSON.stringify(Object.entries(d).filter(([p]) => p.startsWith("shares/"))).match(/o1|example\.com|secretNote|updatedAt":"x/), "share: the copy holds the notebook's sets and kanji lists, and nothing of the account", copy);
   await sp.screenshot({ path: join(out, "26-share-link.png") });
   await sp.click("#askYes");
-  ok((await nbItems()) === "New notebook, Rename this notebook, Shared: link and options", "share: the menu says the notebook is shared", await nbItems());
+  ok((await nbItems()) === "New notebook, Rename this notebook, Shared: link and options, New group", "share: the menu says the notebook is shared", await nbItems());
   // A change in the notebook reaches the copy by itself.
   await goTable(sp);
   await sp.click('[data-sid="drinks"] [data-toggle]'); await sp.click('[data-sid="drinks"] [data-edit]'); await sp.fill("#w-drinks-b-en", "green tea"); await sp.click('[data-sid="drinks"] [data-save]');
@@ -2155,7 +2155,7 @@ if (entry.length > 1) {
   ok(await vis(sp, "#setup") && (await text(sp, "#nbName")) === "My notebook 2" && mineNb?.from === sid && words(d[at + "sets/drinks"]) === "water,green tea" && words(d[at + "sets/drinks"].base) === "water,green tea"
     && d[at + "kanji/week-1"]?.kanji === "水茶" && d[at + "meta/link"]?.share === sid && (await sp.$$eval("#setPicker [data-set]", (b) => b.length)) === 2,
     "add: the shared notebook becomes a notebook in this account, with its sets and kanji list, and opens", JSON.stringify(mineNb));
-  ok((await nbItems()) === "New notebook, Rename this notebook, Delete this notebook", "add: a notebook added from somebody's can't itself be shared", await nbItems());
+  ok((await nbItems()) === "New notebook, Rename this notebook, New group, Delete this notebook", "add: a notebook added from somebody's can't itself be shared", await nbItems());
   // Their own changes: a word changed, a word added (the first through the table, to see that saving keeps what came from the owner), a set deleted.
   await goTable(sp);
   ok(/added from a shared one\. Its owner's changes arrive when you open it/.test(await text(sp, "#linkNote")), "added notebook: Vocabulary says where it came from", await text(sp, "#linkNote"));
@@ -2207,7 +2207,7 @@ if (entry.length > 1) {
   ok(/The link stops working\. People who already added this notebook keep what they have/.test(await text(sp, "#askDlg")), "stop sharing: asks first, and says what happens to people who added it", await text(sp, "#askText"));
   await sp.click("#askYes"); await sp.waitForTimeout(1000);
   d = await fs();
-  ok(!Object.keys(d).some((p) => p.startsWith("shares/") || p.startsWith("shareOwners/")) && !d["users/o1/meta/notebooks"].list[0].share && !!d["users/o1/sets/drinks"] && (await nbItems()) === "New notebook, Rename this notebook, Share this notebook",
+  ok(!Object.keys(d).some((p) => p.startsWith("shares/") || p.startsWith("shareOwners/")) && !d["users/o1/meta/notebooks"].list[0].share && !!d["users/o1/sets/drinks"] && (await nbItems()) === "New notebook, Rename this notebook, Share this notebook, New group",
     "stop sharing: the copy is gone, the notebook itself untouched", Object.keys(d).filter((p) => p.startsWith("share")).join(", "));
   await as(null, "#shared/" + sid); v = await pv();
   ok(/This link doesn't work any more\.\s*The notebook isn't shared now\./.test(v.body) && v.btns === "", "shared link: after Stop sharing it says the link doesn't work any more", v.body);
@@ -2412,7 +2412,7 @@ if (entry.length > 1) {
   await as(O, "#browse");
   ok(/^Made-up words\s*Yours/.test((await cards())[0]), "browse: the owner's own is marked Yours", (await cards())[0]);
   // A developer takes it down: off Browse, and the owner can't put it back while it's down.
-  await bp.evaluate((sid) => window.qcardPlatform.reports.doc("r1").set({ share: sid, why: "other", note: "", at: new Date().toISOString() }), sid);
+  await bp.evaluate((sid) => window.qcardPlatform.reports.doc("r1").set({ share: sid, why: "other", note: "", at: new Date().toISOString(), by: "o1" }), sid);
   await as(D); await settings(bp, "admin"); await bp.waitForTimeout(400);
   await bp.click('#repList [data-rep-do="down"]'); await bp.click("#askYes"); await bp.waitForTimeout(600);
   d = await fs();
@@ -2437,6 +2437,98 @@ if (entry.length > 1) {
   ok(!Object.keys(d).some((p) => p.startsWith("listed/") || p.startsWith("shares/")) && !d["users/o1/meta/notebooks"].list[0].listed, "stop sharing: its line on Browse goes with it");
   ok(bp.errors.length === 0, "browse: no page errors", bp.errors.join(" | "));
   await bctx.close();
+}
+
+// ---------- 29. groups: notebooks several accounts work in, under the group's name in the notebook menu ----------
+{
+  const gctx = await browser.newContext();
+  const O = { uid: "o1", displayName: "Olga", email: "o@example.com" }, M = { uid: "m1", displayName: "Mo", email: "m@example.com" };
+  const gp = await newPage(gctx, { width: 1280, init: ([O]) => {
+    if (localStorage.getItem("fake:seeded")) return;
+    localStorage.setItem("fake:seeded", "1"); localStorage.setItem("qcard:welcomed", "1"); localStorage.setItem("fake:user", JSON.stringify(O));
+    const w = (id, en, kana) => ({ id, en, kana, kanji: "" });
+    localStorage.setItem("fake:fs", JSON.stringify({
+      "users/o1/meta/samples": { offeredAt: "x" }, "users/m1/meta/samples": { offeredAt: "x" },
+      "users/o1/sets/drinks": { collection: "Made up", unit: "Week 1", name: "Drinks", words: [w("a", "water", "みず"), w("b", "tea", "おちゃ")], updatedAt: "x" },
+      "users/o1/notebooks/n2/sets/food": { collection: "Made up", unit: "Week 2", name: "Food", words: [w("a", "rice", "ごはん")], updatedAt: "x" },
+      "users/o1/meta/notebooks": { list: [{ id: "main", name: "My notebook" }, { id: "n2", name: "Food words" }] },
+      "users/m1/sets/own": { collection: "Mine", unit: "1", name: "Mine", words: [w("a", "cat", "ねこ")], updatedAt: "x" },
+    }));
+  }, initArg: [O] });
+  await gp.waitForTimeout(600);
+  const fs = () => fsData(gp);
+  const as = async (u) => { await gp.evaluate((u) => localStorage.setItem("fake:user", JSON.stringify(u)), u); await gp.goto(base); await gp.reload(); await gp.waitForTimeout(900); };
+  const put = (path, v) => gp.evaluate(([path, v]) => window.__fs.put(path, v), [path, v]);
+  const nbMenu = async () => { await gp.click("#nbBtn"); await gp.waitForTimeout(150); };
+  // The menu as it reads: | where its line is, * on the open notebook.
+  const menuText = async () => { await nbMenu(); const t = await gp.$$eval("#nbList > *", (es) => es.map((e) => (e.tagName === "HR" ? "|" : e.textContent.trim() + (e.getAttribute("aria-checked") === "true" ? "*" : ""))).join(", ")); await gp.keyboard.press("Escape"); return t; };
+  const nbDo = async (what) => { await nbMenu(); await gp.click(`#nbList [data-nb-do="${what}"]`); await gp.waitForTimeout(200); };
+  const openNb = async (name) => { await nbMenu(); await gp.click(`#nbList [data-nb]:has-text("${name}")`); await gp.waitForTimeout(500); };
+  const named = async (name) => { await gp.fill("#nbNameIn", name); await gp.keyboard.press("Enter"); await gp.waitForTimeout(700); };
+  let m = await menuText();
+  ok(m === "Notebooks, My notebook*, Food words, |, New notebook, Rename this notebook, Share this notebook, New group, Delete this notebook", "groups: a signed-in account's notebook menu offers New group", m);
+  // Olga makes a group: she's its owner, with the two starting roles, and it's in her own list of groups.
+  await nbDo("newGroup");
+  ok((await gp.getAttribute("#nbNameIn", "aria-label")) === "Group name" && (await text(gp, "#askTitle")) === "New group", "groups: New group asks for its name");
+  await named("Study group");
+  let d = await fs();
+  const gid = Object.keys(d).find((p) => /^groups\/[^/]+$/.test(p))?.split("/")[1], at = (p = "") => `groups/${gid}${p}`;
+  ok(!!gid && d[at()].name === "Study group" && d[at()].owner === "o1" && d[at()].link === null && d[at("/members/o1")].role === "owner" && d[at("/members/o1")].name === "Olga",
+    "groups: it's made with Olga as its owner, under her Google name", JSON.stringify(d[at()]));
+  ok(d[at("/roles/member")].name === "Member" && !Object.values(d[at("/roles/member")].perms).some(Boolean) && d[at("/roles/editor")].perms.edit === true && Object.values(d[at("/roles/editor")].perms).filter(Boolean).length === 1
+    && JSON.stringify(d["users/o1/meta/groups"].list) === JSON.stringify([{ id: gid, name: "Study group" }]), "groups: with the starting roles Member (nothing) and Editor (edit notebooks), and it's in her list of groups");
+  m = await menuText();
+  ok(m === "Notebooks, My notebook*, Food words, Study group, No notebooks yet, New notebook in Study group, |, New notebook, Rename this notebook, Share this notebook, Move to a group, New group, Delete this notebook",
+    "groups: the menu shows the group under its name, empty for now, with New notebook there, and Move to a group", m);
+  await gp.screenshot({ path: join(out, "29-group-menu.png") });
+  // A notebook started in the group, and one of hers moved in.
+  await nbDo("groupNb"); await named("Kana");
+  d = await fs();
+  const kana = Object.keys(d).find((p) => p.startsWith(at("/notebooks/")) && d[p].name === "Kana")?.split("/")[3];
+  ok(!!kana && (await text(gp, "#nbName")) === "Kana", "groups: New notebook in the group makes it there and opens it");
+  m = await menuText();
+  ok(m === "Notebooks, My notebook, Food words, Study group, Kana*, New notebook in Study group, |, New notebook, Rename this notebook, New group, Delete this notebook", "groups: its owner can rename and delete it; it isn't shared or moved like her own", m);
+  await goTable(gp);
+  await gp.fill("#nsCol", "Kana"); await gp.fill("#nsUnit", "Week 1"); await gp.fill("#nsName", "Vowels"); await gp.click('#newSetForm [type="submit"]'); await gp.waitForTimeout(500);
+  d = await fs();
+  ok(Object.keys(d).some((p) => p.startsWith(at(`/notebooks/${kana}/sets/`)) && d[p].name === "Vowels") && !Object.keys(d).some((p) => p.startsWith("users/o1/") && d[p].name === "Vowels"), "groups: a set added in it is saved in the group, not in her account");
+  await openNb("Food words"); await nbDo("moveToGroup");
+  ok(/Move “Food words” to a group/.test(await text(gp, "#askTitle")) && /Study group/.test(await text(gp, "#askText")), "groups: Move to a group says what happens, and which group");
+  await gp.click("#askYes"); await gp.waitForTimeout(1200);
+  d = await fs();
+  const food = Object.keys(d).find((p) => p.startsWith(at("/notebooks/")) && d[p].name === "Food words")?.split("/")[3];
+  ok(!!food && d[at(`/notebooks/${food}/sets/food`)]?.words?.[0]?.en === "rice" && !Object.keys(d).some((p) => p.startsWith("users/o1/notebooks/n2/")) && JSON.stringify(d["users/o1/meta/notebooks"].list.map((n) => n.id)) === '["main"]'
+    && (await text(gp, "#nbName")) === "Food words", "groups: moved, it's in the group with its sets, gone from her own notebooks, and open");
+  await openNb("Kana"); await nbDo("rename"); await named("Kana words");
+  ok((await fs())[at(`/notebooks/${kana}`)].name === "Kana words" && (await text(gp, "#nbName")) === "Kana words", "groups: renaming one of the group's notebooks renames it in the group");
+  // Mo is in it as a Member: he can look and practice, not change anything.
+  await put(at("/members/m1"), { name: "Mo", role: "member", joinedAt: "x", via: "x" }); await put("users/m1/meta/groups", { list: [{ id: gid, name: "Study group" }] });
+  await as(M);
+  m = await menuText();
+  // (This browser last had Kana words open, and Mo can read it too.)
+  ok(m === "Notebooks, My notebook, Study group, Kana words*, Food words, |, New notebook, New group", "groups: a Member sees the group's notebooks, without New notebook there or Move to a group", m);
+  await openNb("Food words");
+  m = await menuText();
+  await goTable(gp);
+  ok(await vis(gp, "#tableRole") && !(await vis(gp, "#newSetForm")) && !(await vis(gp, "#editColBtn")) && !/Rename this notebook|Delete this notebook/.test(m), "groups: for a Member its notebooks are read only, with no Rename or Delete", m);
+  await goView(gp, "setup");
+  ok(/food/.test(await gp.$$eval("#setPicker [data-set]", (bs) => bs.map((b) => b.dataset.set).join(","))), "groups: and he can practice with them");
+  // Made an Editor (somewhere else, while his page is open), he can change what's in them, still not rename or delete them.
+  await put(at("/members/m1"), { name: "Mo", role: "editor", joinedAt: "x", via: "x" }); await gp.waitForTimeout(500);
+  await goTable(gp);
+  m = await menuText();
+  ok(!(await vis(gp, "#tableRole")) && await vis(gp, "#newSetForm") && !/Rename this notebook|Delete this notebook/.test(m), "groups: made an Editor, he can edit at once, still without Rename or Delete", m);
+  // Taken out of the group: it leaves his menu and his list, and his own notebook opens.
+  await put(at("/members/m1"), null); await gp.waitForTimeout(800);
+  m = await menuText();
+  ok(/You're no longer in “Study group”/.test(await text(gp, "#banner")) && (await text(gp, "#nbName")) === "My notebook" && !/Study group/.test(m) && JSON.stringify((await fs())["users/m1/meta/groups"].list) === "[]",
+    "groups: taken out of the group, it says so, his own notebook opens and the group leaves his menu and list", m);
+  // The owner deletes one of the group's notebooks: all of it goes.
+  await as(O); await openNb("Kana words"); await nbDo("delete"); await gp.click("#askYes"); await gp.waitForTimeout(900);
+  d = await fs();
+  ok(!Object.keys(d).some((p) => p.startsWith(at(`/notebooks/${kana}`))) && (await text(gp, "#nbName")) === "My notebook", "groups: deleting one of the group's notebooks deletes it and what's in it");
+  ok(gp.errors.length === 0, "groups: no page errors", gp.errors.join(" | "));
+  await gctx.close();
 }
 
 await browser.close(); server.close();

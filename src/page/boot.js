@@ -34,7 +34,7 @@
       renderPort();
       watchVocab("Your vocab sets couldn't load. Reload the page to try again."); watchNotebooks();
       watchHistory();
-      if (id !== "local") { stopPrefs = syncPrefs(checkPolicy); watchProfile(); } else checkPolicy();
+      if (id !== "local") { stopPrefs = syncPrefs(checkPolicy); watchProfile(); watchGroups(); } else checkPolicy();
       renderAcctMenu();
       offerSamples();
       // An address naming a part of the page (page/address.js) opens it.

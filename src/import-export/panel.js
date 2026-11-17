@@ -4,7 +4,7 @@
   const importer = makeImporter({ button: $("#importBtn"), input: $("#importFile"), box: $("#importPreview"), say: portMsg,
     stored: () => raw, write: (path, doc) => vdb.doc(path).set(doc), changed: () => renderPort() });
   function renderPort() {
-    $("#portPanel").hidden = !canWrite || !db;
+    $("#portPanel").hidden = !canEdit() || !db;
     if ($("#portPanel").hidden) return;
     $("#exportBtn").disabled = !downloads || !S.loaded || importer.busy;
     $("#exportBtn").title = downloads ? "" : "Saving files isn't available in this view.";

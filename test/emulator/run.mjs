@@ -68,12 +68,13 @@ async function getDoc(path) {
   if (!r.ok) throw new Error(`GET ${path}: ${r.status}`);
   return fromFields((await r.json()).fields);
 }
-// Every document under users/<uid>, at any depth, by path.
-async function docsOf(uid) {
-  const r = await fetch(`${FS}/users/${uid}:runQuery`, { method: "POST", headers: OWNER, body: JSON.stringify({ structuredQuery: { from: [{ allDescendants: true }] } }) });
-  if (!r.ok) throw new Error(`query users/${uid}: ${r.status}`);
+// Every document under a path (a group, say), at any depth, by path.
+async function docsAt(path) {
+  const r = await fetch(`${FS}/${path}:runQuery`, { method: "POST", headers: OWNER, body: JSON.stringify({ structuredQuery: { from: [{ allDescendants: true }] } }) });
+  if (!r.ok) throw new Error(`query ${path}: ${r.status}`);
   return Object.fromEntries((await r.json()).filter((x) => x.document).map(({ document: d }) => [d.name.split("/documents/")[1], fromFields(d.fields)]));
 }
+const docsOf = (uid) => docsAt(`users/${uid}`);
 const authUsers = async () => (await (await fetch(`http://${AUTH_HOST}/identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:query`, { method: "POST", headers: OWNER, body: "{}" })).json()).userInfo || [];
 
 // ---------- the page ----------
@@ -527,6 +528,45 @@ await part("7. Group rules", async () => {
   ok(await as("mo", "DELETE", at("/members/mo")) === 200 && await as(eve, "DELETE", at("/members/olga")) === 200 && await as("olga", "GET", at()) === 403 && await as("olga", "DELETE", at()) === 403 && await as("ivy", "DELETE", at()) === 403,
     "groups: anyone can leave, the owner can remove anyone, and only the owner can delete the group");
   ok(await as(eve, "DELETE", at()) === 200, "groups: the owner deletes the group");
+});
+
+// ---------- 8. groups in the page, on the real SDK and rules: making one, its notebooks, moving one in, a member who can only read ----------
+await part("8. Groups in the page", async () => {
+  const { page, uid } = await newAccount("olga");
+  // (☰ first: at this width the sidebar with the notebook menu is a drawer.)
+  const menu = async (p, sel) => { await sleep(400); if (!(await p.locator("#nbBtn").isVisible())) { await p.click("#menuBtn"); await sleep(400); } await p.click("#nbBtn"); await until(() => p.$(`#nbList ${sel}`)); await p.click(`#nbList ${sel}`); };
+  const goTable = async (p) => { await sleep(400); if (!(await p.locator('#sideNav [data-go="table"]').isVisible())) { await p.click("#menuBtn"); await sleep(400); } await p.click('#sideNav [data-go="table"]'); };
+  const nameIt = async (p, name) => { await p.fill("#nbNameIn", name); await p.keyboard.press("Enter"); };
+  await menu(page, '[data-nb-do="newGroup"]'); await nameIt(page, "Study group");
+  const g = (await until(async () => (await getDoc(`users/${uid}/meta/groups`))?.list?.[0]))?.id, at = (p = "") => `groups/${g}${p}`;
+  ok(!!g && (await getDoc(at()))?.owner === uid && (await getDoc(at(`/members/${uid}`)))?.role === "owner" && (await getDoc(at("/roles/editor")))?.perms?.edit === true,
+    "groups: New group makes the group, its owner line and its roles in one write the rules accept, and lists it in the account");
+  await menu(page, '[data-nb-do="groupNb"]'); await nameIt(page, "Kana");
+  const kana = await until(async () => Object.entries(await docsAt(at())).find(([p, d]) => /\/notebooks\/[^/]+$/.test(p) && d.name === "Kana")?.[0].split("/").at(-1));
+  await until(async () => (await text(page, "#nbName")) === "Kana");
+  await goTable(page);
+  await page.fill("#nsCol", "Kana"); await page.fill("#nsUnit", "Week 1"); await page.fill("#nsName", "Vowels"); await page.click('#newSetForm [type="submit"]');
+  ok(!!kana && !!(await until(async () => Object.entries(await docsAt(at())).some(([p, d]) => p.includes(`/notebooks/${kana}/sets/`) && d.name === "Vowels"))), "groups: a notebook made in the group, and a set added to it, are saved in the group");
+  // Her first notebook (the sample sets) moved in: copied to the group, then emptied in the account.
+  await menu(page, '[data-nb="main"]'); await until(async () => (await text(page, "#nbName")) === "My notebook");
+  await menu(page, '[data-nb-do="moveToGroup"]'); await page.click("#askYes");
+  const moved = await until(async () => { const d = await docsAt(at()), n = Object.entries(d).find(([p, x]) => /\/notebooks\/[^/]+$/.test(p) && x.name === "My notebook")?.[0]; return n && Object.keys(d).filter((p) => p.startsWith(n + "/sets/")).length === 6 && n; });
+  const left = await until(async () => { const d = await docsOf(uid); return !Object.keys(d).some((p) => p.startsWith(`users/${uid}/sets/`)) && d; });
+  ok(!!moved && !!left, "groups: Move to a group copies a notebook's sets into the group and takes them out of the account");
+  // Mo is put in the group as a Member (with admin access, standing in for joining, which comes later): he can only read.
+  const mo = await openSite("mo"), mid = await signIn(mo);
+  await as("admin", "PATCH", at(`/members/${mid}`), { fields: { name: str("mo"), role: str("member"), joinedAt: str("x"), via: str("x") } });
+  await as("admin", "PATCH", `users/${mid}/meta/groups`, { fields: { list: { arrayValue: { values: [{ mapValue: { fields: { id: str(g), name: str("Study group") } } }] } } } });
+  await menu(mo, `[data-nb="${g}/${kana}"]`);
+  await until(async () => (await text(mo, "#nbName")) === "Kana");
+  await goTable(mo);
+  const tried = await mo.evaluate(async ([g, n]) => { try { await window.qcardPlatform.group(g).db.doc(`notebooks/${n}/sets/x`).set({ name: "x" }); return "written"; } catch (e) { return e.code; } }, [g, kana]);
+  ok(await until(() => vis(mo, "#tableRole")) && !(await vis(mo, "#newSetForm")) && tried === "permission-denied", "groups: a Member opens the group's notebook read only, and the rules refuse his writes", tried);
+  // Taken out: the real listeners tell his page, which drops the group.
+  await as("admin", "DELETE", at(`/members/${mid}`));
+  ok(await until(async () => /no longer in “Study group”/.test(await text(mo, "#banner")) && (await text(mo, "#nbName")) === "My notebook"), "groups: taken out of the group, his page says so and opens his own notebook");
+  await clean(page, "groups (owner)"); await clean(mo, "groups (member)");
+  await page.context().close(); await mo.context().close();
 });
 
 await browser.close(); server.close();

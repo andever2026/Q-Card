@@ -35,10 +35,12 @@ export async function deleteUser() {
 // ---------- firestore ----------
 let data = load(LS_DB, {}); // path → fields
 const listeners = new Set();
-window.__fs = { all: () => data, log: [] };
+// put: a change made elsewhere (another account or device), past the rules, which this page's listeners hear of.
+window.__fs = { all: () => data, log: [], put: (path, v) => { if (v == null) delete data[path]; else data[path] = v; changed(); } };
 const segs = (p) => p.split("/").filter(Boolean);
 // write: false to read, else "set", "update" or "delete" with the data being written. q: the query, for a read of a collection.
-function allowed(path, write = false, v, q) {
+// after: the data as it will be once all of a batch's writes are made (firestore.rules' getAfter).
+function allowed(path, write = false, v, q, after = data) {
   const s = segs(path), no = () => { throw { code: "permission-denied", message: "rules: " + path }; };
   const isDev = () => !!current && `dev/${current.uid}` in data;
   // Shared notebooks (firestore.rules): anyone reads a share they have the id of; only its owner writes it; whose it is, only the owner reads.
@@ -81,6 +83,24 @@ function allowed(path, write = false, v, q) {
     if (!current || s.length !== 2 || write !== "set" || path in data || v.by !== current.uid || Object.keys(v).some((k) => !["share", "why", "note", "at", "by"].includes(k)) || typeof v.share !== "string" || !/^[A-Za-z0-9]{20,40}$/.test(v.share) || !(`shares/${v.share}` in data)
       || !["wrong", "unsuitable", "rights", "other"].includes(v.why) || typeof v.note !== "string" || v.note.length > 1000 || typeof v.at !== "string" || v.at.length > 40) no();
     return;
+  }
+  // Groups (firestore.rules has all of it; this is what the page relies on): people in a group read it; the owner can do
+  // anything; anyone else what their role's permissions allow.
+  if (s[0] === "groups") {
+    if (!current || s.length < 2) no();
+    const at = (p = "") => `groups/${s[1]}${p}`, me = current.uid, G = data[at()], mine = data[at(`/members/${me}`)], was = data[path];
+    const can = (p) => !!mine && (mine.role === "owner" || data[at(`/roles/${mine.role}`)]?.perms?.[p] === true), owns = !!G && G.owner === me;
+    if (!write) { if (!mine || (s[2] === "requests" && !can("approve") && s[3] !== me)) no(); return; }
+    if (s.length === 2) { if (write === "delete" ? !owns : G ? !owns && !(can("invite") && v.name === G.name && v.owner === G.owner) : v.owner !== me || v.link != null) no(); return; }
+    if (s[2] === "roles") { if (s[3] === "owner" || !(can("roles") || (!G && after[at()]?.owner === me))) no(); return; }
+    if (s[2] === "members") {
+      if (write === "delete") { if (!(s[3] === me && was?.role !== "owner") && !owns && !(can("members") && was?.role !== "owner")) no(); return; }
+      if (!was) { if (!(s[3] === me && v.role === "owner" && after[at()]?.owner === me)) no(); return; }
+      if (s[3] === me ? v.role !== was.role : !(can("members") && was.role !== "owner" && v.role !== "owner")) no();
+      return;
+    }
+    if (s[2] === "notebooks") { if (s.length === 4 ? !can("notebooks") && !(write === "delete" && owns) : !["sets", "kanji", "meta"].includes(s[4]) || !(can("edit") || can("notebooks"))) no(); return; }
+    no();
   }
   if (!current) throw { code: "permission-denied", message: "signed out" };
   if (s[0] === "dev" && s.length === 2 && s[1] === current.uid && !write) return;
@@ -126,13 +146,21 @@ const snapOf = (ref) => (ref.kind === "doc" ? docSnap(ref.path) : runQuery(ref))
 const slow = load("fake:slow", {}), slowFor = (path) => Object.entries(slow).find(([end]) => path.endsWith(end))?.[1] || 0;
 export function onSnapshot(ref, next, error) {
   try { allowed(ref.path); } catch (e) { setTimeout(() => error?.(e), 0); return () => {}; }
-  const l = { ref, next, ready: false };
+  const l = { ref, next, error, ready: false };
   listeners.add(l);
   setTimeout(() => { if (listeners.has(l)) { l.ready = true; next(snapOf(ref)); } }, slowFor(ref.path));
   return () => listeners.delete(l);
 }
 // (Each listener hears of the data as it is when its turn comes: Firestore never reports an older state after a newer write of this page's.)
-function changed() { save(LS_DB, data); for (const l of listeners) setTimeout(() => listeners.has(l) && l.ready && l.next(snapOf(l.ref)), 0); }
+// One that may no longer read what it listens to (someone taken out of a group) gets the error instead, and stops, as Firestore's does.
+function changed() {
+  save(LS_DB, data);
+  for (const l of listeners) setTimeout(() => {
+    if (!listeners.has(l) || !l.ready) return;
+    try { allowed(l.ref.path, false, undefined, l.ref); } catch (e) { listeners.delete(l); return l.error?.(e); }
+    l.next(snapOf(l.ref));
+  }, 0);
+}
 export async function getDoc(ref) { allowed(ref.path); return docSnap(ref.path); }
 export async function getDocs(ref) { allowed(ref.path, false, undefined, ref); return runQuery(ref); }
 export async function setDoc(ref, v) { allowed(ref.path, "set", v); window.__fs.log.push(["set", ref.path]); data[ref.path] = clean(v, ref.path); changed(); }
@@ -140,5 +168,20 @@ export async function updateDoc(ref, v) {
   allowed(ref.path, "update", { ...data[ref.path], ...v });
   if (!(ref.path in data)) throw { code: "not-found", message: ref.path };
   window.__fs.log.push(["update", ref.path]); data[ref.path] = { ...data[ref.path], ...clean(v, ref.path) }; changed();
+}
+// A batch: every write is checked against the data as it will be after all of them (getAfter), then all are made, or none.
+export function writeBatch() {
+  const ops = [];
+  return {
+    set(ref, v) { ops.push([ref.path, clean(v, ref.path)]); },
+    delete(ref) { ops.push([ref.path, null]); },
+    async commit() {
+      const after = { ...data };
+      for (const [p, v] of ops) { if (v === null) delete after[p]; else after[p] = v; }
+      for (const [p, v] of ops) allowed(p, v === null ? "delete" : "set", v, undefined, after);
+      for (const [p, v] of ops) { window.__fs.log.push([v === null ? "delete" : "set", p]); if (v === null) delete data[p]; else data[p] = v; }
+      changed();
+    },
+  };
 }
 export async function deleteDoc(ref) { allowed(ref.path, "delete"); window.__fs.log.push(["delete", ref.path]); delete data[ref.path]; changed(); }

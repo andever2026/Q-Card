@@ -1,7 +1,7 @@
   // ---------- vocab table ----------
   const onlyKanji = (raw) => [...new Set([...String(raw)].filter((c) => KANJI.test(c) && c !== "々"))].join("");
   function renderKanji() {
-    $("#newKanjiForm").hidden = !canWrite;
+    $("#newKanjiForm").hidden = !canEdit();
     const box = $("#kanjiLists"), all = S.kanjiLists;
     // The lists for the units picked in the vocab table, or every list.
     const picked = all.filter((k) => TP.has(unitKey(k))), every = S.kAll || picked.length === all.length;
@@ -10,22 +10,22 @@
     $("#kSummary").textContent = !all.length ? "" : every && all.length > 1 ? `All ${all.length} kanji lists` : lists.length === 1 ? name(lists[0]) : lists.length ? `${lists.length} kanji lists` : "";
     $("#kAllBtn").hidden = !all.length || picked.length === all.length;
     $("#kAllBtn").textContent = S.kAll ? "Show only the units shown above" : "Show all units";
-    if (!all.length) { box.innerHTML = `<div class="empty"><span>No kanji lists yet${canWrite ? ". Add a unit below and paste its kanji." : "."}</span></div>`; return; }
-    if (!lists.length) { box.innerHTML = `<div class="empty"><span>${TP.shownKeys().length ? "The units shown have no kanji lists" : "No units shown"}${canWrite ? ". Add one below if a unit teaches kanji." : "."}</span></div>`; return; }
+    if (!all.length) { box.innerHTML = `<div class="empty"><span>No kanji lists yet${canEdit() ? ". Add a unit below and paste its kanji." : "."}</span></div>`; return; }
+    if (!lists.length) { box.innerHTML = `<div class="empty"><span>${TP.shownKeys().length ? "The units shown have no kanji lists" : "No units shown"}${canEdit() ? ". Add one below if a unit teaches kanji." : "."}</span></div>`; return; }
     // Like a set: the kanji read as text until Edit, which opens the collection, unit and kanji for editing; Save stores them.
     box.innerHTML = lists.map((k) => {
-      const d = canWrite ? S.kdrafts.get(k.id) : null, dirty = dirtyList(k), v = d ? d.kanji : k.kanji || "", del = S.kConfirmDel === k.id;
+      const d = canEdit() ? S.kdrafts.get(k.id) : null, dirty = dirtyList(k), v = d ? d.kanji : k.kanji || "", del = S.kConfirmDel === k.id;
       const field = (f, label, more = "") => `<label>${label}<input id="kf-${esc(k.id)}-${f}" data-kf="${f}" value="${esc(d[f])}"${more}${d[f] !== (f === "collection" ? colOf(k) : k[f]) ? ` class="chg"` : ""}></label>`;
       return `<div class="tset open kset${d ? " editing" : ""}" data-kid="${esc(k.id)}">
-        <h3 class="tseth"><span class="tsethead"><span class="t">${esc(name(k))}</span><span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted" data-kcount>${onlyKanji(v).length} kanji</span></span></span>${canWrite && !d ? `<button class="btn" type="button" data-kedit>Edit</button>` : ""}</h3>
+        <h3 class="tseth"><span class="tsethead"><span class="t">${esc(name(k))}</span><span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted" data-kcount>${onlyKanji(v).length} kanji</span></span></span>${canEdit() && !d ? `<button class="btn" type="button" data-kedit>Edit</button>` : ""}</h3>
         ${d ? `<div class="newset setedit">${field("collection", "Collection", ` list="colList"`)}${field("unit", "Unit", ` list="unitList"`)}</div>
           <input type="text" class="kin${d.kanji !== (k.kanji || "") ? " chg" : ""}" id="k-${esc(k.id)}" data-kf="kanji" value="${esc(v)}" placeholder="Paste this unit's kanji" aria-label="Kanji for ${esc(name(k))}">
           <div class="tactions editbar"><button class="btn primary" data-ksave ${dirty ? "" : "disabled"}>Save</button><button class="btn" data-kdiscard>${dirty ? "Discard changes" : "Cancel"}</button><span class="editerr" data-kerr></span>
           <span style="flex:1"></span>${del ? `<span class="small">Delete this kanji list?</span><button class="btn danger" data-kdel-yes>Delete</button><button class="btn" data-kdel-no>Keep</button>` : `<button class="ghost small" data-kdel>Delete list</button>`}</div>`
-        : `<p class="kro">${esc(v) || `<span class="muted small">No kanji yet.${canWrite ? " Tap Edit to add some." : ""}</span>`}</p>`}
+        : `<p class="kro">${esc(v) || `<span class="muted small">No kanji yet.${canEdit() ? " Tap Edit to add some." : ""}</span>`}</p>`}
       </div>`;
     }).join("");
-    if (!canWrite) return;
+    if (!canEdit()) return;
     box.querySelectorAll("[data-kid]").forEach((row) => {
       const id = row.dataset.kid, k = lists.find((x) => x.id === id), d = S.kdrafts.get(id);
       const ke = row.querySelector("[data-kedit]");
@@ -118,7 +118,7 @@
     if (tp.size !== was || [...tp].some((k) => /\u0001\d+$/.test(k) && !all.has(k))) TP.replace(S.tpick.show, tp);
     // "Edit collections" (vocab/collections.js) puts its editor where the unit rows were, and Discard and Save where it was.
     const ed = !!S.colEdit;
-    $("#editColBtn").hidden = !canWrite || ed; $("#colBtns").hidden = !ed;
+    $("#editColBtn").hidden = !canEdit() || ed; $("#colBtns").hidden = !ed;
     $("#tTop").classList.toggle("editing", ed); $("#tPickBar").hidden = ed; $("#tSearch").disabled = ed;
     if (!ed) TP.render();
     syncGroupSegs(); renderColEdit();
@@ -202,10 +202,10 @@
     const at = document.activeElement, typing = at?.id && $("#setTables").contains(at) ? { id: at.id, pos: at.selectionStart } : null;
     if (!searchOnly) { renderKanji(); renderPort(); }
     renderLeave();
-    $("#tableRole").hidden = canWrite;
+    $("#tableRole").hidden = canEdit();
     // While collections are edited, the sets and kanji lists below fold up under a grey cover: they can't be used until Save or Discard.
     const ed = !!S.colEdit;
-    $("#newSetForm").hidden = !canWrite || ed;
+    $("#newSetForm").hidden = !canEdit() || ed;
     for (const el of [$("#setTables"), $("#kanjiLists").closest(".panel")]) { el.inert = ed; el.classList.toggle("tlocked", ed); el.dataset.lock = "Editing collections"; }
     $("#colList").innerHTML = cols().filter(Boolean).map((b) => `<option value="${esc(b)}"></option>`).join("");
     // Prefill the Collection fields with the collection being viewed, keeping anything typed until the view moves to another one.
@@ -215,7 +215,7 @@
     const box = $("#setTables");
     const bar = $(".tbar"); bar.hidden = $("#tSum").hidden = !S.loaded || !S.sets.length;
     if (!S.loaded) { box.innerHTML = `<div class="empty">Loading…</div>`; return; }
-    if (!S.sets.length) { box.innerHTML = `<div class="empty"><b>No sets yet.</b><span>${canWrite ? "Add a set below, then fill in its words." : ""}</span></div>`; return; }
+    if (!S.sets.length) { box.innerHTML = `<div class="empty"><b>No sets yet.</b><span>${canEdit() ? "Add a set below, then fill in its words." : ""}</span></div>`; return; }
     renderTableBar();
     const q = S.tq.trim(), keys = TP.shownKeys(), allKeys = cols().flatMap(tKeys);
     // Each shown set: which rows (indexes into the full word list) to draw, and whether it is open.
@@ -225,7 +225,7 @@
     let fresh = null;
     for (const s of S.sets) {
       // A set just added opens ready to type in.
-      if (S.editNew === s.id) { S.editNew = null; if (canWrite && !S.drafts.has(s.id)) { startEdit(s); fresh = s.id; } }
+      if (S.editNew === s.id) { S.editNew = null; if (canEdit() && !S.drafts.has(s.id)) { startEdit(s); fresh = s.id; } }
       const words = S.drafts.get(s.id)?.words || s.words;
       if (q) {
         const idx = []; let any = false;
@@ -249,12 +249,12 @@
     openAll.textContent = q ? `Show all ${total}` : shown.every((x) => x.open) ? "Close all sets" : "Open all sets";
     if (q && !shown.length) { box.innerHTML = `<div class="empty"><b>No words match “${esc(q)}”.</b><span>Search looks at English, kana and kanji in every ${multiCol() ? "collection and unit" : "unit"}.</span></div>`; return; }
     if (!keys.length) { box.innerHTML = `<div class="empty"><span>${noUnitsShown}</span></div>`; return; }
-    if (!shown.length) { box.innerHTML = `<div class="empty"><span>${esc(where)} ${keys.length === 1 ? "has" : "have"} no vocab sets yet${canWrite ? ". Add one below." : "."}</span></div>`; return; }
+    if (!shown.length) { box.innerHTML = `<div class="empty"><span>${esc(where)} ${keys.length === 1 ? "has" : "have"} no vocab sets yet${canEdit() ? ". Add one below." : "."}</span></div>`; return; }
     const manyCols = new Set(shown.map(({ s }) => colOf(s))).size > 1;
     box.innerHTML = shown.map(({ s, words, idx, open }) => {
-      const d = canWrite ? S.drafts.get(s.id) : null, dirty = dirtySet(s), was = new Map(s.words.map((w) => [w.id, w]));
+      const d = canEdit() ? S.drafts.get(s.id) : null, dirty = dirtySet(s), was = new Map(s.words.map((w) => [w.id, w]));
       const head = `<h3 class="tseth"><button class="tsethead" type="button" data-toggle aria-expanded="${open}"><span class="t"><span class="car" aria-hidden="true">›</span>${esc(q || manyCols ? setName(s) : `${s.unit} › ${s.name}`)}${cleanTags(s.tags).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</span>
-        <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button>${open && canWrite && !d ? `<button class="btn" type="button" data-edit>Edit</button>` : ""}</h3>`;
+        <span class="small">${dirty ? `<span class="dirty">Unsaved changes</span> · ` : d ? `<span class="muted">Editing · </span>` : ""}<span class="muted">${q ? `${idx.length} of ${plural(words.length, "word")}` : plural(readyCount(words), "word")}</span></span></button>${open && canEdit() && !d ? `<button class="btn" type="button" data-edit>Edit</button>` : ""}</h3>`;
       if (!open) return `<div class="tset" data-sid="${esc(s.id)}">${head}</div>`;
       const cell = (w, i, f, name) => `<textarea rows="1" id="w-${s.id}-${w.id}-${f}" data-i="${i}" data-f="${f}" placeholder="${name}" aria-label="${name}"${(w[f] || "").trim() !== (was.get(w.id)?.[f] || "").trim() ? ` class="chg"` : ""}>${esc(w[f])}</textarea>`;
       const rows = idx.map((i) => { const w = words[i]; return d
@@ -265,14 +265,14 @@
       const field = (f, name, more = "") => `<label>${name}<input id="d-${s.id}-${f}" data-ef="${f}" value="${esc(d.vals[f])}"${more}${d.vals[f] !== now[f] ? ` class="chg"` : ""}></label>`;
       return `<div class="tset open${d ? " editing" : ""}" data-sid="${esc(s.id)}">
         ${head}${d ? `<div class="newset setedit">${field("collection", "Collection", ` list="colList"`)}${field("unit", "Unit", ` list="unitList"`)}${field("name", "Set name")}${field("tags", "Tags (optional)", ` placeholder="Verbs, Quiz 3"`)}</div>` : ""}
-        ${rows ? `<div class="tscroll"><table><thead><tr><th>English</th><th>Kana</th><th>Kanji</th>${d ? "<th></th>" : ""}</tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="muted small">No words yet.${canWrite ? " Tap Edit to add some." : ""}</p>`}
+        ${rows ? `<div class="tscroll"><table><thead><tr><th>English</th><th>Kana</th><th>Kanji</th>${d ? "<th></th>" : ""}</tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="muted small">No words yet.${canEdit() ? " Tap Edit to add some." : ""}</p>`}
         ${d ? `<div class="tactions"><button class="btn" data-add>Add word</button></div>
           <div class="tactions editbar"><button class="btn primary" data-save ${dirty ? "" : "disabled"}>Save</button><button class="btn" data-discard>${dirty ? "Discard changes" : "Cancel"}</button><span class="editerr" data-editerr></span>
           <span style="flex:1"></span>${del ? `<span class="small">Delete this set for everyone?</span><button class="btn danger" data-delset-yes>Delete</button><button class="btn" data-delset-no>Keep</button>` : `<button class="ghost small" data-delset>Delete set</button>`}</div>` : ""}
       </div>`;
     }).join("");
     box.querySelectorAll(".tset").forEach((el) => {
-      const sid = el.dataset.sid, s = S.sets.find((x) => x.id === sid), d = canWrite ? S.drafts.get(sid) : null;
+      const sid = el.dataset.sid, s = S.sets.find((x) => x.id === sid), d = canEdit() ? S.drafts.get(sid) : null;
       el.querySelector("[data-toggle]").onclick = () => {
         if (q) return; // search results always stay open
         // Closing a set that was opened for editing and left as it was ends the editing too.
