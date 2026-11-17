@@ -132,7 +132,7 @@ service cloud.firestore {
           && (u == request.auth.uid && request.resource.data.role == 'owner' && getAfter(groupDoc(g)).data.owner == u
             || u == request.auth.uid && get(groupDoc(g)).data.link != null && get(groupDoc(g)).data.link.approve == false
               && request.resource.data.via == get(groupDoc(g)).data.link.token && request.resource.data.role == get(groupDoc(g)).data.link.role
-            || u == request.auth.uid && request.resource.data.via == 'mail' && myEmail() != ''
+            || u == request.auth.uid && request.resource.data.via == 'mail' && myEmail() != '' && exists(groupDoc(g))
               && request.resource.data.role == get(/databases/$(database)/documents/groupMail/$(g + '_' + myEmail())).data.role
             || u != request.auth.uid && request.resource.data.via == 'approved' && can(g, 'approve')
               && request.resource.data.role == get(/databases/$(database)/documents/groups/$(g)/requests/$(u)).data.role);
@@ -180,7 +180,9 @@ service cloud.firestore {
     }
     match /groupMail/{id} {
       allow get: if request.auth != null && (resource.data.email == myEmail() || can(resource.data.group, 'invite'));
-      allow list: if request.auth != null && resource.data.email == myEmail();
+      // Listed by whoever signed in with that email (their invites), or by group (where group == …) by whoever may invite
+      // in that group (to see, cancel and clean up its invites).
+      allow list: if request.auth != null && (resource.data.email == myEmail() || can(resource.data.group, 'invite'));
       allow create: if request.resource.data.keys().hasOnly(['group', 'name', 'email', 'role', 'by', 'at']) && request.resource.data.group is string
         && okName(request.resource.data.name, 60) && okName(request.resource.data.by, 60) && request.resource.data.at is string
         && okName(request.resource.data.email, 254) && request.resource.data.email == request.resource.data.email.lower()

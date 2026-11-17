@@ -87,6 +87,7 @@ body.erasing .pad:not(.locked) { cursor: url("data:image/svg+xml,%3Csvg xmlns='h
 .gslist li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .gsn { flex: 1; min-width: 8em; display: grid; overflow-wrap: anywhere; }
 .gsperms { display: grid; gap: 2px; margin: 8px 0; }
+.gslist [data-mail-text] { flex: 1 1 100%; }
 /* A notebook added from a shared one: the line over the vocab table, and the words this person changed or added. */
 .linknote { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: .9rem; color: var(--muted); }
 .tset tr.own td, .ownkey { background: color-mix(in srgb, var(--ai) 10%, transparent); }

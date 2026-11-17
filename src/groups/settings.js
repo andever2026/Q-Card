@@ -143,7 +143,7 @@
   // nobody else is in it.
   async function leaveGroups(forced) {
     for (const id of [...groups.keys()]) stopGroup(id);
-    await dropAsks(); // links.js
+    for (const end of groupBye) await end();
     for (const { id } of groupIndex || []) {
       const at = platform.group(id), line = await at.db.doc("members/" + uid).get().catch(() => null), me = line?.exists ? line.data() : null;
       if (!me) continue;

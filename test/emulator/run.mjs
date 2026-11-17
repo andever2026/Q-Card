@@ -500,6 +500,8 @@ await part("7. Group rules", async () => {
     "groups: an email invite comes from someone in the group who may invite, to the address in lowercase, with a role they could give");
   ok(await as("olga", "PATCH", ...invite("eve@example.com")) === 200 && await where(eve, "", "groupMail", "email", str("eve@example.com")) === 200 && await where("out", "", "groupMail", "email", str("eve@example.com")) === 403
     && await where(["out", "out@example.com"], "", "groupMail", "email", str("eve@example.com")) === 403 && await as("out", "GET", invite("eve@example.com")[0]) === 403, "groups: whoever signs in with that email finds the invite; nobody else can");
+  ok(await where("olga", "", "groupMail", "group", str(G)) === 200 && await where("ivy", "", "groupMail", "group", str(G)) === 200 && await where("mo", "", "groupMail", "group", str(G)) === 403
+    && await where("out", "", "groupMail", "group", str(G)) === 403 && await where("olga", "", "groupMail") === 403, "groups: whoever may invite lists the group's invites; nobody else, and not all of them");
   ok(await as(["mal", "eve@example.com", false], "PATCH", at("/members/mal"), member("Mal", "editor", "mail")) === 403 && await as(eve, "PATCH", at("/members/eve"), member("Eve", "inviter", "mail")) === 403
     && await as("out", "PATCH", at("/members/out"), member("Out", "editor", "mail")) === 403, "groups: an invite lets in only that email, once Google has checked it, with the invite's role");
   ok(await as(eve, "PATCH", at("/members/eve"), member("Eve", "editor", "mail")) === 200 && await as(eve, "DELETE", invite("eve@example.com")[0]) === 200 && await as(eve, "GET", at()) === 200, "groups: Eve joins by the invite, then takes it away");
@@ -586,7 +588,7 @@ await part("8. Groups in the page", async () => {
   await page.context().close(); await mo.context().close();
 });
 
-await part("9. Joining a group by link", async () => {
+await part("9. Joining a group by link or invite", async () => {
   const { page, uid } = await newAccount("olga");
   await menu(page, '[data-nb-do="newGroup"]'); await nameIt(page, "Club");
   const g = await groupOf(uid), at = (p = "") => `groups/${g}${p}`;
@@ -609,6 +611,12 @@ await part("9. Joining a group by link", async () => {
   await gs(page, '[data-nb-do="groupSettings"]:has-text("asking to join")'); await page.click(`[data-let-in="${iid}"]`);
   ok(await until(async () => (await getDoc(at(`/members/${iid}`)))?.via === "approved" && !(await getDoc(at(`/requests/${iid}`)))) && await until(async () => /You're in “Club” now/.test(await text(ivy, "#banner"))),
     "join requests: Let in puts her in and takes the request away in one write, and her open page says she's in");
+  // Invites by email address: Eve's open page finds hers in the notebook menu, and she joins; one left waiting goes with the group.
+  const eve = await openSite("eve"), eid = await signIn(eve);
+  for (const e of ["Eve@example.com", "late@example.com"]) { await page.fill("#gsMailIn", e); await page.click("#gsMailGo"); await until(async () => !!(await getDoc(`groupMail/${g}_${e.toLowerCase()}`))); }
+  await menu(eve, '[data-nb-do="joinInvite"]');
+  ok(await until(async () => (await getDoc(at(`/members/${eid}`)))?.via === "mail" && !(await getDoc(`groupMail/${g}_eve@example.com`)) && (await getDoc(`users/${eid}/meta/groups`))?.list?.[0]?.id === g),
+    "invites: an invite made in the settings reaches her open page; Join puts her in and takes it away in one write the rules accept");
   // Renamed, a new link, then the group deleted: its link's page follows each time.
   await page.fill("#gsGroupName", "Book club"); await page.click("#gsGroupSave");
   ok(await until(async () => (await getDoc(`groupLinks/${token}`))?.name === "Book club"), "join link: renaming the group renames it on the link's page");
@@ -616,9 +624,9 @@ await part("9. Joining a group by link", async () => {
   const token2 = await until(async () => { const t = (await getDoc(at()))?.link?.token; return t !== token && t; });
   ok(!!token2 && !(await getDoc(`groupLinks/${token}`)) && !!(await getDoc(`groupLinks/${token2}`)), "join link: New link replaces the old one's page");
   await page.click("#gsDelete"); await page.click("#askYes");
-  ok(await until(async () => !(await getDoc(at())) && !(await getDoc(`groupLinks/${token2}`))), "delete group: its link's page goes with it");
-  await clean(page, "join (owner)"); await clean(mo, "join (Mo)"); await clean(ivy, "join (Ivy)");
-  for (const p of [page, mo, ivy]) await p.context().close();
+  ok(await until(async () => !(await getDoc(at())) && !(await getDoc(`groupLinks/${token2}`)) && !(await getDoc(`groupMail/${g}_late@example.com`))), "delete group: its link's page and invites go with it");
+  await clean(page, "join (owner)"); await clean(mo, "join (Mo)"); await clean(ivy, "join (Ivy)"); await clean(eve, "invites (Eve)");
+  for (const p of [page, mo, ivy, eve]) await p.context().close();
 });
 
 await browser.close(); server.close();

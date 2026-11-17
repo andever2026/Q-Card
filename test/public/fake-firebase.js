@@ -96,9 +96,11 @@ function allowed(path, write = false, v, q, after = data) {
     if (s[2] === "roles") { if (s[3] === "owner" || !(can("roles") || (!G && after[at()]?.owner === me))) no(); return; }
     if (s[2] === "members") {
       if (write === "delete") { if (!(s[3] === me && was?.role !== "owner") && !owns && !(can("members") && was?.role !== "owner")) no(); return; }
-      // Joining: the owner making the group; with the link, if it doesn't ask first; or let in by whoever may approve requests.
+      // Joining: the owner making the group; with the link, if it doesn't ask first; by an invite to this account's email
+      // address, with its role; or let in by whoever may approve requests.
       if (!was) {
         if (!(s[3] === me && v.role === "owner" && after[at()]?.owner === me) && !(s[3] === me && G?.link?.approve === false && v.via === G.link.token && v.role === G.link.role)
+          && !(s[3] === me && !!G && v.via === "mail" && data[`groupMail/${s[1]}_${String(current.email).toLowerCase()}`]?.role === v.role)
           && !(s[3] !== me && v.via === "approved" && can("approve") && data[at(`/requests/${s[3]}`)]?.role === v.role)) no();
         return;
       }
@@ -113,6 +115,17 @@ function allowed(path, write = false, v, q, after = data) {
     }
     if (s[2] === "notebooks") { if (s.length === 4 ? !can("notebooks") && !(write === "delete" && owns) : !["sets", "kanji", "meta"].includes(s[4]) || !(can("edit") || can("notebooks"))) no(); return; }
     no();
+  }
+  // Invites to a group by email address: whoever signed in with that address reads (and lists) theirs and deletes them;
+  // whoever may invite in the group makes them, lists the group's and deletes them.
+  if (s[0] === "groupMail") {
+    if (!current || s.length > 2) no();
+    const email = String(current.email).toLowerCase(), wh = (f) => (q?.parts || []).find((p) => p.t === "where" && p.field === f && p.op === "==")?.value;
+    const inviter = (G) => { const mine = data[`groups/${G}/members/${current.uid}`]; return !!mine && (mine.role === "owner" || data[`groups/${G}/roles/${mine.role}`]?.perms?.invite === true); };
+    const was = data[path];
+    if (!write) { if (s.length === 1 ? wh("email") !== email && !(wh("group") && inviter(wh("group"))) : was && was.email !== email && !inviter(was.group)) no(); return; }
+    if (write === "delete" ? was && was.email !== email && !inviter(was.group) : was || s[1] !== `${v.group}_${v.email}` || v.email !== v.email.toLowerCase() || !inviter(v.group)) no();
+    return;
   }
   // A group's join link: anyone reads it; whoever may invite in that group writes it.
   if (s[0] === "groupLinks") {
@@ -164,7 +177,7 @@ const snapOf = (ref) => (ref.kind === "doc" ? docSnap(ref.path) : runQuery(ref))
 // { "end of a path": ms }); until it comes, that listener hears of no changes either.
 const slow = load("fake:slow", {}), slowFor = (path) => Object.entries(slow).find(([end]) => path.endsWith(end))?.[1] || 0;
 export function onSnapshot(ref, next, error) {
-  try { allowed(ref.path); } catch (e) { setTimeout(() => error?.(e), 0); return () => {}; }
+  try { allowed(ref.path, false, undefined, ref); } catch (e) { setTimeout(() => error?.(e), 0); return () => {}; }
   const l = { ref, next, error, ready: false };
   listeners.add(l);
   setTimeout(() => { if (listeners.has(l)) { l.ready = true; next(snapOf(ref)); } }, slowFor(ref.path));

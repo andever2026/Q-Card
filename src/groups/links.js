@@ -99,11 +99,11 @@
   }
   nbActs.cancelAsk = cancelAsk;
   // Deleting the account (settings.js, leaveGroups): its requests go too, without a word about them.
-  async function dropAsks() {
+  groupBye.push(async () => {
     for (const off of askWatch.values()) off();
     askWatch.clear();
     for (const a of groupAsked) await platform.group(a.id).db.doc("requests/" + uid).delete().catch(() => {});
-  }
+  });
   nbSections.push(() => groupAsked.map((a) => `<div class="nbgroup"><span class="small muted">${esc(a.name)}</span></div><p class="small muted nbnone">You asked to join</p>
     <button type="button" role="menuitem" data-nb-do="cancelAsk" data-arg="${esc(a.id)}">${nbIcon("M6 6 L18 18 M18 6 L6 18")}Cancel request</button>`).join(""));
 
@@ -139,7 +139,7 @@
     if ($("#joinGo")) $("#joinGo").onclick = (e) => { e.target.disabled = true; joinGroup(l).then(() => (e.target.disabled = false)); };
   }
   async function joinGroup(l) {
-    if (groupIndex.length + groupAsked.length >= GROUP_MAX) return banner(`An account can be in up to ${GROUP_MAX} groups. Leave one to join this.`);
+    if (groupsFull()) return;
     const at = platform.group(l.group), now = new Date().toISOString();
     try {
       if (l.approve) await at.db.doc("requests/" + uid).set({ name: memberName(), role: l.role, token: l.token, at: now });

@@ -13,7 +13,8 @@
   const groups = new Map();
   // What else goes when a group is deleted (its join link's page: groups/links.js), each given its id and groups/<id>.
   // What else follows the groups whenever something in them changes (groups/links.js).
-  const groupGone = [], groupHooks = [];
+  // What else goes when the account is deleted (its requests to join and the invites to it: links.js, invites.js).
+  const groupGone = [], groupHooks = [], groupBye = [];
   // More lines under a group's notebooks in the notebook menu (people asking to join: groups/links.js).
   let groupMore = (g) => "";
   const groupReady = (g) => g?.heard.size === 4;
@@ -23,6 +24,8 @@
     .map((x) => ({ id: x.id, name: tidy(x.name, 60) || "Group", ...(/^[A-Za-z0-9]{20,40}$/.test(String(x.token ?? "")) ? { token: x.token } : {}) }));
   // The name this account goes by in a group it makes or joins: its Google name, which it can change there later.
   const memberName = () => tidy(account?.name, 60) || tidy(account?.email?.split("@")[0], 60) || "Member";
+  // An account is in up to GROUP_MAX groups, counting the ones it asked to join: true, with a word about it, when it's full.
+  function groupsFull() { if ((groupIndex || []).length + groupAsked.length < GROUP_MAX) return false; banner(`An account can be in up to ${GROUP_MAX} groups. Leave one first.`); return true; }
   const splitNb = (id) => { const [g, n] = String(id).split("/"); return n ? { g, n } : null; };
 
   // The groups' notebooks, as the notebook menu and the rest of the page see them (vocab/notebooks.js).
@@ -91,7 +94,7 @@
   // New group: made with its owner (this account) and two starting roles, all in one write, then added to the account's list.
   const role = (name, ...yes) => ({ name, perms: Object.fromEntries(PERMS.map((p) => [p, yes.includes(p)])) });
   async function newGroup() {
-    if ((groupIndex || []).length >= GROUP_MAX) return banner(`An account can be in up to ${GROUP_MAX} groups.`);
+    if (groupsFull()) return;
     const name = await askNbName("New group", "Create", "", groupIndex || [], "Group name", "Study group");
     if (!name) return;
     const id = "g" + rid() + rid(), at = platform.group(id), now = new Date().toISOString();

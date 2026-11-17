@@ -2626,7 +2626,34 @@ if (entry.length > 1) {
   ok(/wasn't accepted/.test(await text(gp, "#banner")) && !d["users/q1/meta/groups"].list.length && JSON.stringify(d["users/q1/meta/groups"].asked) === "[]", "join requests: turned down, Quin's page says so, and the request leaves her list", await text(gp, "#banner"));
   await joinPage(Q, token);
   ok(/This link doesn't work any more/.test(await text(gp, "#joinBody")), "join link: an old link's page says it doesn't work any more");
-  await as(O);
+  // Invites by email address (groups/invites.js): Olga invites Eve, Quin and someone she then thinks better of.
+  const E = { uid: "e1", displayName: "Eve", email: "eve@example.com" }, mail = (e) => `groupMail/${gid}_${e}`;
+  await put("users/e1/meta/samples", { offeredAt: "x" });
+  await as(O); await gsOpen();
+  ok(/Invite by email/.test(await body()) && (await text(gp, "#gsMailRole .dd-btn")) === "Member", "invites: the settings offer to invite by email address, as a Member unless she picks another");
+  for (const e of [" Eve@Example.com ", "q@example.com", "zed@example.com", "eve@example.com"]) { await gp.fill("#gsMailIn", e); await gp.press("#gsMailIn", "Enter"); await gp.waitForTimeout(300); }
+  d = await fs();
+  ok(JSON.stringify(d[mail("eve@example.com")]) === JSON.stringify({ group: gid, name: "Japanese club", email: "eve@example.com", role: "member", by: "Olga S.", at: d[mail("eve@example.com")]?.at }) && !!d[mail("q@example.com")]
+    && (await gp.$$("#gsBody [data-mail-off]")).length === 3, "invites: each is saved under the group and the address in lowercase, once, and listed", await body());
+  await gp.click(`[data-mail-off="${gid}_zed@example.com"]`); await gp.waitForTimeout(300);
+  await gp.click(`[data-mail-copy="${gid}_eve@example.com"]`); await gp.waitForTimeout(300);
+  ok(!(await fs())[mail("zed@example.com")] && (await gp.$$("#gsBody [data-mail-off]")).length === 2 && ((await text(gp, `[data-mail-copy="${gid}_eve@example.com"]`)) === "Copied" || /I invited you to “Japanese club”, a group on Japanese Vocab Practice\. To join, sign in at .* with eve@example\.com/.test(await gp.inputValue("[data-mail-text]"))),
+    "invites: Cancel takes one away; Copy invite message gives the message to send");
+  await gp.screenshot({ path: join(out, "29-invites.png") });
+  await gp.click("#askYes");
+  // Eve finds hers in the notebook menu and joins; Quin declines.
+  await as(E);
+  m = await menuText();
+  ok(/Japanese club, Olga S\. invited you, Join, Decline/.test(m), "invites: whoever signs in with that address finds the invite in the notebook menu", m);
+  await nbDo("joinInvite"); await gp.waitForTimeout(800);
+  d = await fs(); m = await menuText();
+  ok(d[at("/members/e1")]?.via === "mail" && d[at("/members/e1")].role === "member" && !d[mail("eve@example.com")] && d["users/e1/meta/groups"].list.some((x) => x.id === gid) && /Japanese club, Food words/.test(m) && !/invited you/.test(m),
+    "invites: Join puts her in the group with the invite's role and takes the invite away", m);
+  await as(Q);
+  await nbDo("declineInvite"); await gp.waitForTimeout(500);
+  ok(!(await fs())[mail("q@example.com")] && !/invited you/.test(await menuText()), "invites: Decline takes it away");
+  // One left waiting goes when the group is deleted.
+  await as(O); await gsOpen(); await gp.fill("#gsMailIn", "late@example.com"); await gp.click("#gsMailGo"); await gp.waitForTimeout(300); await gp.click("#askYes");
   // Delete my account waits while she owns a group.
   await settings(gp, "account"); await gp.click("#delStart"); await gp.waitForTimeout(200);
   ok(/You own “Japanese club”\. Hand it over/.test(await text(gp, "#delOwn")) && !(await gp.$("#delYes")), "delete account: not while she owns a group; it says to hand it over or delete it first", await text(gp, "#delOwn"));
@@ -2649,7 +2676,7 @@ if (entry.length > 1) {
   ok(/^Delete “Japanese club”\?$/.test(await text(gp, "#askTitle")) && /Its notebook and everything in it/.test(await text(gp, "#askText")), "delete group: asks first, saying what goes", await text(gp, "#askText"));
   await gp.click("#askYes"); await gp.waitForTimeout(1200);
   d = await fs();
-  ok(!Object.keys(d).some((p) => p.startsWith(at() + "/") || p === at()) && !d[`groupLinks/${token3}`] && JSON.stringify(d["users/m1/meta/groups"].list) === "[]", "delete group: all of it is deleted, its link's page too, and it leaves his list");
+  ok(!Object.keys(d).some((p) => p.startsWith(at() + "/") || p === at()) && !d[`groupLinks/${token3}`] && !d[mail("late@example.com")] && JSON.stringify(d["users/m1/meta/groups"].list) === "[]", "delete group: all of it is deleted, its link's page and invites too, and it leaves his list");
   // Closed by the site (a birthday under 13), an account hands each group it owns on: to whoever has been in it longest of
   // those whose role can do the most (Eve, an Editor, before Olga, a Member who joined first).
   await nbDo("newGroup"); await named("Club two");
