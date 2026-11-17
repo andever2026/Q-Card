@@ -2527,6 +2527,65 @@ if (entry.length > 1) {
   await as(O); await openNb("Kana words"); await nbDo("delete"); await gp.click("#askYes"); await gp.waitForTimeout(900);
   d = await fs();
   ok(!Object.keys(d).some((p) => p.startsWith(at(`/notebooks/${kana}`))) && (await text(gp, "#nbName")) === "My notebook", "groups: deleting one of the group's notebooks deletes it and what's in it");
+  // Group settings, from the gear by the group's name.
+  const gsOpen = async () => { await nbMenu(); await gp.click('#nbList [data-nb-do="groupSettings"]'); await gp.waitForTimeout(500); };
+  const body = () => text(gp, "#gsBody");
+  await put(at("/members/m1"), { name: "Mo", role: "member", joinedAt: "y", via: "x" }); await gp.waitForTimeout(300);
+  await gsOpen();
+  ok((await text(gp, "#askTitle")) === "Study group" && /Your name in this group/.test(await body()) && /People \(2\)/.test(await body()) && /Roles/.test(await body()) && await vis(gp, "#gsDelete") && await vis(gp, "#gsHand") && !(await gp.$("#gsLeave")),
+    "group settings: the owner sees her name there, the people, the roles, and Rename, Hand over and Delete", await body());
+  await gp.screenshot({ path: join(out, "29-group-settings.png") });
+  await gp.fill("#gsName", "Olga S."); await gp.click("#gsNameSave"); await gp.waitForTimeout(300);
+  ok((await fs())[at("/members/o1")].name === "Olga S." && /Olga S\. \(you\)/.test(await body()), "group settings: her name in the group is saved");
+  await gp.click('[data-role-of="m1"] .dd-btn'); await gp.click('[data-role-of="m1"] li[data-v="editor"]'); await gp.waitForTimeout(300);
+  ok((await fs())[at("/members/m1")].role === "editor", "group settings: the owner makes Mo an Editor");
+  await gp.click("#gsNewRole"); await gp.waitForTimeout(300);
+  ok((await gp.getAttribute("#nbNameIn", "aria-label")) === "Role name", "group settings: New role asks for its name");
+  await named("Helper"); await gp.waitForTimeout(400);
+  ok(await vis(gp, "#gsRoleSave") && (await gp.$$eval("#gsBody [data-perm]", (cs) => cs.filter((c) => c.checked).length)) === 0, "group settings: a new role starts with no permissions, ready to pick them");
+  await gp.check('#gsBody [data-perm="invite"]'); await gp.click("#gsRoleSave"); await gp.waitForTimeout(300);
+  d = await fs();
+  const helper = Object.keys(d).find((p) => p.startsWith(at("/roles/")) && d[p].name === "Helper");
+  ok(!!helper && d[helper].perms.invite === true && Object.values(d[helper].perms).filter(Boolean).length === 1 && /Helper\s*Invite/.test(await body()), "group settings: saved with the permission ticked", await body());
+  await gp.fill("#gsGroupName", "Japanese club"); await gp.click("#gsGroupSave"); await gp.waitForTimeout(600);
+  ok((await fs())[at()].name === "Japanese club" && (await text(gp, "#askTitle")) === "Japanese club", "group settings: the owner renames the group");
+  await gp.click("#askYes"); await gp.waitForTimeout(400);
+  m = await menuText();
+  ok(/Japanese club/.test(m) && (await fs())["users/o1/meta/groups"].list[0].name === "Japanese club", "group settings: the new name shows in the menu and in her list of groups", m);
+  // Delete my account waits while she owns a group.
+  await settings(gp, "account"); await gp.click("#delStart"); await gp.waitForTimeout(200);
+  ok(/You own “Japanese club”\. Hand it over/.test(await text(gp, "#delOwn")) && !(await gp.$("#delYes")), "delete account: not while she owns a group; it says to hand it over or delete it first", await text(gp, "#delOwn"));
+  await goView(gp, "setup");
+  // She hands it to Mo, and takes the role he had; then, an Editor, she can only leave.
+  await gsOpen(); await gp.click("#gsHand"); await gp.waitForTimeout(300);
+  ok(/^Hand “Japanese club” over to Mo\?$/.test(await text(gp, "#askTitle")) && /Editor/.test(await text(gp, "#askText")), "hand over: asks first, saying she takes his role", await text(gp, "#askText"));
+  await gp.click("#askYes"); await gp.waitForTimeout(700);
+  d = await fs();
+  ok(d[at()].owner === "m1" && d[at("/members/m1")].role === "owner" && d[at("/members/o1")].role === "editor", "hand over: Mo owns the group and Olga is an Editor");
+  await gsOpen();
+  ok(await vis(gp, "#gsLeave") && !(await gp.$("#gsDelete")) && !(await gp.$("#gsNewRole")) && !(await gp.$("[data-out]")), "group settings: as an Editor she can leave, not delete it, change roles or remove anyone");
+  await gp.click("#gsLeave"); await gp.waitForTimeout(300); await gp.click("#askYes"); await gp.waitForTimeout(700);
+  d = await fs();
+  ok(!d[at("/members/o1")] && JSON.stringify(d["users/o1/meta/groups"].list) === "[]" && !/Japanese club/.test(await menuText()) && !/no longer in/.test((await text(gp, "#banner")) || ""),
+    "leave: she's out, and the group leaves her menu and list without a message about it");
+  // Mo, now its owner, deletes it: every part of it goes.
+  await put("users/m1/meta/groups", { list: [{ id: gid, name: "Japanese club" }] });
+  await as(M); await gsOpen(); await gp.click("#gsDelete"); await gp.waitForTimeout(300);
+  ok(/^Delete “Japanese club”\?$/.test(await text(gp, "#askTitle")) && /Its notebook and everything in it/.test(await text(gp, "#askText")), "delete group: asks first, saying what goes", await text(gp, "#askText"));
+  await gp.click("#askYes"); await gp.waitForTimeout(1200);
+  d = await fs();
+  ok(!Object.keys(d).some((p) => p.startsWith(at() + "/") || p === at()) && JSON.stringify(d["users/m1/meta/groups"].list) === "[]", "delete group: all of it is deleted, and it leaves his list");
+  // Closed by the site (a birthday under 13), an account hands each group it owns on: to whoever has been in it longest of
+  // those whose role can do the most (Eve, an Editor, before Olga, a Member who joined first).
+  await nbDo("newGroup"); await named("Club two");
+  d = await fs();
+  const g2 = Object.keys(d).find((p) => /^groups\/[^/]+$/.test(p) && d[p].name === "Club two")?.split("/")[1];
+  await put(`groups/${g2}/members/o1`, { name: "Olga", role: "member", joinedAt: "2026-01-01", via: "x" }); await put(`groups/${g2}/members/e1`, { name: "Eve", role: "editor", joinedAt: "2026-02-01", via: "x" });
+  const [m12, y12] = bornAgo(13, -1);
+  await put("users/m1/data/profile", { born: `${y12}-${m12}`, bornAt: new Date().toISOString() }); await gp.waitForTimeout(500);
+  await gp.click("#tooYoungOk"); await gp.waitForTimeout(1500);
+  d = await fs();
+  ok(d[`groups/${g2}`]?.owner === "e1" && d[`groups/${g2}/members/e1`]?.role === "owner" && !d[`groups/${g2}/members/m1`] && !Object.keys(d).some((p) => p.startsWith("users/m1/")), "closed account: its group goes to Eve, and the account is gone");
   ok(gp.errors.length === 0, "groups: no page errors", gp.errors.join(" | "));
   await gctx.close();
 }

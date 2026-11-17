@@ -13,6 +13,9 @@
   const nbNow = () => allNbs().find((n) => n.id === nb);
   // Whether the open notebook's vocab can be changed here: canWrite (page/core.js) is the account's, and some notebooks are read only.
   const canEdit = () => canWrite && nbNow()?.edit !== false;
+  // Whether the open notebook could be changed when it was drawn: it's drawn again when that changes (a role in a group).
+  let drawnEdit = null;
+  function followEdit() { if (drawnEdit !== canEdit()) { drawnEdit = canEdit(); renderSetup(); renderTable(); } }
   // What other parts of the page add to notebooks (shared notebooks, on the public site): vocabHooks run after the open
   // notebook's vocab or the list of notebooks changes, nbGone before a notebook's documents are deleted (with its id),
   // and nbMore are further lines of the menu: { key, label(), icon (an svg path), run, when() }.
@@ -57,7 +60,7 @@
     renderNotebooks();
     // Results are of a practice from the notebook before: back to Practice. Any other part shows the new notebook.
     if (!$("#results").hidden) show("setup");
-    renderSetup(); renderTable();
+    drawnEdit = canEdit(); renderSetup(); renderTable();
     if (!$("#history").hidden) renderHistory();
     if (!$("#settings").hidden) renderSettings();
     return true;
@@ -90,12 +93,13 @@
     kept.set("nbPicks", all);
   }
   // A name typed into the page's pop-up: "" when it's cancelled or left empty. A name another one in list has gets a number.
-  async function askNbName(title, yes, was = "", list = nbList(), what = "Notebook name", eg = "Japanese 2") {
-    const answer = ask(title, `<input class="tsearch" id="nbNameIn" maxlength="60" aria-label="${what}" placeholder="${eg}" value="${esc(was)}">`, yes);
+  // (n: how long it may be, leaving room for the number; a role's name is shorter.)
+  async function askNbName(title, yes, was = "", list = nbList(), what = "Notebook name", eg = "Japanese 2", n = 56) {
+    const answer = ask(title, `<input class="tsearch" id="nbNameIn" maxlength="${n + 4}" aria-label="${what}" placeholder="${eg}" value="${esc(was)}">`, yes);
     const inp = $("#nbNameIn");
     inp.focus(); inp.select();
     enterYes(inp);
-    return nbFree((await answer) ? tidy(inp.value, 56) : "", was, list);
+    return nbFree((await answer) ? tidy(inp.value, n) : "", was, list);
   }
   async function addNotebook() {
     const name = await askNbName("New notebook", "Create");

@@ -35,14 +35,15 @@
     $("#signOutBtn").onclick = account ? () => platform.signOut() : () => signIn($("#signOutBtn"), (m) => { $("#acctErr").textContent = m; $("#acctErr").hidden = false; });
     const what = account ? "your account and its sets, kanji lists and progress" : "the sets, kanji lists and progress saved in this browser";
     $("#delAcct").innerHTML = !delAsk
-      ? account ? `<button class="btn danger" type="button" id="delStart">Delete my account</button>`
+      ? account ? `<button class="btn danger" type="button" id="delStart">Delete my account</button><p class="small" id="delOwn" hidden></p>`
         : `<div class="delrow"><button class="btn danger" type="button" id="delStart" aria-describedby="delTip">Delete local storage</button>
           ${qtip("delTip", "What this does", "This deletes all local data (sets, kanji lists, progress and settings), refreshes the page and treats you as a new user.")}</div>`
       : `<p class="small">This deletes ${what}, for good. Export your vocab first if you want a copy.</p>
         <div class="tactions"><button class="btn danger" type="button" id="delYes">Delete everything</button><button class="btn" type="button" id="delNo">Cancel</button></div>
         <p class="keyerr small" id="delErr" hidden></p>`;
     if (!delAsk) {
-      $("#delStart").onclick = () => { delAsk = true; renderAccount(); };
+      // Not while the account owns a group (groups/settings.js): that's handed over or deleted first.
+      $("#delStart").onclick = () => { const why = account ? groupsBlockDelete() : ""; if (why) { $("#delOwn").textContent = why; $("#delOwn").hidden = false; } else { delAsk = true; renderAccount(); } };
       tipTaps($("#delAcct")); // a tap shows the tip on touch screens, where there's no hover
       return;
     }
@@ -70,10 +71,11 @@
     if (account) try { await platform.confirmSignIn(); } catch (err) { if (!forced) throw Object.assign(err, { early: true }); confirmed = false; }
     stopPrefs();
     await forgetReports(); // shared-notebooks/report.js
+    await leaveGroups(forced); // groups/settings.js
     for (const id of new Set([MAIN_NB, ...nbList().map((n) => n.id)])) await emptyNotebook(id);
     const paths = [];
     for (const c of ["training", "data/users/" + uid]) for (const d of (await db.collection(c).get()).docs) paths.push(`${c}/${d.id}`);
-    for (const p of [...paths, "meta/samples", "meta/notebooks"]) await db.doc(p).delete();
+    for (const p of [...paths, "meta/samples", "meta/notebooks", "meta/groups"]) await db.doc(p).delete();
     try { localStorage.removeItem("qcard:mode"); localStorage.removeItem("qcard:welcomed"); } catch {}
     // Every choice this site kept in this browser goes too (colours, picks, a practice to resume with its writing): signed in,
     // they're the account's copy. A guest's own sets and history (qcard:local:…) stay unless it's the guest being deleted.

@@ -10,6 +10,8 @@
   let groupIndex = null; // [{ id, name }] as saved, null until it has loaded
   // id → { id, info: groups/<id>, me: this account's line, roles: Map, notebooks: [{ id, name, at }], heard, off }
   const groups = new Map();
+  // What else goes when a group is deleted (its join link's page: groups/links.js), each given its id and groups/<id>.
+  const groupGone = [];
   const groupReady = (g) => g?.heard.size === 4;
   const perm = (g, p) => !!g?.me && (g.me.role === "owner" || g.roles.get(g.me.role)?.perms?.[p] === true);
   const groupName = (g) => tidy(g.info?.name, 60) || groupIndex?.find((x) => x.id === g.id)?.name || "Group";
@@ -61,11 +63,10 @@
   }
   // Whatever shows a group follows it: the menu, and whether the open notebook can be changed (only when that changes,
   // so nobody's typing is drawn over).
-  let couldEdit = null;
   function groupsChanged(g) {
     if (g?.info && groupIndex.some((x) => x.id === g.id && x.name !== groupName(g))) saveGroups(groupIndex.map((x) => (x.id === g.id ? { ...x, name: groupName(g) } : x)));
     if (!openNotebook(nb)) renderNotebooks();
-    if (couldEdit !== canEdit()) { couldEdit = canEdit(); renderSetup(); renderTable(); renderPort(); }
+    followEdit();
   }
   async function saveGroups(list) {
     groupIndex = list; syncGroups();
@@ -76,7 +77,7 @@
   // Each group in the notebook menu: its name, its notebooks, and New notebook there for whoever may add them.
   nbSections.push((button) => (groupIndex || []).map(({ id, name }) => {
     const g = groups.get(id), ready = groupReady(g);
-    return `<p class="small muted nbgroup">${esc(g ? groupName(g) : name)}</p>${!ready ? `<p class="small muted nbnone">Loading…</p>`
+    return `<div class="nbgroup"><span class="small muted">${esc(g ? groupName(g) : name)}</span>${ready ? `<button type="button" role="menuitem" data-nb-do="groupSettings" data-arg="${esc(id)}" aria-label="Settings of ${esc(groupName(g))}" title="Group settings">${nbIcon("M19.3 10 L21.9 10.5 L21.9 13.5 L19.3 14 L18.6 15.7 L20.1 17.9 L17.9 20.1 L15.7 18.6 L14 19.3 L13.5 21.9 L10.5 21.9 L10 19.3 L8.3 18.6 L6.1 20.1 L3.9 17.9 L5.4 15.7 L4.7 14 L2.1 13.5 L2.1 10.5 L4.7 10 L5.4 8.3 L3.9 6.1 L6.1 3.9 L8.3 5.4 L10 4.7 L10.5 2.1 L13.5 2.1 L14 4.7 L15.7 5.4 L17.9 3.9 L20.1 6.1 L18.6 8.3Z M15.2 12 a3.2 3.2 0 1 1 -6.4 0 a3.2 3.2 0 0 1 6.4 0")}</button>` : ""}</div>${!ready ? `<p class="small muted nbnone">Loading…</p>`
       : g.notebooks.map((n) => button({ id: `${id}/${n.id}`, name: n.name })).join("") || `<p class="small muted nbnone">No notebooks yet</p>`}
       ${ready && canWrite && perm(g, "notebooks") ? `<button type="button" role="menuitem" data-nb-do="groupNb" data-arg="${esc(id)}">${nbIcon("M12 5 V19 M5 12 H19")}New notebook in ${esc(groupName(g))}</button>` : ""}`;
   }).join(""));

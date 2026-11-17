@@ -96,7 +96,9 @@ function allowed(path, write = false, v, q, after = data) {
     if (s[2] === "members") {
       if (write === "delete") { if (!(s[3] === me && was?.role !== "owner") && !owns && !(can("members") && was?.role !== "owner")) no(); return; }
       if (!was) { if (!(s[3] === me && v.role === "owner" && after[at()]?.owner === me)) no(); return; }
-      if (s[3] === me ? v.role !== was.role : !(can("members") && was.role !== "owner" && v.role !== "owner")) no();
+      // (Becoming owner, or the old owner taking a role, only as part of the owner handing the group over.)
+      const handing = owns && after[at()]?.owner !== me;
+      if (s[3] === me ? v.role !== was.role && !(handing && was.role === "owner") : !(can("members") && was.role !== "owner" && v.role !== "owner") && !(handing && v.role === "owner" && after[at()]?.owner === s[3])) no();
       return;
     }
     if (s[2] === "notebooks") { if (s.length === 4 ? !can("notebooks") && !(write === "delete" && owns) : !["sets", "kanji", "meta"].includes(s[4]) || !(can("edit") || can("notebooks"))) no(); return; }

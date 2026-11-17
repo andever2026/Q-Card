@@ -562,9 +562,23 @@ await part("8. Groups in the page", async () => {
   await goTable(mo);
   const tried = await mo.evaluate(async ([g, n]) => { try { await window.qcardPlatform.group(g).db.doc(`notebooks/${n}/sets/x`).set({ name: "x" }); return "written"; } catch (e) { return e.code; } }, [g, kana]);
   ok(await until(() => vis(mo, "#tableRole")) && !(await vis(mo, "#newSetForm")) && tried === "permission-denied", "groups: a Member opens the group's notebook read only, and the rules refuse his writes", tried);
+  // Group settings (src/groups/settings.js), from the gear by the group's name, with the real rules.
+  const gs = async (p) => { await menu(p, '[data-nb-do="groupSettings"]'); await until(() => p.$("#gsBody")); };
+  await gs(page); await page.click(`[data-role-of="${mid}"] .dd-btn`); await page.click(`[data-role-of="${mid}"] li[data-v="editor"]`);
+  ok(await until(async () => (await getDoc(at(`/members/${mid}`)))?.role === "editor") && await until(() => vis(mo, "#newSetForm")), "group settings: the owner makes Mo an Editor, and his open page lets him edit at once");
   // Taken out: the real listeners tell his page, which drops the group.
-  await as("admin", "DELETE", at(`/members/${mid}`));
+  await page.click(`[data-out="${mid}"]`); await page.click("#askYes");
   ok(await until(async () => /no longer in “Study group”/.test(await text(mo, "#banner")) && (await text(mo, "#nbName")) === "My notebook"), "groups: taken out of the group, his page says so and opens his own notebook");
+  await until(() => page.$("#gsBody")); await page.click("#askYes");
+  // Back in, he's handed the group; she takes his role, then leaves; he deletes it, with everything in it.
+  await as("admin", "PATCH", at(`/members/${mid}`), { fields: { name: str("mo"), role: str("member"), joinedAt: str("x"), via: str("x") } });
+  await gs(page); await page.click("#gsHand"); await page.click("#askYes");
+  ok(await until(async () => (await getDoc(at()))?.owner === mid && (await getDoc(at(`/members/${mid}`)))?.role === "owner" && (await getDoc(at(`/members/${uid}`)))?.role === "member"), "hand over: one write the rules accept makes Mo the owner, and Olga takes his role");
+  await gs(page); await page.click("#gsLeave"); await page.click("#askYes");
+  ok(await until(async () => !(await getDoc(at(`/members/${uid}`))) && (await getDoc(`users/${uid}/meta/groups`))?.list?.length === 0), "leave: her line in the group goes, and the group leaves her list");
+  await as("admin", "PATCH", `users/${mid}/meta/groups`, { fields: { list: { arrayValue: { values: [{ mapValue: { fields: { id: str(g), name: str("Study group") } } }] } } } });
+  await gs(mo); await mo.click("#gsDelete"); await mo.click("#askYes");
+  ok(await until(async () => !(await getDoc(at())) && !Object.keys(await docsAt(at())).length && (await getDoc(`users/${mid}/meta/groups`))?.list?.length === 0), "delete group: its owner deletes its notebooks, their sets, roles and members, then the group, all allowed by the rules");
   await clean(page, "groups (owner)"); await clean(mo, "groups (member)");
   await page.context().close(); await mo.context().close();
 });
